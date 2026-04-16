@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { Sparkles } from 'lucide-react';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
