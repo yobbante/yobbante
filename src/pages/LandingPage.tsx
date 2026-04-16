@@ -70,6 +70,8 @@ const METRICS = [
 ];
 
 export default function LandingPage() {
+  const [smartOpen, setSmartOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
