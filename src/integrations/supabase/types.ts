@@ -14,16 +14,208 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      addresses: {
+        Row: {
+          address_line: string
+          country: Database["public"]["Enums"]["warehouse_country"]
+          created_at: string
+          id: string
+          identifier_code: string
+          user_id: string
+        }
+        Insert: {
+          address_line: string
+          country: Database["public"]["Enums"]["warehouse_country"]
+          created_at?: string
+          id?: string
+          identifier_code: string
+          user_id: string
+        }
+        Update: {
+          address_line?: string
+          country?: Database["public"]["Enums"]["warehouse_country"]
+          created_at?: string
+          id?: string
+          identifier_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          shipment_id: string | null
+          status: Database["public"]["Enums"]["package_status"]
+          user_id: string
+          warehouse_country: Database["public"]["Enums"]["warehouse_country"]
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          shipment_id?: string | null
+          status?: Database["public"]["Enums"]["package_status"]
+          user_id: string
+          warehouse_country: Database["public"]["Enums"]["warehouse_country"]
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          shipment_id?: string | null
+          status?: Database["public"]["Enums"]["package_status"]
+          user_id?: string
+          warehouse_country?: Database["public"]["Enums"]["warehouse_country"]
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          default_delivery_country: string | null
+          full_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_delivery_country?: string | null
+          full_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_delivery_country?: string | null
+          full_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shipments: {
+        Row: {
+          created_at: string
+          destination_country: string
+          eta: string | null
+          id: string
+          konnekt_id: string | null
+          origin_country: Database["public"]["Enums"]["warehouse_country"]
+          status: Database["public"]["Enums"]["shipment_status"]
+          total_cost: number | null
+          transport_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination_country?: string
+          eta?: string | null
+          id?: string
+          konnekt_id?: string | null
+          origin_country: Database["public"]["Enums"]["warehouse_country"]
+          status?: Database["public"]["Enums"]["shipment_status"]
+          total_cost?: number | null
+          transport_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination_country?: string
+          eta?: string | null
+          id?: string
+          konnekt_id?: string | null
+          origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          status?: Database["public"]["Enums"]["shipment_status"]
+          total_cost?: number | null
+          transport_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      timeline_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          related_package_id: string | null
+          related_shipment_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          related_package_id?: string | null
+          related_shipment_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          related_package_id?: string | null
+          related_shipment_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_related_package_id_fkey"
+            columns: ["related_package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_related_shipment_id_fkey"
+            columns: ["related_shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_identifier_code: {
+        Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      package_status:
+        | "CREATED"
+        | "RECEIVED"
+        | "IN_STORAGE"
+        | "READY_TO_SHIP"
+        | "SHIPPED"
+        | "DELIVERED"
+      shipment_status: "PENDING" | "IN_TRANSIT" | "CUSTOMS" | "DELIVERED"
+      warehouse_country: "FR" | "CN" | "US"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +342,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      package_status: [
+        "CREATED",
+        "RECEIVED",
+        "IN_STORAGE",
+        "READY_TO_SHIP",
+        "SHIPPED",
+        "DELIVERED",
+      ],
+      shipment_status: ["PENDING", "IN_TRANSIT", "CUSTOMS", "DELIVERED"],
+      warehouse_country: ["FR", "CN", "US"],
+    },
   },
 } as const
