@@ -1,8 +1,12 @@
-import { Home, Truck, User, LogOut } from 'lucide-react';
+import { Home, Truck, User, LogOut, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
 import type { TabId } from './BottomNav';
 
 export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onChange: (tab: TabId) => void; onSignOut: () => void }) {
+  const navigate = useNavigate();
+  const { isStaff } = useUserRole();
   const links = [
     { id: 'home' as TabId, icon: Home, label: 'Home' },
     { id: 'shipments' as TabId, icon: Truck, label: 'Shipments' },
@@ -28,6 +32,15 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
             {link.label}
           </button>
         ))}
+        {isStaff && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Admin
+          </button>
+        )}
         <button
           onClick={onSignOut}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors ml-2"
