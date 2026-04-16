@@ -1,24 +1,31 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { AddressCard } from '@/components/AddressCard';
+import { ShipNowDialog } from '@/components/ShipNowDialog';
+import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { useAddresses } from '@/hooks/useAddresses';
 import { useProfile } from '@/hooks/useProfile';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, AlertTriangle } from 'lucide-react';
-import { COUNTRY_FLAGS } from '@/lib/types';
+import { Package, AlertTriangle, Sparkles } from 'lucide-react';
+import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
-export function HomeView() {
+export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const { events, isLoading: eventsLoading } = useTimeline();
-  const { shipments, isLoading: shipmentsLoading } = useShipments();
+  const { shipments } = useShipments();
   const { packages, consolidationGroups } = usePackages();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
+
+  const [shipOpen, setShipOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(false);
+  const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const waitingPackages = packages.filter(p => !p.shipment_id && p.status !== 'DELIVERED');
@@ -26,6 +33,11 @@ export function HomeView() {
   const greeting = profile?.full_name
     ? `Bonjour, ${profile.full_name.split(' ')[0]}`
     : 'Bienvenue';
+
+  const openShip = (country?: WarehouseCountry) => {
+    setPresetCountry(country);
+    setShipOpen(true);
+  };
 
   return (
     <div className="space-y-8 pb-28 md:pb-8">
@@ -36,7 +48,26 @@ export function HomeView() {
       </motion.div>
 
       {/* Action Bar */}
-      <ActionBar />
+      <ActionBar
+        onShip={() => openShip()}
+        onTrack={onNavigateShipments}
+        onBuy={() => setSmartOpen(true)}
+      />
+
+      {/* Smart Import banner */}
+      <motion.button
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={() => setSmartOpen(true)}
+        className="w-full flex items-center gap-3 p-4 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity text-left"
+      >
+        <Sparkles className="w-5 h-5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Smart Import Assistant</p>
+          <p className="text-xs opacity-70">Estimation instantanée de votre import</p>
+        </div>
+        <span className="text-xs opacity-70">Essayer →</span>
+      </motion.button>
 
       {/* Conversion triggers */}
       {waitingPackages.length > 0 && (
@@ -52,7 +83,7 @@ export function HomeView() {
             </p>
             <p className="text-xs text-muted-foreground">Groupez-les pour économiser</p>
           </div>
-          <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+          <Button variant="link" size="sm" className="text-primary p-0 h-auto" onClick={() => openShip()}>
             Expédier
           </Button>
         </motion.div>
@@ -74,7 +105,12 @@ export function HomeView() {
               </p>
               <p className="text-xs text-muted-foreground">Économisez en groupant</p>
             </div>
-            <Button variant="link" size="sm" className="text-amber-600 p-0 h-auto">
+            <Button
+              variant="link"
+              size="sm"
+              className="text-amber-600 p-0 h-auto"
+              onClick={() => openShip(country as WarehouseCountry)}
+            >
               Consolider
             </Button>
           </motion.div>
@@ -114,8 +150,8 @@ export function HomeView() {
             <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-sm font-medium text-foreground">Aucune activité</p>
             <p className="text-xs text-muted-foreground mt-1">Commencez à acheter dans le monde entier</p>
-            <Button variant="outline" size="sm" className="mt-4">
-              Découvrir nos services
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => setSmartOpen(true)}>
+              Estimer un import
             </Button>
           </div>
         ) : (
@@ -138,6 +174,9 @@ export function HomeView() {
           </div>
         )}
       </section>
+
+      <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} presetCountry={presetCountry} />
+      <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
     </div>
   );
 }

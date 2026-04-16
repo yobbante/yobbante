@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { Sparkles } from 'lucide-react';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -67,6 +70,8 @@ const METRICS = [
 ];
 
 export default function LandingPage() {
+  const [smartOpen, setSmartOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
@@ -330,6 +335,64 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Smart Import Assistant Teaser */}
+      <section id="smart-assistant" className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={0}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-6">
+              <Sparkles className="w-3.5 h-3.5" />
+              Smart Import Assistant
+            </div>
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-foreground leading-tight">
+              Estimez votre import en 30 secondes.
+            </h2>
+            <p className="mt-4 text-base text-muted-foreground max-w-md leading-relaxed">
+              Décrivez votre produit, son poids et son origine. Recevez instantanément la route optimale, le coût estimé et le délai de livraison.
+            </p>
+            <button
+              onClick={() => setSmartOpen(true)}
+              className="mt-8 inline-flex items-center justify-center text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Estimer mon import
+            </button>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={1}
+            className="bg-secondary rounded-2xl p-6 space-y-4"
+          >
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Produit</p>
+              <p className="text-sm font-medium text-foreground">Smartphones · 12 kg</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Route</p>
+              <p className="text-sm font-medium text-foreground">🇨🇳 Chine → 🇸🇳 Dakar</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-card border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground">Coût</p>
+                <p className="text-xl font-bold text-foreground mt-1">~ 175 €</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <p className="text-xs text-muted-foreground">Délai</p>
+                <p className="text-xl font-bold text-foreground mt-1">5–8 j</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Numbers — Dark inversion */}
       <section className="bg-foreground py-16 md:py-20">
         <div className="max-w-6xl mx-auto px-6">
@@ -421,6 +484,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
     </div>
   );
 }
