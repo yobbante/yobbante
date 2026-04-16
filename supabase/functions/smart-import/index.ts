@@ -5,11 +5,60 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TOOL = {
+  type: "function",
+  function: {
+    name: "recommend_routes",
+    description: "Return 3 import route options (fast, balanced, economy) and the recommended one.",
+    parameters: {
+      type: "object",
+      properties: {
+        recommended: { type: "string", enum: ["fast", "balanced", "economy"] },
+        reasoning: { type: "string", description: "Explication détaillée en français (3-4 phrases)" },
+        options: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              key: { type: "string", enum: ["fast", "balanced", "economy"] },
+              label: { type: "string", description: "Nom court (ex: Express aérien)" },
+              transport: { type: "string", enum: ["air", "sea", "road"] },
+              transportLabel: { type: "string" },
+              estimatedCost: { type: "number", description: "Coût total en euros" },
+              estimatedDays: { type: "string", description: "Ex: 5–8 jours" },
+              highlight: { type: "string", description: "Avantage clé (ex: Le plus rapide)" },
+            },
+            required: ["key", "label", "transport", "transportLabel", "estimatedCost", "estimatedDays", "highlight"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["recommended", "reasoning", "options"],
+      additionalProperties: false,
+    },
+  },
+};
+
+function fallback(weight: number) {
+  return {
+    recommended: weight > 30 ? "economy" : "balanced" as const,
+    reasoning: "Recommandation basée sur des règles standards (IA indisponible).",
+    options: [
+      { key: "fast", label: "Express aérien", transport: "air", transportLabel: "Aérien express",
+        estimatedCost: Math.round(weight * 14 + 30), estimatedDays: "3–5 jours", highlight: "Le plus rapide" },
+      { key: "balanced", label: "Aérien standard", transport: "air", transportLabel: "Aérien standard",
+        estimatedCost: Math.round(weight * 9 + 25), estimatedDays: "6–9 jours", highlight: "Meilleur rapport" },
+      { key: "economy", label: "Maritime LCL", transport: "sea", transportLabel: "Maritime (LCL)",
+        estimatedCost: Math.round(weight * 3.5 + 30), estimatedDays: "25–35 jours", highlight: "Le moins cher" },
+    ],
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { product, weight, origin, destination } = await req.json();
+    const { product, weight, origin, destination, budget } = await req.json();
 
     if (!product || !weight || !origin || !destination) {
       return new Response(JSON.stringify({ error: "Missing fields" }), {
@@ -21,31 +70,20 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `Tu es un expert en logistique internationale spécialisé dans l'import/export entre l'Asie, l'Europe, l'Amérique et l'Afrique.
-Analyse la demande d'import et fournis une recommandation détaillée.
+    const systemPrompt = `Tu es un expert en logistique internationale (Yobbanté). Tu fournis 3 options de route pour un import: rapide (air express), équilibrée (air standard ou route), économique (maritime LCL).
+Tarifs réalistes 2026:
+- Aérien express: 12-18€/kg, 3-5j
+- Aérien standard: 7-12€/kg, 6-10j
+- Routier: 4-8€/kg, 8-15j (Europe/MENA uniquement)
+- Maritime LCL: 2-5€/kg, 25-40j
+- Frais fixes (manutention + douane + livraison finale): 25-50€
 
-IMPORTANT: Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, sans backticks. Le format exact:
-{
-  "transport": "air" | "sea" | "road",
-  "transportLabel": "label en français",
-  "estimatedCost": number (en euros),
-  "estimatedDays": "X–Y jours",
-  "reasoning": "explication détaillée en français (2-3 phrases)"
-}
-
-Prends en compte:
-- Le type de produit (fragile, périssable, valeur, volume)
-- Le poids et les seuils économiques par mode
-- La route géographique et les hubs logistiques
-- Les tarifs réalistes 2026 (aérien: ~8-15€/kg, maritime LCL: ~2-5€/kg, routier: ~4-8€/kg)
-- Frais de manutention, dédouanement, livraison finale (~15-30€ fixes)`;
+Recommande l'option la plus adaptée au produit, poids${budget ? `, et budget (${budget}€)` : ''}. Réponds en français via l'outil recommend_routes.`;
 
     const userPrompt = `Produit: ${product}
 Poids: ${weight} kg
 Origine: ${origin}
-Destination: ${destination}
-
-Recommande le mode de transport optimal.`;
+Destination: ${destination}${budget ? `\nBudget cible: ${budget} €` : ''}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -59,53 +97,45 @@ Recommande le mode de transport optimal.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        tools: [TOOL],
+        tool_choice: { type: "function", function: { name: "recommend_routes" } },
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please retry." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
+      const fb = fallback(Number(weight));
+      return new Response(JSON.stringify({ route: `${origin} → ${destination}`, ...fb }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-
-    // Parse JSON from AI response
-    let recommendation;
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    let parsed;
     try {
-      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      recommendation = JSON.parse(cleaned);
+      parsed = JSON.parse(toolCall?.function?.arguments || "{}");
+      if (!parsed.options || !Array.isArray(parsed.options) || parsed.options.length === 0) {
+        throw new Error("invalid");
+      }
     } catch {
-      console.error("Failed to parse AI response:", content);
-      // Fallback to static logic
-      recommendation = {
-        transport: weight > 30 ? "sea" : "air",
-        transportLabel: weight > 30 ? "Maritime (LCL)" : "Aérien standard",
-        estimatedCost: Math.round(weight * (weight > 30 ? 4 : 12) + 25),
-        estimatedDays: weight > 30 ? "25–35 jours" : "5–8 jours",
-        reasoning: "Recommandation basée sur le poids et la route standard.",
-      };
+      parsed = fallback(Number(weight));
     }
 
     return new Response(JSON.stringify({
       route: `${origin} → ${destination}`,
-      ...recommendation,
+      ...parsed,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -1,6 +1,9 @@
 export type WarehouseCountry = 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE';
 export type PackageStatus = 'CREATED' | 'RECEIVED' | 'IN_STORAGE' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED';
 export type ShipmentStatus = 'PENDING' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
+export type DossierStatus =
+  | 'SUBMITTED' | 'IN_REVIEW' | 'SOURCING' | 'PROCURED'
+  | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED' | 'CLOSED';
 
 export const PACKAGE_STATUS_ORDER: PackageStatus[] = [
   'CREATED', 'RECEIVED', 'IN_STORAGE', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED'
@@ -9,6 +12,21 @@ export const PACKAGE_STATUS_ORDER: PackageStatus[] = [
 export const SHIPMENT_STATUS_ORDER: ShipmentStatus[] = [
   'PENDING', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED'
 ];
+
+export const DOSSIER_STATUS_ORDER: DossierStatus[] = [
+  'SUBMITTED', 'IN_REVIEW', 'SOURCING', 'PROCURED', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED', 'CLOSED'
+];
+
+export const DOSSIER_STATUS_LABELS: Record<DossierStatus, string> = {
+  SUBMITTED: 'Soumis',
+  IN_REVIEW: 'En analyse',
+  SOURCING: 'Sourcing',
+  PROCURED: 'Acheté',
+  IN_TRANSIT: 'En transit',
+  CUSTOMS: 'Douane',
+  DELIVERED: 'Livré',
+  CLOSED: 'Clôturé',
+};
 
 export const COUNTRY_FLAGS: Record<WarehouseCountry, string> = {
   FR: '🇫🇷',
@@ -79,4 +97,41 @@ export interface TimelineEvent {
   related_package_id: string | null;
   related_shipment_id: string | null;
   created_at: string;
+}
+
+export interface Dossier {
+  id: string;
+  user_id: string;
+  reference: string;
+  status: DossierStatus;
+  product_description: string;
+  estimated_weight: number | null;
+  origin_country: WarehouseCountry;
+  destination_country: string;
+  budget_eur: number | null;
+  needs_sourcing: boolean;
+  contact_phone: string | null;
+  contact_email: string | null;
+  notes: string | null;
+  estimated_cost: number | null;
+  estimated_delivery_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SmartRouteOption {
+  key: 'fast' | 'balanced' | 'economy';
+  label: string;
+  transport: 'air' | 'sea' | 'road';
+  transportLabel: string;
+  estimatedCost: number;
+  estimatedDays: string;
+  highlight: string;
+}
+
+export interface SmartRecommendation {
+  route: string;
+  options: SmartRouteOption[];
+  recommended: 'fast' | 'balanced' | 'economy';
+  reasoning: string;
 }
