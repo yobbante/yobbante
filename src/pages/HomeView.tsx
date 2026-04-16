@@ -4,15 +4,18 @@ import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { AddressCard } from '@/components/AddressCard';
+import { DossierCard } from '@/components/DossierCard';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { DossierDialog } from '@/components/DossierDialog';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { useAddresses } from '@/hooks/useAddresses';
 import { useProfile } from '@/hooks/useProfile';
+import { useDossiers } from '@/hooks/useDossiers';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, AlertTriangle, Sparkles } from 'lucide-react';
+import { Package, AlertTriangle, FolderPlus, ArrowRight } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
@@ -22,12 +25,16 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   const { packages, consolidationGroups } = usePackages();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
+  const { dossiers, isLoading: dossiersLoading } = useDossiers();
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
+  const [dossierOpen, setDossierOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
+  const [dossierPreset, setDossierPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
+  const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
   const waitingPackages = packages.filter(p => !p.shipment_id && p.status !== 'DELIVERED');
 
   const greeting = profile?.full_name
@@ -39,35 +46,56 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
     setShipOpen(true);
   };
 
+  const openDossier = () => {
+    setDossierPreset(undefined);
+    setDossierOpen(true);
+  };
+
   return (
     <div className="space-y-8 pb-28 md:pb-8">
       {/* Greeting */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <h2 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h2>
-        <p className="text-sm text-muted-foreground mt-1">Votre logistique, simplifiée.</p>
+        <p className="text-sm text-muted-foreground mt-1">Votre opérateur logistique. De bout en bout.</p>
       </motion.div>
+
+      {/* Active Dossiers */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-foreground">Vos dossiers</h3>
+          {activeDossiers.length > 0 && <span className="text-xs text-muted-foreground">{activeDossiers.length} actif{activeDossiers.length > 1 ? 's' : ''}</span>}
+        </div>
+        {dossiersLoading ? (
+          <Skeleton className="h-28 rounded-2xl" />
+        ) : activeDossiers.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-dashed border-border p-6 text-center"
+          >
+            <FolderPlus className="w-7 h-7 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-semibold text-foreground">Aucun dossier en cours</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+              Confiez votre premier import. Nous gérons tout : sourcing, transport, douane, livraison.
+            </p>
+            <Button onClick={openDossier} size="sm" className="mt-4">
+              Confier un dossier <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </motion.div>
+        ) : (
+          <div className="space-y-3">
+            {activeDossiers.slice(0, 3).map(d => <DossierCard key={d.id} dossier={d} />)}
+          </div>
+        )}
+      </section>
 
       {/* Action Bar */}
       <ActionBar
+        onDossier={openDossier}
+        onEstimate={() => setSmartOpen(true)}
         onShip={() => openShip()}
         onTrack={onNavigateShipments}
-        onBuy={() => setSmartOpen(true)}
       />
-
-      {/* Smart Import banner */}
-      <motion.button
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={() => setSmartOpen(true)}
-        className="w-full flex items-center gap-3 p-4 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity text-left"
-      >
-        <Sparkles className="w-5 h-5 flex-shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Smart Import Assistant</p>
-          <p className="text-xs opacity-70">Estimation instantanée de votre import</p>
-        </div>
-        <span className="text-xs opacity-70">Essayer →</span>
-      </motion.button>
 
       {/* Conversion triggers */}
       {waitingPackages.length > 0 && (
@@ -76,14 +104,14 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
         >
-          <Package className="w-5 h-5 text-primary flex-shrink-0" />
+          <Package className="w-5 h-5 text-foreground flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">
               {waitingPackages.length} colis en attente
             </p>
             <p className="text-xs text-muted-foreground">Groupez-les pour économiser</p>
           </div>
-          <Button variant="link" size="sm" className="text-primary p-0 h-auto" onClick={() => openShip()}>
+          <Button variant="link" size="sm" className="text-foreground p-0 h-auto" onClick={() => openShip()}>
             Expédier
           </Button>
         </motion.div>
@@ -146,13 +174,10 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-12">
             <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-sm font-medium text-foreground">Aucune activité</p>
             <p className="text-xs text-muted-foreground mt-1">Commencez à acheter dans le monde entier</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setSmartOpen(true)}>
-              Estimer un import
-            </Button>
           </div>
         ) : (
           <div className="space-y-1">
@@ -176,7 +201,15 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
       </section>
 
       <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} presetCountry={presetCountry} />
-      <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
+      <SmartImportDialog
+        open={smartOpen}
+        onOpenChange={setSmartOpen}
+        onConfideDossier={(p) => {
+          setDossierPreset({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
+          setDossierOpen(true);
+        }}
+      />
+      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={dossierPreset} />
     </div>
   );
 }
