@@ -59,7 +59,7 @@ export function ShipmentsView() {
                       {pkg.weight ? `${pkg.weight}kg` : 'Poids inconnu'}
                     </p>
                   </div>
-                  <StatusBadge status={pkg.status} type="package" />
+                  <StatusBadge status={pkg.status} />
                 </div>
               ))}
             </div>
