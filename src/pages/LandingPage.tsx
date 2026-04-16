@@ -488,6 +488,7 @@ export default function LandingPage() {
       </footer>
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
+      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} />
     </div>
   );
 }
