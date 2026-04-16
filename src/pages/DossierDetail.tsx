@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useDossierMessages } from '@/hooks/useDossierMessages';
 import { useUserRole } from '@/hooks/useUserRole';
+import { DossierDocuments } from '@/components/DossierDocuments';
+import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
 import {
   type Dossier,
   type Package,
@@ -25,6 +28,8 @@ export default function DossierDetail() {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
   const [draft, setDraft] = useState('');
+  const [internal, setInternal] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,27 +52,27 @@ export default function DossierDetail() {
   });
 
   const { data: packages = [] } = useQuery({
-    queryKey: ['dossier-packages', id, dossier?.user_id],
-    enabled: !!dossier,
+    queryKey: ['dossier-packages', id],
+    enabled: !!id,
     queryFn: async () => {
       const { data } = await supabase
         .from('packages')
         .select('*')
-        .eq('user_id', dossier!.user_id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .eq('dossier_id', id!)
+        .order('created_at', { ascending: false });
       return (data || []) as Package[];
     },
   });
 
-  const { messages, sendMessage } = useDossierMessages(id);
+  const { publicMessages, internalMessages, sendMessage } = useDossierMessages(id);
+  const messagesToShow = isStaff && internal ? internalMessages : publicMessages;
 
   const handleSend = async () => {
     if (!draft.trim()) return;
     try {
-      await sendMessage.mutateAsync({ body: draft.trim(), asStaff: isStaff, internal: false });
+      await sendMessage.mutateAsync({ body: draft.trim(), asStaff: isStaff, internal: isStaff && internal });
       setDraft('');
-    } catch (e) {
+    } catch {
       toast.error('Erreur lors de l\'envoi');
     }
   };
@@ -159,15 +164,20 @@ export default function DossierDetail() {
 
         {/* Linked packages */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
             <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
               <PackageIcon className="w-4 h-4" /> Colis associés
+              <span className="text-xs text-muted-foreground font-normal">({packages.length})</span>
             </h2>
-            <span className="text-xs text-muted-foreground">{packages.length}</span>
+            {isStaff && (
+              <Button size="sm" variant="outline" onClick={() => setAttachOpen(true)}>
+                <Link2 className="w-3.5 h-3.5 mr-1" /> Lier des colis
+              </Button>
+            )}
           </div>
           {packages.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-              <p className="text-sm text-muted-foreground">Aucun colis encore reçu pour ce dossier.</p>
+              <p className="text-sm text-muted-foreground">Aucun colis lié à ce dossier pour le moment.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -184,16 +194,12 @@ export default function DossierDetail() {
           )}
         </section>
 
-        {/* Customs documents (placeholder) */}
+        {/* Customs documents */}
         <section>
           <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4" /> Documents douane
           </h2>
-          <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-            <FileText className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-foreground">Aucun document pour le moment</p>
-            <p className="text-xs text-muted-foreground mt-1">L'équipe Yobbanté les ajoutera dès le dédouanement.</p>
-          </div>
+          <DossierDocuments dossierId={dossier.id} canUpload={true} canDelete={isStaff} />
         </section>
 
         {/* Conversation */}
@@ -201,20 +207,34 @@ export default function DossierDetail() {
           <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
             <MessageCircle className="w-4 h-4" /> Échanges avec l'équipe
           </h2>
-          <div className="bg-card border border-border rounded-2xl">
+
+          {isStaff && (
+            <Tabs value={internal ? 'internal' : 'public'} onValueChange={(v) => setInternal(v === 'internal')} className="mb-3">
+              <TabsList className="grid grid-cols-2 w-full max-w-xs">
+                <TabsTrigger value="public" className="gap-1.5"><MessageCircle className="w-3.5 h-3.5" /> Avec le client</TabsTrigger>
+                <TabsTrigger value="internal" className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Notes internes</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          <div className={cn('bg-card border rounded-2xl', internal ? 'border-amber-500/40' : 'border-border')}>
             <div className="divide-y divide-border max-h-96 overflow-y-auto">
-              {messages.length === 0 && (
+              {messagesToShow.length === 0 && (
                 <p className="p-6 text-sm text-muted-foreground text-center">
-                  Aucun message. Posez une question à l'équipe Yobbanté.
+                  {internal ? 'Aucune note interne. Ces messages ne sont jamais visibles par le client.' : 'Aucun message. Posez une question à l\'équipe Yobbanté.'}
                 </p>
               )}
-              {messages.map(m => (
+              {messagesToShow.map(m => (
                 <div key={m.id} className={cn('p-4 flex flex-col gap-1', m.author_role === 'staff' ? 'bg-secondary/40' : '')}>
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold">
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold flex-wrap">
                     <span className={cn(m.author_role === 'staff' ? 'text-primary' : 'text-foreground')}>
-                      {m.author_role === 'staff' ? 'Équipe Yobbanté' : 'Vous'}
+                      {m.author_role === 'staff' ? 'Équipe Yobbanté' : 'Client'}
                     </span>
-                    {m.internal_note && <span className="text-amber-600">· note interne</span>}
+                    {m.internal_note && (
+                      <span className="inline-flex items-center gap-1 text-amber-600 normal-case tracking-normal">
+                        <Lock className="w-3 h-3" /> note interne
+                      </span>
+                    )}
                     <span className="text-muted-foreground font-normal normal-case tracking-normal">
                       {new Date(m.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
@@ -227,7 +247,7 @@ export default function DossierDetail() {
               <Textarea
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
-                placeholder={isStaff ? 'Répondre au client…' : 'Écrire à l\'équipe…'}
+                placeholder={internal ? 'Note interne (jamais visible par le client)…' : isStaff ? 'Répondre au client…' : 'Écrire à l\'équipe…'}
                 rows={2}
                 className="resize-none"
               />
@@ -244,6 +264,15 @@ export default function DossierDetail() {
           </Button>
         )}
       </main>
+
+      {isStaff && (
+        <AttachPackagesDialog
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          dossierId={dossier.id}
+          ownerUserId={dossier.user_id}
+        />
+      )}
     </div>
   );
 }

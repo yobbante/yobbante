@@ -44,5 +44,9 @@ export function useDossierMessages(dossierId: string | undefined) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dossier-messages', dossierId] }),
   });
 
-  return { messages, isLoading, sendMessage };
+  // Client view: only public messages. Staff view: all messages.
+  const publicMessages = messages.filter(m => !m.internal_note);
+  const internalMessages = messages.filter(m => m.internal_note);
+
+  return { messages, publicMessages, internalMessages, isLoading, sendMessage };
 }

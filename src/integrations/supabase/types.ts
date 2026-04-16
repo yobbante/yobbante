@@ -41,6 +41,50 @@ export type Database = {
         }
         Relationships: []
       }
+      dossier_documents: {
+        Row: {
+          created_at: string
+          dossier_id: string
+          file_name: string
+          file_path: string
+          id: string
+          kind: string
+          mime_type: string | null
+          size_bytes: number | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          dossier_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          dossier_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_documents_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_messages: {
         Row: {
           author_id: string
@@ -146,6 +190,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          dossier_id: string | null
           id: string
           shipment_id: string | null
           status: Database["public"]["Enums"]["package_status"]
@@ -156,6 +201,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          dossier_id?: string | null
           id?: string
           shipment_id?: string | null
           status?: Database["public"]["Enums"]["package_status"]
@@ -166,6 +212,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          dossier_id?: string | null
           id?: string
           shipment_id?: string | null
           status?: Database["public"]["Enums"]["package_status"]
@@ -174,6 +221,13 @@ export type Database = {
           weight?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "packages_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "packages_shipment_id_fkey"
             columns: ["shipment_id"]
