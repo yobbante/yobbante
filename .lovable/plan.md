@@ -1,116 +1,129 @@
 
-# YOBBANTÉ — Logistics Orchestration Platform
 
-## Overview
-A premium, timeline-first logistics platform where users buy products globally, receive them in international warehouses, and get them delivered locally. Dark, minimal design inspired by Linear/Stripe.
+# YOBBANTÉ — Full Redesign: Light Theme + Apple HIG + Landing Page
 
----
+## Summary
 
-## Phase 1: Foundation
-
-### Database Schema (Supabase + Lovable Cloud)
-- **users** — leverages Supabase auth
-- **profiles** — id, user_id (FK auth.users), full_name, default_delivery_country, created_at
-- **addresses** — id, user_id, country (enum: FR, CN, US), address_line, identifier_code (unique per user+country), created_at
-- **packages** — id, user_id, warehouse_country, status (enum: CREATED → RECEIVED → IN_STORAGE → READY_TO_SHIP → SHIPPED → DELIVERED), weight, shipment_id (nullable FK), description, created_at
-- **shipments** — id, user_id, status (enum: PENDING → IN_TRANSIT → CUSTOMS → DELIVERED), total_cost, eta, transport_type, konnekt_id, origin_country, destination_country, created_at
-- **timeline_events** — id, user_id, event_type, title, description, metadata (jsonb), related_package_id, related_shipment_id, created_at
-
-### Security
-- RLS on all tables: `user_id = auth.uid()`
-- Security-definer helper function for role checks
-
-### Auth
-- Email + Password + Google OAuth
-- On signup trigger: auto-create profile + 3 warehouse addresses (France, China, USA) with unique identifier codes
+Complete visual overhaul from dark navy to a clean white/light theme following Apple Human Interface Guidelines. Fix all design inconsistencies, add a high-converting landing page, and polish the entire app to production-ready 2026 standards.
 
 ---
 
-## Phase 2: Design System
+## 1. Design System — Light Theme Overhaul
 
-### Theme (Dark Mode Default)
-- Background: deep navy (`#0A0E1A`)
-- Surface: `#111827`
-- Accent: electric blue (`#3B82F6`) with neon glow variants
-- Text: white primary, muted gray secondary
-- Border radius: 14px, soft shadows, no heavy borders
+**What changes:**
+- Replace all CSS custom properties in `src/index.css` with a light Apple-inspired palette
+- Background: pure white (`#FFFFFF`) / light gray (`#F5F5F7`) surfaces
+- Foreground: near-black (`#1D1D1F`) text
+- Primary accent: refined blue (`#0071E3` — Apple blue)
+- Muted: `#86868B`, borders: `#D2D2D7`
+- Remove `glow-*` utilities (dark-theme artifact), replace with subtle `shadow-sm` elevations
+- Remove `text-gradient` class, use solid color headings
+- Update `tailwind.config.ts` colors, remove `surface`, `glow` tokens
+- Cards: white with `#F5F5F7` hover, 12px radius, `shadow-sm` on hover
+- Typography: SF Pro-inspired — system font stack (`-apple-system, BlinkMacSystemFont, 'SF Pro Display'`)
 
-### Typography
-- Large bold titles (tracking tight)
-- Clean hierarchy with generous whitespace
+**Files:** `src/index.css`, `tailwind.config.ts`
 
-### Micro-interactions
-- Hover scale (1.02) with spring easing
-- Skeleton loading states
-- Smooth status transitions with subtle animations
+## 2. Component Fixes & Apple HIG Polish
+
+Every component updated to light theme with proper hierarchy:
+
+| Component | Issues | Fix |
+|-----------|--------|-----|
+| `ActionBar` | Dark `bg-card`, `border-border/50` | White cards, subtle shadow, larger touch targets (48px min) |
+| `BottomNav` | `bg-background/80` dark blur | White blur `bg-white/80`, iOS-style tab bar with proper safe area |
+| `DesktopNav` | Dark gradient text | Clean black wordmark, light header with bottom border |
+| `ShipmentCard` | Dark card, `border-border/50` | White card, hover shadow elevation, cleaner route display |
+| `AddressCard` | Dark card, `bg-muted` code block | Light gray surface, refined copy button |
+| `TimelineItem` | Dark hover states, tinted icon backgrounds | Light tinted circles, Apple-style list rows |
+| `StatusBadge` | Dark-themed color tokens (`text-amber-400`) | Light-friendly badge colors (`text-amber-600`, `bg-amber-50`) |
+| `DevPanel` | Dark floating panel | Light panel with proper shadow and backdrop |
+| `Skeleton` | `bg-muted` (dark) | Light gray pulse animation |
+| `Button` | Blue on dark | Proper Apple-style button hierarchy |
+
+**Files:** All component files listed above
+
+## 3. Page Redesign
+
+### Auth Page (`src/pages/Auth.tsx`)
+- Centered minimal form on white background
+- Apple-style large heading, clean input fields with light borders
+- Remove `text-gradient`, use solid black title
+- Subtle card container with shadow
+
+### Home Page (`src/pages/HomeView.tsx`)
+- Clean white background, proper section spacing (Apple's 80px+ sections)
+- Greeting: refined typography, no `md:hidden` restriction
+- Cards with subtle elevation on hover, not border color changes
+
+### Shipments Page (`src/pages/ShipmentsView.tsx`)
+- Clean list view with Apple-style grouped sections
+- Better empty states with illustration-style messaging
+
+### Profile Page (`src/pages/ProfileView.tsx`)
+- Apple Settings-style grouped sections
+- Proper form field styling for light theme
+
+### NotFound Page (`src/pages/NotFound.tsx`)
+- Updated to match light theme
+
+**Files:** All page files
+
+## 4. Landing Page (NEW)
+
+Create `src/pages/LandingPage.tsx` — a high-converting marketing page for unauthenticated users.
+
+**Structure:**
+1. **Hero** — Bold headline ("Shop anywhere. Ship everywhere."), subtitle, primary CTA "Get Started", secondary "Learn More"
+2. **How It Works** — 3-step visual: Shop globally → We receive it → Delivered to you. Clean icons, numbered steps
+3. **Warehouse Locations** — FR/CN/US cards with flags, showing the value proposition
+4. **Features Grid** — Smart consolidation, real-time tracking, auto-optimization. 2x2 grid with icons
+5. **Social Proof** — Metrics: "3 Warehouses", "150+ Countries", "48h Delivery"
+6. **CTA Section** — Final conversion block: "Start shipping smarter today" + signup button
+
+**Design:** Full-width sections, generous whitespace, Apple-style typography hierarchy, subtle scroll animations with framer-motion.
+
+**Routing update in `src/App.tsx`:**
+- `/` → Landing page (public)
+- `/app` → Dashboard (authenticated, Index component)
+- Auth page accessible from landing CTA
+
+**Files:** `src/pages/LandingPage.tsx`, `src/App.tsx`, `src/pages/Index.tsx`
+
+## 5. Missing Functionality & Polish
+
+- **Toast styling**: Update Sonner theme to light mode
+- **Loading states**: Refine spinner to Apple-style (not just border-spin)
+- **Empty states**: Better messaging with contextual illustrations
+- **Responsive**: Ensure all components work 390px–1400px+
+- **Safe areas**: Proper `env(safe-area-inset-bottom)` for iOS bottom nav
+- **Accessibility**: Proper focus rings, contrast ratios for light theme (WCAG AA)
+- **Font stack**: Add system font override in index.css for Apple feel
+
+## 6. Memory Update
+
+Update `mem://index.md` and `mem://design/tokens` to reflect the new light theme system.
 
 ---
 
-## Phase 3: Core UI — Timeline-First Interface
+## Technical Details
 
-### Home Screen
-1. **Action Bar** — 3 minimal CTAs: "Track Package", "Ship Now", "Buy Product"
-2. **Smart Timeline** — Real-time event feed with clickable items, contextual CTAs, country flag emojis, and subtle entrance animations
-3. **Active Shipments** — Route visualization (origin → destination), animated progress bar, ETA display
-4. **Warehouse Addresses** — Country + address + copy-to-clipboard, minimal card layout
+### CSS Variable Changeset (index.css)
+```
+--background: 0 0% 100%        (white)
+--foreground: 0 0% 11%          (#1D1D1F)
+--card: 0 0% 100%               (white)
+--primary: 211 100% 45%         (#0071E3)
+--secondary: 240 5% 96%         (#F5F5F7)
+--muted: 240 5% 96%
+--muted-foreground: 0 0% 53%    (#86868B)
+--border: 0 0% 82%              (#D2D2D7)
+--destructive: 0 84% 60%
+--radius: 0.75rem               (12px)
+```
 
-### Shipments Page
-- List of all shipments with status badges
-- Shipment detail view with package list, route, and tracking
-- Smart consolidation prompt: "You have 3 packages in France — save by shipping together"
+### File Count
+- **Modified:** ~20 files (all components, pages, CSS, tailwind config, App.tsx)
+- **Created:** 1 file (LandingPage.tsx)
+- **Memory:** 2 files updated
 
-### Profile Page
-- Account settings, delivery country configuration
-- Warehouse addresses management
-
-### Mobile Layout
-- Bottom navigation (3 items): Home, Shipments, Profile
-- Native-app feel with gesture-friendly spacing
-
----
-
-## Phase 4: Business Logic
-
-### Auto Address Generation
-- Database trigger on user signup creates FR/CN/US addresses with generated identifier codes
-
-### Package State Machine
-- Enforced enum transitions (no backward moves)
-- Timeline events auto-created on each status change
-
-### Smart Consolidation
-- When multiple packages sit in the same warehouse, surface a consolidation suggestion with estimated savings
-
-### Idle Package Alerts
-- Packages in storage >48h trigger a "Ready to ship?" prompt in the timeline
-
-### Conversion Triggers
-- Badge: "2 packages waiting"
-- CTA: "Save money by grouping shipments"
-- Bold, high-contrast action buttons
-
----
-
-## Phase 5: Konnekt Integration (Mocked)
-
-### Edge Functions
-- `create-shipment` — POST to mock Konnekt API, creates shipment record, returns tracking
-- `konnekt-webhook` — receives status updates, syncs shipment status, creates timeline events
-- Built with retry logic and failure fallback stubs, ready for real API swap
-
----
-
-## Phase 6: Dev/Test Mode
-
-### Hidden Dev Panel (activated via keyboard shortcut)
-- Simulate: package arrival, shipment creation, delivery
-- Trigger any status transition
-- Reset test data
-
----
-
-## Architecture
-- Reusable component library (StatusBadge, TimelineItem, ShipmentCard, AddressCard, ActionBar)
-- Custom hooks: `usePackages`, `useShipments`, `useTimeline`, `useConsolidation`
-- Service layer separating UI from business logic
-- Lazy-loaded routes, optimistic updates, skeleton screens
