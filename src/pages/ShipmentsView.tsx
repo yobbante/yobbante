@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Package, Truck, Send } from 'lucide-react';
 import { COUNTRY_FLAGS } from '@/lib/types';
 
 export function ShipmentsView() {
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
+  const [shipOpen, setShipOpen] = useState(false);
 
   const STATUS_COLORS: Record<string, string> = {
     CREATED: 'bg-muted-foreground',
@@ -20,9 +24,19 @@ export function ShipmentsView() {
     DELIVERED: 'bg-green-600',
   };
 
+  const shippableCount = packages.filter(
+    p => !p.shipment_id && ['RECEIVED', 'IN_STORAGE', 'READY_TO_SHIP'].includes(p.status)
+  ).length;
+
   return (
     <div className="space-y-6 pb-28 md:pb-8">
-      <h2 className="text-2xl font-bold tracking-tight text-foreground">Expéditions</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Expéditions</h2>
+        <Button size="sm" onClick={() => setShipOpen(true)} disabled={shippableCount === 0}>
+          <Send className="w-4 h-4" />
+          Expédier
+        </Button>
+      </div>
 
       <Tabs defaultValue="packages">
         <TabsList className="w-full">
