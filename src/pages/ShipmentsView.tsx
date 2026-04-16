@@ -98,6 +98,8 @@ export function ShipmentsView() {
           )}
         </TabsContent>
       </Tabs>
+
+      <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} />
     </div>
   );
 }
