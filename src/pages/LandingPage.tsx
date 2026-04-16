@@ -484,6 +484,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
     </div>
   );
 }
