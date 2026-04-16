@@ -138,12 +138,12 @@ export default function LandingPage() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="mt-8 flex flex-col sm:flex-row gap-3"
             >
-              <Link
-                to="/auth"
+              <button
+                onClick={() => setDossierOpen(true)}
                 className="inline-flex items-center justify-center text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
               >
                 Confier mon dossier
-              </Link>
+              </button>
               <a
                 href="#how-addresses-work"
                 className="inline-flex items-center justify-center text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
