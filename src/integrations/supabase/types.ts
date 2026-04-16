@@ -41,6 +41,66 @@ export type Database = {
         }
         Relationships: []
       }
+      dossiers: {
+        Row: {
+          budget_eur: number | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          destination_country: string
+          estimated_cost: number | null
+          estimated_delivery_date: string | null
+          estimated_weight: number | null
+          id: string
+          needs_sourcing: boolean
+          notes: string | null
+          origin_country: Database["public"]["Enums"]["warehouse_country"]
+          product_description: string
+          reference: string
+          status: Database["public"]["Enums"]["dossier_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_eur?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          destination_country?: string
+          estimated_cost?: number | null
+          estimated_delivery_date?: string | null
+          estimated_weight?: number | null
+          id?: string
+          needs_sourcing?: boolean
+          notes?: string | null
+          origin_country: Database["public"]["Enums"]["warehouse_country"]
+          product_description: string
+          reference?: string
+          status?: Database["public"]["Enums"]["dossier_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_eur?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          destination_country?: string
+          estimated_cost?: number | null
+          estimated_delivery_date?: string | null
+          estimated_weight?: number | null
+          id?: string
+          needs_sourcing?: boolean
+          notes?: string | null
+          origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          product_description?: string
+          reference?: string
+          status?: Database["public"]["Enums"]["dossier_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       packages: {
         Row: {
           created_at: string
@@ -201,12 +261,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
         Returns: string
       }
     }
     Enums: {
+      dossier_status:
+        | "SUBMITTED"
+        | "IN_REVIEW"
+        | "SOURCING"
+        | "PROCURED"
+        | "IN_TRANSIT"
+        | "CUSTOMS"
+        | "DELIVERED"
+        | "CLOSED"
       package_status:
         | "CREATED"
         | "RECEIVED"
@@ -215,7 +285,7 @@ export type Database = {
         | "SHIPPED"
         | "DELIVERED"
       shipment_status: "PENDING" | "IN_TRANSIT" | "CUSTOMS" | "DELIVERED"
-      warehouse_country: "FR" | "CN" | "US"
+      warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -343,6 +413,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      dossier_status: [
+        "SUBMITTED",
+        "IN_REVIEW",
+        "SOURCING",
+        "PROCURED",
+        "IN_TRANSIT",
+        "CUSTOMS",
+        "DELIVERED",
+        "CLOSED",
+      ],
       package_status: [
         "CREATED",
         "RECEIVED",
@@ -352,7 +432,7 @@ export const Constants = {
         "DELIVERED",
       ],
       shipment_status: ["PENDING", "IN_TRANSIT", "CUSTOMS", "DELIVERED"],
-      warehouse_country: ["FR", "CN", "US"],
+      warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE"],
     },
   },
 } as const
