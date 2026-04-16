@@ -96,7 +96,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               { flag: '🇫🇷', country: 'France', desc: 'Access European brands and retailers' },
-              { flag: '🇨🇳', country: 'China', desc: 'Ship from the world's largest marketplace' },
+              { flag: '🇨🇳', country: 'China', desc: "Ship from the world's largest marketplace" },
               { flag: '🇺🇸', country: 'United States', desc: 'Buy from American stores with ease' },
             ].map((item, i) => (
               <motion.div
