@@ -1,41 +1,35 @@
-import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import AuthPage from '@/pages/Auth';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { BottomNav } from '@/components/BottomNav';
+import { DesktopNav } from '@/components/DesktopNav';
+import { DevPanel } from '@/components/DevPanel';
 import { HomeView } from '@/pages/HomeView';
 import { ShipmentsView } from '@/pages/ShipmentsView';
 import { ProfileView } from '@/pages/ProfileView';
-import { BottomNav, TabId } from '@/components/BottomNav';
-import { DesktopNav } from '@/components/DesktopNav';
-import { DevPanel } from '@/components/DevPanel';
 
-const Index = () => {
-  const { user, loading, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>('home');
+type View = 'home' | 'shipments' | 'profile';
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+export default function Index() {
+  const [view, setView] = useState<View>('home');
+  const navigate = useNavigate();
 
-  if (!user) {
-    return <AuthPage />;
-  }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) navigate('/auth');
+    });
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background">
-      <DesktopNav active={activeTab} onChange={setActiveTab} onSignOut={signOut} />
-      <main className="max-w-2xl mx-auto px-5 pt-6">
-        {activeTab === 'home' && <HomeView />}
-        {activeTab === 'shipments' && <ShipmentsView />}
-        {activeTab === 'profile' && <ProfileView />}
+      <DesktopNav active={view} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
+      <main className="max-w-3xl mx-auto px-4 md:px-6 pt-6 md:pt-8">
+        {view === 'home' && <HomeView />}
+        {view === 'shipments' && <ShipmentsView />}
+        {view === 'profile' && <ProfileView />}
       </main>
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <BottomNav active={view} onChange={setView} />
       <DevPanel />
     </div>
   );
-};
-
-export default Index;
+}
