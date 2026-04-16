@@ -81,9 +81,9 @@ export default function LandingPage() {
       </nav>
 
       {/* ───── 2. Hero ───── */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-24 md:pt-32 md:pb-32">
-        <div className="grid md:grid-cols-[1.2fr_1fr] gap-12 md:gap-16 items-center">
-          <div>
+      <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
+        <div className="grid md:grid-cols-[1.2fr_1fr] gap-10 md:gap-16 items-center">
+          <div className="text-center md:text-left">
             <motion.div
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-6"
@@ -93,19 +93,19 @@ export default function LandingPage() {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] text-foreground"
+              className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] md:leading-[1.02] text-foreground text-balance"
             >
-              Importez<br />depuis n'importe<br />quel pays.
+              Importez depuis n'importe quel pays.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 text-lg text-muted-foreground max-w-md leading-relaxed"
+              className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed text-pretty"
             >
               Yobbanté gère votre chaîne logistique de A à Z — sourcing, achat, groupage, transport, dédouanement et livraison finale.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-8 flex flex-col sm:flex-row gap-3"
+              className="mt-7 md:mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
             >
               <button
                 onClick={() => setDossierOpen(true)}
@@ -161,8 +161,8 @@ export default function LandingPage() {
       {/* ───── 3. Two Pillars ───── */}
       <section className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Deux façons de travailler avec nous</p>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight max-w-2xl">Confiez-nous tout. Ou juste le transport.</h2>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3 text-center md:text-left">Deux façons de travailler avec nous</p>
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight max-w-2xl text-balance text-center md:text-left mx-auto md:mx-0">Confiez-nous tout. Ou juste le transport.</h2>
 
           <div className="grid md:grid-cols-2 gap-px bg-border mt-16 rounded-2xl overflow-hidden">
             {/* Pilier 1 */}
@@ -246,11 +246,11 @@ export default function LandingPage() {
       <section id="warehouses" className="bg-secondary border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
           <motion.h2 variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0}
-            className="text-3xl md:text-5xl font-bold tracking-tight">
-            6 entrepôts.<br />Une logistique mondiale.
+            className="text-3xl md:text-5xl font-bold tracking-tight text-balance text-center md:text-left">
+            6 entrepôts. Une logistique mondiale.
           </motion.h2>
           <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1}
-            className="text-base text-muted-foreground mt-4 max-w-lg">
+            className="text-base text-muted-foreground mt-4 max-w-lg mx-auto md:mx-0 text-pretty text-center md:text-left">
             Une adresse dédiée gratuite dans chaque pays. Commandez où vous voulez, nous réceptionnons.
           </motion.p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-12">

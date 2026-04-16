@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Search, ChevronRight, FolderOpen, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useUserRole } from '@/hooks/useUserRole';
+import { UsersTab } from '@/components/admin/UsersTab';
 import {
   type Dossier,
   type DossierStatus,
@@ -23,8 +25,9 @@ import { toast } from 'sonner';
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { isStaff, isLoading: roleLoading } = useUserRole();
+  const { isStaff, isAdmin, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
+  const [tab, setTab] = useState<'dossiers' | 'users'>('dossiers');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DossierStatus | 'ALL'>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -109,101 +112,126 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => navigate('/app')} className="p-2 -ml-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-foreground">YOBBANTÉ — Admin</p>
-              <p className="text-[11px] text-muted-foreground">Suivi opérationnel des dossiers</p>
+            <div className="min-w-0">
+              <p className="text-sm font-bold tracking-tight text-foreground truncate">YOBBANTÉ — Admin</p>
+              <p className="text-[11px] text-muted-foreground truncate">Suivi opérationnel</p>
             </div>
           </div>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/8 px-2.5 py-1 rounded-full">
-            <ShieldCheck className="w-3.5 h-3.5" /> Staff
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/8 px-2.5 py-1 rounded-full whitespace-nowrap">
+            <ShieldCheck className="w-3.5 h-3.5" /> {isAdmin ? 'Admin' : 'Staff'}
           </span>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 grid lg:grid-cols-[1fr_400px] gap-6">
-        {/* List */}
-        <section>
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Réf, produit, email…"
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={v => setStatusFilter(v as DossierStatus | 'ALL')}>
-              <SelectTrigger className="sm:w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tous statuts</SelectItem>
-                {DOSSIER_STATUS_ORDER.map(s => (
-                  <SelectItem key={s} value={s}>{DOSSIER_STATUS_LABELS[s]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'dossiers' | 'users')}>
+          <TabsList className="grid grid-cols-2 w-full max-w-sm mb-6">
+            <TabsTrigger value="dossiers" className="gap-2">
+              <FolderOpen className="w-4 h-4" /> Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2" disabled={!isAdmin}>
+              <Users className="w-4 h-4" /> Utilisateurs
+            </TabsTrigger>
+          </TabsList>
 
-          {isLoading ? (
-            <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-              <p className="text-sm font-semibold text-foreground">Aucun dossier</p>
-              <p className="text-xs text-muted-foreground mt-1">Ajustez vos filtres ou attendez de nouveaux dossiers.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filtered.map(d => (
-                <button
-                  key={d.id}
-                  onClick={() => setSelectedId(d.id)}
-                  className={cn(
-                    'w-full text-left bg-card border rounded-xl p-4 transition-all flex items-center gap-3',
-                    selectedId === d.id ? 'border-foreground' : 'border-border hover:border-foreground/40'
-                  )}
-                >
-                  <span className="text-xl">{COUNTRY_FLAGS[d.origin_country]}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-mono font-semibold text-foreground">{d.reference}</span>
-                      <span className="text-muted-foreground">· {DOSSIER_STATUS_LABELS[d.status]}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground truncate mt-0.5">{d.product_description}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {new Date(d.created_at).toLocaleDateString('fr-FR')} · {d.contact_email || 'pas d\'email'}
-                    </p>
+          <TabsContent value="dossiers" className="mt-0">
+            <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+              <section>
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Réf, produit, email…"
+                      className="pl-9"
+                    />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+                  <Select value={statusFilter} onValueChange={v => setStatusFilter(v as DossierStatus | 'ALL')}>
+                    <SelectTrigger className="sm:w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Tous statuts</SelectItem>
+                      {DOSSIER_STATUS_ORDER.map(s => (
+                        <SelectItem key={s} value={s}>{DOSSIER_STATUS_LABELS[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* Detail panel */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          {!selected ? (
-            <div className="bg-card border border-dashed border-border rounded-2xl p-8 text-center">
-              <p className="text-sm font-semibold text-foreground">Sélectionnez un dossier</p>
-              <p className="text-xs text-muted-foreground mt-1">Pour modifier le statut ou ajouter une note interne.</p>
+                {isLoading ? (
+                  <div className="space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+                ) : filtered.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+                    <p className="text-sm font-semibold text-foreground">Aucun dossier</p>
+                    <p className="text-xs text-muted-foreground mt-1">Ajustez vos filtres ou attendez de nouveaux dossiers.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filtered.map(d => (
+                      <button
+                        key={d.id}
+                        onClick={() => setSelectedId(d.id)}
+                        className={cn(
+                          'w-full text-left bg-card border rounded-xl p-4 transition-all flex items-center gap-3',
+                          selectedId === d.id ? 'border-foreground' : 'border-border hover:border-foreground/40'
+                        )}
+                      >
+                        <span className="text-xl flex-shrink-0">{COUNTRY_FLAGS[d.origin_country]}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-xs flex-wrap">
+                            <span className="font-mono font-semibold text-foreground">{d.reference}</span>
+                            <span className="text-muted-foreground">· {DOSSIER_STATUS_LABELS[d.status]}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground truncate mt-0.5">{d.product_description}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            {new Date(d.created_at).toLocaleDateString('fr-FR')} · {d.contact_email || 'pas d\'email'}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <aside className="lg:sticky lg:top-24 lg:self-start">
+                {!selected ? (
+                  <div className="bg-card border border-dashed border-border rounded-2xl p-8 text-center">
+                    <p className="text-sm font-semibold text-foreground">Sélectionnez un dossier</p>
+                    <p className="text-xs text-muted-foreground mt-1">Pour modifier le statut ou ajouter une note interne.</p>
+                  </div>
+                ) : (
+                  <AdminDossierPanel
+                    key={selected.id}
+                    dossier={selected}
+                    onUpdate={(patch) => updateDossier.mutateAsync({ id: selected.id, ...patch })}
+                    onOpen={() => navigate(`/app/dossier/${selected.id}`)}
+                    isPending={updateDossier.isPending}
+                  />
+                )}
+              </aside>
             </div>
-          ) : (
-            <AdminDossierPanel
-              key={selected.id}
-              dossier={selected}
-              onUpdate={(patch) => updateDossier.mutateAsync({ id: selected.id, ...patch })}
-              onOpen={() => navigate(`/app/dossier/${selected.id}`)}
-              isPending={updateDossier.isPending}
-            />
-          )}
-        </aside>
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-0">
+            {isAdmin ? (
+              <UsersTab />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+                <ShieldCheck className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-semibold text-foreground">Réservé aux administrateurs</p>
+                <p className="text-xs text-muted-foreground mt-1">La gestion des rôles n'est accessible qu'aux admins.</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

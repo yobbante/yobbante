@@ -24,21 +24,21 @@ export default function SimulatorPage() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-10 md:pt-24 md:pb-14">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-6">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-8 md:pt-24 md:pb-14 text-center md:text-left">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-5 md:mb-6">
           <Sparkles className="w-3.5 h-3.5" />
           Smart Import Assistant
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
-          Estimez votre import<br />en 30 secondes.
+        <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-balance">
+          Estimez votre import en 30 secondes.
         </h1>
-        <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
+        <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-xl mx-auto md:mx-0 leading-relaxed text-pretty">
           Notre IA analyse votre demande et propose 3 routes — express, équilibrée, économique — avec coût et délai pour chacune.
         </p>
       </section>
 
       {/* Simulator */}
-      <section className="max-w-5xl mx-auto px-6 pb-20">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-16 md:pb-20">
         <SmartImportInline
           onConfideDossier={(p) => {
             setPreset({
