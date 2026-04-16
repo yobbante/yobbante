@@ -71,6 +71,7 @@ export interface Package {
   weight: number | null;
   shipment_id: string | null;
   description: string | null;
+  dossier_id?: string | null;
   created_at: string;
 }
 
