@@ -41,8 +41,47 @@ export type Database = {
         }
         Relationships: []
       }
+      dossier_messages: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          dossier_id: string
+          id: string
+          internal_note: boolean
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          dossier_id: string
+          id?: string
+          internal_note?: boolean
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          dossier_id?: string
+          id?: string
+          internal_note?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_messages_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossiers: {
         Row: {
+          admin_notes: string | null
           budget_eur: number | null
           contact_email: string | null
           contact_phone: string | null
@@ -62,6 +101,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
           budget_eur?: number | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -81,6 +121,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
           budget_eur?: number | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -256,6 +297,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -266,8 +328,17 @@ export type Database = {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
         Returns: string
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "staff" | "user"
       dossier_status:
         | "SUBMITTED"
         | "IN_REVIEW"
@@ -413,6 +484,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "staff", "user"],
       dossier_status: [
         "SUBMITTED",
         "IN_REVIEW",

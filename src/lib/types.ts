@@ -115,6 +115,7 @@ export interface Dossier {
   notes: string | null;
   estimated_cost: number | null;
   estimated_delivery_date: string | null;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
 }
