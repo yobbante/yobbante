@@ -4,48 +4,44 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 96%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 11%;
 
-    --card: 222 40% 7%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 11%;
 
-    --popover: 222 40% 7%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 11%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 4%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 30% 12%;
-    --secondary-foreground: 210 40% 90%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 0 0% 11%;
 
-    --muted: 217 30% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 0 0% 53%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 4%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 0 0% 11%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 20% 14%;
-    --input: 217 20% 14%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 211 100% 45%;
 
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 222 40% 5%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 11%;
+    --sidebar-primary: 211 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 30% 12%;
-    --sidebar-accent-foreground: 210 40% 90%;
-    --sidebar-border: 217 20% 14%;
-    --sidebar-ring: 217 91% 60%;
-
-    --surface: 222 40% 7%;
-    --surface-hover: 222 35% 10%;
-    --glow: 217 91% 60%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 0 0% 11%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 211 100% 45%;
   }
 }
 
@@ -56,22 +52,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
-
-@layer utilities {
-  .glow-sm {
-    box-shadow: 0 0 20px -5px hsl(var(--glow) / 0.15);
-  }
-  .glow-md {
-    box-shadow: 0 0 40px -10px hsl(var(--glow) / 0.2);
-  }
-  .glow-lg {
-    box-shadow: 0 0 60px -15px hsl(var(--glow) / 0.3);
-  }
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(217 91% 75%));
   }
 }

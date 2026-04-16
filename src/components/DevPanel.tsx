@@ -90,11 +90,11 @@ export function DevPanel() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed bottom-20 right-4 z-[100] w-72 bg-card border border-border/50 rounded-lg p-4 shadow-2xl md:bottom-4"
+        className="fixed bottom-20 right-4 z-[100] w-72 bg-card border border-border rounded-xl p-4 shadow-xl md:bottom-4"
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" />
+            <Zap className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-semibold text-foreground">Dev Panel</span>
           </div>
           <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
@@ -102,16 +102,16 @@ export function DevPanel() {
           </button>
         </div>
         <div className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full justify-start border-border/50" onClick={simulatePackageArrival}>
+          <Button variant="outline" size="sm" className="w-full justify-start" onClick={simulatePackageArrival}>
             <Package className="w-3.5 h-3.5 mr-2" /> Simulate Package Arrival
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start border-border/50" onClick={advancePackageStatus}>
+          <Button variant="outline" size="sm" className="w-full justify-start" onClick={advancePackageStatus}>
             <Zap className="w-3.5 h-3.5 mr-2" /> Advance Package Status
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start border-border/50" onClick={simulateShipment}>
+          <Button variant="outline" size="sm" className="w-full justify-start" onClick={simulateShipment}>
             <Truck className="w-3.5 h-3.5 mr-2" /> Simulate Shipment
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start border-border/50" onClick={simulateDelivery}>
+          <Button variant="outline" size="sm" className="w-full justify-start" onClick={simulateDelivery}>
             <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Simulate Delivery
           </Button>
         </div>
