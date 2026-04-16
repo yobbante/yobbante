@@ -73,18 +73,18 @@ export default function ServicesPage() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-16">
+      <section className="max-w-4xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-28 md:pb-16 text-center md:text-left">
         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Services</p>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3">
-          Un opérateur logistique<br />pour toute votre chaîne.
+        <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3 text-balance">
+          Un opérateur logistique pour toute votre chaîne.
         </h1>
-        <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
+        <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed text-pretty mx-auto md:mx-0">
           Yobbanté n'est pas un intermédiaire. Nous opérons chaque maillon : du sourcing en usine jusqu'à la livraison finale.
         </p>
       </section>
 
       {/* Services list */}
-      <section className="max-w-4xl mx-auto px-6 pb-24">
+      <section className="max-w-4xl mx-auto px-5 sm:px-6 pb-20 md:pb-24">
         <div className="space-y-0 divide-y divide-border">
           {SERVICES.map((s, i) => (
             <motion.div
@@ -93,16 +93,16 @@ export default function ServicesPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.04 }}
-              className="grid md:grid-cols-[80px_1fr] gap-6 py-10"
+              className="grid md:grid-cols-[80px_1fr] gap-3 md:gap-6 py-8 md:py-10"
             >
               <div>
-                <span className="text-3xl font-mono font-bold text-foreground">{s.num}</span>
+                <span className="text-2xl md:text-3xl font-mono font-bold text-foreground">{s.num}</span>
               </div>
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{s.title}</h2>
-                <p className="text-base text-foreground/80 mt-1.5 font-medium">{s.tagline}</p>
-                <p className="text-sm text-muted-foreground mt-4 leading-relaxed max-w-2xl">{s.desc}</p>
-                <div className="mt-4 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <h2 className="text-xl md:text-3xl font-bold tracking-tight text-foreground text-balance">{s.title}</h2>
+                <p className="text-sm md:text-base text-foreground/80 mt-1.5 font-medium">{s.tagline}</p>
+                <p className="text-sm text-muted-foreground mt-3 md:mt-4 leading-relaxed max-w-2xl text-pretty">{s.desc}</p>
+                <div className="mt-3 md:mt-4 inline-flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="w-1 h-1 rounded-full bg-muted-foreground" />
                   <span>Pour : {s.forWho}</span>
                 </div>
