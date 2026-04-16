@@ -2,18 +2,21 @@ import { useState } from 'react';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { ShipmentCard } from '@/components/ShipmentCard';
+import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Package, Truck, Send } from 'lucide-react';
-import { COUNTRY_FLAGS } from '@/lib/types';
+import { COUNTRY_FLAGS, type Shipment } from '@/lib/types';
 
 export function ShipmentsView() {
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
   const [shipOpen, setShipOpen] = useState(false);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const STATUS_COLORS: Record<string, string> = {
     CREATED: 'bg-muted-foreground',
@@ -27,6 +30,11 @@ export function ShipmentsView() {
   const shippableCount = packages.filter(
     p => !p.shipment_id && ['RECEIVED', 'IN_STORAGE', 'READY_TO_SHIP'].includes(p.status)
   ).length;
+
+  const openDetail = (shipment: Shipment) => {
+    setSelectedShipment(shipment);
+    setDrawerOpen(true);
+  };
 
   return (
     <div className="space-y-6 pb-28 md:pb-8">
@@ -93,13 +101,23 @@ export function ShipmentsView() {
             </div>
           ) : (
             <div className="space-y-3">
-              {shipments.map(s => <ShipmentCard key={s.id} shipment={s} />)}
+              {shipments.map(s => (
+                <div key={s.id} onClick={() => openDetail(s)} className="cursor-pointer">
+                  <ShipmentCard shipment={s} />
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>
       </Tabs>
 
       <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} />
+      <ShipmentDetailDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        shipment={selectedShipment}
+        packages={packages}
+      />
     </div>
   );
 }

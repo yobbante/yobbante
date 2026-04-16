@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { DossierDialog } from '@/components/DossierDialog';
 import { Sparkles } from 'lucide-react';
 
 const fadeUp = {
@@ -71,6 +72,7 @@ const METRICS = [
 
 export default function LandingPage() {
   const [smartOpen, setSmartOpen] = useState(false);
+  const [dossierOpen, setDossierOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -136,12 +138,12 @@ export default function LandingPage() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="mt-8 flex flex-col sm:flex-row gap-3"
             >
-              <Link
-                to="/auth"
+              <button
+                onClick={() => setDossierOpen(true)}
                 className="inline-flex items-center justify-center text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
               >
                 Confier mon dossier
-              </Link>
+              </button>
               <a
                 href="#how-addresses-work"
                 className="inline-flex items-center justify-center text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
@@ -486,6 +488,7 @@ export default function LandingPage() {
       </footer>
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} />
+      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} />
     </div>
   );
 }
