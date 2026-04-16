@@ -7,25 +7,32 @@ import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { useAddresses } from '@/hooks/useAddresses';
+import { useProfile } from '@/hooks/useProfile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package, AlertTriangle } from 'lucide-react';
 import { COUNTRY_FLAGS } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export function HomeView() {
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, consolidationGroups } = usePackages();
   const { addresses, isLoading: addressesLoading } = useAddresses();
+  const { profile } = useProfile();
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const waitingPackages = packages.filter(p => !p.shipment_id && p.status !== 'DELIVERED');
+
+  const greeting = profile?.full_name
+    ? `Bonjour, ${profile.full_name.split(' ')[0]}`
+    : 'Bienvenue';
 
   return (
     <div className="space-y-8 pb-28 md:pb-8">
       {/* Greeting */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h2>
-        <p className="text-sm text-muted-foreground mt-1">Your logistics, simplified.</p>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h2>
+        <p className="text-sm text-muted-foreground mt-1">Votre logistique, simplifiée.</p>
       </motion.div>
 
       {/* Action Bar */}
@@ -36,14 +43,18 @@ export function HomeView() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100"
+          className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
         >
           <Package className="w-5 h-5 text-primary flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-foreground">{waitingPackages.length} package{waitingPackages.length > 1 ? 's' : ''} waiting</p>
-            <p className="text-xs text-muted-foreground">Group them to save on shipping</p>
+            <p className="text-sm font-semibold text-foreground">
+              {waitingPackages.length} colis en attente
+            </p>
+            <p className="text-xs text-muted-foreground">Groupez-les pour économiser</p>
           </div>
-          <button className="text-xs font-semibold text-primary hover:underline">Ship Now</button>
+          <Button variant="link" size="sm" className="text-primary p-0 h-auto">
+            Expédier
+          </Button>
         </motion.div>
       )}
 
@@ -54,16 +65,18 @@ export function HomeView() {
             key={country}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-100"
+            className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
           >
             <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} packages in {country}
+                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} colis en {country}
               </p>
-              <p className="text-xs text-muted-foreground">Save money by grouping shipments</p>
+              <p className="text-xs text-muted-foreground">Économisez en groupant</p>
             </div>
-            <button className="text-xs font-semibold text-amber-600 hover:underline">Consolidate</button>
+            <Button variant="link" size="sm" className="text-amber-600 p-0 h-auto">
+              Consolider
+            </Button>
           </motion.div>
         )
       ))}
@@ -71,7 +84,10 @@ export function HomeView() {
       {/* Active Shipments */}
       {activeShipments.length > 0 && (
         <section>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Active Shipments</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold text-foreground">Expéditions actives</h3>
+            <span className="text-xs text-muted-foreground">{activeShipments.length}</span>
+          </div>
           <div className="space-y-3">
             {activeShipments.map(s => <ShipmentCard key={s.id} shipment={s} />)}
           </div>
@@ -80,7 +96,7 @@ export function HomeView() {
 
       {/* Timeline */}
       <section>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Activity</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">Activité</h3>
         {eventsLoading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
@@ -94,10 +110,13 @@ export function HomeView() {
             ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No activity yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Start shopping worldwide!</p>
+          <div className="text-center py-16">
+            <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-sm font-medium text-foreground">Aucune activité</p>
+            <p className="text-xs text-muted-foreground mt-1">Commencez à acheter dans le monde entier</p>
+            <Button variant="outline" size="sm" className="mt-4">
+              Découvrir nos services
+            </Button>
           </div>
         ) : (
           <div className="space-y-1">
@@ -108,7 +127,7 @@ export function HomeView() {
 
       {/* Addresses */}
       <section>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Your Warehouses</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">Vos entrepôts</h3>
         {addressesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}

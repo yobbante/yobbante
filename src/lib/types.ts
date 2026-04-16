@@ -1,4 +1,4 @@
-export type WarehouseCountry = 'FR' | 'CN' | 'US';
+export type WarehouseCountry = 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE';
 export type PackageStatus = 'CREATED' | 'RECEIVED' | 'IN_STORAGE' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED';
 export type ShipmentStatus = 'PENDING' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
 
@@ -14,12 +14,18 @@ export const COUNTRY_FLAGS: Record<WarehouseCountry, string> = {
   FR: '🇫🇷',
   CN: '🇨🇳',
   US: '🇺🇸',
+  CA: '🇨🇦',
+  AE: '🇦🇪',
+  DE: '🇩🇪',
 };
 
 export const COUNTRY_NAMES: Record<WarehouseCountry, string> = {
   FR: 'France',
-  CN: 'China',
-  US: 'United States',
+  CN: 'Chine',
+  US: 'États-Unis',
+  CA: 'Canada',
+  AE: 'Dubai',
+  DE: 'Allemagne',
 };
 
 export interface Profile {
