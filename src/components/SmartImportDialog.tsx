@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
-import { Sparkles, Plane, Ship, Truck, ArrowRight } from 'lucide-react';
+import { Sparkles, Plane, Ship, Truck, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SmartImportDialogProps {
   open: boolean;
@@ -25,64 +27,6 @@ interface Recommendation {
 const COUNTRIES: WarehouseCountry[] = ['FR', 'CN', 'US', 'CA', 'AE', 'DE'];
 const DESTINATIONS = ['Dakar, Sénégal', 'Abidjan, Côte d\'Ivoire', 'Bamako, Mali', 'Lomé, Togo', 'Cotonou, Bénin', 'Conakry, Guinée'];
 
-function computeRecommendation(
-  product: string,
-  weight: number,
-  origin: WarehouseCountry,
-  destination: string
-): Recommendation {
-  // Smart routing logic
-  const isHeavy = weight > 30;
-  const isLight = weight < 5;
-  const isFromAsia = origin === 'CN' || origin === 'AE';
-  const isFromEurope = origin === 'FR' || origin === 'DE';
-
-  let transport: 'air' | 'sea' | 'road' = 'air';
-  let transportLabel = 'Aérien';
-  let multiplier = 1;
-  let days = '5–8 jours';
-  let reasoning = '';
-
-  if (isHeavy && isFromAsia) {
-    transport = 'sea';
-    transportLabel = 'Maritime (LCL)';
-    multiplier = 0.3;
-    days = '30–40 jours';
-    reasoning = 'Volume important depuis l\'Asie : maritime optimise vos coûts.';
-  } else if (isHeavy) {
-    transport = 'road';
-    transportLabel = 'Routier groupé';
-    multiplier = 0.55;
-    days = '10–15 jours';
-    reasoning = 'Poids conséquent : routier offre le meilleur ratio coût/délai.';
-  } else if (isLight && isFromEurope) {
-    transport = 'air';
-    transportLabel = 'Aérien express';
-    multiplier = 1.1;
-    days = '3–5 jours';
-    reasoning = 'Petit colis depuis l\'Europe : livraison rapide à coût raisonnable.';
-  } else {
-    transport = 'air';
-    transportLabel = 'Aérien standard';
-    multiplier = 1;
-    days = '5–8 jours';
-    reasoning = 'Aérien standard : équilibre idéal entre rapidité et coût.';
-  }
-
-  const baseCost = Math.max(20, weight * 14 * multiplier);
-  const handlingFee = 8;
-  const estimatedCost = baseCost + handlingFee;
-
-  return {
-    route: `${COUNTRY_NAMES[origin]} → ${destination}`,
-    transport,
-    transportLabel,
-    estimatedCost,
-    estimatedDays: days,
-    reasoning,
-  };
-}
-
 export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps) {
   const [step, setStep] = useState<'form' | 'result'>('form');
   const [product, setProduct] = useState('');
@@ -90,18 +34,47 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
   const [origin, setOrigin] = useState<WarehouseCountry>('CN');
   const [destination, setDestination] = useState('Dakar, Sénégal');
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const w = parseFloat(weight);
     if (!product.trim() || isNaN(w) || w <= 0) return;
-    const rec = computeRecommendation(product, w, origin, destination);
-    setRecommendation(rec);
-    setStep('result');
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('smart-import', {
+        body: {
+          product: product.trim(),
+          weight: w,
+          origin: COUNTRY_NAMES[origin],
+          destination,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setRecommendation({
+        route: data.route || `${COUNTRY_NAMES[origin]} → ${destination}`,
+        transport: data.transport || 'air',
+        transportLabel: data.transportLabel || 'Aérien',
+        estimatedCost: data.estimatedCost || 0,
+        estimatedDays: data.estimatedDays || '—',
+        reasoning: data.reasoning || '',
+      });
+      setStep('result');
+    } catch (err: any) {
+      console.error('Smart import error:', err);
+      toast.error('Erreur lors de l\'estimation. Réessayez.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const reset = () => {
     setStep('form');
     setRecommendation(null);
+    setLoading(false);
   };
 
   const TransportIcon = recommendation?.transport === 'air' ? Plane : recommendation?.transport === 'sea' ? Ship : Truck;
@@ -116,7 +89,7 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
           </DialogTitle>
           <DialogDescription>
             {step === 'form'
-              ? 'Décrivez votre import, recevez une recommandation instantanée.'
+              ? 'Décrivez votre import, recevez une recommandation IA instantanée.'
               : 'Voici la route optimale pour votre import.'}
           </DialogDescription>
         </DialogHeader>
@@ -134,7 +107,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   maxLength={100}
                 />
               </div>
-
               <div>
                 <Label htmlFor="weight" className="text-sm font-medium mb-2 block">Poids estimé (kg)</Label>
                 <Input
@@ -147,7 +119,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   placeholder="Ex : 12.5"
                 />
               </div>
-
               <div>
                 <Label className="text-sm font-medium mb-2 block">Pays d'achat</Label>
                 <Select value={origin} onValueChange={(v) => setOrigin(v as WarehouseCountry)}>
@@ -161,7 +132,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label className="text-sm font-medium mb-2 block">Destination</Label>
                 <Select value={destination} onValueChange={setDestination}>
@@ -176,7 +146,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
             </div>
           ) : recommendation && (
             <div className="space-y-4 py-2">
-              {/* Route */}
               <div className="rounded-xl bg-foreground text-background p-5">
                 <p className="text-xs uppercase tracking-wider opacity-60 mb-2">Route recommandée</p>
                 <div className="flex items-center gap-3 text-sm font-semibold">
@@ -185,8 +154,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   <span>{destination}</span>
                 </div>
               </div>
-
-              {/* Transport */}
               <div className="rounded-xl border border-border p-4 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <TransportIcon className="w-6 h-6 text-primary" />
@@ -196,8 +163,6 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   <p className="text-base font-semibold text-foreground">{recommendation.transportLabel}</p>
                 </div>
               </div>
-
-              {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-secondary p-4">
                   <p className="text-xs text-muted-foreground">Coût estimé</p>
@@ -208,17 +173,14 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
                   <p className="text-2xl font-bold text-foreground mt-1">{recommendation.estimatedDays}</p>
                 </div>
               </div>
-
-              {/* Reasoning */}
               <div className="rounded-xl border border-border p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Pourquoi cette route ?
+                  Analyse IA
                 </p>
                 <p className="text-sm text-foreground leading-relaxed">{recommendation.reasoning}</p>
               </div>
-
               <p className="text-xs text-muted-foreground text-center">
-                Estimation indicative. Tarif final après prise en charge du dossier.
+                Estimation IA indicative. Tarif final après prise en charge du dossier.
               </p>
             </div>
           )}
@@ -228,8 +190,8 @@ export function SmartImportDialog({ open, onOpenChange }: SmartImportDialogProps
           {step === 'form' ? (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-              <Button onClick={handleSubmit} disabled={!product.trim() || !weight}>
-                Estimer
+              <Button onClick={handleSubmit} disabled={!product.trim() || !weight || loading}>
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyse IA...</> : 'Estimer'}
               </Button>
             </>
           ) : (

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { DossierDialog } from '@/components/DossierDialog';
 import { Sparkles } from 'lucide-react';
 
 const fadeUp = {
