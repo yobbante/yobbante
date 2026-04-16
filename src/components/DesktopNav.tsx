@@ -10,8 +10,8 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
   ];
 
   return (
-    <header className="hidden md:flex items-center justify-between px-8 py-4 border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-      <h1 className="text-xl font-bold tracking-tight text-gradient">YOBBANTÉ</h1>
+    <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <h1 className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</h1>
       <nav className="flex items-center gap-1">
         {links.map(link => (
           <button
@@ -20,8 +20,8 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               active === link.id
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                ? 'text-primary bg-primary/8'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             )}
           >
             <link.icon className="w-4 h-4" />
@@ -30,7 +30,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
         ))}
         <button
           onClick={onSignOut}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-2"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors ml-2"
         >
           <LogOut className="w-4 h-4" />
         </button>

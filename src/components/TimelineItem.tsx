@@ -16,13 +16,13 @@ const eventIcons: Record<string, React.ReactNode> = {
 
 const eventColors: Record<string, string> = {
   WELCOME: 'text-primary bg-primary/10',
-  PACKAGE_RECEIVED: 'text-emerald-400 bg-emerald-400/10',
-  PACKAGE_STATUS: 'text-muted-foreground bg-muted',
-  SHIPMENT_CREATED: 'text-primary bg-primary/10',
-  SHIPMENT_STATUS: 'text-primary bg-primary/10',
-  DELIVERED: 'text-emerald-400 bg-emerald-400/10',
-  IDLE_ALERT: 'text-amber-400 bg-amber-400/10',
-  CONSOLIDATION: 'text-amber-400 bg-amber-400/10',
+  PACKAGE_RECEIVED: 'text-emerald-600 bg-emerald-50',
+  PACKAGE_STATUS: 'text-muted-foreground bg-secondary',
+  SHIPMENT_CREATED: 'text-primary bg-blue-50',
+  SHIPMENT_STATUS: 'text-primary bg-blue-50',
+  DELIVERED: 'text-emerald-600 bg-emerald-50',
+  IDLE_ALERT: 'text-amber-600 bg-amber-50',
+  CONSOLIDATION: 'text-amber-600 bg-amber-50',
 };
 
 function timeAgo(dateStr: string) {
@@ -39,11 +39,11 @@ export function TimelineItem({ event, index }: { event: TimelineEvent; index: nu
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      className="group flex gap-4 p-4 rounded-lg hover:bg-card/60 transition-colors cursor-pointer"
+      className="group flex gap-4 p-4 rounded-xl hover:bg-secondary/60 transition-colors cursor-pointer"
     >
       <div className={cn(
         'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center',
-        eventColors[event.event_type] || 'text-muted-foreground bg-muted'
+        eventColors[event.event_type] || 'text-muted-foreground bg-secondary'
       )}>
         {eventIcons[event.event_type] || <Box className="w-4 h-4" />}
       </div>

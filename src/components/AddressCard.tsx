@@ -15,9 +15,9 @@ export function AddressCard({ address }: { address: Address }) {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ y: -2 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="bg-card rounded-lg p-4 border border-border/50 hover:border-primary/30 transition-colors"
+      className="bg-card rounded-xl p-4 border border-border hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2 mb-2">
@@ -26,13 +26,13 @@ export function AddressCard({ address }: { address: Address }) {
         </div>
         <button
           onClick={copyToClipboard}
-          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
         </button>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed">{address.address_line}</p>
-      <div className="mt-2 px-2 py-1 bg-muted rounded text-xs font-mono text-primary">
+      <div className="mt-2 px-2.5 py-1 bg-secondary rounded-lg text-xs font-mono text-primary">
         {address.identifier_code}
       </div>
     </motion.div>

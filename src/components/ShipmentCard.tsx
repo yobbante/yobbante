@@ -9,9 +9,9 @@ export function ShipmentCard({ shipment }: { shipment: Shipment }) {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ y: -2 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="bg-card rounded-lg p-5 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
+      className="bg-card rounded-xl p-5 border border-border hover:shadow-md transition-shadow cursor-pointer"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm">
@@ -38,7 +38,7 @@ export function ShipmentCard({ shipment }: { shipment: Shipment }) {
           )}
         </div>
         {shipment.total_cost && (
-          <span className="text-xs font-medium text-foreground">
+          <span className="text-xs font-semibold text-foreground">
             ${shipment.total_cost}
           </span>
         )}

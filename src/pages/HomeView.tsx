@@ -21,10 +21,10 @@ export function HomeView() {
   const waitingPackages = packages.filter(p => !p.shipment_id && p.status !== 'DELIVERED');
 
   return (
-    <div className="space-y-8 pb-24 md:pb-8">
+    <div className="space-y-8 pb-28 md:pb-8">
       {/* Greeting */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h2 className="text-2xl font-bold tracking-tight md:hidden">YOBBANTÉ</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h2>
         <p className="text-sm text-muted-foreground mt-1">Your logistics, simplified.</p>
       </motion.div>
 
@@ -36,11 +36,11 @@ export function HomeView() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20"
+          className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100"
         >
           <Package className="w-5 h-5 text-primary flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{waitingPackages.length} package{waitingPackages.length > 1 ? 's' : ''} waiting</p>
+            <p className="text-sm font-semibold text-foreground">{waitingPackages.length} package{waitingPackages.length > 1 ? 's' : ''} waiting</p>
             <p className="text-xs text-muted-foreground">Group them to save on shipping</p>
           </div>
           <button className="text-xs font-semibold text-primary hover:underline">Ship Now</button>
@@ -54,16 +54,16 @@ export function HomeView() {
             key={country}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/20"
+            className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-100"
           >
-            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-sm font-semibold text-foreground">
                 {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} packages in {country}
               </p>
               <p className="text-xs text-muted-foreground">Save money by grouping shipments</p>
             </div>
-            <button className="text-xs font-semibold text-amber-400 hover:underline">Consolidate</button>
+            <button className="text-xs font-semibold text-amber-600 hover:underline">Consolidate</button>
           </motion.div>
         )
       ))}
@@ -71,7 +71,7 @@ export function HomeView() {
       {/* Active Shipments */}
       {activeShipments.length > 0 && (
         <section>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Active Shipments</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Active Shipments</h3>
           <div className="space-y-3">
             {activeShipments.map(s => <ShipmentCard key={s.id} shipment={s} />)}
           </div>
@@ -80,7 +80,7 @@ export function HomeView() {
 
       {/* Timeline */}
       <section>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Activity</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Activity</h3>
         {eventsLoading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
@@ -94,7 +94,11 @@ export function HomeView() {
             ))}
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No activity yet. Start shopping worldwide!</p>
+          <div className="text-center py-12">
+            <Package className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No activity yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Start shopping worldwide!</p>
+          </div>
         ) : (
           <div className="space-y-1">
             {events.map((event, i) => <TimelineItem key={event.id} event={event} index={i} />)}
@@ -104,10 +108,10 @@ export function HomeView() {
 
       {/* Addresses */}
       <section>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Your Warehouses</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Your Warehouses</h3>
         {addressesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
