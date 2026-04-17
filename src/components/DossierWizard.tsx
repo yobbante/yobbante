@@ -547,9 +547,13 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
                     <div className="mt-5">
                       <p className="text-xs text-white/60 mb-2">Mode de transport</p>
                       <div className="grid sm:grid-cols-2 gap-3">
-                        {TRANSPORTS.map(t => (
-                          <TransportCard key={t.id} {...t} active={transport === t.id} onClick={() => setTransport(t.id)} />
-                        ))}
+                        {TRANSPORTS.map(t => {
+                          const w = parsed?.estimatedWeightKg ? Math.max(1, Math.round(parsed.estimatedWeightKg * quantity)) : 5;
+                          const est = estimateTransport(t.id, w, urgency);
+                          return (
+                            <TransportCard key={t.id} {...t} estimate={est.formatted} active={transport === t.id} onClick={() => setTransport(t.id)} />
+                          );
+                        })}
                       </div>
                       <div className="mt-4">
                         <p className="text-xs text-white/60 mb-1">Destination</p>
@@ -676,8 +680,9 @@ function ChoiceCard({ Icon, label, desc, active, onClick, compact }: {
   );
 }
 
-function TransportCard({ id, label, desc, Icon, price, eta, tag, active, onClick }: {
-  id: Transport; label: string; desc: string; Icon: any; price: string; eta: string; tag?: string;
+function TransportCard({ id, label, desc, Icon, price, eta, tag, estimate, active, onClick }: {
+  id: Transport; label: string; desc: string; Icon: any; price: string; eta: string;
+  tag?: string; estimate?: string;
   active: boolean; onClick: () => void;
 }) {
   return (
@@ -700,13 +705,28 @@ function TransportCard({ id, label, desc, Icon, price, eta, tag, active, onClick
         )}>
           <Icon className="w-5 h-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{label}</p>
           <p className="text-[11px] text-white/55 mt-0.5">{desc}</p>
-          <div className="flex gap-3 mt-2 text-[11px]">
-            <span className="text-yellow-400 font-medium">{price}</span>
-            <span className="text-white/40">· {eta}</span>
-          </div>
+          {estimate ? (
+            <div className="mt-2">
+              <motion.p
+                key={estimate}
+                initial={{ opacity: 0.4 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                className="text-base font-bold text-yellow-400"
+              >
+                {estimate}
+              </motion.p>
+              <p className="text-[10px] text-white/40 mt-0.5">{price} · {eta}</p>
+            </div>
+          ) : (
+            <div className="flex gap-3 mt-2 text-[11px]">
+              <span className="text-yellow-400 font-medium">{price}</span>
+              <span className="text-white/40">· {eta}</span>
+            </div>
+          )}
         </div>
       </div>
     </button>
