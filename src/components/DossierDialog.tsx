@@ -265,6 +265,8 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
                   setDestination={setDestination}
                   onContinue={() => { if (canStep2Continue()) goNext(); }}
                   canContinue={canStep2Continue()}
+                  parsedProduct={parsedProduct}
+                  parsing={parsingProduct}
                 />
               ) : step === 3 ? (
                 <StepDetails
