@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Search, ChevronRight, FolderOpen, Users, Building2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Search, ChevronRight, FolderOpen, Users, Building2, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 import { useUserRole } from '@/hooks/useUserRole';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
+import { SourcingTab } from '@/components/admin/SourcingTab';
 import {
   type Dossier,
   type DossierStatus,
@@ -28,7 +29,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { isStaff, isAdmin, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
-  const [tab, setTab] = useState<'dossiers' | 'quotes' | 'users'>('dossiers');
+  const [tab, setTab] = useState<'dossiers' | 'sourcing' | 'quotes' | 'users'>('dossiers');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DossierStatus | 'ALL'>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -130,16 +131,19 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'dossiers' | 'quotes' | 'users')}>
-          <TabsList className="grid grid-cols-3 w-full max-w-xl mb-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'dossiers' | 'sourcing' | 'quotes' | 'users')}>
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full max-w-2xl mb-6">
             <TabsTrigger value="dossiers" className="gap-2">
-              <FolderOpen className="w-4 h-4" /> Dossiers
+              <FolderOpen className="w-4 h-4" /> <span className="hidden sm:inline">Dossiers</span><span className="sm:hidden">Tous</span>
+            </TabsTrigger>
+            <TabsTrigger value="sourcing" className="gap-2">
+              <ShoppingCart className="w-4 h-4" /> Sourcing
             </TabsTrigger>
             <TabsTrigger value="quotes" className="gap-2">
               <Building2 className="w-4 h-4" /> Devis
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2" disabled={!isAdmin}>
-              <Users className="w-4 h-4" /> Utilisateurs
+              <Users className="w-4 h-4" /> <span className="hidden sm:inline">Utilisateurs</span><span className="sm:hidden">Users</span>
             </TabsTrigger>
           </TabsList>
 
@@ -222,6 +226,10 @@ export default function AdminPage() {
                 )}
               </aside>
             </div>
+          </TabsContent>
+
+          <TabsContent value="sourcing" className="mt-0">
+            <SourcingTab />
           </TabsContent>
 
           <TabsContent value="quotes" className="mt-0">
