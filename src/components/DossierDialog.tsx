@@ -417,15 +417,47 @@ function StepInput({
             />
           </div>
           <AnimatePresence>
-            {platform && (
+            {platform && !parsedProduct && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="flex items-center gap-2 text-xs text-primary"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                Plateforme détectée : <span className="font-medium">{platform}</span>
+                {parsing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {parsing ? 'Analyse du produit en cours…' : <>Plateforme détectée : <span className="font-medium">{platform}</span></>}
+              </motion.div>
+            )}
+            {parsedProduct && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-3 rounded-xl border border-primary/30 bg-primary/5 flex gap-3 items-start"
+              >
+                {parsedProduct.imageUrl ? (
+                  <img
+                    src={parsedProduct.imageUrl}
+                    alt=""
+                    className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-2xl">
+                    📦
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-[10px] text-primary uppercase tracking-wider font-medium">
+                    <Sparkles className="w-3 h-3" /> Détecté
+                  </div>
+                  <p className="text-sm font-medium text-foreground line-clamp-2 mt-0.5">{parsedProduct.title}</p>
+                  <div className="flex flex-wrap gap-2 mt-1.5 text-[11px] text-muted-foreground">
+                    <span>{parsedProduct.platform}</span>
+                    {parsedProduct.estimatedPriceEur > 0 && <span>· ~{parsedProduct.estimatedPriceEur}€</span>}
+                    {parsedProduct.estimatedWeightKg > 0 && <span>· {parsedProduct.estimatedWeightKg}kg</span>}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
