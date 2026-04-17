@@ -59,7 +59,7 @@ function isEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 }
 
-export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAddressDialogProps) {
+export function GetAddressDialog({ open, onOpenChange, onConfideDossier, mode = 'dialog' }: GetAddressDialogProps) {
   const [step, setStep] = useState(1);
   const [contact, setContact] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
   const [authedUser, setAuthedUser] = useState<{ id: string; email?: string } | null>(null);
 
   useEffect(() => {
-    if (open) {
+    if (open || mode === 'page') {
       setStep(1);
       setContact('');
       setContactError(null);
@@ -156,94 +156,108 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
     }
   };
 
+  const inner = (
+    <>
+      <div className="h-1 bg-border/40 relative overflow-hidden">
+        <motion.div
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70"
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+        />
+      </div>
+
+      <div className="px-6 pt-5 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {step > 1 && step !== 3 && (
+            <button
+              onClick={goBack}
+              className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+              Étape {step} sur {TOTAL}
+            </p>
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-primary" />
+              Vos adresses internationales
+            </h2>
+          </div>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Génération sécurisée
+        </div>
+      </div>
+
+      <ScrollArea className={mode === 'page' ? '' : 'max-h-[72vh]'}>
+        <div className="px-6 pb-6 min-h-[360px]">
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <StepValue
+                key="s1"
+                selected={selectedCountries}
+                toggle={toggleCountry}
+                onContinue={goNext}
+              />
+            )}
+            {step === 2 && (
+              <StepContact
+                key="s2"
+                contact={contact}
+                setContact={(v) => { setContact(v); setContactError(null); }}
+                error={contactError}
+                isAuthed={!!authedUser}
+                onContinue={handleStartGeneration}
+              />
+            )}
+            {step === 3 && (
+              <StepReveal
+                key="s3"
+                loading={loading}
+                addresses={addresses}
+                onContinue={goNext}
+                isAuthed={!!authedUser}
+                magicSent={magicSent}
+                contact={contact}
+              />
+            )}
+            {step === 4 && (
+              <StepEducation key="s4" onContinue={goNext} />
+            )}
+            {step === 5 && (
+              <StepAction
+                key="s5"
+                isAuthed={!!authedUser}
+                onConfideDossier={() => {
+                  onOpenChange(false);
+                  setTimeout(() => onConfideDossier?.(), 200);
+                }}
+                onClose={() => onOpenChange(false)}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </ScrollArea>
+    </>
+  );
+
+  if (mode === 'page') {
+    return (
+      <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+        {inner}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-border/60 bg-card/95 backdrop-blur-xl">
-        <div className="h-1 bg-border/40 relative overflow-hidden">
-          <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70"
-            initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-          />
-        </div>
-
-        <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {step > 1 && step !== 3 && (
-              <button
-                onClick={goBack}
-                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Retour"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                Étape {step} sur {TOTAL}
-              </p>
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-primary" />
-                Vos adresses internationales
-              </h2>
-            </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Génération sécurisée
-          </div>
-        </div>
-
-        <ScrollArea className="max-h-[72vh]">
-          <div className="px-6 pb-6 min-h-[360px]">
-            <AnimatePresence mode="wait">
-              {step === 1 && (
-                <StepValue
-                  key="s1"
-                  selected={selectedCountries}
-                  toggle={toggleCountry}
-                  onContinue={goNext}
-                />
-              )}
-              {step === 2 && (
-                <StepContact
-                  key="s2"
-                  contact={contact}
-                  setContact={(v) => { setContact(v); setContactError(null); }}
-                  error={contactError}
-                  isAuthed={!!authedUser}
-                  onContinue={handleStartGeneration}
-                />
-              )}
-              {step === 3 && (
-                <StepReveal
-                  key="s3"
-                  loading={loading}
-                  addresses={addresses}
-                  onContinue={goNext}
-                  isAuthed={!!authedUser}
-                  magicSent={magicSent}
-                  contact={contact}
-                />
-              )}
-              {step === 4 && (
-                <StepEducation key="s4" onContinue={goNext} />
-              )}
-              {step === 5 && (
-                <StepAction
-                  key="s5"
-                  isAuthed={!!authedUser}
-                  onConfideDossier={() => {
-                    onOpenChange(false);
-                    setTimeout(() => onConfideDossier?.(), 200);
-                  }}
-                  onClose={() => onOpenChange(false)}
-                />
-              )}
-            </AnimatePresence>
-          </div>
-        </ScrollArea>
+        {inner}
       </DialogContent>
     </Dialog>
   );
