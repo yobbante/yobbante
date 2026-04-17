@@ -73,7 +73,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden">
         {/* Subtle world-map background */}
         <div
-          className="absolute inset-0 bg-center bg-cover opacity-[0.07] dark:opacity-[0.18] pointer-events-none"
+          className="absolute inset-0 bg-center bg-cover opacity-25 dark:opacity-30 pointer-events-none"
           style={{ backgroundImage: `url(${heroBg})` }}
           aria-hidden
         />
