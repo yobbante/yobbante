@@ -133,7 +133,7 @@ export default function ServicesPage() {
       </section>
 
       {/* Services list */}
-      <section className="max-w-4xl mx-auto px-5 sm:px-6 pb-16 md:pb-20">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-16 md:pb-20">
         <div className="space-y-0 divide-y divide-border">
           {SERVICES.map((s, i) => (
             <motion.div
