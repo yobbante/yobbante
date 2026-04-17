@@ -153,6 +153,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
         </div>
+        </div>
       </section>
 
       {/* ───── 3. Two Pillars ───── */}
