@@ -119,25 +119,15 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/services" className="text-sm font-medium text-foreground">Services</Link>
-            <Link to="/simulateur" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Accueil</Link>
-          </div>
-          <Link to="/auth" className="text-sm font-semibold bg-foreground text-background px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">Commencer</Link>
-        </div>
-      </nav>
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-28 md:pb-16 text-center md:text-left">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-24 md:pb-16 text-center md:text-left">
         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Services</p>
         <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3 text-balance">
           Un opérateur logistique pour toute votre chaîne.
         </h1>
-        <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed text-pretty mx-auto md:mx-0">
+        <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty mx-auto md:mx-0">
           Yobbanté n'est pas un intermédiaire. Nous opérons chaque maillon : du sourcing en usine jusqu'à la livraison finale.
         </p>
       </section>
