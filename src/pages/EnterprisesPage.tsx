@@ -115,7 +115,7 @@ const contactSchema = z.object({
 
 export default function EnterprisesPage() {
   const navigate = useNavigate();
-  const goDossier = () => navigate('/confier-dossier');
+  const goDevis = () => navigate('/devis-entreprise');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
@@ -147,7 +147,7 @@ export default function EnterprisesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: goDossier }]} />
+      <PublicNav extraItems={[{ label: 'Demander un devis', onClick: goDevis }]} />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-12 md:pt-24 md:pb-16 text-center md:text-left">
@@ -173,18 +173,18 @@ export default function EnterprisesPage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
           className="mt-7 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
         >
-          <a
-            href="#contact"
+          <button
+            onClick={goDevis}
             className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
           >
-            Parler à un commercial <ArrowRight className="w-4 h-4" />
-          </a>
-          <button
-            onClick={goDossier}
+            Demander un devis entreprise <ArrowRight className="w-4 h-4" />
+          </button>
+          <a
+            href="#contact"
             className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
           >
-            Demander un devis express
-          </button>
+            Écrire un message
+          </a>
         </motion.div>
       </section>
 
@@ -353,8 +353,8 @@ export default function EnterprisesPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="#contact"
+                <button
+                  onClick={goDevis}
                   className={`mt-6 inline-flex items-center justify-center gap-2 text-sm font-semibold px-5 py-3 rounded-xl transition-opacity ${
                     tier.highlight
                       ? 'bg-background text-foreground hover:opacity-90'
@@ -362,7 +362,7 @@ export default function EnterprisesPage() {
                   }`}
                 >
                   {tier.cta} <ArrowRight className="w-4 h-4" />
-                </a>
+                </button>
               </motion.div>
             ))}
           </div>
