@@ -341,9 +341,9 @@ function StepValue({
         ))}
       </div>
 
-      <Button onClick={onContinue} disabled={selected.length === 0} className="w-full h-11 rounded-xl">
-        Commencer <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} disabled={selected.length === 0} className="btn-cta w-full">
+        Commencer <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
@@ -390,7 +390,7 @@ function StepContact({
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             placeholder="vous@exemple.com ou +221 77 000 00 00"
-            className={cn('pl-10 h-12 rounded-xl', error && 'border-destructive focus-visible:ring-destructive')}
+            className={cn('input-glow pl-10 h-12 rounded-xl transition-shadow', error && 'border-destructive focus-visible:ring-destructive')}
             onKeyDown={(e) => { if (e.key === 'Enter') onContinue(); }}
             maxLength={255}
             inputMode="email"
@@ -399,9 +399,9 @@ function StepContact({
         {error && <p className="text-xs text-destructive mt-1.5">{error}</p>}
       </div>
 
-      <Button onClick={onContinue} disabled={!contact.trim()} className="w-full h-11 rounded-xl">
-        Générer mes adresses <Sparkles className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} disabled={!contact.trim()} className="btn-cta w-full">
+        Générer mes adresses <Sparkles className="w-4 h-4" />
+      </button>
 
       <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Données protégées</span>
@@ -567,9 +567,9 @@ function StepReveal({
         </Button>
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
-        Comment ça marche <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} className="btn-cta w-full">
+        Comment ça marche <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
@@ -622,9 +622,9 @@ function StepEducation({ onContinue }: { onContinue: () => void }) {
         ))}
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
-        Continuer <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} className="btn-cta w-full">
+        Continuer <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
