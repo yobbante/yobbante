@@ -13,7 +13,7 @@ import { PublicFooter } from '@/components/PublicFooter';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { WHATSAPP_URL } from '@/lib/contact';
+import { whatsappLink } from '@/lib/contact';
 
 type Frequency = 'one_off' | 'monthly' | 'weekly' | 'continuous';
 type Volume = '<500kg' | '500-2t' | '2t-conteneur' | '>conteneur';
