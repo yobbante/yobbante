@@ -511,37 +511,13 @@ function StepReveal({
 
       <div className="space-y-2.5">
         {addresses.map((addr, i) => (
-          <motion.div
+          <AddressRevealCard
             key={addr.identifier_code}
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: i * 0.16, type: 'spring', stiffness: 110, damping: 16 }}
-            className="p-4 rounded-2xl border border-border bg-secondary/30 hover:border-primary/40 transition-colors"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-2xl">{COUNTRY_FLAGS[addr.country]}</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{COUNTRY_NAMES[addr.country]}</p>
-                  <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                    <span className="text-[11px] font-mono font-semibold text-primary">{addr.identifier_code}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => copyOne(addr)}
-                className="shrink-0 p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Copier"
-              >
-                {copied === addr.identifier_code ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed break-words">{addr.address_line}</p>
-          </motion.div>
+            addr={addr}
+            index={i}
+            onCopy={copyOne}
+            copied={copied === addr.identifier_code}
+          />
         ))}
       </div>
 
