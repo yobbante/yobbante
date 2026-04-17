@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { DossierDialog } from '@/components/DossierDialog';
+import { GetAddressDialog } from '@/components/GetAddressDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
@@ -54,6 +55,7 @@ const METRICS = [
 export default function LandingPage() {
   const [smartOpen, setSmartOpen] = useState(false);
   const [dossierOpen, setDossierOpen] = useState(false);
+  const [addressOpen, setAddressOpen] = useState(false);
   const [preset, setPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
 
   const openDossierWithPreset = (p: { product: string; weight: number; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
@@ -99,12 +101,12 @@ export default function LandingPage() {
               >
                 <FolderPlus className="w-4 h-4" /> Confier mon dossier
               </button>
-              <Link
-                to="/auth"
+              <button
+                onClick={() => setAddressOpen(true)}
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
               >
                 <MapPin className="w-4 h-4" /> Obtenir une adresse
-              </Link>
+              </button>
             </motion.div>
           </div>
 
@@ -445,6 +447,7 @@ export default function LandingPage() {
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
       <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
+      <GetAddressDialog open={addressOpen} onOpenChange={setAddressOpen} onConfideDossier={() => setDossierOpen(true)} />
     </div>
   );
 }
