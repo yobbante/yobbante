@@ -14,6 +14,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useTypewriter } from '@/hooks/useTypewriter';
+import { whatsappLink, YOBBANTE_WHATSAPP_DISPLAY } from '@/lib/contact';
+import { MessageCircle } from 'lucide-react';
+
+interface ParsedProduct {
+  title: string;
+  platform: string;
+  estimatedPriceEur: number;
+  estimatedWeightKg: number;
+  category: string;
+  imageUrl: string;
+  suggestedQuantity: number;
+}
 
 interface DossierPreset {
   product?: string;
@@ -69,9 +82,39 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
+  const [parsedProduct, setParsedProduct] = useState<ParsedProduct | null>(null);
+  const [parsingProduct, setParsingProduct] = useState(false);
   const { createDossier } = useDossiers();
 
   const platform = useMemo(() => detectPlatform(productInput), [productInput]);
+
+  // Auto-parse product when a URL is detected (debounced)
+  useEffect(() => {
+    if (!productInput || productInput.trim().length < 8) {
+      setParsedProduct(null);
+      return;
+    }
+    const isUrl = /^https?:\/\//i.test(productInput.trim());
+    if (!isUrl) {
+      setParsedProduct(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setParsingProduct(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('parse-product', {
+          body: { input: productInput.trim() },
+        });
+        if (error) throw error;
+        if (data && data.title) setParsedProduct(data as ParsedProduct);
+      } catch (e) {
+        console.warn('parse-product failed', e);
+      } finally {
+        setParsingProduct(false);
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [productInput]);
 
   // Reset & preset
   useEffect(() => {
@@ -88,6 +131,8 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
       setEmail('');
       setSuccess(false);
       setReference(null);
+      setParsedProduct(null);
+      setParsingProduct(false);
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user?.email) setEmail(user.email);
       });
@@ -220,6 +265,8 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
                   setDestination={setDestination}
                   onContinue={() => { if (canStep2Continue()) goNext(); }}
                   canContinue={canStep2Continue()}
+                  parsedProduct={parsedProduct}
+                  parsing={parsingProduct}
                 />
               ) : step === 3 ? (
                 <StepDetails
@@ -321,7 +368,7 @@ function StepIntent({ onSelect, selected }: { onSelect: (i: Intent) => void; sel
 function StepInput({
   intent, productInput, setProductInput, platform,
   origin, setOrigin, destination, setDestination,
-  onContinue, canContinue,
+  onContinue, canContinue, parsedProduct, parsing,
 }: {
   intent: Intent;
   productInput: string;
@@ -333,6 +380,8 @@ function StepInput({
   setDestination: (d: string) => void;
   onContinue: () => void;
   canContinue: boolean;
+  parsedProduct: ParsedProduct | null;
+  parsing: boolean;
 }) {
   const showProduct = intent === 'buy' || intent === 'both';
   const showRoute = intent === 'ship' || intent === 'both';
@@ -368,15 +417,47 @@ function StepInput({
             />
           </div>
           <AnimatePresence>
-            {platform && (
+            {platform && !parsedProduct && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="flex items-center gap-2 text-xs text-primary"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                Plateforme détectée : <span className="font-medium">{platform}</span>
+                {parsing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {parsing ? 'Analyse du produit en cours…' : <>Plateforme détectée : <span className="font-medium">{platform}</span></>}
+              </motion.div>
+            )}
+            {parsedProduct && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-3 rounded-xl border border-primary/30 bg-primary/5 flex gap-3 items-start"
+              >
+                {parsedProduct.imageUrl ? (
+                  <img
+                    src={parsedProduct.imageUrl}
+                    alt=""
+                    className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-2xl">
+                    📦
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-[10px] text-primary uppercase tracking-wider font-medium">
+                    <Sparkles className="w-3 h-3" /> Détecté
+                  </div>
+                  <p className="text-sm font-medium text-foreground line-clamp-2 mt-0.5">{parsedProduct.title}</p>
+                  <div className="flex flex-wrap gap-2 mt-1.5 text-[11px] text-muted-foreground">
+                    <span>{parsedProduct.platform}</span>
+                    {parsedProduct.estimatedPriceEur > 0 && <span>· ~{parsedProduct.estimatedPriceEur}€</span>}
+                    {parsedProduct.estimatedWeightKg > 0 && <span>· {parsedProduct.estimatedWeightKg}kg</span>}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -531,6 +612,30 @@ function StepDetails({
 }
 
 /* ============================================================ */
+/* TypedSummary — typewriter intro for Step 4                      */
+/* ============================================================ */
+function TypedSummary({
+  intent, origin, destination,
+}: { intent: Intent; origin: WarehouseCountry; destination: string }) {
+  const action = intent === 'buy' ? 'acheter un produit' : intent === 'ship' ? 'expédier un colis' : 'acheter et expédier';
+  const destCity = destination.split(',')[0];
+  const fullText = `Vous souhaitez ${action} depuis ${COUNTRY_NAMES[origin]} ${COUNTRY_FLAGS[origin]} et le recevoir à ${destCity}. Notre concierge prend le relais.`;
+  const { text, done } = useTypewriter(fullText, 16, 120);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary font-medium">
+        <Sparkles className="w-3 h-3" /> Agent assigné
+      </div>
+      <p className="text-base font-medium text-foreground leading-relaxed min-h-[3rem]">
+        {text}
+        {!done && <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse align-middle" />}
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================ */
 /* STEP 4 — Live Summary                                          */
 /* ============================================================ */
 function StepSummary({
@@ -563,10 +668,12 @@ function StepSummary({
       transition={{ duration: 0.25 }}
       className="space-y-5"
     >
-      <div>
-        <h3 className="text-xl font-semibold text-foreground">Votre dossier</h3>
-        <p className="text-sm text-muted-foreground mt-1">Voici ce que nous allons faire pour vous.</p>
-      </div>
+      <TypedSummary
+        intent={intent}
+        origin={origin}
+        destination={destination}
+      />
+
 
       {/* Route */}
       <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
@@ -721,6 +828,7 @@ function StepContact({
 /* SUCCESS                                                         */
 /* ============================================================ */
 function SuccessScreen({ reference, onClose }: { reference: string | null; onClose: () => void }) {
+  const waMessage = `Bonjour Yobbanté, je viens de soumettre mon dossier ${reference ?? ''}. Pouvez-vous me confirmer la prise en charge ?`;
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -755,7 +863,15 @@ function SuccessScreen({ reference, onClose }: { reference: string | null; onClo
       )}
 
       <div className="flex flex-col gap-2 pt-2">
-        <Button onClick={onClose} className="w-full h-11 rounded-xl">
+        <a
+          href={whatsappLink(waMessage)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full h-11 rounded-xl bg-[#25D366] hover:bg-[#1FBA57] text-white font-medium flex items-center justify-center gap-2 transition-colors"
+        >
+          <MessageCircle className="w-4 h-4" /> Discuter sur WhatsApp
+        </a>
+        <Button onClick={onClose} variant="outline" className="w-full h-11 rounded-xl">
           Suivre mon dossier
         </Button>
         <button
