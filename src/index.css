@@ -32,6 +32,11 @@
     --input: 0 0% 90%;
     --ring: 211 100% 45%;
 
+    /* Conversion CTA accent — Yobbanté brand teal */
+    --cta: 167 42% 49%;
+    --cta-foreground: 0 0% 100%;
+    --cta-glow: 167 60% 60%;
+
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
@@ -54,5 +59,42 @@
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Premium conversion CTA — vibrant teal, soft shadow, hover lift */
+  .btn-cta {
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-2xl
+           px-6 py-3.5 text-sm tracking-tight
+           transition-all duration-200 ease-out
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    background-color: hsl(var(--cta));
+    color: hsl(var(--cta-foreground));
+    box-shadow:
+      0 1px 0 hsl(var(--cta) / 0.4) inset,
+      0 8px 20px -8px hsl(var(--cta) / 0.55),
+      0 2px 6px -2px hsl(var(--cta) / 0.3);
+    --tw-ring-color: hsl(var(--cta) / 0.5);
+  }
+  .btn-cta:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow:
+      0 1px 0 hsl(var(--cta-glow) / 0.5) inset,
+      0 14px 28px -10px hsl(var(--cta) / 0.7),
+      0 4px 10px -2px hsl(var(--cta) / 0.4);
+  }
+  .btn-cta:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .btn-cta:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    transform: none;
+  }
+
+  /* Subtle focus glow on inputs inside wizards */
+  .input-glow:focus-visible {
+    box-shadow: 0 0 0 4px hsl(var(--cta) / 0.18);
+    border-color: hsl(var(--cta) / 0.5);
   }
 }
