@@ -131,6 +131,8 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
       setEmail('');
       setSuccess(false);
       setReference(null);
+      setParsedProduct(null);
+      setParsingProduct(false);
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user?.email) setEmail(user.email);
       });
