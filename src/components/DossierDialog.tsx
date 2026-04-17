@@ -82,9 +82,39 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
+  const [parsedProduct, setParsedProduct] = useState<ParsedProduct | null>(null);
+  const [parsingProduct, setParsingProduct] = useState(false);
   const { createDossier } = useDossiers();
 
   const platform = useMemo(() => detectPlatform(productInput), [productInput]);
+
+  // Auto-parse product when a URL is detected (debounced)
+  useEffect(() => {
+    if (!productInput || productInput.trim().length < 8) {
+      setParsedProduct(null);
+      return;
+    }
+    const isUrl = /^https?:\/\//i.test(productInput.trim());
+    if (!isUrl) {
+      setParsedProduct(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setParsingProduct(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('parse-product', {
+          body: { input: productInput.trim() },
+        });
+        if (error) throw error;
+        if (data && data.title) setParsedProduct(data as ParsedProduct);
+      } catch (e) {
+        console.warn('parse-product failed', e);
+      } finally {
+        setParsingProduct(false);
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [productInput]);
 
   // Reset & preset
   useEffect(() => {
