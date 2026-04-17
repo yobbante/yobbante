@@ -644,10 +644,12 @@ function StepSummary({
       transition={{ duration: 0.25 }}
       className="space-y-5"
     >
-      <div>
-        <h3 className="text-xl font-semibold text-foreground">Votre dossier</h3>
-        <p className="text-sm text-muted-foreground mt-1">Voici ce que nous allons faire pour vous.</p>
-      </div>
+      <TypedSummary
+        intent={intent}
+        origin={origin}
+        destination={destination}
+      />
+
 
       {/* Route */}
       <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
