@@ -459,6 +459,7 @@ export default function LandingPage() {
       <PublicFooter />
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
+      <LocalDeliveryWizard open={localWizardOpen} onOpenChange={setLocalWizardOpen} />
     </div>
   );
 }
