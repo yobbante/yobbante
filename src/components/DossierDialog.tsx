@@ -161,10 +161,7 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-xl p-0 gap-0 overflow-hidden border-border/60 bg-card/95 backdrop-blur-xl"
-        showCloseButton={!success}
-      >
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-border/60 bg-card/95 backdrop-blur-xl">
         {/* Progress bar */}
         <div className="h-1 bg-border/40 relative overflow-hidden">
           <motion.div
@@ -221,7 +218,7 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
                   setOrigin={setOrigin}
                   destination={destination}
                   setDestination={setDestination}
-                  onContinue={() => canStep2Continue() && goNext()}
+                  onContinue={() => { if (canStep2Continue()) goNext(); }}
                   canContinue={canStep2Continue()}
                 />
               ) : step === 3 ? (
