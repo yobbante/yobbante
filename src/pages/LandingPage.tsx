@@ -209,6 +209,53 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ───── 3.bis B2B Trust Bar ───── */}
+      <section className="border-t border-border bg-foreground text-background">
+        <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
+          <div className="grid md:grid-cols-[1.4fr_1fr] gap-10 md:gap-16 items-center">
+            <div className="text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/10 text-xs font-medium text-background/80 mb-5">
+                <Building2 className="w-3.5 h-3.5" /> Pour entreprises & importateurs réguliers
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05] text-balance">
+                Yobbanté gère vos imports complexes, en volume.
+              </h2>
+              <p className="text-base md:text-lg text-background/70 mt-5 max-w-xl mx-auto md:mx-0 text-pretty">
+                Conteneurs, dédouanement, sourcing usine, contrats récurrents — un opérateur dédié, un devis sous 24h.
+              </p>
+              <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start">
+                <button
+                  onClick={() => setDossierOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-background text-foreground px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  Demander un devis entreprise <ArrowRight className="w-4 h-4" />
+                </button>
+                <a
+                  href="mailto:contact@yobbante.com?subject=Demande%20commerciale%20entreprise"
+                  className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-background/30 text-background px-6 py-3.5 rounded-xl hover:bg-background/10 transition-colors"
+                >
+                  Parler à un commercial
+                </a>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: ShieldCheck, label: 'Dédouanement géré', sub: '6 hubs, 150+ pays' },
+                { icon: Headset, label: 'Interlocuteur dédié', sub: 'Réponse 24h ouvrées' },
+                { icon: FileCheck2, label: 'Contrats récurrents', sub: 'Tarifs négociés' },
+                { icon: Building2, label: 'B2B & grossistes', sub: 'Conteneurs FCL/LCL' },
+              ].map((item) => (
+                <div key={item.label} className="bg-background/5 border border-background/10 rounded-xl p-4">
+                  <item.icon className="w-5 h-5 text-background/80" />
+                  <p className="text-sm font-semibold text-background mt-3">{item.label}</p>
+                  <p className="text-xs text-background/60 mt-1">{item.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ───── 4. 7 Services ───── */}
       <section id="services" className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
