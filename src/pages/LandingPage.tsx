@@ -5,6 +5,7 @@ import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { DossierDialog } from '@/components/DossierDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { PublicNav } from '@/components/PublicNav';
+import { PublicFooter } from '@/components/PublicFooter';
 import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
 import type { WarehouseCountry } from '@/lib/types';
 
@@ -229,11 +230,11 @@ export default function LandingPage() {
                 { icon: Headset, label: 'Interlocuteur dédié', sub: 'Réponse 24h ouvrées' },
                 { icon: FileCheck2, label: 'Contrats récurrents', sub: 'Tarifs négociés' },
                 { icon: Building2, label: 'B2B & grossistes', sub: 'Conteneurs FCL/LCL' },
-              ].map((item) => (
-                <div key={item.label} className="bg-background/5 border border-background/10 rounded-xl p-4">
-                  <item.icon className="w-5 h-5 text-background/80" />
-                  <p className="text-sm font-semibold text-background mt-3">{item.label}</p>
-                  <p className="text-xs text-background/60 mt-1">{item.sub}</p>
+              ].map(({ icon: Icon, label, sub }) => (
+                <div key={label} className="bg-background/5 border border-background/10 rounded-xl p-4">
+                  <Icon className="w-5 h-5 text-background/80" />
+                  <p className="text-sm font-semibold text-background mt-3">{label}</p>
+                  <p className="text-xs text-background/60 mt-1">{sub}</p>
                 </div>
               ))}
             </div>
@@ -439,42 +440,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ───── 11. Footer ───── */}
-      <footer className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="md:col-span-2">
-              <p className="text-base font-bold text-foreground">YOBBANTÉ</p>
-              <p className="text-sm text-muted-foreground mt-2 max-w-xs">
-                Opérateur logistique international. Sourcing, transport, dédouanement, livraison — un seul partenaire.
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Solutions</p>
-              <div className="space-y-2">
-                <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Particuliers</Link>
-                <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">E-commerçants</Link>
-                <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Entreprises</Link>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Plateforme</p>
-              <div className="space-y-2">
-                <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-                <Link to="/simulateur" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
-                <button onClick={() => setDossierOpen(true)} className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Confier un dossier</button>
-              </div>
-            </div>
-          </div>
-          <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row justify-between gap-3">
-            <p className="text-xs text-muted-foreground">© 2026 Yobbanté. Tous droits réservés.</p>
-            <div className="flex gap-5">
-              <span className="text-xs text-muted-foreground">Conditions générales</span>
-              <span className="text-xs text-muted-foreground">Confidentialité</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* ───── Footer ───── */}
+      <PublicFooter />
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
       <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />

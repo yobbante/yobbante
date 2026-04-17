@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { DossierDialog } from '@/components/DossierDialog';
 import { PublicNav } from '@/components/PublicNav';
+import { PublicFooter } from '@/components/PublicFooter';
 import type { WarehouseCountry } from '@/lib/types';
 
 export default function SimulatorPage() {
@@ -63,6 +64,8 @@ export default function SimulatorPage() {
           </div>
         </div>
       </section>
+
+      <PublicFooter />
 
       <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
     </div>

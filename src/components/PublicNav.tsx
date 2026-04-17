@@ -17,8 +17,8 @@ interface PublicNavProps {
 
 const STATIC_ITEMS: NavItem[] = [
   { to: '/services', label: 'Services' },
+  { to: '/entreprises', label: 'Entreprises' },
   { to: '/simulateur', label: 'Simulateur' },
-  { to: '/#warehouses', label: 'Adresses' },
 ];
 
 export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ extraItems = [] }, ref) {
