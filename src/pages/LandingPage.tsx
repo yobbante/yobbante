@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
-import { DossierDialog } from '@/components/DossierDialog';
-import { GetAddressDialog } from '@/components/GetAddressDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
@@ -53,20 +51,22 @@ const METRICS = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [smartOpen, setSmartOpen] = useState(false);
-  const [dossierOpen, setDossierOpen] = useState(false);
-  const [addressOpen, setAddressOpen] = useState(false);
-  const [preset, setPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
+
+  const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
+    navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
+  };
+  const goAddress = () => navigate('/obtenir-adresse');
 
   const openDossierWithPreset = (p: { product: string; weight: number; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
-    setPreset({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
-    setDossierOpen(true);
+    goDossier({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ───── 1. Nav ───── */}
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
 
       {/* ───── 2. Hero ───── */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
