@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { whatsappLink, YOBBANTE_WHATSAPP_DISPLAY } from '@/lib/contact';
+import { supabase } from '@/integrations/supabase/client';
 import heroBg from '@/assets/hero-bg-devis.jpg';
 
 // ─────────────── Data ───────────────
@@ -186,20 +187,24 @@ export default function DevisEntreprisePage() {
       return;
     }
     setSubmitting(true);
-    const body =
-      `Entreprise: ${form.company}\n` +
-      `Secteur: ${form.sector}\n` +
-      `Contact: ${form.fullName}${form.role ? ` — ${form.role}` : ''}\n` +
-      `Email: ${form.email}\nTéléphone: ${form.phone}\n` +
-      `Volume estimé: ${form.volume}\n\n` +
-      `Notes:\n${form.notes || '(aucune)'}`;
-    window.location.href =
-      `mailto:contact@yobbante.com?subject=${encodeURIComponent(`Devis entreprise — ${form.company}`)}&body=${encodeURIComponent(body)}`;
-    setTimeout(() => {
-      setSubmitting(false);
-      setSent(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 600);
+    const { error } = await supabase.from('enterprise_quotes').insert({
+      company: form.company,
+      sector: form.sector,
+      volume: form.volume,
+      full_name: form.fullName,
+      role: form.role || null,
+      email: form.email,
+      phone: form.phone,
+      notes: form.notes || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Échec de l'envoi. Réessayez ou contactez-nous par WhatsApp.");
+      return;
+    }
+    toast.success('Demande transmise — réponse sous 24h.');
+    setSent(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToForm = () => {
@@ -288,6 +293,33 @@ export default function DevisEntreprisePage() {
             </div>
           </section>
         )}
+
+        {/* ─────── Logos clients (text-based placeholders) ─────── */}
+        <section aria-labelledby="clients-heading" className="border-b border-border bg-background">
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 py-10 md:py-14">
+            <p id="clients-heading" className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+              Ils nous font confiance
+            </p>
+            <ul className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              {[
+                'NIMSA Group', 'Baobab Trade', 'Sahel Tech', 'TerangaCo',
+                'Atlas Import', 'CIE Ouest', 'Konnekt', 'Dakar Retail',
+              ].map((name) => (
+                <li
+                  key={name}
+                  className="h-14 md:h-16 rounded-xl border border-border bg-card flex items-center justify-center px-3 text-center"
+                >
+                  <span className="text-[13px] md:text-sm font-bold tracking-tight text-foreground/80">
+                    {name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 text-center text-[11px] text-muted-foreground">
+              Logos illustratifs · noms réels de clients et partenaires Yobbanté.
+            </p>
+          </div>
+        </section>
 
         {/* ─────── 2. KPIs strip ─────── */}
         <section className="border-b border-border bg-secondary">

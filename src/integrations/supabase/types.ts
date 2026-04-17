@@ -186,6 +186,57 @@ export type Database = {
         }
         Relationships: []
       }
+      enterprise_quotes: {
+        Row: {
+          admin_notes: string | null
+          company: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          role: string | null
+          sector: string
+          source: string
+          status: Database["public"]["Enums"]["enterprise_quote_status"]
+          updated_at: string
+          volume: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          role?: string | null
+          sector: string
+          source?: string
+          status?: Database["public"]["Enums"]["enterprise_quote_status"]
+          updated_at?: string
+          volume: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          role?: string | null
+          sector?: string
+          source?: string
+          status?: Database["public"]["Enums"]["enterprise_quote_status"]
+          updated_at?: string
+          volume?: string
+        }
+        Relationships: []
+      }
       packages: {
         Row: {
           created_at: string
@@ -402,6 +453,12 @@ export type Database = {
         | "CUSTOMS"
         | "DELIVERED"
         | "CLOSED"
+      enterprise_quote_status:
+        | "NEW"
+        | "CONTACTED"
+        | "QUALIFIED"
+        | "WON"
+        | "LOST"
       package_status:
         | "CREATED"
         | "RECEIVED"
@@ -549,6 +606,7 @@ export const Constants = {
         "DELIVERED",
         "CLOSED",
       ],
+      enterprise_quote_status: ["NEW", "CONTACTED", "QUALIFIED", "WON", "LOST"],
       package_status: [
         "CREATED",
         "RECEIVED",
