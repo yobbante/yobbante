@@ -429,7 +429,7 @@ function StepInput({
               value={productInput}
               onChange={(e) => setProductInput(e.target.value)}
               placeholder="https://alibaba.com/… ou « 50 smartphones Samsung »"
-              className="pl-10 h-12 text-sm rounded-xl"
+              className="input-glow pl-10 h-12 text-sm rounded-xl transition-shadow"
               onKeyDown={(e) => e.key === 'Enter' && canContinue && onContinue()}
             />
           </div>
@@ -530,13 +530,13 @@ function StepInput({
         </div>
       )}
 
-      <Button
+      <button
         onClick={onContinue}
         disabled={!canContinue}
-        className="w-full h-11 rounded-xl"
+        className="btn-cta w-full"
       >
-        Continuer
-      </Button>
+        Continuer <ArrowLeft className="w-4 h-4 rotate-180" />
+      </button>
     </motion.div>
   );
 }
@@ -621,9 +621,9 @@ function StepDetails({
         </div>
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
+      <button onClick={onContinue} className="btn-cta w-full">
         Voir le récapitulatif
-      </Button>
+      </button>
     </motion.div>
   );
 }
@@ -754,9 +754,9 @@ function StepSummary({
         </div>
       </div>
 
-      <Button onClick={onConfirm} className="w-full h-11 rounded-xl">
-        Confirmer mon dossier
-      </Button>
+      <button onClick={onConfirm} className="btn-cta w-full">
+        Valider mon envoi
+      </button>
       <p className="text-[11px] text-center text-muted-foreground">
         Estimation indicative — devis ferme sous 24h.
       </p>
@@ -803,7 +803,7 @@ function StepContact({
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             placeholder="+221 77 000 00 00"
-            className="h-12 rounded-xl"
+            className="input-glow h-12 rounded-xl transition-shadow"
           />
         </div>
         <div>
@@ -815,22 +815,22 @@ function StepContact({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="vous@exemple.com"
-            className="h-12 rounded-xl"
+            className="input-glow h-12 rounded-xl transition-shadow"
           />
         </div>
       </div>
 
-      <Button
+      <button
         onClick={onSubmit}
         disabled={submitting || !contact.trim()}
-        className="w-full h-11 rounded-xl"
+        className="btn-cta w-full"
       >
         {submitting ? (
-          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</>
+          <><Loader2 className="w-4 h-4 animate-spin" /> Envoi…</>
         ) : (
-          'Envoyer mon dossier'
+          'Valider mon envoi'
         )}
-      </Button>
+      </button>
 
       <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Données protégées</span>

@@ -106,13 +106,14 @@ export default function LandingPage() {
             >
               <button
                 onClick={() => goDossier()}
-                className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
+                className="btn-cta"
               >
                 <FolderPlus className="w-4 h-4" /> Confier mon dossier
               </button>
               <button
                 onClick={goAddress}
-                className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
+                className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 px-6 py-3.5 rounded-2xl transition-all duration-200 hover:-translate-y-px hover:bg-[hsl(var(--cta)/0.06)]"
+                style={{ borderColor: 'hsl(var(--cta) / 0.4)', color: 'hsl(var(--cta))' }}
               >
                 <MapPin className="w-4 h-4" /> Obtenir une adresse
               </button>

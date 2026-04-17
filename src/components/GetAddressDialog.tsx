@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Sparkles, ShieldCheck, Loader2, Copy, Check,
   Globe, Package as PackageIcon, Truck, Home as HomeIcon, ShoppingBag,
-  FolderPlus, MessageCircle, Mail, Plus,
+  FolderPlus, MessageCircle, Mail, Plus, QrCode,
 } from 'lucide-react';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { whatsappLink } from '@/lib/contact';
 import { PackageJourneySvg } from '@/components/PackageJourneySvg';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface GeneratedAddress {
   country: WarehouseCountry;
@@ -340,9 +341,9 @@ function StepValue({
         ))}
       </div>
 
-      <Button onClick={onContinue} disabled={selected.length === 0} className="w-full h-11 rounded-xl">
-        Commencer <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} disabled={selected.length === 0} className="btn-cta w-full">
+        Commencer <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
@@ -389,7 +390,7 @@ function StepContact({
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             placeholder="vous@exemple.com ou +221 77 000 00 00"
-            className={cn('pl-10 h-12 rounded-xl', error && 'border-destructive focus-visible:ring-destructive')}
+            className={cn('input-glow pl-10 h-12 rounded-xl transition-shadow', error && 'border-destructive focus-visible:ring-destructive')}
             onKeyDown={(e) => { if (e.key === 'Enter') onContinue(); }}
             maxLength={255}
             inputMode="email"
@@ -398,9 +399,9 @@ function StepContact({
         {error && <p className="text-xs text-destructive mt-1.5">{error}</p>}
       </div>
 
-      <Button onClick={onContinue} disabled={!contact.trim()} className="w-full h-11 rounded-xl">
-        Générer mes adresses <Sparkles className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} disabled={!contact.trim()} className="btn-cta w-full">
+        Générer mes adresses <Sparkles className="w-4 h-4" />
+      </button>
 
       <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Données protégées</span>
@@ -510,37 +511,13 @@ function StepReveal({
 
       <div className="space-y-2.5">
         {addresses.map((addr, i) => (
-          <motion.div
+          <AddressRevealCard
             key={addr.identifier_code}
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: i * 0.16, type: 'spring', stiffness: 110, damping: 16 }}
-            className="p-4 rounded-2xl border border-border bg-secondary/30 hover:border-primary/40 transition-colors"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-2xl">{COUNTRY_FLAGS[addr.country]}</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{COUNTRY_NAMES[addr.country]}</p>
-                  <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                    <span className="text-[11px] font-mono font-semibold text-primary">{addr.identifier_code}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => copyOne(addr)}
-                className="shrink-0 p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Copier"
-              >
-                {copied === addr.identifier_code ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed break-words">{addr.address_line}</p>
-          </motion.div>
+            addr={addr}
+            index={i}
+            onCopy={copyOne}
+            copied={copied === addr.identifier_code}
+          />
         ))}
       </div>
 
@@ -566,9 +543,9 @@ function StepReveal({
         </Button>
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
-        Comment ça marche <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} className="btn-cta w-full">
+        Comment ça marche <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
@@ -621,9 +598,9 @@ function StepEducation({ onContinue }: { onContinue: () => void }) {
         ))}
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
-        Continuer <ArrowRight className="w-4 h-4 ml-1.5" />
-      </Button>
+      <button onClick={onContinue} className="btn-cta w-full">
+        Continuer <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
@@ -702,6 +679,96 @@ function StepAction({
       >
         Plus tard
       </button>
+    </motion.div>
+  );
+}
+
+/* ============================================================ */
+/* AddressRevealCard — premium card with QR toggle                */
+/* ============================================================ */
+function AddressRevealCard({
+  addr, index, onCopy, copied,
+}: {
+  addr: GeneratedAddress;
+  index: number;
+  onCopy: (a: GeneratedAddress) => void;
+  copied: boolean;
+}) {
+  const [showQR, setShowQR] = useState(false);
+  const qrPayload = `${COUNTRY_NAMES[addr.country]} (${addr.identifier_code})\n${addr.address_line}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.16, type: 'spring', stiffness: 110, damping: 16 }}
+      className="p-4 rounded-2xl border border-border bg-secondary/30 hover:border-[hsl(var(--cta)/0.4)] transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-2xl">{COUNTRY_FLAGS[addr.country]}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{COUNTRY_NAMES[addr.country]}</p>
+            <div
+              className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-md border"
+              style={{ background: 'hsl(var(--cta) / 0.1)', borderColor: 'hsl(var(--cta) / 0.25)' }}
+            >
+              <span className="text-[11px] font-mono font-semibold" style={{ color: 'hsl(var(--cta))' }}>
+                {addr.identifier_code}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setShowQR(v => !v)}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              showQR ? 'bg-[hsl(var(--cta)/0.15)] text-[hsl(var(--cta))]' : 'hover:bg-secondary text-muted-foreground',
+            )}
+            aria-label="Afficher le QR code"
+            aria-pressed={showQR}
+          >
+            <QrCode className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onCopy(addr)}
+            className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Copier"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mt-3 leading-relaxed break-words">{addr.address_line}</p>
+
+      <AnimatePresence initial={false}>
+        {showQR && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-3">
+              <div className="p-2 bg-white rounded-lg shrink-0 shadow-sm">
+                <QRCodeSVG value={qrPayload} size={84} level="M" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-foreground">Partage rapide</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Scannez avec le téléphone du fournisseur ou destinataire pour copier l'adresse en un clin d'œil.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
