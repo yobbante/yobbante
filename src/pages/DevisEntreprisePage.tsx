@@ -215,11 +215,11 @@ export default function DevisEntreprisePage() {
         {/* ─────── 1. HERO corporate ─────── */}
         <section className="relative overflow-hidden border-b border-border">
           <div
-            className="absolute inset-0 bg-center bg-cover opacity-25 dark:opacity-30 pointer-events-none"
+            className="absolute inset-0 bg-center bg-cover opacity-40 dark:opacity-55 pointer-events-none"
             style={{ backgroundImage: `url(${heroBg})` }}
             aria-hidden
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/75 to-background pointer-events-none" aria-hidden />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/65 to-background pointer-events-none" aria-hidden />
           <div className="relative max-w-6xl mx-auto px-5 sm:px-6 pt-12 pb-14 md:pt-24 md:pb-24">
             <motion.div
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
