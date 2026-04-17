@@ -135,4 +135,4 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
       </div>
     </nav>
   );
-}
+});
