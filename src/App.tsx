@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
 import ServicesPage from "./pages/ServicesPage";
 import SimulatorPage from "./pages/SimulatorPage";
+import EnterprisesPage from "./pages/EnterprisesPage";
+import { CookieBanner } from "@/components/CookieBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import DossierDetail from "./pages/DossierDetail";
@@ -24,12 +26,14 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/simulateur" element={<SimulatorPage />} />
+          <Route path="/entreprises" element={<EnterprisesPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/app" element={<Index />} />
           <Route path="/app/dossier/:id" element={<DossierDetail />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <CookieBanner />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
