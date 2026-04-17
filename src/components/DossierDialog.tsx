@@ -100,10 +100,10 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
     setTimeout(() => setStep(2), 220);
   };
 
-  const canStep2Continue = () => {
+  const canStep2Continue = (): boolean => {
     if (intent === 'buy') return productInput.trim().length > 2;
-    if (intent === 'ship') return origin && destination;
-    return productInput.trim().length > 2 && origin && destination;
+    if (intent === 'ship') return !!origin && !!destination;
+    return productInput.trim().length > 2 && !!origin && !!destination;
   };
 
   const estimateRange = useMemo(() => {
