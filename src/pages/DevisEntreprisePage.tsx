@@ -500,6 +500,7 @@ export default function DevisEntreprisePage() {
               )}
             </motion.div>
           </div>
+          </div>
         </section>
       </main>
 
