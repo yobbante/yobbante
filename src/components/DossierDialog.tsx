@@ -14,6 +14,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useTypewriter } from '@/hooks/useTypewriter';
+import { whatsappLink, YOBBANTE_WHATSAPP_DISPLAY } from '@/lib/contact';
+import { MessageCircle } from 'lucide-react';
+
+interface ParsedProduct {
+  title: string;
+  platform: string;
+  estimatedPriceEur: number;
+  estimatedWeightKg: number;
+  category: string;
+  imageUrl: string;
+  suggestedQuantity: number;
+}
 
 interface DossierPreset {
   product?: string;
