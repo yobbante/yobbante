@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
@@ -20,6 +21,7 @@ import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
+  const navigate = useNavigate();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
   const { packages, consolidationGroups } = usePackages();
@@ -47,8 +49,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   const openDossier = () => {
-    setDossierPreset(undefined);
-    setDossierOpen(true);
+    navigate('/confier-dossier');
   };
 
   return (
