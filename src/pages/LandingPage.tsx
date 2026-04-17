@@ -229,11 +229,11 @@ export default function LandingPage() {
                 { icon: Headset, label: 'Interlocuteur dédié', sub: 'Réponse 24h ouvrées' },
                 { icon: FileCheck2, label: 'Contrats récurrents', sub: 'Tarifs négociés' },
                 { icon: Building2, label: 'B2B & grossistes', sub: 'Conteneurs FCL/LCL' },
-              ].map((item) => (
-                <div key={item.label} className="bg-background/5 border border-background/10 rounded-xl p-4">
-                  <item.icon className="w-5 h-5 text-background/80" />
-                  <p className="text-sm font-semibold text-background mt-3">{item.label}</p>
-                  <p className="text-xs text-background/60 mt-1">{item.sub}</p>
+              ].map(({ icon: Icon, label, sub }) => (
+                <div key={label} className="bg-background/5 border border-background/10 rounded-xl p-4">
+                  <Icon className="w-5 h-5 text-background/80" />
+                  <p className="text-sm font-semibold text-background mt-3">{label}</p>
+                  <p className="text-xs text-background/60 mt-1">{sub}</p>
                 </div>
               ))}
             </div>
