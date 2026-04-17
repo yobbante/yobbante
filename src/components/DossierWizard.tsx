@@ -332,24 +332,12 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
               )}
 
               {intent === 'ship' && step === 3 && (
-                <StepBlock title="Mode de transport recommandé" subtitle="Notre moteur compare prix, délai et fiabilité.">
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {TRANSPORTS.map(t => (
-                      <TransportCard
-                        key={t.id}
-                        {...t}
-                        active={transport === t.id}
-                        onClick={() => setTransport(t.id)}
-                      />
-                    ))}
-                  </div>
-                </StepBlock>
-              )}
-
-              {intent === 'ship' && step === 4 && (
-                <StepBlock title="Détails de l'envoi" subtitle="Poids approximatif et niveau d'urgence.">
+                <StepBlock title="Mode de transport recommandé" subtitle="Estimation en temps réel selon le poids.">
                   <div>
-                    <label className="text-xs text-white/60">Poids estimé : <span className="text-white font-semibold">{weight} kg</span></label>
+                    <div className="flex items-baseline justify-between">
+                      <label className="text-xs text-white/60">Poids estimé</label>
+                      <span className="text-sm text-white font-semibold">{weight} kg</span>
+                    </div>
                     <input
                       type="range" min={1} max={500} step={1}
                       value={weight}
@@ -360,15 +348,41 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
                       <span>1 kg</span><span>500 kg</span>
                     </div>
                   </div>
-                  <div className="mt-5">
-                    <p className="text-xs text-white/60 mb-2">Urgence</p>
-                    <div className="grid sm:grid-cols-3 gap-2">
-                      {URGENCIES.map(u => (
-                        <ChoiceCard key={u.id} Icon={u.Icon} label={u.label} desc={u.desc}
-                          active={urgency === u.id} onClick={() => setUrgency(u.id)} compact />
-                      ))}
-                    </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3 mt-5">
+                    {TRANSPORTS.map(t => {
+                      const est = estimateTransport(t.id, weight, urgency);
+                      return (
+                        <TransportCard
+                          key={t.id}
+                          {...t}
+                          estimate={est.formatted}
+                          active={transport === t.id}
+                          onClick={() => setTransport(t.id)}
+                        />
+                      );
+                    })}
                   </div>
+                </StepBlock>
+              )}
+
+              {intent === 'ship' && step === 4 && (
+                <StepBlock title="Niveau d'urgence" subtitle="Standard, Express ou Priorité absolue.">
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {URGENCIES.map(u => (
+                      <ChoiceCard key={u.id} Icon={u.Icon} label={u.label} desc={u.desc}
+                        active={urgency === u.id} onClick={() => setUrgency(u.id)} compact />
+                    ))}
+                  </div>
+                  {transport && (
+                    <div className="mt-5 p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/30">
+                      <p className="text-[11px] uppercase tracking-wider text-yellow-400/80">Estimation actuelle</p>
+                      <p className="text-2xl font-bold text-white mt-1">{estimateTransport(transport, weight, urgency).formatted}</p>
+                      <p className="text-[11px] text-white/50 mt-1">
+                        {TRANSPORTS.find(t => t.id === transport)?.label} · {weight} kg · {URGENCIES.find(u => u.id === urgency)?.label}
+                      </p>
+                    </div>
+                  )}
                 </StepBlock>
               )}
 
@@ -390,17 +404,69 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
               {/* ───── FLOW B: BUY ───── */}
               {intent === 'buy' && step === 1 && (
                 <StepBlock title="Que souhaitez-vous acheter ?" subtitle="Collez un lien produit ou décrivez ce que vous cherchez.">
-                  <div className="relative">
-                    <Link2 className="w-4 h-4 absolute left-3 top-3 text-white/40" />
-                    <Input
-                      autoFocus
-                      placeholder="ex: https://alibaba.com/... ou « 50 lampes solaires LED »"
-                      value={productInput}
-                      onChange={(e) => setProductInput(e.target.value)}
-                      className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 input-glow h-11"
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Link2 className="w-4 h-4 absolute left-3 top-3 text-white/40" />
+                      <Input
+                        autoFocus
+                        placeholder="ex: https://alibaba.com/... ou « 50 lampes solaires LED »"
+                        value={productInput}
+                        onChange={(e) => { setProductInput(e.target.value); setParsed(null); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') runParse(); }}
+                        className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/30 input-glow h-11"
+                      />
+                    </div>
+                    <button
+                      onClick={runParse}
+                      disabled={parsing || productInput.trim().length < 4}
+                      className="h-11 px-4 rounded-md bg-white/10 hover:bg-white/15 text-white text-sm font-medium inline-flex items-center gap-1.5 disabled:opacity-40 transition"
+                    >
+                      {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                      Analyser
+                    </button>
                   </div>
-                  <p className="text-[11px] text-white/40 mt-2">Amazon, Alibaba, 1688, AliExpress, ou simple description.</p>
+                  <p className="text-[11px] text-white/40 mt-2">Amazon, Alibaba, 1688, AliExpress — ou simple description.</p>
+
+                  <AnimatePresence>
+                    {parsed && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="mt-4 p-3 rounded-xl bg-white/5 border border-yellow-400/30 flex gap-3"
+                      >
+                        {parsed.imageUrl ? (
+                          <img
+                            src={parsed.imageUrl}
+                            alt={parsed.title}
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            className="w-16 h-16 rounded-lg object-cover bg-white/5 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                            <ImageIcon className="w-5 h-5 text-white/30" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-400 text-zinc-950 font-bold">
+                              {parsed.platform}
+                            </span>
+                            <span className="text-[10px] text-white/40">{parsed.category}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-white mt-1 line-clamp-2">{parsed.title}</p>
+                          <div className="flex gap-3 mt-1.5 text-[11px]">
+                            {parsed.estimatedPriceEur > 0 && (
+                              <span className="text-yellow-400 font-medium">~{parsed.estimatedPriceEur} €/u</span>
+                            )}
+                            {parsed.estimatedWeightKg > 0 && (
+                              <span className="text-white/50">~{parsed.estimatedWeightKg} kg/u</span>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </StepBlock>
               )}
 
