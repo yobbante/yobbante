@@ -353,8 +353,8 @@ export default function EnterprisesPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href="#contact"
+                <button
+                  onClick={goDevis}
                   className={`mt-6 inline-flex items-center justify-center gap-2 text-sm font-semibold px-5 py-3 rounded-xl transition-opacity ${
                     tier.highlight
                       ? 'bg-background text-foreground hover:opacity-90'
@@ -362,7 +362,7 @@ export default function EnterprisesPage() {
                   }`}
                 >
                   {tier.cta} <ArrowRight className="w-4 h-4" />
-                </a>
+                </button>
               </motion.div>
             ))}
           </div>
