@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
-import { DossierDialog } from '@/components/DossierDialog';
-import { GetAddressDialog } from '@/components/GetAddressDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
@@ -53,20 +51,22 @@ const METRICS = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [smartOpen, setSmartOpen] = useState(false);
-  const [dossierOpen, setDossierOpen] = useState(false);
-  const [addressOpen, setAddressOpen] = useState(false);
-  const [preset, setPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
+
+  const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
+    navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
+  };
+  const goAddress = () => navigate('/obtenir-adresse');
 
   const openDossierWithPreset = (p: { product: string; weight: number; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
-    setPreset({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
-    setDossierOpen(true);
+    goDossier({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ───── 1. Nav ───── */}
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
 
       {/* ───── 2. Hero ───── */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
@@ -96,13 +96,13 @@ export default function LandingPage() {
               className="mt-7 md:mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
             >
               <button
-                onClick={() => setDossierOpen(true)}
+                onClick={() => goDossier()}
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
               >
                 <FolderPlus className="w-4 h-4" /> Confier mon dossier
               </button>
               <button
-                onClick={() => setAddressOpen(true)}
+                onClick={goAddress}
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
               >
                 <MapPin className="w-4 h-4" /> Obtenir une adresse
@@ -167,7 +167,7 @@ export default function LandingPage() {
                 <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Optimisation transport multi-modal</li>
               </ul>
               <button
-                onClick={() => setDossierOpen(true)}
+                onClick={() => goDossier()}
                 className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
                 Confier mon dossier <ArrowRight className="w-4 h-4" />
@@ -213,7 +213,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start">
                 <button
-                  onClick={() => setDossierOpen(true)}
+                  onClick={() => goDossier()}
                   className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-background text-foreground px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
                 >
                   Demander un devis entreprise <ArrowRight className="w-4 h-4" />
@@ -427,7 +427,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => setDossierOpen(true)}
+              onClick={() => goDossier()}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
             >
               <FolderPlus className="w-4 h-4" /> Confier mon dossier
@@ -446,8 +446,6 @@ export default function LandingPage() {
       <PublicFooter />
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
-      <GetAddressDialog open={addressOpen} onOpenChange={setAddressOpen} onConfideDossier={() => setDossierOpen(true)} />
     </div>
   );
 }

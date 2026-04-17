@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
@@ -7,7 +8,6 @@ import { AddressCard } from '@/components/AddressCard';
 import { DossierCard } from '@/components/DossierCard';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
-import { DossierDialog } from '@/components/DossierDialog';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
@@ -20,6 +20,7 @@ import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
+  const navigate = useNavigate();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
   const { packages, consolidationGroups } = usePackages();
@@ -29,9 +30,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
-  const [dossierOpen, setDossierOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
-  const [dossierPreset, setDossierPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
@@ -47,8 +46,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   const openDossier = () => {
-    setDossierPreset(undefined);
-    setDossierOpen(true);
+    navigate('/confier-dossier');
   };
 
   return (
@@ -205,11 +203,14 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
         open={smartOpen}
         onOpenChange={setSmartOpen}
         onConfideDossier={(p) => {
-          setDossierPreset({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
-          setDossierOpen(true);
+          setSmartOpen(false);
+          navigate('/confier-dossier', {
+            state: {
+              preset: { product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost },
+            },
+          });
         }}
       />
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={dossierPreset} />
     </div>
   );
 }

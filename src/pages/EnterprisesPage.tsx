@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-import { DossierDialog } from '@/components/DossierDialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -115,7 +114,8 @@ const contactSchema = z.object({
 });
 
 export default function EnterprisesPage() {
-  const [dossierOpen, setDossierOpen] = useState(false);
+  const navigate = useNavigate();
+  const goDossier = () => navigate('/confier-dossier');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
@@ -147,7 +147,7 @@ export default function EnterprisesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: goDossier }]} />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-12 md:pt-24 md:pb-16 text-center md:text-left">
@@ -180,7 +180,7 @@ export default function EnterprisesPage() {
             Parler à un commercial <ArrowRight className="w-4 h-4" />
           </a>
           <button
-            onClick={() => setDossierOpen(true)}
+            onClick={goDossier}
             className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
           >
             Demander un devis express
@@ -466,8 +466,6 @@ export default function EnterprisesPage() {
       </section>
 
       <PublicFooter />
-
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} />
     </div>
   );
 }

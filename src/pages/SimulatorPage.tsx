@@ -1,21 +1,20 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { SmartImportInline } from '@/components/SmartImportInline';
-import { DossierDialog } from '@/components/DossierDialog';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import type { WarehouseCountry } from '@/lib/types';
 
 export default function SimulatorPage() {
-  const [dossierOpen, setDossierOpen] = useState(false);
-  const [preset, setPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
+  const navigate = useNavigate();
+  const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
+    navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
 
-      {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-8 md:pt-24 md:pb-14 text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-5 md:mb-6">
           <Sparkles className="w-3.5 h-3.5" />
@@ -29,23 +28,20 @@ export default function SimulatorPage() {
         </p>
       </section>
 
-      {/* Simulator */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-16 md:pb-20">
         <SmartImportInline
           onConfideDossier={(p) => {
-            setPreset({
+            goDossier({
               product: p.product,
               estimatedWeight: String(p.weight),
               origin: p.origin,
               destination: p.destination,
               estimatedCost: p.estimatedCost,
             });
-            setDossierOpen(true);
           }}
         />
       </section>
 
-      {/* How it works */}
       <section className="bg-secondary py-20">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-10">Comment ça marche</h2>
@@ -66,8 +62,6 @@ export default function SimulatorPage() {
       </section>
 
       <PublicFooter />
-
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
     </div>
   );
 }
