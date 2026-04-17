@@ -90,6 +90,11 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
   const [budget, setBudget] = useState<number>(500);
   const [quantity, setQuantity] = useState<number>(1);
   const [includeShipping, setIncludeShipping] = useState(true);
+  const [parsing, setParsing] = useState(false);
+  const [parsed, setParsed] = useState<null | {
+    title: string; platform: string; estimatedPriceEur: number;
+    estimatedWeightKg: number; category: string; imageUrl: string; suggestedQuantity: number;
+  }>(null);
 
   // Final contact
   const [name, setName] = useState('');
