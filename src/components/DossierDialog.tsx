@@ -70,7 +70,7 @@ function detectPlatform(url: string): string | null {
   return null;
 }
 
-export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps) {
+export function DossierDialog({ open, onOpenChange, preset, mode = 'dialog' }: DossierDialogProps) {
   const [step, setStep] = useState(1);
   const [intent, setIntent] = useState<Intent | null>(null);
   const [productInput, setProductInput] = useState('');
@@ -120,7 +120,7 @@ export function DossierDialog({ open, onOpenChange, preset }: DossierDialogProps
 
   // Reset & preset
   useEffect(() => {
-    if (open) {
+    if (open || mode === 'page') {
       setStep(1);
       setIntent(null);
       setProductInput(preset?.product ?? '');
