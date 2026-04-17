@@ -115,7 +115,7 @@ const contactSchema = z.object({
 
 export default function EnterprisesPage() {
   const navigate = useNavigate();
-  const goDossier = () => navigate('/confier-dossier');
+  const goDevis = () => navigate('/devis-entreprise');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
