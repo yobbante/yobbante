@@ -7,6 +7,8 @@ import LandingPage from "./pages/LandingPage";
 import ServicesPage from "./pages/ServicesPage";
 import SimulatorPage from "./pages/SimulatorPage";
 import EnterprisesPage from "./pages/EnterprisesPage";
+import ConfierDossierPage from "./pages/ConfierDossierPage";
+import ObtenirAdressePage from "./pages/ObtenirAdressePage";
 import { CookieBanner } from "@/components/CookieBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -27,6 +29,8 @@ const App = () => (
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/simulateur" element={<SimulatorPage />} />
           <Route path="/entreprises" element={<EnterprisesPage />} />
+          <Route path="/confier-dossier" element={<ConfierDossierPage />} />
+          <Route path="/obtenir-adresse" element={<ObtenirAdressePage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/app" element={<Index />} />
           <Route path="/app/dossier/:id" element={<DossierDetail />} />
