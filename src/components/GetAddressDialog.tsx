@@ -27,6 +27,8 @@ interface GetAddressDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfideDossier?: () => void;
+  /** When 'page', renders without the Dialog wrapper (branded full-page mode). */
+  mode?: 'dialog' | 'page';
 }
 
 const TOTAL = 5; // 1.value 2.contact 3.reveal 4.education 5.action

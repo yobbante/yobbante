@@ -40,6 +40,8 @@ interface DossierDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preset?: DossierPreset;
+  /** When 'page', renders without the Dialog wrapper (branded full-page mode). */
+  mode?: 'dialog' | 'page';
 }
 
 type Intent = 'buy' | 'ship' | 'both';
