@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Search, ChevronRight, FolderOpen, Users } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Search, ChevronRight, FolderOpen, Users, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { useUserRole } from '@/hooks/useUserRole';
 import { UsersTab } from '@/components/admin/UsersTab';
+import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import {
   type Dossier,
   type DossierStatus,
@@ -27,7 +28,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { isStaff, isAdmin, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
-  const [tab, setTab] = useState<'dossiers' | 'users'>('dossiers');
+  const [tab, setTab] = useState<'dossiers' | 'quotes' | 'users'>('dossiers');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DossierStatus | 'ALL'>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -129,10 +130,13 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'dossiers' | 'users')}>
-          <TabsList className="grid grid-cols-2 w-full max-w-sm mb-6">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'dossiers' | 'quotes' | 'users')}>
+          <TabsList className="grid grid-cols-3 w-full max-w-xl mb-6">
             <TabsTrigger value="dossiers" className="gap-2">
               <FolderOpen className="w-4 h-4" /> Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="gap-2">
+              <Building2 className="w-4 h-4" /> Devis
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2" disabled={!isAdmin}>
               <Users className="w-4 h-4" /> Utilisateurs
@@ -218,6 +222,10 @@ export default function AdminPage() {
                 )}
               </aside>
             </div>
+          </TabsContent>
+
+          <TabsContent value="quotes" className="mt-0">
+            <EnterpriseQuotesTab />
           </TabsContent>
 
           <TabsContent value="users" className="mt-0">
