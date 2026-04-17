@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { SmartImportInline } from '@/components/SmartImportInline';
-import { DossierDialog } from '@/components/DossierDialog';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import type { WarehouseCountry } from '@/lib/types';
 
 export default function SimulatorPage() {
-  const [dossierOpen, setDossierOpen] = useState(false);
-  const [preset, setPreset] = useState<{ product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number } | undefined>();
+  const navigate = useNavigate();
+  const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
+    navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">

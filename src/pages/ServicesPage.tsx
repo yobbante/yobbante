@@ -1,7 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { DossierDialog } from '@/components/DossierDialog';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -287,7 +285,7 @@ export default function ServicesPage() {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => setDossierOpen(true)}
+              onClick={goDossier}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-background text-foreground px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
             >
               Confier mon dossier <ArrowRight className="w-4 h-4" />
@@ -303,8 +301,6 @@ export default function ServicesPage() {
       </section>
 
       <PublicFooter />
-
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} />
     </div>
   );
 }
