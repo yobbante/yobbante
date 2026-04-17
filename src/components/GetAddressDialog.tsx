@@ -682,3 +682,93 @@ function StepAction({
     </motion.div>
   );
 }
+
+/* ============================================================ */
+/* AddressRevealCard — premium card with QR toggle                */
+/* ============================================================ */
+function AddressRevealCard({
+  addr, index, onCopy, copied,
+}: {
+  addr: GeneratedAddress;
+  index: number;
+  onCopy: (a: GeneratedAddress) => void;
+  copied: boolean;
+}) {
+  const [showQR, setShowQR] = useState(false);
+  const qrPayload = `${COUNTRY_NAMES[addr.country]} (${addr.identifier_code})\n${addr.address_line}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.16, type: 'spring', stiffness: 110, damping: 16 }}
+      className="p-4 rounded-2xl border border-border bg-secondary/30 hover:border-[hsl(var(--cta)/0.4)] transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-2xl">{COUNTRY_FLAGS[addr.country]}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{COUNTRY_NAMES[addr.country]}</p>
+            <div
+              className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-md border"
+              style={{ background: 'hsl(var(--cta) / 0.1)', borderColor: 'hsl(var(--cta) / 0.25)' }}
+            >
+              <span className="text-[11px] font-mono font-semibold" style={{ color: 'hsl(var(--cta))' }}>
+                {addr.identifier_code}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setShowQR(v => !v)}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              showQR ? 'bg-[hsl(var(--cta)/0.15)] text-[hsl(var(--cta))]' : 'hover:bg-secondary text-muted-foreground',
+            )}
+            aria-label="Afficher le QR code"
+            aria-pressed={showQR}
+          >
+            <QrCode className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onCopy(addr)}
+            className="p-2 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Copier"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mt-3 leading-relaxed break-words">{addr.address_line}</p>
+
+      <AnimatePresence initial={false}>
+        {showQR && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-3">
+              <div className="p-2 bg-white rounded-lg shrink-0 shadow-sm">
+                <QRCodeSVG value={qrPayload} size={84} level="M" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-foreground">Partage rapide</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Scannez avec le téléphone du fournisseur ou destinataire pour copier l'adresse en un clin d'œil.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
