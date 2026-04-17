@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { DossierDialog } from '@/components/DossierDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
-import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin } from 'lucide-react';
+import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
 import type { WarehouseCountry } from '@/lib/types';
 
 const fadeUp = {
