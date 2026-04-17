@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { whatsappLink } from '@/lib/contact';
+import heroBg from '@/assets/hero-bg-devis.jpg';
 
 type Frequency = 'one_off' | 'monthly' | 'weekly' | 'continuous';
 type Volume = '<500kg' | '500-2t' | '2t-conteneur' | '>conteneur';
@@ -134,7 +135,14 @@ export default function DevisEntreprisePage() {
       <PublicNav />
 
       <main className="flex-1">
-        <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-10 md:pt-16 pb-10 md:pb-16">
+        <section className="relative overflow-hidden">
+          <div
+            className="absolute inset-0 bg-center bg-cover opacity-20 dark:opacity-25 pointer-events-none"
+            style={{ backgroundImage: `url(${heroBg})` }}
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/75 to-background pointer-events-none" aria-hidden />
+          <div className="relative max-w-6xl mx-auto px-5 sm:px-6 pt-10 md:pt-16 pb-10 md:pb-16">
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 lg:gap-12 items-start">
             {/* LEFT — narrative */}
             <motion.div

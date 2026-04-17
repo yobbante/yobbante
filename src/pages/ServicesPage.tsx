@@ -4,6 +4,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ExternalLink, ArrowRight } from 'lucide-react';
+import heroBg from '@/assets/hero-bg-services.jpg';
 
 const SERVICES = [
   {
@@ -122,14 +123,22 @@ export default function ServicesPage() {
       <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: goDossier }]} />
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-24 md:pb-16 text-center md:text-left">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Services</p>
-        <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3 text-balance">
-          Un opérateur logistique pour toute votre chaîne.
-        </h1>
-        <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty mx-auto md:mx-0">
-          Yobbanté n'est pas un intermédiaire. Nous opérons chaque maillon : du sourcing en usine jusqu'à la livraison finale.
-        </p>
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-center bg-cover opacity-25 dark:opacity-30 pointer-events-none"
+          style={{ backgroundImage: `url(${heroBg})` }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background pointer-events-none" aria-hidden />
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-24 md:pb-16 text-center md:text-left">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Services</p>
+          <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3 text-balance">
+            Un opérateur logistique pour toute votre chaîne.
+          </h1>
+          <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed text-pretty mx-auto md:mx-0">
+            Yobbanté n'est pas un intermédiaire. Nous opérons chaque maillon : du sourcing en usine jusqu'à la livraison finale.
+          </p>
+        </div>
       </section>
 
       {/* Services list */}

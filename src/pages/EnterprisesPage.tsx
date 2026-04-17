@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import heroBg from '@/assets/hero-bg-enterprises.jpg';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -150,7 +151,14 @@ export default function EnterprisesPage() {
       <PublicNav extraItems={[{ label: 'Demander un devis', onClick: goDevis }]} />
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-12 md:pt-24 md:pb-16 text-center md:text-left">
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-center bg-cover opacity-25 dark:opacity-30 pointer-events-none"
+          style={{ backgroundImage: `url(${heroBg})` }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background pointer-events-none" aria-hidden />
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-12 md:pt-24 md:pb-16 text-center md:text-left">
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-5"
@@ -186,6 +194,7 @@ export default function EnterprisesPage() {
             Écrire un message
           </a>
         </motion.div>
+        </div>
       </section>
 
       {/* KPIs */}
