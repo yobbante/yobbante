@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
+import { LocalDeliveryWizard } from '@/components/LocalDeliveryWizard';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
@@ -54,6 +55,7 @@ const METRICS = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const [smartOpen, setSmartOpen] = useState(false);
+  const [localWizardOpen, setLocalWizardOpen] = useState(false);
 
   const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
     navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
@@ -105,8 +107,8 @@ export default function LandingPage() {
               className="mt-7 md:mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
             >
               <button
-                onClick={() => goDossier()}
-                className="btn-cta"
+                onClick={() => setLocalWizardOpen(true)}
+                className="btn-cta-yellow"
               >
                 <FolderPlus className="w-4 h-4" /> Confier mon dossier
               </button>
