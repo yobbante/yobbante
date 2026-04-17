@@ -7,6 +7,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
 import type { WarehouseCountry } from '@/lib/types';
+import heroBg from '@/assets/hero-bg.jpg';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -69,7 +70,15 @@ export default function LandingPage() {
       <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
 
       {/* ───── 2. Hero ───── */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
+      <section className="relative overflow-hidden">
+        {/* Subtle world-map background */}
+        <div
+          className="absolute inset-0 bg-center bg-cover opacity-[0.07] dark:opacity-[0.18] pointer-events-none"
+          style={{ backgroundImage: `url(${heroBg})` }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background pointer-events-none" aria-hidden />
+        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
         <div className="grid md:grid-cols-[1.2fr_1fr] gap-10 md:gap-16 items-center">
           <div className="text-center md:text-left">
             <motion.div
@@ -143,6 +152,7 @@ export default function LandingPage() {
               <p className="text-xs font-mono font-semibold text-foreground mt-1">YBT-FR-7842</p>
             </div>
           </motion.div>
+        </div>
         </div>
       </section>
 
