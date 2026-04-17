@@ -118,13 +118,12 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
       setBudget(500);
       setQuantity(1);
       setIncludeShipping(true);
+      setParsing(false);
+      setParsed(null);
       setName(''); setPhone(''); setWhatsapp(''); setEmail('');
     }
   }, [open]);
 
-  // Step counts per flow (excluding step 0 intent split & final success)
-  // Flow A: 1 type, 2 route, 3 transport, 4 details, 5 contact, 6 success
-  // Flow B: 1 product, 2 expectations, 3 service-explain, 4 shipping, 5 contact, 6 success
   const totalSteps = 6;
 
   const canNext = useMemo(() => {
@@ -132,19 +131,19 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
     if (intent === 'ship') {
       if (step === 1) return shipType !== null;
       if (step === 2) return origin !== null && destination.length > 0;
-      if (step === 3) return transport !== null;
-      if (step === 4) return weight > 0;
+      if (step === 3) return transport !== null && weight > 0;
+      if (step === 4) return true;
       if (step === 5) return name.trim().length >= 2 && phone.trim().length >= 6;
     }
     if (intent === 'buy') {
-      if (step === 1) return productInput.trim().length >= 4;
+      if (step === 1) return productInput.trim().length >= 4 && !parsing;
       if (step === 2) return budget > 0 && quantity > 0;
       if (step === 3) return true;
       if (step === 4) return includeShipping ? transport !== null : true;
       if (step === 5) return name.trim().length >= 2 && phone.trim().length >= 6;
     }
     return false;
-  }, [step, intent, shipType, origin, destination, transport, weight, productInput, budget, quantity, includeShipping, name, phone]);
+  }, [step, intent, shipType, origin, destination, transport, weight, productInput, parsing, budget, quantity, includeShipping, name, phone]);
 
   const next = () => {
     if (!canNext) return;
@@ -153,11 +152,33 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
   };
   const prev = () => setStep(s => Math.max(0, s - 1));
 
-  // Auto-advance on intent select
   const pickIntent = (i: Intent) => {
     setIntent(i);
     setTimeout(() => setStep(1), 180);
   };
+
+  // Product parsing — calls existing parse-product edge function
+  async function runParse() {
+    const input = productInput.trim();
+    if (input.length < 4) return;
+    setParsing(true);
+    setParsed(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-product', { body: { input } });
+      if (error) throw error;
+      if (data && !data.error) {
+        setParsed(data);
+        if (data.suggestedQuantity && quantity === 1) setQuantity(data.suggestedQuantity);
+        if (data.estimatedPriceEur && budget === 500) {
+          setBudget(Math.max(50, Math.round(data.estimatedPriceEur * (data.suggestedQuantity || 1))));
+        }
+      }
+    } catch (e) {
+      console.warn('parse-product failed:', e);
+    } finally {
+      setParsing(false);
+    }
+  }
 
   async function submit() {
     setSubmitting(true);
