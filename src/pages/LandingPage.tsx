@@ -96,13 +96,13 @@ export default function LandingPage() {
               className="mt-7 md:mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
             >
               <button
-                onClick={() => setDossierOpen(true)}
+                onClick={() => goDossier()}
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
               >
                 <FolderPlus className="w-4 h-4" /> Confier mon dossier
               </button>
               <button
-                onClick={() => setAddressOpen(true)}
+                onClick={goAddress}
                 className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
               >
                 <MapPin className="w-4 h-4" /> Obtenir une adresse
@@ -167,7 +167,7 @@ export default function LandingPage() {
                 <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Optimisation transport multi-modal</li>
               </ul>
               <button
-                onClick={() => setDossierOpen(true)}
+                onClick={() => goDossier()}
                 className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
                 Confier mon dossier <ArrowRight className="w-4 h-4" />
@@ -213,7 +213,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start">
                 <button
-                  onClick={() => setDossierOpen(true)}
+                  onClick={() => goDossier()}
                   className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-background text-foreground px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
                 >
                   Demander un devis entreprise <ArrowRight className="w-4 h-4" />
@@ -427,7 +427,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => setDossierOpen(true)}
+              onClick={() => goDossier()}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
             >
               <FolderPlus className="w-4 h-4" /> Confier mon dossier
@@ -446,8 +446,6 @@ export default function LandingPage() {
       <PublicFooter />
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
-      <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
-      <GetAddressDialog open={addressOpen} onOpenChange={setAddressOpen} onConfideDossier={() => setDossierOpen(true)} />
     </div>
   );
 }
