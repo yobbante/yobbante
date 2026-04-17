@@ -4,6 +4,7 @@ import { Globe, MapPin, Sparkles, ShieldCheck } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { GetAddressDialog } from '@/components/GetAddressDialog';
+import { HubsGlobe } from '@/components/HubsGlobe';
 
 const PERKS = [
   { icon: Globe, label: '6 hubs internationaux', desc: 'France, Chine, USA, Dubai, Allemagne, Canada.' },
@@ -21,7 +22,7 @@ export default function ObtenirAdressePage() {
       <main className="flex-1">
         <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-10 md:pt-16 pb-10 md:pb-16">
           <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-12 items-start">
-            {/* LEFT — narrative */}
+            {/* LEFT — narrative + globe */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -39,7 +40,13 @@ export default function ObtenirAdressePage() {
                 ou n'importe quel site marchand — comme un local.
               </p>
 
-              <div className="mt-8 space-y-3">
+              {/* Animated globe — desktop only (heavy visual) */}
+              <div className="hidden lg:block mt-10">
+                <HubsGlobe />
+              </div>
+
+              {/* Perks — mobile + tablet */}
+              <div className="mt-8 space-y-3 lg:hidden">
                 {PERKS.map(({ icon: Icon, label, desc }) => (
                   <div key={label} className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -49,6 +56,16 @@ export default function ObtenirAdressePage() {
                       <p className="text-sm font-semibold text-foreground">{label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                     </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Compact perks under globe — desktop */}
+              <div className="hidden lg:grid grid-cols-3 gap-2 mt-8">
+                {PERKS.map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center text-center gap-1.5 p-2.5 rounded-xl border border-border bg-card">
+                    <Icon className="w-4 h-4 text-primary" />
+                    <p className="text-[11px] font-semibold text-foreground leading-tight">{label}</p>
                   </div>
                 ))}
               </div>

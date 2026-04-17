@@ -4,6 +4,7 @@ import { ShieldCheck, Clock, Users, Sparkles } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { DossierDialog } from '@/components/DossierDialog';
+import { StickyWhatsAppBar } from '@/components/StickyWhatsAppBar';
 import type { WarehouseCountry } from '@/lib/types';
 
 interface PresetState {
@@ -90,6 +91,12 @@ export default function ConfierDossierPage() {
       </main>
 
       <PublicFooter />
+
+      {/* Mobile-only sticky WhatsApp escalation */}
+      <StickyWhatsAppBar
+        message="Bonjour Yobbanté, j'ai une question pendant que je remplis mon dossier d'import."
+        context="Besoin d'aide ? On répond en 5 min"
+      />
     </div>
   );
 }
