@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { whatsappLink, YOBBANTE_WHATSAPP_DISPLAY } from '@/lib/contact';
+import { supabase } from '@/integrations/supabase/client';
 import heroBg from '@/assets/hero-bg-devis.jpg';
 
 // ─────────────── Data ───────────────
@@ -186,20 +187,24 @@ export default function DevisEntreprisePage() {
       return;
     }
     setSubmitting(true);
-    const body =
-      `Entreprise: ${form.company}\n` +
-      `Secteur: ${form.sector}\n` +
-      `Contact: ${form.fullName}${form.role ? ` — ${form.role}` : ''}\n` +
-      `Email: ${form.email}\nTéléphone: ${form.phone}\n` +
-      `Volume estimé: ${form.volume}\n\n` +
-      `Notes:\n${form.notes || '(aucune)'}`;
-    window.location.href =
-      `mailto:contact@yobbante.com?subject=${encodeURIComponent(`Devis entreprise — ${form.company}`)}&body=${encodeURIComponent(body)}`;
-    setTimeout(() => {
-      setSubmitting(false);
-      setSent(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 600);
+    const { error } = await supabase.from('enterprise_quotes').insert({
+      company: form.company,
+      sector: form.sector,
+      volume: form.volume,
+      full_name: form.fullName,
+      role: form.role || null,
+      email: form.email,
+      phone: form.phone,
+      notes: form.notes || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Échec de l'envoi. Réessayez ou contactez-nous par WhatsApp.");
+      return;
+    }
+    toast.success('Demande transmise — réponse sous 24h.');
+    setSent(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const scrollToForm = () => {
