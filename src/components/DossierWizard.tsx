@@ -6,7 +6,7 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, Package, FileText, Boxes,
   ShoppingCart, Truck, Plane, Ship, Send, Clock, Zap, Crown, Loader2,
   Phone, MessageCircle, User, Mail, Link2, Sparkles, ShieldCheck,
-  Search, Handshake, BadgeCheck, MapPin,
+  Search, Handshake, BadgeCheck, MapPin, ImageIcon, Wand2,
 } from 'lucide-react';
 import { useDossiers } from '@/hooks/useDossiers';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
+import { estimateTransport, type Transport as TransportMode } from '@/lib/pricing';
 
 interface DossierWizardProps {
   open: boolean;
@@ -22,7 +23,7 @@ interface DossierWizardProps {
 
 type Intent = 'ship' | 'buy';
 type ShipmentType = 'package' | 'documents' | 'bulk';
-type Transport = 'gp' | 'air' | 'sea' | 'road';
+type Transport = TransportMode;
 type Urgency = 'standard' | 'express' | 'priority';
 
 const ORIGINS: { id: WarehouseCountry; flag: string; label: string }[] = [
