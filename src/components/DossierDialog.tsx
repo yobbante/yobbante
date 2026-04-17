@@ -368,7 +368,7 @@ function StepIntent({ onSelect, selected }: { onSelect: (i: Intent) => void; sel
 function StepInput({
   intent, productInput, setProductInput, platform,
   origin, setOrigin, destination, setDestination,
-  onContinue, canContinue,
+  onContinue, canContinue, parsedProduct, parsing,
 }: {
   intent: Intent;
   productInput: string;
@@ -380,6 +380,8 @@ function StepInput({
   setDestination: (d: string) => void;
   onContinue: () => void;
   canContinue: boolean;
+  parsedProduct: ParsedProduct | null;
+  parsing: boolean;
 }) {
   const showProduct = intent === 'buy' || intent === 'both';
   const showRoute = intent === 'ship' || intent === 'both';
