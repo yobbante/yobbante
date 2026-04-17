@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Sparkles, ShieldCheck, Loader2, Copy, Check,
   Globe, Package as PackageIcon, Truck, Home as HomeIcon, ShoppingBag,
-  FolderPlus, MessageCircle, Mail, Plus,
+  FolderPlus, MessageCircle, Mail, Plus, QrCode,
 } from 'lucide-react';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { whatsappLink } from '@/lib/contact';
 import { PackageJourneySvg } from '@/components/PackageJourneySvg';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface GeneratedAddress {
   country: WarehouseCountry;
