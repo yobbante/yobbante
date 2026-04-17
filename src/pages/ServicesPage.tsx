@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { DossierDialog } from '@/components/DossierDialog';
+import { PublicNav } from '@/components/PublicNav';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ExternalLink, ArrowRight } from 'lucide-react';
 
