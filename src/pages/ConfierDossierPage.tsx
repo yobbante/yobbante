@@ -31,7 +31,7 @@ export default function ConfierDossierPage() {
       <PublicNav />
 
       <main className="flex-1">
-        <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-10 md:pt-16 pb-10 md:pb-16">
+        <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-10 md:pt-16 pb-28 md:pb-16">
           <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-12 items-start">
             {/* LEFT — narrative */}
             <motion.div
