@@ -63,23 +63,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ───── 1. Nav ───── */}
-      <nav className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</Link>
-          <div className="hidden md:flex items-center gap-7">
-            <Link to="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-            <a href="#warehouses" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Adresses</a>
-            <Link to="/simulateur" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
-            <button onClick={() => setDossierOpen(true)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Dossier</button>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/auth" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Connexion</Link>
-            <Link to="/auth" className="text-sm font-semibold bg-foreground text-background px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-              Commencer
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
 
       {/* ───── 2. Hero ───── */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
