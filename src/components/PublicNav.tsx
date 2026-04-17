@@ -21,7 +21,7 @@ const STATIC_ITEMS: NavItem[] = [
   { to: '/#warehouses', label: 'Adresses' },
 ];
 
-export function PublicNav({ extraItems = [] }: PublicNavProps) {
+export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ extraItems = [] }, ref) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const items = [...STATIC_ITEMS, ...extraItems];
