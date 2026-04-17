@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
 import { SmartImportInline } from '@/components/SmartImportInline';
-import { LocalDeliveryWizard } from '@/components/LocalDeliveryWizard';
+import { DossierWizard } from '@/components/DossierWizard';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
@@ -459,7 +459,7 @@ export default function LandingPage() {
       <PublicFooter />
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
-      <LocalDeliveryWizard open={localWizardOpen} onOpenChange={setLocalWizardOpen} />
+      <DossierWizard open={localWizardOpen} onOpenChange={setLocalWizardOpen} />
     </div>
   );
 }
