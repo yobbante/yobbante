@@ -828,6 +828,7 @@ function StepContact({
 /* SUCCESS                                                         */
 /* ============================================================ */
 function SuccessScreen({ reference, onClose }: { reference: string | null; onClose: () => void }) {
+  const waMessage = `Bonjour Yobbanté, je viens de soumettre mon dossier ${reference ?? ''}. Pouvez-vous me confirmer la prise en charge ?`;
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -862,7 +863,15 @@ function SuccessScreen({ reference, onClose }: { reference: string | null; onClo
       )}
 
       <div className="flex flex-col gap-2 pt-2">
-        <Button onClick={onClose} className="w-full h-11 rounded-xl">
+        <a
+          href={whatsappLink(waMessage)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full h-11 rounded-xl bg-[#25D366] hover:bg-[#1FBA57] text-white font-medium flex items-center justify-center gap-2 transition-colors"
+        >
+          <MessageCircle className="w-4 h-4" /> Discuter sur WhatsApp
+        </a>
+        <Button onClick={onClose} variant="outline" className="w-full h-11 rounded-xl">
           Suivre mon dossier
         </Button>
         <button
