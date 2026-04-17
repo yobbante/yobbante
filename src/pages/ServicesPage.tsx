@@ -125,11 +125,11 @@ export default function ServicesPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-center bg-cover opacity-25 dark:opacity-30 pointer-events-none"
+          className="absolute inset-0 bg-center bg-cover opacity-40 dark:opacity-55 pointer-events-none"
           style={{ backgroundImage: `url(${heroBg})` }}
           aria-hidden
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background pointer-events-none" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/65 to-background pointer-events-none" aria-hidden />
         <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-24 md:pb-16 text-center md:text-left">
           <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Services</p>
           <h1 className="text-[2.25rem] sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mt-3 text-balance">
