@@ -447,6 +447,7 @@ export default function LandingPage() {
 
       <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
       <DossierDialog open={dossierOpen} onOpenChange={setDossierOpen} preset={preset} />
+      <GetAddressDialog open={addressOpen} onOpenChange={setAddressOpen} onConfideDossier={() => setDossierOpen(true)} />
     </div>
   );
 }
