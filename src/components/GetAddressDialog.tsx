@@ -7,13 +7,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Sparkles, ShieldCheck, Loader2, Copy, Check,
   Globe, Package as PackageIcon, Truck, Home as HomeIcon, ShoppingBag,
-  FolderPlus, MessageCircle, Mail, Phone,
+  FolderPlus, MessageCircle, Mail, Plus,
 } from 'lucide-react';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import { whatsappLink } from '@/lib/contact';
+import { PackageJourneySvg } from '@/components/PackageJourneySvg';
 
 interface GeneratedAddress {
   country: WarehouseCountry;
@@ -29,17 +31,40 @@ interface GetAddressDialogProps {
 
 const TOTAL = 5; // 1.value 2.contact 3.reveal 4.education 5.action
 
+const ALL_COUNTRIES: WarehouseCountry[] = ['FR', 'CN', 'US', 'AE', 'DE', 'CA'];
+const DEFAULT_COUNTRIES: WarehouseCountry[] = ['FR', 'CN', 'US'];
+
+const COUNTRY_HUBS: Record<WarehouseCountry, { hub: string; line: string }> = {
+  FR: { hub: 'Hub Europe', line: '12 Rue de la Logistique, 93200 Saint-Denis, France' },
+  CN: { hub: 'Direct usines', line: 'Room 501, Building 3, Nanshan District, Shenzhen 518000, China' },
+  US: { hub: 'E-commerce US', line: '1200 NW 78th Ave, Suite 200, Miami, FL 33126, USA' },
+  AE: { hub: 'Hub Moyen-Orient', line: 'Warehouse 24, Jebel Ali Free Zone, Dubai, UAE' },
+  DE: { hub: 'Hub Allemagne', line: 'Industriestraße 12, 60314 Frankfurt am Main, Germany' },
+  CA: { hub: 'Hub Amérique du Nord', line: '500 Rue Sainte-Catherine, Montréal, QC H3B 1A6, Canada' },
+};
+
 const contactSchema = z.union([
   z.string().trim().email({ message: 'Email invalide' }),
   z.string().trim().regex(/^\+?[0-9 .()-]{7,20}$/, { message: 'Téléphone invalide' }),
 ]);
+
+function previewCode(country: WarehouseCountry) {
+  const rnd = Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `${country}-${rnd.slice(0, 8)}`;
+}
+
+function isEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
 
 export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAddressDialogProps) {
   const [step, setStep] = useState(1);
   const [contact, setContact] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
   const [addresses, setAddresses] = useState<GeneratedAddress[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<WarehouseCountry[]>(DEFAULT_COUNTRIES);
   const [authedUser, setAuthedUser] = useState<{ id: string; email?: string } | null>(null);
 
   useEffect(() => {
@@ -48,6 +73,8 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
       setContact('');
       setContactError(null);
       setAddresses([]);
+      setMagicSent(false);
+      setSelectedCountries(DEFAULT_COUNTRIES);
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
           setAuthedUser({ id: user.id, email: user.email ?? undefined });
@@ -60,12 +87,18 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
   }, [open]);
 
   const progress = (step / TOTAL) * 100;
-
   const goNext = () => setStep(s => Math.min(TOTAL, s + 1));
   const goBack = () => setStep(s => Math.max(1, s - 1));
 
+  const toggleCountry = (c: WarehouseCountry) => {
+    setSelectedCountries(prev =>
+      prev.includes(c)
+        ? (prev.length > 1 ? prev.filter(x => x !== c) : prev) // keep at least one
+        : [...prev, c],
+    );
+  };
+
   const handleStartGeneration = async () => {
-    // Validate contact
     const parsed = contactSchema.safeParse(contact);
     if (!parsed.success) {
       setContactError(parsed.error.issues[0]?.message ?? 'Entrée invalide');
@@ -77,24 +110,40 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
 
     try {
       if (authedUser) {
-        // Fetch existing addresses for connected user
         const { data, error } = await supabase
           .from('addresses')
           .select('country, address_line, identifier_code')
           .eq('user_id', authedUser.id);
         if (error) throw error;
-        // Slight artificial delay for the magic moment
-        await new Promise(r => setTimeout(r, 1200));
-        setAddresses((data ?? []).filter(a => ['FR', 'CN', 'US'].includes(a.country)) as GeneratedAddress[]);
+        await new Promise(r => setTimeout(r, 1100));
+        setAddresses(
+          (data ?? []).filter(a => selectedCountries.includes(a.country as WarehouseCountry)) as GeneratedAddress[],
+        );
       } else {
-        // Generate preview addresses (not persisted — user creates account later to claim)
-        await new Promise(r => setTimeout(r, 1400));
-        const preview: GeneratedAddress[] = [
-          { country: 'FR', address_line: '12 Rue de la Logistique, 93200 Saint-Denis, France', identifier_code: previewCode('FR') },
-          { country: 'CN', address_line: 'Room 501, Building 3, Nanshan District, Shenzhen 518000, China', identifier_code: previewCode('CN') },
-          { country: 'US', address_line: '1200 NW 78th Ave, Suite 200, Miami, FL 33126, USA', identifier_code: previewCode('US') },
-        ];
+        await new Promise(r => setTimeout(r, 1300));
+        const preview: GeneratedAddress[] = selectedCountries.map(c => ({
+          country: c,
+          address_line: COUNTRY_HUBS[c].line,
+          identifier_code: previewCode(c),
+        }));
         setAddresses(preview);
+
+        // Send magic link if email provided so they can claim real addresses
+        if (isEmail(contact)) {
+          try {
+            const { error: otpErr } = await supabase.auth.signInWithOtp({
+              email: contact.trim(),
+              options: { emailRedirectTo: `${window.location.origin}/app` },
+            });
+            if (!otpErr) {
+              setMagicSent(true);
+            } else {
+              console.warn('magic link error:', otpErr.message);
+            }
+          } catch (e) {
+            console.warn('magic link failed', e);
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -108,7 +157,6 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden border-border/60 bg-card/95 backdrop-blur-xl">
-        {/* Progress */}
         <div className="h-1 bg-border/40 relative overflow-hidden">
           <motion.div
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70"
@@ -118,7 +166,6 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
           />
         </div>
 
-        {/* Header */}
         <div className="px-6 pt-5 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {step > 1 && step !== 3 && (
@@ -150,7 +197,12 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
           <div className="px-6 pb-6 min-h-[360px]">
             <AnimatePresence mode="wait">
               {step === 1 && (
-                <StepValue key="s1" onContinue={goNext} />
+                <StepValue
+                  key="s1"
+                  selected={selectedCountries}
+                  toggle={toggleCountry}
+                  onContinue={goNext}
+                />
               )}
               {step === 2 && (
                 <StepContact
@@ -169,6 +221,8 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
                   addresses={addresses}
                   onContinue={goNext}
                   isAuthed={!!authedUser}
+                  magicSent={magicSent}
+                  contact={contact}
                 />
               )}
               {step === 4 && (
@@ -193,67 +247,74 @@ export function GetAddressDialog({ open, onOpenChange, onConfideDossier }: GetAd
   );
 }
 
-function previewCode(country: WarehouseCountry) {
-  const rnd = Math.random().toString(36).slice(2, 10).toUpperCase();
-  return `${country}-${rnd.slice(0, 8)}`;
-}
-
 /* ============================================================ */
-/* STEP 1 — Value Projection                                      */
+/* STEP 1 — Value Projection + Country selector                   */
 /* ============================================================ */
-function StepValue({ onContinue }: { onContinue: () => void }) {
-  const cards = [
-    { country: 'FR' as WarehouseCountry, hub: 'Hub Europe' },
-    { country: 'CN' as WarehouseCountry, hub: 'Direct usines' },
-    { country: 'US' as WarehouseCountry, hub: 'E-commerce US' },
-  ];
+function StepValue({
+  selected, toggle, onContinue,
+}: {
+  selected: WarehouseCountry[];
+  toggle: (c: WarehouseCountry) => void;
+  onContinue: () => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       <div>
         <h3 className="text-2xl font-semibold text-foreground tracking-tight">
-          Recevez vos adresses internationales en quelques secondes
+          Recevez vos adresses internationales
         </h3>
         <p className="text-sm text-muted-foreground mt-2">
-          France 🇫🇷 · Chine 🇨🇳 · USA 🇺🇸 — Achetez et recevez vos colis comme un local.
+          Achetez et recevez vos colis comme un local — où que vous soyez.
         </p>
       </div>
 
-      {/* Floating country cards */}
-      <div className="relative h-44 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center gap-3 sm:gap-5">
-          {cards.map((c, i) => (
-            <motion.div
-              key={c.country}
-              initial={{ opacity: 0, y: 20, rotate: -6 + i * 6 }}
-              animate={{ opacity: 1, y: 0, rotate: -6 + i * 6 }}
-              transition={{ delay: 0.1 + i * 0.12, type: 'spring', stiffness: 120 }}
-              className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xl w-24 sm:w-28"
-            >
-              <div className="text-3xl sm:text-4xl text-center">{COUNTRY_FLAGS[c.country]}</div>
-              <p className="text-[10px] sm:text-xs font-medium text-foreground text-center mt-1.5">
-                {COUNTRY_NAMES[c.country]}
-              </p>
-              <p className="text-[9px] text-muted-foreground text-center">{c.hub}</p>
-            </motion.div>
-          ))}
-        </div>
-        {/* Subtle pulse */}
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          Réseau actif
+      {/* Country selector grid */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+          Choisissez vos hubs ({selected.length}/{ALL_COUNTRIES.length})
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {ALL_COUNTRIES.map((c, i) => {
+            const isOn = selected.includes(c);
+            return (
+              <motion.button
+                key={c}
+                onClick={() => toggle(c)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 + i * 0.04 }}
+                className={cn(
+                  'relative p-3 rounded-2xl border text-center transition-all',
+                  isOn
+                    ? 'border-primary bg-primary/10 shadow-[0_0_0_3px_hsl(var(--primary)/0.12)]'
+                    : 'border-border bg-secondary/20 hover:border-primary/40',
+                )}
+                aria-pressed={isOn}
+              >
+                <div className="text-2xl">{COUNTRY_FLAGS[c]}</div>
+                <p className="text-xs font-semibold text-foreground mt-1">{COUNTRY_NAMES[c]}</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{COUNTRY_HUBS[c].hub}</p>
+                {isOn && (
+                  <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                    <Check className="w-2.5 h-2.5" />
+                  </div>
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
         {[
           { v: '< 30s', l: 'Création' },
-          { v: '6', l: 'Pays' },
+          { v: `${ALL_COUNTRIES.length}`, l: 'Pays' },
           { v: '0€', l: 'Frais' },
         ].map(s => (
           <div key={s.l} className="p-2 rounded-xl bg-secondary/40 border border-border">
@@ -263,7 +324,7 @@ function StepValue({ onContinue }: { onContinue: () => void }) {
         ))}
       </div>
 
-      <Button onClick={onContinue} className="w-full h-11 rounded-xl">
+      <Button onClick={onContinue} disabled={selected.length === 0} className="w-full h-11 rounded-xl">
         Commencer <ArrowRight className="w-4 h-4 ml-1.5" />
       </Button>
     </motion.div>
@@ -297,7 +358,7 @@ function StepContact({
         <p className="text-sm text-muted-foreground mt-1.5">
           {isAuthed
             ? 'Vos adresses sont déjà liées à votre compte.'
-            : 'Email ou téléphone — on vous envoie vos adresses tout de suite.'}
+            : 'Email = on vous envoie un lien magique pour sauvegarder vos adresses. Téléphone = aperçu instantané.'}
         </p>
       </div>
 
@@ -338,12 +399,14 @@ function StepContact({
 /* STEP 3 — Magic Reveal                                           */
 /* ============================================================ */
 function StepReveal({
-  loading, addresses, onContinue, isAuthed,
+  loading, addresses, onContinue, isAuthed, magicSent, contact,
 }: {
   loading: boolean;
   addresses: GeneratedAddress[];
   onContinue: () => void;
   isAuthed: boolean;
+  magicSent: boolean;
+  contact: string;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [allCopied, setAllCopied] = useState(false);
@@ -373,10 +436,8 @@ function StepReveal({
   };
 
   const shareWhatsApp = () => {
-    const text = encodeURIComponent(
-      `Mes adresses Yobbanté:\n\n${addresses.map(a => `${COUNTRY_FLAGS[a.country]} ${COUNTRY_NAMES[a.country]} — ${a.identifier_code}\n${a.address_line}`).join('\n\n')}`,
-    );
-    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+    const text = `Mes adresses Yobbanté:\n\n${addresses.map(a => `${COUNTRY_FLAGS[a.country]} ${COUNTRY_NAMES[a.country]} — ${a.identifier_code}\n${a.address_line}`).join('\n\n')}`;
+    window.open(whatsappLink(text), '_blank', 'noopener,noreferrer');
   };
 
   if (loading) {
@@ -408,14 +469,28 @@ function StepReveal({
       transition={{ duration: 0.25 }}
       className="space-y-4"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-semibold text-foreground">Vos adresses sont prêtes ✨</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isAuthed ? 'Liées à votre compte.' : 'Créez votre compte pour les sauvegarder.'}
-          </p>
-        </div>
+      <div>
+        <h3 className="text-xl font-semibold text-foreground">Vos adresses sont prêtes ✨</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isAuthed ? 'Liées à votre compte.' : 'Aperçu — confirmez votre email pour les sauvegarder.'}
+        </p>
       </div>
+
+      {magicSent && !isAuthed && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex gap-2.5"
+        >
+          <Mail className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground">Lien magique envoyé</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 break-words">
+              Vérifiez <span className="font-medium text-foreground">{contact}</span> pour activer votre compte et récupérer vos vraies adresses.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       <div className="space-y-2.5">
         {addresses.map((addr, i) => (
@@ -423,7 +498,7 @@ function StepReveal({
             key={addr.identifier_code}
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: i * 0.18, type: 'spring', stiffness: 110, damping: 16 }}
+            transition={{ delay: i * 0.16, type: 'spring', stiffness: 110, damping: 16 }}
             className="p-4 rounded-2xl border border-border bg-secondary/30 hover:border-primary/40 transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
@@ -448,7 +523,7 @@ function StepReveal({
                 )}
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{addr.address_line}</p>
+            <p className="text-xs text-muted-foreground mt-3 leading-relaxed break-words">{addr.address_line}</p>
           </motion.div>
         ))}
       </div>
@@ -456,7 +531,7 @@ function StepReveal({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: addresses.length * 0.18 + 0.1 }}
+        transition={{ delay: addresses.length * 0.16 + 0.1 }}
         className="p-3 rounded-xl bg-primary/5 border border-primary/15 flex gap-2.5"
       >
         <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -483,7 +558,7 @@ function StepReveal({
 }
 
 /* ============================================================ */
-/* STEP 4 — Education                                              */
+/* STEP 4 — Education with mini-tutorial SVG                       */
 /* ============================================================ */
 function StepEducation({ onContinue }: { onContinue: () => void }) {
   const steps = [
@@ -498,31 +573,33 @@ function StepEducation({ onContinue }: { onContinue: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.25 }}
-      className="space-y-5"
+      className="space-y-4"
     >
       <div>
         <h3 className="text-xl font-semibold text-foreground">Comment ça marche</h3>
-        <p className="text-sm text-muted-foreground mt-1">4 étapes, zéro tracas.</p>
+        <p className="text-sm text-muted-foreground mt-1">Visualisez le parcours de votre colis.</p>
       </div>
 
-      <div className="space-y-2.5">
+      <PackageJourneySvg />
+
+      <div className="space-y-2">
         {steps.map(({ icon: Icon, title, desc }, i) => (
           <motion.div
             key={title}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="flex gap-3 items-start p-3 rounded-xl border border-border bg-secondary/20"
+            transition={{ delay: 0.1 + i * 0.07 }}
+            className="flex gap-3 items-start p-2.5 rounded-xl border border-border bg-secondary/20"
           >
-            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 relative">
-              <Icon className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 relative">
+              <Icon className="w-3.5 h-3.5" />
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
                 {i + 1}
               </span>
             </div>
             <div className="min-w-0 pt-0.5">
               <p className="text-sm font-medium text-foreground">{title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
             </div>
           </motion.div>
         ))}
