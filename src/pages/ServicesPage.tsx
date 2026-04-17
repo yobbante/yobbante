@@ -114,11 +114,12 @@ const FAQ = [
 ];
 
 export default function ServicesPage() {
-  const [dossierOpen, setDossierOpen] = useState(false);
+  const navigate = useNavigate();
+  const goDossier = () => navigate('/confier-dossier');
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: goDossier }]} />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-14 pb-10 md:pt-24 md:pb-16 text-center md:text-left">
