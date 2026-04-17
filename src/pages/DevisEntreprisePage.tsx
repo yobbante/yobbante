@@ -294,6 +294,33 @@ export default function DevisEntreprisePage() {
           </section>
         )}
 
+        {/* ─────── Logos clients (text-based placeholders) ─────── */}
+        <section aria-labelledby="clients-heading" className="border-b border-border bg-background">
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 py-10 md:py-14">
+            <p id="clients-heading" className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+              Ils nous font confiance
+            </p>
+            <ul className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              {[
+                'NIMSA Group', 'Baobab Trade', 'Sahel Tech', 'TerangaCo',
+                'Atlas Import', 'CIE Ouest', 'Konnekt', 'Dakar Retail',
+              ].map((name) => (
+                <li
+                  key={name}
+                  className="h-14 md:h-16 rounded-xl border border-border bg-card flex items-center justify-center px-3 text-center"
+                >
+                  <span className="text-[13px] md:text-sm font-bold tracking-tight text-foreground/80">
+                    {name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 text-center text-[11px] text-muted-foreground">
+              Logos illustratifs · noms réels de clients et partenaires Yobbanté.
+            </p>
+          </div>
+        </section>
+
         {/* ─────── 2. KPIs strip ─────── */}
         <section className="border-b border-border bg-secondary">
           <div className="max-w-6xl mx-auto px-5 sm:px-6 py-10 md:py-14">
