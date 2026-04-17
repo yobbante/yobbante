@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { SmartImportInline } from '@/components/SmartImportInline';
 import { DossierDialog } from '@/components/DossierDialog';
+import { PublicNav } from '@/components/PublicNav';
 import type { WarehouseCountry } from '@/lib/types';
 
 export default function SimulatorPage() {
@@ -11,17 +12,7 @@ export default function SimulatorPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-            <Link to="/simulateur" className="text-sm font-medium text-foreground">Simulateur</Link>
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Accueil</Link>
-          </div>
-          <Link to="/auth" className="text-sm font-semibold bg-foreground text-background px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">Commencer</Link>
-        </div>
-      </nav>
+      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => setDossierOpen(true) }]} />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-8 md:pt-24 md:pb-14 text-center md:text-left">
