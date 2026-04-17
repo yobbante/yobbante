@@ -612,6 +612,30 @@ function StepDetails({
 }
 
 /* ============================================================ */
+/* TypedSummary — typewriter intro for Step 4                      */
+/* ============================================================ */
+function TypedSummary({
+  intent, origin, destination,
+}: { intent: Intent; origin: WarehouseCountry; destination: string }) {
+  const action = intent === 'buy' ? 'acheter un produit' : intent === 'ship' ? 'expédier un colis' : 'acheter et expédier';
+  const destCity = destination.split(',')[0];
+  const fullText = `Vous souhaitez ${action} depuis ${COUNTRY_NAMES[origin]} ${COUNTRY_FLAGS[origin]} et le recevoir à ${destCity}. Notre concierge prend le relais.`;
+  const { text, done } = useTypewriter(fullText, 16, 120);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary font-medium">
+        <Sparkles className="w-3 h-3" /> Agent assigné
+      </div>
+      <p className="text-base font-medium text-foreground leading-relaxed min-h-[3rem]">
+        {text}
+        {!done && <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse align-middle" />}
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================ */
 /* STEP 4 — Live Summary                                          */
 /* ============================================================ */
 function StepSummary({
