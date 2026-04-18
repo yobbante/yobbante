@@ -59,18 +59,25 @@ Deno.serve(async (req) => {
     const baseUrl = KONNEKT_BASE_URL.replace(/\/+$/, '');
     const endpoint = `${baseUrl}/external-create-order`;
 
+    // Map Yobbanté dossier → Konnekt order schema
     const payload = {
       external_reference: dossier.reference,
       app_source: 'yobbante',
-      product_description: dossier.product_description,
+      origin_city: dossier.origin_country,
       origin_country: dossier.origin_country,
-      destination_country: dossier.destination_country,
-      estimated_weight: dossier.estimated_weight,
-      budget_eur: dossier.budget_eur,
-      needs_sourcing: dossier.needs_sourcing,
-      contact_phone: dossier.contact_phone,
-      contact_email: dossier.contact_email,
-      notes: dossier.notes,
+      destination_city: dossier.destination_country,
+      destination_country: 'SN',
+      weight: dossier.estimated_weight ?? 0,
+      total_price: dossier.budget_eur ?? 0,
+      currency: 'EUR',
+      description: dossier.product_description,
+      recipient_phone: dossier.contact_phone,
+      metadata: {
+        needs_sourcing: dossier.needs_sourcing,
+        contact_email: dossier.contact_email,
+        notes: dossier.notes,
+        budget_eur: dossier.budget_eur,
+      },
     };
 
     const konnektRes = await fetch(endpoint, {
