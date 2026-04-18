@@ -117,6 +117,9 @@ export interface Dossier {
   estimated_cost: number | null;
   estimated_delivery_date: string | null;
   admin_notes: string | null;
+  konnekt_order_id: string | null;
+  konnekt_synced_at: string | null;
+  app_source: string;
   created_at: string;
   updated_at: string;
 }

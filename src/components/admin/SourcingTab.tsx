@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import {
   Search, ShoppingCart, Wallet, Package, Phone, Mail,
-  ExternalLink, ChevronRight,
+  ExternalLink, ChevronRight, Send, CheckCircle2, Loader2,
 } from 'lucide-react';
 import {
   type Dossier, type DossierStatus, COUNTRY_FLAGS,
@@ -83,6 +83,26 @@ export function SourcingTab() {
       toast.success('Dossier mis à jour');
     },
     onError: () => toast.error('Échec de la mise à jour'),
+  });
+
+  const pushToKonnekt = useMutation({
+    mutationFn: async (dossierId: string) => {
+      const { data, error } = await supabase.functions.invoke('push-to-konnekt', {
+        body: { dossier_id: dossierId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['admin-sourcing-dossiers'] });
+      toast.success(
+        data?.konnekt_order_id
+          ? `Poussé vers Konnekt (#${data.konnekt_order_id})`
+          : 'Poussé vers Konnekt',
+      );
+    },
+    onError: (e: Error) => toast.error(e.message || 'Échec de la synchro Konnekt'),
   });
 
   const filtered = useMemo(() => {
@@ -215,6 +235,8 @@ export function SourcingTab() {
             notes={selectedNotes}
             onUpdate={(patch) => updateDossier.mutateAsync({ id: selected.id, ...patch })}
             isPending={updateDossier.isPending}
+            onPushKonnekt={() => pushToKonnekt.mutateAsync(selected.id)}
+            isPushing={pushToKonnekt.isPending}
           />
         )}
       </aside>
@@ -231,11 +253,13 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function SourcingPanel({ dossier, notes, onUpdate, isPending }: {
+function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isPushing }: {
   dossier: Dossier;
   notes: ParsedNotes;
   onUpdate: (patch: { status?: DossierStatus; admin_notes?: string }) => Promise<void>;
   isPending: boolean;
+  onPushKonnekt: () => Promise<unknown>;
+  isPushing: boolean;
 }) {
   const [status, setStatus] = useState<DossierStatus>(dossier.status);
   const [admin, setAdmin] = useState(dossier.admin_notes || '');
@@ -307,6 +331,39 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending }: {
       >
         Enregistrer
       </Button>
+
+      <div className="border-t border-border pt-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+            Konnekt
+          </p>
+          {dossier.konnekt_order_id ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-primary">
+              <CheckCircle2 className="w-3 h-3" />
+              #{dossier.konnekt_order_id}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">Non synchronisé</span>
+          )}
+        </div>
+        {dossier.konnekt_synced_at && (
+          <p className="text-[10px] text-muted-foreground">
+            Dernière synchro : {new Date(dossier.konnekt_synced_at).toLocaleString('fr-FR')}
+          </p>
+        )}
+        <Button
+          onClick={() => onPushKonnekt()}
+          disabled={isPushing}
+          variant="outline"
+          className="w-full"
+        >
+          {isPushing ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Envoi…</>
+          ) : (
+            <><Send className="w-4 h-4" /> {dossier.konnekt_order_id ? 'Re-pousser vers Konnekt' : 'Pousser vers Konnekt'}</>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
