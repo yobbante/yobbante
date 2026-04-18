@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${KONNEKT_API_KEY}`,
         'X-Yobbante-Api-Key': KONNEKT_API_KEY,
       },
       body: JSON.stringify(payload),
