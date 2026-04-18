@@ -338,7 +338,7 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isP
             Konnekt
           </p>
           {dossier.konnekt_order_id ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-primary">
               <CheckCircle2 className="w-3 h-3" />
               #{dossier.konnekt_order_id}
             </span>
