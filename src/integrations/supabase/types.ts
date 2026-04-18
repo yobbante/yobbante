@@ -126,6 +126,7 @@ export type Database = {
       dossiers: {
         Row: {
           admin_notes: string | null
+          app_source: string
           budget_eur: number | null
           contact_email: string | null
           contact_phone: string | null
@@ -135,6 +136,8 @@ export type Database = {
           estimated_delivery_date: string | null
           estimated_weight: number | null
           id: string
+          konnekt_order_id: string | null
+          konnekt_synced_at: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -146,6 +149,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          app_source?: string
           budget_eur?: number | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -155,6 +159,8 @@ export type Database = {
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           id?: string
+          konnekt_order_id?: string | null
+          konnekt_synced_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -166,6 +172,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          app_source?: string
           budget_eur?: number | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -175,6 +182,8 @@ export type Database = {
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           id?: string
+          konnekt_order_id?: string | null
+          konnekt_synced_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
