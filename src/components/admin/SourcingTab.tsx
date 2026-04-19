@@ -90,7 +90,24 @@ export function SourcingTab() {
       const { data, error } = await supabase.functions.invoke('push-to-konnekt', {
         body: { dossier_id: dossierId },
       });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx = (error as unknown as { context?: Response }).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            const status = body?.status ?? ctx.status;
+            if (status === 401 || status === 403) {
+              detail = `Konnekt refuse la clé API (${status}). Vérifiez YOBBANTE_API_KEY côté Konnekt.`;
+            } else if (status === 404) {
+              detail = `Endpoint Konnekt introuvable (404). Vérifiez KONNEKT_BASE_URL.`;
+            } else if (body?.error) {
+              detail = `${body.error}${body?.details ? ` — ${JSON.stringify(body.details)}` : ''}`;
+            }
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
