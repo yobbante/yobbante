@@ -56,8 +56,16 @@ Deno.serve(async (req) => {
       return json({ error: 'Konnekt integration not configured' }, 500);
     }
 
-    const baseUrl = KONNEKT_BASE_URL.replace(/\/+$/, '');
+    // Normalize: accept base URL with or without /functions/v1, with or without trailing /external-create-order
+    let baseUrl = KONNEKT_BASE_URL.trim().replace(/\/+$/, '');
+    if (baseUrl.endsWith('/external-create-order')) {
+      baseUrl = baseUrl.slice(0, -'/external-create-order'.length);
+    }
+    if (!/\/functions\/v\d+$/.test(baseUrl)) {
+      baseUrl = `${baseUrl}/functions/v1`;
+    }
     const endpoint = `${baseUrl}/external-create-order`;
+    console.log('Konnekt endpoint resolved to:', endpoint);
 
     // Map Yobbanté dossier → Konnekt order schema
     const payload = {
