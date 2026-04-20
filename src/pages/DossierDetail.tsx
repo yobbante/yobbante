@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink } from 'lucide-react';
+
+const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -124,6 +126,29 @@ export default function DossierDetail() {
         <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-2xl p-6">
           <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Produit</p>
           <p className="text-base font-semibold text-foreground mt-1">{dossier.product_description}</p>
+
+          {dossier.konnekt_order_id && (
+            <div className="mt-4 flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground shrink-0">Konnekt</span>
+                <span className="font-mono text-xs text-foreground truncate">#{dossier.konnekt_order_id}</span>
+                {dossier.konnekt_synced_at && (
+                  <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                    · {new Date(dossier.konnekt_synced_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                )}
+              </div>
+              <a
+                href={`${KONNEKT_APP_URL}/admin/orders/${dossier.konnekt_order_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
+              >
+                Ouvrir <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-border">
             <Stat label="Origine" value={`${COUNTRY_FLAGS[dossier.origin_country]} ${COUNTRY_NAMES[dossier.origin_country]}`} />
