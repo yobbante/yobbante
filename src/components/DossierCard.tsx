@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { type Dossier, COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, DOSSIER_STATUS_ORDER } from '@/lib/types';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ExternalLink, CheckCircle2 } from 'lucide-react';
+
+const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 
 export function DossierCard({ dossier }: { dossier: Dossier }) {
   const navigate = useNavigate();
