@@ -50,6 +50,26 @@ export function DossierCard({ dossier }: { dossier: Dossier }) {
         ) : null}
       </div>
 
+
+      {dossier.konnekt_order_id ? (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span className="text-[11px] text-muted-foreground shrink-0">Konnekt</span>
+            <span className="font-mono text-xs text-foreground truncate">#{dossier.konnekt_order_id}</span>
+          </div>
+          <a
+            href={`${KONNEKT_APP_URL}/admin/orders/${dossier.konnekt_order_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline shrink-0"
+          >
+            Ouvrir <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      ) : null}
+
       <div className="mt-4 h-1 bg-secondary rounded-full overflow-hidden">
         <div className="h-full bg-foreground rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
