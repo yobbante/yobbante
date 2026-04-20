@@ -138,9 +138,9 @@ Deno.serve(async (req) => {
 
     await admin.from('timeline_events').insert({
       user_id: dossier.user_id,
-      event_type: 'KONNEKT_PUSHED',
-      title: 'Dossier transmis à Konnekt',
-      description: konnektOrderId ? `Konnekt order #${konnektOrderId}` : 'Synchronisation réussie',
+      event_type: 'DOSSIER_PROCESSING',
+      title: 'Votre dossier est pris en charge',
+      description: 'Votre commande a été transmise à notre équipe logistique pour traitement.',
       metadata: { konnekt_order_id: konnektOrderId, dossier_id: dossierId },
     });
 
