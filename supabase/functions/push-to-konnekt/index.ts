@@ -107,16 +107,6 @@ Deno.serve(async (req) => {
         budget_eur: dossier.budget_eur,
       },
     };
-      currency: 'EUR',
-      description: dossier.product_description,
-      recipient_phone: dossier.contact_phone,
-      metadata: {
-        needs_sourcing: dossier.needs_sourcing,
-        contact_email: dossier.contact_email,
-        notes: dossier.notes,
-        budget_eur: dossier.budget_eur,
-      },
-    };
 
     const konnektRes = await fetch(endpoint, {
       method: 'POST',
