@@ -119,6 +119,7 @@ export interface Dossier {
   admin_notes: string | null;
   konnekt_order_id: string | null;
   konnekt_synced_at: string | null;
+  gp_id: string | null;
   app_source: string;
   created_at: string;
   updated_at: string;

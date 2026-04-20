@@ -135,6 +135,7 @@ export type Database = {
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
+          gp_id: string | null
           id: string
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
@@ -158,6 +159,7 @@ export type Database = {
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          gp_id?: string | null
           id?: string
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
@@ -181,6 +183,7 @@ export type Database = {
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          gp_id?: string | null
           id?: string
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
