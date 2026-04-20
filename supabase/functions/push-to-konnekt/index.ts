@@ -56,8 +56,18 @@ Deno.serve(async (req) => {
       return json({ error: 'Konnekt integration not configured' }, 500);
     }
 
+    // Validate KONNEKT_BASE_URL format BEFORE attempting to build a URL
+    const rawBase = KONNEKT_BASE_URL.trim();
+    if (!/^https:\/\//i.test(rawBase)) {
+      console.error('Invalid KONNEKT_BASE_URL:', rawBase);
+      return json({
+        error: 'KONNEKT_BASE_URL invalide',
+        details: `La valeur actuelle ne commence pas par https:// (reçu: "${rawBase.slice(0, 40)}…"). Mettez exactement https://<project-ref>.supabase.co dans le secret KONNEKT_BASE_URL.`,
+      }, 500);
+    }
+
     // Normalize: accept base URL with or without /functions/v1, with or without trailing /external-create-order
-    let baseUrl = KONNEKT_BASE_URL.trim().replace(/\/+$/, '');
+    let baseUrl = rawBase.replace(/\/+$/, '');
     if (baseUrl.endsWith('/external-create-order')) {
       baseUrl = baseUrl.slice(0, -'/external-create-order'.length);
     }
