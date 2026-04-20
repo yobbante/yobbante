@@ -77,16 +77,36 @@ Deno.serve(async (req) => {
     const endpoint = `${baseUrl}/external-create-order`;
     console.log('Konnekt endpoint resolved to:', endpoint);
 
+    const KONNEKT_GP_ID = Deno.env.get('KONNEKT_GP_ID');
+    const gpId = (dossier.gp_id && String(dossier.gp_id).trim()) || KONNEKT_GP_ID || null;
+    if (!gpId) {
+      return json({
+        error: 'gp_id manquant',
+        details: 'Aucun gp_id sur le dossier et aucun KONNEKT_GP_ID configuré comme fallback. Konnekt rejette les commandes sans identifiant de gestionnaire.',
+      }, 400);
+    }
+
     // Map Yobbanté dossier → Konnekt order schema
     const payload = {
       external_reference: dossier.reference,
       app_source: 'yobbante',
+      gp_id: gpId,
       origin_city: dossier.origin_country,
       origin_country: dossier.origin_country,
       destination_city: dossier.destination_country,
       destination_country: 'SN',
       weight: dossier.estimated_weight ?? 0,
       total_price: dossier.budget_eur ?? 0,
+      currency: 'EUR',
+      description: dossier.product_description,
+      recipient_phone: dossier.contact_phone,
+      metadata: {
+        needs_sourcing: dossier.needs_sourcing,
+        contact_email: dossier.contact_email,
+        notes: dossier.notes,
+        budget_eur: dossier.budget_eur,
+      },
+    };
       currency: 'EUR',
       description: dossier.product_description,
       recipient_phone: dossier.contact_phone,
