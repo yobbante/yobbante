@@ -78,11 +78,20 @@ Deno.serve(async (req) => {
     console.log('Konnekt endpoint resolved to:', endpoint);
 
     const KONNEKT_GP_ID = Deno.env.get('KONNEKT_GP_ID');
-    const gpId = (dossier.gp_id && String(dossier.gp_id).trim()) || KONNEKT_GP_ID || null;
+    const dossierGpRaw = dossier.gp_id ? String(dossier.gp_id).trim() : '';
+    const gpId = dossierGpRaw || (KONNEKT_GP_ID ? KONNEKT_GP_ID.trim() : '') || null;
     if (!gpId) {
       return json({
         error: 'gp_id manquant',
         details: 'Aucun gp_id sur le dossier et aucun KONNEKT_GP_ID configuré comme fallback. Konnekt rejette les commandes sans identifiant de gestionnaire.',
+      }, 400);
+    }
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(gpId)) {
+      const source = dossierGpRaw ? `dossier.gp_id` : 'KONNEKT_GP_ID';
+      return json({
+        error: 'gp_id invalide',
+        details: `${source} = "${gpId}" n'est pas un UUID valide. Konnekt attend un identifiant au format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. Demandez à l'équipe Konnekt l'UUID du gestionnaire/partenaire à utiliser.`,
       }, 400);
     }
 

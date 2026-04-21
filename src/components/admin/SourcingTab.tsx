@@ -73,7 +73,7 @@ export function SourcingTab() {
   });
 
   const updateDossier = useMutation({
-    mutationFn: async (input: { id: string; status?: DossierStatus; admin_notes?: string }) => {
+    mutationFn: async (input: { id: string; status?: DossierStatus; admin_notes?: string; gp_id?: string | null }) => {
       const { id, ...patch } = input;
       const { error } = await supabase.from('dossiers').update(patch).eq('id', id);
       if (error) throw error;
@@ -273,14 +273,22 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
 function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isPushing }: {
   dossier: Dossier;
   notes: ParsedNotes;
-  onUpdate: (patch: { status?: DossierStatus; admin_notes?: string }) => Promise<void>;
+  onUpdate: (patch: { status?: DossierStatus; admin_notes?: string; gp_id?: string | null }) => Promise<void>;
   isPending: boolean;
   onPushKonnekt: () => Promise<unknown>;
   isPushing: boolean;
 }) {
   const [status, setStatus] = useState<DossierStatus>(dossier.status);
   const [admin, setAdmin] = useState(dossier.admin_notes || '');
+  const [gpId, setGpId] = useState(dossier.gp_id || '');
   const isUrl = isProductUrl(dossier.product_description);
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const gpTrimmed = gpId.trim();
+  const gpInvalid = gpTrimmed.length > 0 && !UUID_RE.test(gpTrimmed);
+  const dirty =
+    status !== dossier.status ||
+    admin !== (dossier.admin_notes || '') ||
+    gpTrimmed !== (dossier.gp_id || '');
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
@@ -341,9 +349,26 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isP
         />
       </div>
 
+      <div className="space-y-1.5">
+        <label className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+          GP ID Konnekt (override)
+        </label>
+        <Input
+          value={gpId}
+          onChange={e => setGpId(e.target.value)}
+          placeholder="UUID gestionnaire — sinon fallback secret"
+          className={cn('font-mono text-xs', gpInvalid && 'border-destructive')}
+        />
+        {gpInvalid ? (
+          <p className="text-[10px] text-destructive">Format UUID attendu : xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">Laisser vide pour utiliser le KONNEKT_GP_ID global.</p>
+        )}
+      </div>
+
       <Button
-        onClick={() => onUpdate({ status, admin_notes: admin })}
-        disabled={isPending || (status === dossier.status && admin === (dossier.admin_notes || ''))}
+        onClick={() => onUpdate({ status, admin_notes: admin, gp_id: gpTrimmed || null })}
+        disabled={isPending || gpInvalid || !dirty}
         className="w-full"
       >
         Enregistrer
