@@ -31,9 +31,10 @@ export function DeparturesTicker() {
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('list-departures');
       if (error) throw error;
-      return data as { departures: Departure[] };
+      return data as { departures: Departure[]; source?: string };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,        // 10 min cache
+    refetchInterval: 10 * 60 * 1000,  // re-fetch every 10 min
     refetchOnWindowFocus: false,
   });
 

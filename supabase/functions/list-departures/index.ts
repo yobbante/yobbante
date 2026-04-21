@@ -1,6 +1,6 @@
-// Public endpoint — returns upcoming departures.
-// Currently mocked. When Konnekt exposes a real endpoint, swap the
-// `getMockDepartures()` call for a fetch to KONNEKT_BASE_URL + the real path.
+// Public endpoint — proxies Konnekt's external-list-departures.
+// Falls back to a mock list if Konnekt returns nothing or is misconfigured,
+// so the home page ticker is never empty.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,11 +9,11 @@ const corsHeaders = {
 
 type Departure = {
   id: string;
-  origin_country: string; // ISO-2
+  origin_country: string;
   origin_city: string;
   destination_country: string;
   destination_city: string;
-  departure_date: string; // ISO date
+  departure_date: string;
   transport: 'AIR' | 'SEA' | 'ROAD';
 };
 
@@ -48,21 +48,98 @@ function getMockDepartures(): Departure[] {
   }));
 }
 
+function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' {
+  const s = String(v || '').toUpperCase();
+  if (s.startsWith('A') || s.includes('AIR') || s.includes('AVION') || s.includes('AÉR')) return 'AIR';
+  if (s.startsWith('R') || s.includes('ROAD') || s.includes('ROUT') || s.includes('CAMION')) return 'ROAD';
+  return 'SEA';
+}
+
+function normalizeKonnekt(raw: unknown): Departure[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r: Record<string, unknown>, i: number): Departure | null => {
+      const dep = String(
+        r.departure_date || r.departureDate || r.date || r.eta || r.starts_at || ''
+      ).slice(0, 10);
+      if (!dep) return null;
+      return {
+        id: String(r.id || r.reference || `k-${i}`),
+        origin_country: String(r.origin_country || r.from_country || 'CN').toUpperCase().slice(0, 2),
+        origin_city: String(r.origin_city || r.from_city || r.origin || ''),
+        destination_country: String(r.destination_country || r.to_country || 'SN').toUpperCase().slice(0, 2),
+        destination_city: String(r.destination_city || r.to_city || r.destination || ''),
+        transport: normalizeTransport(r.transport || r.transport_type || r.mode),
+        departure_date: dep,
+      };
+    })
+    .filter((x): x is Departure => x !== null);
+}
+
+async function fetchKonnektDepartures(): Promise<{ departures: Departure[]; authed: boolean } | null> {
+  const base = (Deno.env.get('KONNEKT_BASE_URL') || '').trim();
+  const key = (Deno.env.get('KONNEKT_API_KEY') || '').trim();
+  if (!base || !/^https:\/\//i.test(base)) return null;
+
+  // Normalize: strip trailing slash + ensure /functions/v1 suffix
+  let url = base.replace(/\/+$/, '');
+  if (url.endsWith('/external-list-departures')) {
+    url = url.slice(0, -'/external-list-departures'.length);
+  }
+  if (!/\/functions\/v\d+$/.test(url)) url = `${url}/functions/v1`;
+  const endpoint = `${url}/external-list-departures`;
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (key) {
+      headers['Authorization'] = `Bearer ${key}`;
+      headers['X-Yobbante-Api-Key'] = key;
+    }
+    const res = await fetch(endpoint, { method: 'GET', headers });
+    if (!res.ok) {
+      console.error('Konnekt list-departures failed', res.status, await res.text());
+      return null;
+    }
+    const json = await res.json();
+    const list = json?.departures ?? json?.data ?? json;
+    const authed = json?.partner_authenticated === true;
+    return { departures: normalizeKonnekt(list), authed };
+  } catch (e) {
+    console.error('Konnekt fetch error', e);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const departures = getMockDepartures().sort(
-      (a, b) => a.departure_date.localeCompare(b.departure_date),
-    );
-    return new Response(JSON.stringify({ departures, source: 'mock' }), {
+    const konnekt = await fetchKonnektDepartures();
+    let departures: Departure[] = konnekt?.departures ?? [];
+    let source: 'konnekt' | 'mock' = 'konnekt';
+
+    if (!departures.length) {
+      departures = getMockDepartures();
+      source = 'mock';
+    }
+
+    departures.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
+
+    return new Response(JSON.stringify({
+      source,
+      partner_authenticated: konnekt?.authed ?? false,
+      count: departures.length,
+      generated_at: new Date().toISOString(),
+      departures,
+    }), {
       status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300',
+        // Cache 10 min on CDN, 5 min in browser
+        'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=120',
       },
     });
   } catch (e) {
