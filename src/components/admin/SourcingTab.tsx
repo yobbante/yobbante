@@ -349,9 +349,26 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isP
         />
       </div>
 
+      <div className="space-y-1.5">
+        <label className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+          GP ID Konnekt (override)
+        </label>
+        <Input
+          value={gpId}
+          onChange={e => setGpId(e.target.value)}
+          placeholder="UUID gestionnaire — sinon fallback secret"
+          className={cn('font-mono text-xs', gpInvalid && 'border-destructive')}
+        />
+        {gpInvalid ? (
+          <p className="text-[10px] text-destructive">Format UUID attendu : xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">Laisser vide pour utiliser le KONNEKT_GP_ID global.</p>
+        )}
+      </div>
+
       <Button
-        onClick={() => onUpdate({ status, admin_notes: admin })}
-        disabled={isPending || (status === dossier.status && admin === (dossier.admin_notes || ''))}
+        onClick={() => onUpdate({ status, admin_notes: admin, gp_id: gpTrimmed || null })}
+        disabled={isPending || gpInvalid || !dirty}
         className="w-full"
       >
         Enregistrer
