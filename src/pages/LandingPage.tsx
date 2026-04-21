@@ -6,6 +6,7 @@ import { SmartImportInline } from '@/components/SmartImportInline';
 import { DossierWizard } from '@/components/DossierWizard';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import { DeparturesTicker } from '@/components/DeparturesTicker';
 import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
 import type { WarehouseCountry } from '@/lib/types';
 import heroBg from '@/assets/hero-bg.jpg';
@@ -70,6 +71,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* ───── 1. Nav ───── */}
       <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
+
+      {/* Live departures ticker */}
+      <DeparturesTicker />
 
       {/* ───── 2. Hero ───── */}
       <section className="relative overflow-hidden">
