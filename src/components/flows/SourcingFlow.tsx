@@ -197,7 +197,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
         />
       )}
-      <FlowSection revealed title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
+      <FlowSection revealed step={1} total={7} title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
         <div className="space-y-3 max-w-xl">
           <TextField
             value={productInput} onChange={setProductInput}
@@ -239,7 +239,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         )}
       </FlowSection>
 
-      <FlowSection revealed={productInput.trim().length >= 4} title="Combien d'unités ?" hint="La quantité est essentielle pour obtenir le meilleur prix fournisseur.">
+      <FlowSection revealed={productInput.trim().length >= 4} step={2} total={7} title="Combien d'unités ?" hint="La quantité est essentielle pour obtenir le meilleur prix fournisseur.">
         <div className="space-y-5 max-w-md">
           <NumberSlider label="Quantité" value={quantity} onChange={setQuantity} min={10} max={5000} step={10} unit=" u." />
           <TextField
@@ -255,15 +255,15 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         )}
       </FlowSection>
 
-      <FlowSection revealed={!!parsed || productInput.trim().length >= 4} title="Niveau de qualité">
+      <FlowSection revealed={!!parsed || productInput.trim().length >= 4} step={3} total={7} title="Niveau de qualité">
         <ChipGroup options={QUALITIES} value={quality} onChange={(v) => setQuality(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!quality} title="Urgence du projet">
+      <FlowSection revealed={!!quality} step={4} total={7} title="Urgence du projet">
         <ChipGroup options={URGENCIES} value={urgency} onChange={(v) => setUrgency(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!urgency} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
+      <FlowSection revealed={!!urgency} step={5} total={7} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
         <div className="grid sm:grid-cols-2 gap-2.5">
           {ROLES.map((r, i) => (
             <motion.div
@@ -284,11 +284,11 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         </div>
       </FlowSection>
 
-      <FlowSection revealed={!!urgency} title="Origine du sourcing">
+      <FlowSection revealed={!!urgency} step={6} total={7} title="Origine du sourcing">
         <CountryGrid countries={ORIGINS} value={origin} onChange={setOrigin} />
       </FlowSection>
 
-      <FlowSection revealed={!!origin} title="Destination de livraison">
+      <FlowSection revealed={!!origin} step={7} total={7} title="Destination de livraison">
         <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
       </FlowSection>
 
