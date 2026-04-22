@@ -254,10 +254,12 @@ export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dia
       <DialogContent
         className="p-0 max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-hidden border-0 bg-zinc-950 text-white rounded-2xl"
       >
-        {/* Header / progress */}
-        <div className="px-5 sm:px-7 pt-5 pb-3 border-b border-white/10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 min-w-0">
+  const inner = (
+    <>
+      {/* Header / progress */}
+      <div className="px-5 sm:px-7 pt-5 pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-yellow-400/15 text-yellow-400 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
