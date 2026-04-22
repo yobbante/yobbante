@@ -106,9 +106,14 @@ export function DeparturesTicker() {
   const source: 'konnekt' | 'cache' | 'mock' = data?.source || 'mock';
   const items = [...departures, ...departures];
 
-  const handleFollow = (d: Departure) => {
-    // Send the user to their shipments view, scoped to that destination
-    navigate(`/app/shipments?destination=${d.destination_country}&origin=${d.origin_country}`);
+  const handleFollow = async (d: Departure) => {
+    const qs = `view=shipments&destination=${d.destination_country}&origin=${d.origin_country}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      navigate(`/app?${qs}`);
+    } else {
+      navigate(`/auth?next=${encodeURIComponent(`/app?${qs}`)}`);
+    }
   };
 
   return (
