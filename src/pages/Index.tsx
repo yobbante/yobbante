@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BottomNav } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
@@ -13,20 +13,32 @@ type View = 'home' | 'shipments' | 'profile';
 export default function Index() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Allow deep links like /app?view=shipments&destination=SN
-  const initialView: View = (() => {
-    const v = new URLSearchParams(location.search).get('view');
-    return v === 'shipments' || v === 'profile' ? v : 'home';
-  })();
+  // View is fully driven by ?view=... so refresh + deep-links + bottom nav stay in sync.
+  const rawView = searchParams.get('view');
+  const view: View = rawView === 'shipments' || rawView === 'profile' ? rawView : 'home';
 
-  const [view, setView] = useState<View>(initialView);
+  const setView = (next: View) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next === 'home') {
+      sp.delete('view');
+    } else {
+      sp.set('view', next);
+    }
+    // Drop tracking filters when leaving the shipments tab so they don't leak.
+    if (next !== 'shipments') {
+      sp.delete('origin');
+      sp.delete('destination');
+    }
+    setSearchParams(sp, { replace: false });
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate('/auth');
     });
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-background">
