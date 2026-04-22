@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BottomNav } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
@@ -11,8 +11,16 @@ import { ProfileView } from '@/pages/ProfileView';
 type View = 'home' | 'shipments' | 'profile';
 
 export default function Index() {
-  const [view, setView] = useState<View>('home');
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // Allow deep links like /app?view=shipments&destination=SN
+  const initialView: View = (() => {
+    const v = new URLSearchParams(location.search).get('view');
+    return v === 'shipments' || v === 'profile' ? v : 'home';
+  })();
+
+  const [view, setView] = useState<View>(initialView);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

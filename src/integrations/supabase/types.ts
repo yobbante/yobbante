@@ -249,6 +249,63 @@ export type Database = {
         }
         Relationships: []
       }
+      konnekt_departures_cache: {
+        Row: {
+          count: number
+          departures: Json
+          id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          departures?: Json
+          id?: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          departures?: Json
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      konnekt_sync_log: {
+        Row: {
+          count: number
+          created_at: string
+          error_message: string | null
+          id: string
+          partner_authenticated: boolean
+          raw_payload: Json | null
+          source: string
+          status: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          partner_authenticated?: boolean
+          raw_payload?: Json | null
+          source: string
+          status: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          partner_authenticated?: boolean
+          raw_payload?: Json | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       packages: {
         Row: {
           created_at: string

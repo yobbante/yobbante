@@ -1,6 +1,12 @@
 // Public endpoint — proxies Konnekt's external-list-departures.
-// Falls back to a mock list if Konnekt returns nothing or is misconfigured,
-// so the home page ticker is never empty.
+// Strategy:
+//  1. Try Konnekt
+//  2. If success → dedup, persist as last-known-good (LKG), log, return source=konnekt
+//  3. If failure → return last-known-good from cache if present (source=cache)
+//  4. If no LKG ever → return mock (source=mock)
+// Pass ?refresh=1 to force a fresh fetch and bypass CDN cache.
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,12 +82,28 @@ function normalizeKonnekt(raw: unknown): Departure[] {
     .filter((x): x is Departure => x !== null);
 }
 
-async function fetchKonnektDepartures(): Promise<{ departures: Departure[]; authed: boolean } | null> {
+// Dedup by (origin_country, destination_country, departure_date, transport)
+function dedupDepartures(list: Departure[]): Departure[] {
+  const seen = new Set<string>();
+  const out: Departure[] = [];
+  for (const d of list) {
+    const k = `${d.origin_country}|${d.destination_country}|${d.departure_date}|${d.transport}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(d);
+  }
+  return out;
+}
+
+async function fetchKonnektDepartures(): Promise<{
+  departures: Departure[];
+  authed: boolean;
+  raw: unknown;
+} | { error: string }> {
   const base = (Deno.env.get('KONNEKT_BASE_URL') || '').trim();
   const key = (Deno.env.get('KONNEKT_API_KEY') || '').trim();
-  if (!base || !/^https:\/\//i.test(base)) return null;
+  if (!base || !/^https:\/\//i.test(base)) return { error: 'KONNEKT_BASE_URL missing/invalid' };
 
-  // Normalize: strip trailing slash + ensure /functions/v1 suffix
   let url = base.replace(/\/+$/, '');
   if (url.endsWith('/external-list-departures')) {
     url = url.slice(0, -'/external-list-departures'.length);
@@ -97,16 +119,89 @@ async function fetchKonnektDepartures(): Promise<{ departures: Departure[]; auth
     }
     const res = await fetch(endpoint, { method: 'GET', headers });
     if (!res.ok) {
-      console.error('Konnekt list-departures failed', res.status, await res.text());
-      return null;
+      const txt = await res.text();
+      console.error('Konnekt list-departures failed', res.status, txt);
+      return { error: `Konnekt HTTP ${res.status}: ${txt.slice(0, 300)}` };
     }
     const json = await res.json();
     const list = json?.departures ?? json?.data ?? json;
     const authed = json?.partner_authenticated === true;
-    return { departures: normalizeKonnekt(list), authed };
+    return { departures: normalizeKonnekt(list), authed, raw: json };
   } catch (e) {
     console.error('Konnekt fetch error', e);
+    return { error: (e as Error).message || 'fetch failed' };
+  }
+}
+
+function getServiceClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { persistSession: false } }
+  );
+}
+
+async function readLKG(): Promise<{ departures: Departure[]; updated_at: string } | null> {
+  try {
+    const sb = getServiceClient();
+    const { data } = await sb
+      .from('konnekt_departures_cache')
+      .select('departures, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data?.departures) return null;
+    return { departures: data.departures as Departure[], updated_at: data.updated_at };
+  } catch (e) {
+    console.error('LKG read failed', e);
     return null;
+  }
+}
+
+async function writeLKG(departures: Departure[]) {
+  try {
+    const sb = getServiceClient();
+    await sb.from('konnekt_departures_cache').insert({
+      source: 'konnekt',
+      count: departures.length,
+      departures,
+    });
+    // Keep only the 5 most recent rows
+    const { data: old } = await sb
+      .from('konnekt_departures_cache')
+      .select('id')
+      .order('updated_at', { ascending: false })
+      .range(5, 100);
+    if (old?.length) {
+      await sb.from('konnekt_departures_cache').delete().in('id', old.map((r) => r.id));
+    }
+  } catch (e) {
+    console.error('LKG write failed', e);
+  }
+}
+
+async function logSync(input: {
+  source: string;
+  status: 'ok' | 'error';
+  count: number;
+  partner_authenticated: boolean;
+  raw_payload?: unknown;
+  error_message?: string;
+}) {
+  try {
+    const sb = getServiceClient();
+    await sb.from('konnekt_sync_log').insert(input);
+    // Trim to last 100 rows
+    const { data: old } = await sb
+      .from('konnekt_sync_log')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .range(100, 1000);
+    if (old?.length) {
+      await sb.from('konnekt_sync_log').delete().in('id', old.map((r) => r.id));
+    }
+  } catch (e) {
+    console.error('logSync failed', e);
   }
 }
 
@@ -115,31 +210,70 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  try {
-    const konnekt = await fetchKonnektDepartures();
-    let departures: Departure[] = konnekt?.departures ?? [];
-    let source: 'konnekt' | 'mock' = 'konnekt';
+  const url = new URL(req.url);
+  const forceRefresh = url.searchParams.get('refresh') === '1';
 
-    if (!departures.length) {
-      departures = getMockDepartures();
-      source = 'mock';
+  try {
+    const result = await fetchKonnektDepartures();
+
+    let departures: Departure[] = [];
+    let source: 'konnekt' | 'cache' | 'mock' = 'mock';
+    let partner_authenticated = false;
+    let lkg_updated_at: string | null = null;
+    let error_message: string | undefined;
+
+    if ('departures' in result && result.departures.length > 0) {
+      departures = dedupDepartures(result.departures);
+      source = 'konnekt';
+      partner_authenticated = result.authed;
+      // Persist LKG asynchronously
+      await writeLKG(departures);
+      await logSync({
+        source: 'konnekt',
+        status: 'ok',
+        count: departures.length,
+        partner_authenticated,
+        raw_payload: result.raw,
+      });
+    } else {
+      error_message = 'error' in result ? result.error : 'Konnekt returned 0 departures';
+      const lkg = await readLKG();
+      if (lkg && lkg.departures.length) {
+        departures = dedupDepartures(lkg.departures);
+        source = 'cache';
+        lkg_updated_at = lkg.updated_at;
+      } else {
+        departures = getMockDepartures();
+        source = 'mock';
+      }
+      await logSync({
+        source,
+        status: 'error',
+        count: departures.length,
+        partner_authenticated: 'authed' in result ? result.authed : false,
+        raw_payload: 'raw' in result ? result.raw : null,
+        error_message,
+      });
     }
 
     departures.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
 
     return new Response(JSON.stringify({
       source,
-      partner_authenticated: konnekt?.authed ?? false,
+      partner_authenticated,
       count: departures.length,
       generated_at: new Date().toISOString(),
+      lkg_updated_at,
+      error_message,
       departures,
     }), {
       status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        // Cache 10 min on CDN, 5 min in browser
-        'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=120',
+        'Cache-Control': forceRefresh
+          ? 'no-store'
+          : 'public, max-age=300, s-maxage=600, stale-while-revalidate=120',
       },
     });
   } catch (e) {
