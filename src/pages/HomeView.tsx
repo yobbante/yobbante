@@ -54,32 +54,32 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   return (
-    <div className="space-y-10 pb-28 md:pb-12">
+    <div className="space-y-7 md:space-y-10 pb-28 md:pb-12">
       {/* Hero greeting — minimal, premium, aligned with new flow aesthetic */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pt-2"
+        className="pt-1"
       >
-        <p className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground">Mon espace</p>
-        <h2 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground">Mon espace</p>
+        <h2 className="mt-1.5 sm:mt-2 text-[1.625rem] sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance leading-[1.1]">
           {greeting}.
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+        <p className="mt-1.5 text-[13px] sm:text-sm text-muted-foreground max-w-md">
           Un seul endroit pour vos envois, réceptions et sourcing.
         </p>
 
         {/* KPI rail — flat, no gradients */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="mt-5 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
           {[
-            { value: activeDossiers.length, label: 'Dossiers actifs' },
-            { value: waitingPackages.length, label: 'Colis en attente' },
+            { value: activeDossiers.length, label: 'Dossiers' },
+            { value: waitingPackages.length, label: 'En attente' },
             { value: activeShipments.length, label: 'Expéditions' },
-            { value: addresses.length, label: 'Hubs actifs' },
+            { value: addresses.length, label: 'Hubs' },
           ].map((kpi) => (
-            <div key={kpi.label} className="rounded-xl border border-border bg-card p-3">
-              <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{kpi.label}</p>
+            <div key={kpi.label} className="rounded-xl border border-border bg-card p-2.5 sm:p-3">
+              <p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 leading-tight">{kpi.label}</p>
             </div>
           ))}
         </div>
