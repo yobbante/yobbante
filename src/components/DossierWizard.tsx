@@ -27,6 +27,13 @@ interface DossierWizardProps {
    * - 'buy'          → Yobbanté sources & buys for the user
    */
   presetIntent?: 'ship' | 'ship-send' | 'ship-receive' | 'buy';
+  /**
+   * 'dialog' (default) — modal popup. 'page' — full-screen embedded flow,
+   * styled like the rest of the app, used by /expedier/envoyer & /expedier/recevoir.
+   */
+  variant?: 'dialog' | 'page';
+  /** Optional eyebrow shown in the header for page variant ("Envoyer un colis" etc.) */
+  pageTitle?: string;
 }
 
 type Intent = 'ship' | 'buy';
@@ -73,7 +80,7 @@ const URGENCIES: { id: Urgency; label: string; desc: string; Icon: typeof Clock 
 
 const intentLabel = (i: Intent | null) => i === 'ship' ? 'Expédier un colis' : i === 'buy' ? 'Acheter un produit' : '';
 
-export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizardProps) {
+export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dialog', pageTitle }: DossierWizardProps) {
   const { createDossier } = useDossiers();
   const navigate = useNavigate();
 
@@ -242,15 +249,12 @@ export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizar
 
   const progressPct = step === 0 ? 0 : Math.min(100, (step / totalSteps) * 100);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="p-0 max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-hidden border-0 bg-zinc-950 text-white rounded-2xl"
-      >
-        {/* Header / progress */}
-        <div className="px-5 sm:px-7 pt-5 pb-3 border-b border-white/10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 min-w-0">
+  const inner = (
+    <>
+      {/* Header / progress */}
+      <div className="px-5 sm:px-7 pt-5 pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-yellow-400/15 text-yellow-400 flex items-center justify-center shrink-0">
                 <Sparkles className="w-4 h-4" />
               </div>
@@ -624,6 +628,29 @@ export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizar
             </button>
           </div>
         )}
+    </>
+  );
+
+  if (variant === 'page') {
+    if (!open) return null;
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+        {pageTitle && (
+          <div className="sr-only" aria-live="polite">{pageTitle}</div>
+        )}
+        <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-6 py-6 sm:py-10">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-3rem)]">
+            {inner}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-0 max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-hidden border-0 bg-zinc-950 text-white rounded-2xl">
+        {inner}
       </DialogContent>
     </Dialog>
   );
