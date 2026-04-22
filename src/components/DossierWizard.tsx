@@ -288,7 +288,7 @@ export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizar
                     <IntentCard
                       Icon={Package}
                       title="Expédier un colis"
-                      desc="GP, aérien, maritime ou routier — on choisit le meilleur mode."
+                      desc="On choisit le mode le plus adapté. Vous suivez en temps réel."
                       onClick={() => pickIntent('ship')}
                       active={intent === 'ship'}
                     />
