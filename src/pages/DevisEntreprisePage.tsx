@@ -213,7 +213,7 @@ export default function DevisEntreprisePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <PublicNav extraItems={[{ label: 'Demander un devis', onClick: scrollToForm }]} />
+      <PublicNav />
 
       <main className="flex-1">
 

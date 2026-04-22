@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, MapPin } from 'lucide-react';
+import { Mail, MapPin, Package, ShoppingCart } from 'lucide-react';
 
 export function PublicFooter() {
   return (
@@ -9,7 +9,7 @@ export function PublicFooter() {
           <div className="col-span-2">
             <p className="text-base font-bold text-foreground tracking-tight">YOBBANTÉ</p>
             <p className="text-sm text-muted-foreground mt-3 max-w-xs leading-relaxed">
-              Opérateur logistique international. Sourcing, transport, dédouanement, livraison — un seul partenaire.
+              Expédiez, recevez ou achetez à l'international. On gère tout, de A à Z.
             </p>
             <div className="mt-5 space-y-2">
               <a href="mailto:contact@yobbante.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -22,20 +22,24 @@ export function PublicFooter() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Solutions</p>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Commencer</p>
             <div className="space-y-2">
-              <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-              <Link to="/entreprises" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Entreprises</Link>
-              <Link to="/simulateur" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
+              <Link to="/expedier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Package className="w-3.5 h-3.5" /> Expédier un colis
+              </Link>
+              <Link to="/acheter" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <ShoppingCart className="w-3.5 h-3.5" /> Acheter un produit
+              </Link>
+              <Link to="/auth" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Mon espace</Link>
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Plateforme</p>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">À propos</p>
             <div className="space-y-2">
-              <Link to="/auth" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Connexion</Link>
-              <Link to="/auth" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Créer un compte</Link>
-              <a href="https://konnekt.app" target="_blank" rel="noopener noreferrer" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Konnekt (petits colis)</a>
+              <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Nos services</Link>
+              <Link to="/entreprises" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Entreprises</Link>
+              <Link to="/simulateur" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
             </div>
           </div>
 

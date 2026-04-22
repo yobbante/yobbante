@@ -1,292 +1,214 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { SmartImportDialog } from '@/components/SmartImportDialog';
-import { SmartImportInline } from '@/components/SmartImportInline';
-import { DossierWizard } from '@/components/DossierWizard';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-import { DeparturesTicker } from '@/components/DeparturesTicker';
-import { Sparkles, ArrowRight, ExternalLink, FolderPlus, MapPin, Building2, ShieldCheck, Headset, FileCheck2 } from 'lucide-react';
-import type { WarehouseCountry } from '@/lib/types';
-import heroBg from '@/assets/hero-bg.jpg';
+import {
+  Package, ShoppingCart, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset,
+} from 'lucide-react';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   visible: (i: number) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.08, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { delay: i * 0.06, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 };
 
-const SERVICES = [
-  { num: '01', title: 'Import Complet', desc: 'Sourcing, achat, réception, transport, dédouanement, livraison. Yobbanté gère chaque maillon.' },
-  { num: '02', title: 'Sourcing International', desc: 'Recherche, qualification et négociation avec les usines en Chine, Dubai, Europe et USA.' },
-  { num: '03', title: 'Adresses Internationales', desc: 'Une adresse dédiée dans 6 pays pour acheter sur Amazon, Alibaba, 1688 et tout site marchand.' },
-  { num: '04', title: 'Groupage', desc: 'Consolidation maritime, aérienne ou routière. Économisez jusqu\'à 70% sur vos coûts de transport.' },
-  { num: '05', title: 'Dédouanement', desc: 'Préparation documentaire, optimisation des taxes, conformité réglementaire à l\'import et à l\'export.' },
-  { num: '06', title: 'Entreposage', desc: 'Stockage temporaire ou longue durée dans nos entrepôts internationaux.' },
-  { num: '07', title: 'Livraison Finale', desc: 'À domicile, en point relais ou en entreprise. Réseau partenaire en Afrique de l\'Ouest et au-delà.' },
+const SHIP_STEPS = [
+  { n: '01', title: 'Vous indiquez votre besoin', desc: 'Origine, destination, ce que vous envoyez. En 1 minute.' },
+  { n: '02', title: 'Yobbanté organise tout', desc: 'Transport, douane, suivi — vous n\'avez rien à gérer.' },
+  { n: '03', title: 'Vous recevez votre colis', desc: 'À domicile, en point relais, ou en entreprise.' },
 ];
 
-const WAREHOUSES = [
-  { flag: '🇫🇷', country: 'France', desc: 'Hub européen' },
-  { flag: '🇨🇦', country: 'Canada', desc: 'Amérique du Nord' },
-  { flag: '🇨🇳', country: 'Chine', desc: 'Direct usines' },
-  { flag: '🇦🇪', country: 'Dubai', desc: 'Moyen-Orient' },
-  { flag: '🇩🇪', country: 'Allemagne', desc: 'Europe avancée' },
-  { flag: '🇺🇸', country: 'États-Unis', desc: 'E-commerce US' },
+const BUY_STEPS = [
+  { n: '01', title: 'Vous décrivez le produit', desc: 'Un lien Amazon, Alibaba, Shein — ou simple description.' },
+  { n: '02', title: 'On s\'occupe de tout', desc: 'Sourcing, négociation, vérification qualité, expédition.' },
+  { n: '03', title: 'Vous recevez chez vous', desc: 'Livraison à votre porte, sans démarche douanière.' },
 ];
 
-const ADDRESS_STEPS = [
-  'Recevez votre adresse Yobbanté unique dans le pays de votre choix',
-  'Commandez sur Amazon, Alibaba, 1688 ou toute boutique en ligne',
-  'Nous réceptionnons et vérifions votre colis',
-  'Stockage, regroupement ou reconditionnement selon vos besoins',
-  'Expédition vers votre destination finale',
+const REASONS = [
+  { Icon: Globe2,      title: 'End-to-end',  desc: 'Un seul partenaire, du fournisseur à votre porte.' },
+  { Icon: Sparkles,    title: 'Simplicité',  desc: 'Pas de jargon, pas de surprises. Vous décidez, on agit.' },
+  { Icon: ShieldCheck, title: 'Fiabilité',   desc: 'Chaque colis est suivi, vérifié, assuré.' },
+  { Icon: Headset,     title: 'Réseau mondial', desc: 'France, Chine, USA, Dubai, Allemagne, Canada.' },
 ];
 
 const METRICS = [
-  { value: '6', label: 'Entrepôts' },
-  { value: '150+', label: 'Pays desservis' },
-  { value: '48h', label: 'Réponse dossier' },
-  { value: '10K+', label: 'Colis traités' },
+  { value: '+10 000', label: 'colis livrés' },
+  { value: '6',       label: 'pays d\'origine' },
+  { value: '24h',     label: 'réponse garantie' },
+  { value: '98%',     label: 'satisfaction client' },
 ];
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [smartOpen, setSmartOpen] = useState(false);
-  const [localWizardOpen, setLocalWizardOpen] = useState(false);
 
-  const goDossier = (preset?: { product: string; estimatedWeight: string; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
-    navigate('/confier-dossier', preset ? { state: { preset } } : undefined);
-  };
-  const goAddress = () => navigate('/obtenir-adresse');
+  useEffect(() => {
+    document.title = 'Yobbanté · Expédiez ou achetez à l\'international, simplement.';
+  }, []);
 
-  const openDossierWithPreset = (p: { product: string; weight: number; origin: WarehouseCountry; destination: string; estimatedCost: number }) => {
-    goDossier({ product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost });
-  };
+  const goShip = () => navigate('/expedier');
+  const goBuy = () => navigate('/acheter');
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ───── 1. Nav ───── */}
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
+      <PublicNav />
 
-      {/* Live departures ticker */}
-      <DeparturesTicker />
-
-      {/* ───── 2. Hero ───── */}
+      {/* ───── HERO ───── */}
       <section className="relative overflow-hidden">
-        {/* Subtle world-map background */}
-        <div
-          className="absolute inset-0 bg-center bg-cover opacity-40 dark:opacity-55 pointer-events-none"
-          style={{ backgroundImage: `url(${heroBg})` }}
-          aria-hidden
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/65 to-background pointer-events-none" aria-hidden />
-        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 pt-14 pb-20 md:pt-32 md:pb-32">
-        <div className="grid md:grid-cols-[1.2fr_1fr] gap-10 md:gap-16 items-center">
-          <div className="text-center md:text-left">
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-6"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Opérateur logistique international
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] md:leading-[1.02] text-foreground text-balance"
-            >
-              Importez depuis n'importe quel pays.
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-5 md:mt-6 text-base md:text-lg text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed text-pretty"
-            >
-              Yobbanté gère votre chaîne logistique de A à Z — sourcing, achat, groupage, transport, dédouanement et livraison finale.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-7 md:mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start"
-            >
-              <button
-                onClick={() => setLocalWizardOpen(true)}
-                className="btn-cta-yellow"
-              >
-                <FolderPlus className="w-4 h-4" /> Confier mon dossier
-              </button>
-              <button
-                onClick={goAddress}
-                className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 px-6 py-3.5 rounded-2xl transition-all duration-200 hover:-translate-y-px hover:bg-[hsl(var(--cta)/0.06)]"
-                style={{ borderColor: 'hsl(var(--cta) / 0.4)', color: 'hsl(var(--cta))' }}
-              >
-                <MapPin className="w-4 h-4" /> Obtenir une adresse
-              </button>
-            </motion.div>
-          </div>
-
-          {/* Hero visual: 3 product previews */}
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-16 pb-20 md:pt-32 md:pb-36 text-center">
           <motion.div
-            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className="space-y-3 hidden md:block"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-7"
           >
-            <div className="bg-foreground text-background rounded-xl p-5">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider opacity-60 mb-2">
-                <FolderPlus className="w-3.5 h-3.5" /> Dossier YBT-2026-0173
-              </div>
-              <p className="text-sm font-semibold">50 smartphones · Chine → Dakar</p>
-              <div className="mt-3 h-1 bg-background/20 rounded-full overflow-hidden">
-                <div className="h-full w-1/2 bg-background rounded-full" />
-              </div>
-              <p className="text-[11px] opacity-60 mt-2">En transit · ETA 6 jours</p>
-            </div>
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                <Sparkles className="w-3.5 h-3.5" /> Smart estimation
-              </div>
-              <p className="text-sm font-semibold text-foreground">12 kg · CN → SN</p>
-              <div className="flex items-baseline gap-3 mt-2">
-                <span className="text-2xl font-bold text-foreground">175 €</span>
-                <span className="text-xs text-muted-foreground">5–8 jours</span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
-                <MapPin className="w-3.5 h-3.5" /> Adresse internationale
-              </div>
-              <p className="text-sm font-semibold text-foreground">🇫🇷 Yobbanté France</p>
-              <p className="text-xs font-mono font-semibold text-foreground mt-1">YBT-FR-7842</p>
-            </div>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            Logistique internationale, sans complexité
           </motion.div>
-        </div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
+            className="text-[2.75rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.02] text-foreground text-balance"
+          >
+            Le monde devient<br className="hidden sm:block" /> simple à livrer.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+            className="mt-6 text-base md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed text-pretty"
+          >
+            Expédiez, recevez ou achetez à l'international.
+            Yobbanté gère tout, de A à Z.
+          </motion.p>
+
+          {/* The 2 — and only 2 — entry points */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}
+            className="mt-10 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto sm:max-w-none"
+          >
+            <button
+              onClick={goShip}
+              className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold bg-foreground text-background px-7 py-4 rounded-2xl hover:opacity-90 hover:-translate-y-0.5 transition-all"
+            >
+              <Package className="w-5 h-5" />
+              Expédier un colis
+              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <button
+              onClick={goBuy}
+              className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold border-2 border-foreground text-foreground px-7 py-4 rounded-2xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              Acheter un produit
+              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}
+            className="mt-6 text-xs text-muted-foreground"
+          >
+            Sans engagement · Réponse sous 24h · Données protégées
+          </motion.p>
         </div>
       </section>
 
-      {/* ───── 3. Two Pillars ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3 text-center md:text-left">Deux façons de travailler avec nous</p>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight max-w-2xl text-balance text-center md:text-left mx-auto md:mx-0">Confiez-nous tout. Ou juste le transport.</h2>
+      {/* ───── HOW IT WORKS ───── */}
+      <section className="border-t border-border bg-secondary/40">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Comment ça marche</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-balance">
+              Trois étapes. Aucun jargon.
+            </h2>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-px bg-border mt-16 rounded-2xl overflow-hidden">
-            {/* Pilier 1 */}
+          <div className="grid md:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+            {/* Ship */}
             <div className="bg-background p-8 md:p-10">
-              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground mb-3">A · ENTREPRISES</div>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Confier mon import</h3>
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed max-w-md">
-                Vous nous décrivez votre besoin. Nous sourçons, achetons, expédions, dédouanons et livrons.
-                Un seul interlocuteur pour toute la chaîne logistique.
-              </p>
-              <ul className="mt-5 space-y-2 text-sm text-foreground">
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Sourcing fournisseur inclus</li>
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Gestion documentaire douane</li>
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Optimisation transport multi-modal</li>
-              </ul>
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
+                  <Package className="w-4.5 h-4.5" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight">Pour expédier</h3>
+              </div>
+              <ol className="space-y-5">
+                {SHIP_STEPS.map((s, i) => (
+                  <motion.li
+                    key={s.n}
+                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
+                    className="flex gap-4"
+                  >
+                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
+                    </div>
+                  </motion.li>
+                ))}
+              </ol>
               <button
-                onClick={() => goDossier()}
-                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
+                onClick={goShip}
+                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
-                Confier mon dossier <ArrowRight className="w-4 h-4" />
+                Commencer une expédition <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-            {/* Pilier 2 */}
+
+            {/* Buy */}
             <div className="bg-background p-8 md:p-10">
-              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground mb-3">B · PARTICULIERS & E-COMMERCE</div>
-              <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Adresses + groupage</h3>
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed max-w-md">
-                Recevez gratuitement une adresse dans 6 pays. Achetez où vous voulez, nous réceptionnons,
-                groupons et expédions vers votre destination.
-              </p>
-              <ul className="mt-5 space-y-2 text-sm text-foreground">
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> 6 adresses internationales offertes</li>
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Groupage automatique pour économiser</li>
-                <li className="flex items-start gap-2"><span className="text-muted-foreground">→</span> Suivi temps réel par colis</li>
-              </ul>
-              <Link
-                to="/auth"
-                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Créer mon compte <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 3.bis B2B Trust Bar ───── */}
-      <section className="border-t border-border bg-foreground text-background">
-        <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
-          <div className="grid md:grid-cols-[1.4fr_1fr] gap-10 md:gap-16 items-center">
-            <div className="text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/10 text-xs font-medium text-background/80 mb-5">
-                <Building2 className="w-3.5 h-3.5" /> Pour entreprises & importateurs réguliers
-              </div>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05] text-balance">
-                Yobbanté gère vos imports complexes, en volume.
-              </h2>
-              <p className="text-base md:text-lg text-background/70 mt-5 max-w-xl mx-auto md:mx-0 text-pretty">
-                Conteneurs, dédouanement, sourcing usine, contrats récurrents — un opérateur dédié, un devis sous 24h.
-              </p>
-              <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:justify-center md:justify-start">
-                <button
-                  onClick={() => goDossier()}
-                  className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-background text-foreground px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
-                >
-                  Demander un devis entreprise <ArrowRight className="w-4 h-4" />
-                </button>
-                <a
-                  href="mailto:contact@yobbante.com?subject=Demande%20commerciale%20entreprise"
-                  className="inline-flex items-center justify-center gap-2 text-sm font-semibold border border-background/30 text-background px-6 py-3.5 rounded-xl hover:bg-background/10 transition-colors"
-                >
-                  Parler à un commercial
-                </a>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: ShieldCheck, label: 'Dédouanement géré', sub: '6 hubs, 150+ pays' },
-                { icon: Headset, label: 'Interlocuteur dédié', sub: 'Réponse 24h ouvrées' },
-                { icon: FileCheck2, label: 'Contrats récurrents', sub: 'Tarifs négociés' },
-                { icon: Building2, label: 'B2B & grossistes', sub: 'Conteneurs FCL/LCL' },
-              ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="bg-background/5 border border-background/10 rounded-xl p-4">
-                  <Icon className="w-5 h-5 text-background/80" />
-                  <p className="text-sm font-semibold text-background mt-3">{label}</p>
-                  <p className="text-xs text-background/60 mt-1">{sub}</p>
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
+                  <ShoppingCart className="w-4.5 h-4.5" />
                 </div>
-              ))}
+                <h3 className="text-lg font-bold tracking-tight">Pour acheter</h3>
+              </div>
+              <ol className="space-y-5">
+                {BUY_STEPS.map((s, i) => (
+                  <motion.li
+                    key={s.n}
+                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
+                    className="flex gap-4"
+                  >
+                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
+                    </div>
+                  </motion.li>
+                ))}
+              </ol>
+              <button
+                onClick={goBuy}
+                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
+              >
+                Décrire un produit <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ───── 4. 7 Services ───── */}
-      <section id="services" className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+      {/* ───── WHY YOBBANTÉ ───── */}
+      <section className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
           <div className="grid md:grid-cols-[1fr_2fr] gap-12">
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Services</p>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05]">7 maillons,<br />une chaîne.</h2>
-              <Link
-                to="/services"
-                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Tous les détails <ArrowRight className="w-4 h-4" />
-              </Link>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Pourquoi Yobbanté</p>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05]">
+                Une seule promesse :<br /> ça marche.
+              </h2>
             </div>
-            <div>
-              {SERVICES.map((s, i) => (
+            <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+              {REASONS.map(({ Icon, title, desc }, i) => (
                 <motion.div
-                  key={s.num}
+                  key={title}
                   variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                  className="grid grid-cols-[40px_1fr] gap-6 py-5 border-t border-border first:border-t-0"
+                  className="bg-background p-6"
                 >
-                  <span className="text-xs font-mono text-muted-foreground pt-1">{s.num}</span>
-                  <div>
-                    <h3 className="text-base font-semibold text-foreground">{s.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
-                  </div>
+                  <Icon className="w-5 h-5 text-foreground" />
+                  <p className="text-sm font-semibold text-foreground mt-4">{title}</p>
+                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -294,176 +216,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ───── 5. Warehouses ───── */}
-      <section id="warehouses" className="bg-secondary border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <motion.h2 variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0}
-            className="text-3xl md:text-5xl font-bold tracking-tight text-balance text-center md:text-left">
-            6 entrepôts. Une logistique mondiale.
-          </motion.h2>
-          <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={1}
-            className="text-base text-muted-foreground mt-4 max-w-lg mx-auto md:mx-0 text-pretty text-center md:text-left">
-            Une adresse dédiée gratuite dans chaque pays. Commandez où vous voulez, nous réceptionnons.
-          </motion.p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-12">
-            {WAREHOUSES.map((w, i) => (
-              <motion.div
-                key={w.country}
-                variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                className="bg-card rounded-xl p-5 hover:shadow-md transition-shadow"
-              >
-                <span className="text-3xl">{w.flag}</span>
-                <p className="text-sm font-semibold text-foreground mt-3">{w.country}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{w.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 6. How Addresses Work ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <div className="grid md:grid-cols-2 gap-12 md:gap-20 items-start">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Comment ça marche</p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-10">
-                Vos adresses internationales.
-              </h2>
-              <div className="space-y-6">
-                {ADDRESS_STEPS.map((step, i) => (
-                  <motion.div key={i}
-                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                    className="flex gap-4"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {i + 1}
-                    </span>
-                    <p className="text-sm text-foreground leading-relaxed pt-1">{step}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={2}
-              className="hidden md:block"
-            >
-              <div className="bg-secondary rounded-2xl p-6">
-                <p className="text-xs text-muted-foreground mb-4 font-medium">Exemple d'adresse</p>
-                <div className="bg-card rounded-xl p-5 border border-border">
-                  <p className="text-xs text-muted-foreground">Destinataire</p>
-                  <p className="text-sm font-semibold text-foreground mt-0.5">Yobbanté — Amadou Diallo</p>
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground">Adresse</p>
-                    <p className="text-sm text-foreground mt-0.5">12 Rue du Commerce</p>
-                    <p className="text-sm text-foreground">75015 Paris, France</p>
-                  </div>
-                  <div className="mt-3 bg-secondary rounded-lg px-3 py-2">
-                    <p className="text-xs text-muted-foreground">Code identifiant</p>
-                    <p className="text-sm font-mono font-bold text-foreground mt-0.5">YBT-FR-7842</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 7. Smart Import — full bleed ───── */}
-      <section className="bg-secondary border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card text-xs font-medium text-muted-foreground mb-5">
-              <Sparkles className="w-3.5 h-3.5" /> Smart Import Assistant
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05]">
-              Estimez votre import.<br />En direct.
-            </h2>
-            <p className="text-base text-muted-foreground mt-4 max-w-lg mx-auto">
-              Décrivez votre produit. Notre IA propose 3 routes — express, équilibrée, économique — avec coût et délai.
-            </p>
-          </div>
-          <SmartImportInline onConfideDossier={openDossierWithPreset} />
-          <div className="mt-6 text-center">
-            <Link to="/simulateur" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Ouvrir le simulateur en plein écran →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 8. Numbers — Dark inversion ───── */}
-      <section className="bg-foreground py-16 md:py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      {/* ───── TRUST ───── */}
+      <section className="border-t border-border bg-foreground text-background">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
             {METRICS.map((m, i) => (
-              <motion.div key={m.label}
+              <motion.div
+                key={m.label}
                 variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                className="text-center"
+                className="text-center md:text-left"
               >
-                <p className="text-4xl md:text-6xl font-bold text-background tracking-tight">{m.value}</p>
-                <p className="text-sm text-background/60 mt-2">{m.label}</p>
+                <p className="text-3xl md:text-5xl font-bold tracking-tight">{m.value}</p>
+                <p className="text-xs md:text-sm text-background/60 mt-1.5">{m.label}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ───── 9. Konnekt Bridge ───── */}
+      {/* ───── FINAL CTA ───── */}
       <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <div className="rounded-2xl border border-border p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-5 md:gap-8">
-            <div className="flex-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Petit colis ?</p>
-              <h3 className="text-xl md:text-2xl font-bold text-foreground mt-2">
-                Moins de 30 kg ? Utilisez Konnekt.
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-                Notre app sœur Konnekt est optimisée pour les petits envois individuels.
-                Yobbanté reste votre choix pour les imports complets et le B2B.
-              </p>
-            </div>
-            <a
-              href="https://konnekt.app"
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-semibold border border-border text-foreground px-5 py-3 rounded-xl hover:bg-secondary transition-colors"
-            >
-              Découvrir Konnekt <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 10. Final CTA ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-3xl mx-auto px-6 py-24 md:py-32 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-            Prêt à importer<br />sans stress ?
+        <div className="max-w-4xl mx-auto px-5 sm:px-6 py-20 md:py-28 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-balance">
+            Prêt à simplifier votre prochain envoi ?
           </h2>
-          <p className="text-base text-muted-foreground mt-4 max-w-md mx-auto">
-            Confiez votre dossier en 3 minutes ou créez un compte gratuit pour vos adresses internationales.
+          <p className="text-base text-muted-foreground mt-4 max-w-md mx-auto text-pretty">
+            Choisissez votre besoin, on s'occupe du reste.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => goDossier()}
-              className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 transition-opacity"
+              onClick={goShip}
+              className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 hover:-translate-y-0.5 transition-all"
             >
-              <FolderPlus className="w-4 h-4" /> Confier mon dossier
+              <Package className="w-4 h-4" /> Expédier un colis
             </button>
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center text-sm font-semibold border border-border text-foreground px-6 py-3.5 rounded-xl hover:bg-secondary transition-colors"
+            <button
+              onClick={goBuy}
+              className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 border-foreground text-foreground px-6 py-3.5 rounded-xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
             >
-              Créer un compte gratuit
-            </Link>
+              <ShoppingCart className="w-4 h-4" /> Acheter un produit
+            </button>
           </div>
+          <p className="mt-6 text-xs text-muted-foreground">
+            Vous êtes une entreprise ? <Link to="/entreprises" className="underline-offset-2 hover:underline">Demandez un devis volume</Link>.
+          </p>
         </div>
       </section>
 
-      {/* ───── Footer ───── */}
       <PublicFooter />
-
-      <SmartImportDialog open={smartOpen} onOpenChange={setSmartOpen} onConfideDossier={openDossierWithPreset} />
-      <DossierWizard open={localWizardOpen} onOpenChange={setLocalWizardOpen} />
     </div>
   );
 }

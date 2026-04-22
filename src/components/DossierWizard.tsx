@@ -19,6 +19,8 @@ import { estimateTransport, type Transport as TransportMode } from '@/lib/pricin
 interface DossierWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When provided, skip the intent split screen and start directly on step 1 of that flow. */
+  presetIntent?: 'ship' | 'buy';
 }
 
 type Intent = 'ship' | 'buy';
@@ -65,7 +67,7 @@ const URGENCIES: { id: Urgency; label: string; desc: string; Icon: typeof Clock 
 
 const intentLabel = (i: Intent | null) => i === 'ship' ? 'Expédier un colis' : i === 'buy' ? 'Acheter un produit' : '';
 
-export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
+export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizardProps) {
   const { createDossier } = useDossiers();
   const navigate = useNavigate();
 
@@ -105,8 +107,8 @@ export function DossierWizard({ open, onOpenChange }: DossierWizardProps) {
   // Reset on open
   useEffect(() => {
     if (open) {
-      setStep(0);
-      setIntent(null);
+      setStep(presetIntent ? 1 : 0);
+      setIntent(presetIntent ?? null);
       setReference(null);
       setOrigin(null);
       setDestination('SN');
