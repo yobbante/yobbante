@@ -1,29 +1,141 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, createContext, useContext, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
 
 /* =========================================================================
-   Continuous-flow primitives — Apple-grade, LIGHT theme aligned with landing.
-   bg-background (white) / text-foreground / border-border + yellow accent.
+   Continuous-flow primitives — Apple-grade.
+   Two themes: 'light' (white, like landing) | 'dark' (zinc-950 / yellow).
    ========================================================================= */
 
-export function FlowShell({ children }: { children: ReactNode }) {
+type FlowTheme = 'light' | 'dark';
+const ThemeCtx = createContext<FlowTheme>('light');
+const useFlowTheme = () => useContext(ThemeCtx);
+
+/** Theme-aware token strings. */
+const T = {
+  light: {
+    shell: 'bg-background text-foreground',
+    muted: 'text-muted-foreground',
+    border: 'border-border',
+    card: 'bg-card',
+    cardActive: 'border-foreground bg-foreground/[0.03]',
+    cardIdle: 'border-border bg-card hover:border-foreground/40 hover:-translate-y-0.5',
+    accent: 'text-foreground',
+    inputBg: 'bg-card',
+    inputPlaceholder: 'placeholder:text-muted-foreground/60',
+    skeleton: 'border-border bg-secondary/40',
+    summaryBar: 'border-border bg-background/95 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.08)]',
+    cta: 'bg-foreground text-background hover:bg-foreground/90',
+    badgeBg: 'bg-secondary',
+    info: 'border-border bg-secondary/50 text-muted-foreground',
+    strong: 'text-foreground',
+    iconBg: 'bg-foreground text-background',
+    iconBgIdle: 'bg-secondary text-muted-foreground',
+    sliderAccent: 'accent-foreground',
+    toggleOn: 'bg-foreground',
+    toggleOff: 'bg-border',
+    toggleHandle: 'bg-background',
+    eyebrow: 'text-muted-foreground',
+  },
+  dark: {
+    shell: 'bg-zinc-950 text-white',
+    muted: 'text-white/55',
+    border: 'border-white/10',
+    card: 'bg-white/[0.02]',
+    cardActive: 'border-yellow-400 bg-yellow-400/10 shadow-[0_0_0_1px_rgba(250,204,21,0.6)]',
+    cardIdle: 'border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]',
+    accent: 'text-yellow-400',
+    inputBg: 'bg-white/[0.03]',
+    inputPlaceholder: 'placeholder:text-white/30',
+    skeleton: 'border-white/10 bg-white/[0.02]',
+    summaryBar: 'border-white/10 bg-zinc-950/95',
+    cta: 'bg-yellow-400 text-zinc-950 hover:bg-yellow-300',
+    badgeBg: 'bg-yellow-400/15',
+    info: 'border-white/10 bg-white/[0.03] text-white/70',
+    strong: 'text-white',
+    iconBg: 'bg-yellow-400 text-zinc-950',
+    iconBgIdle: 'bg-white/10 text-white/70',
+    sliderAccent: 'accent-yellow-400',
+    toggleOn: 'bg-yellow-400',
+    toggleOff: 'bg-white/15',
+    toggleHandle: 'bg-white',
+    eyebrow: 'text-yellow-400/80',
+  },
+} as const;
+
+export function FlowShell({
+  children,
+  theme = 'light',
+  compactHeader,
+}: {
+  children: ReactNode;
+  theme?: FlowTheme;
+  /** Optional compact header rendered above the flow (e.g. selected mode pill + swap button). */
+  compactHeader?: ReactNode;
+}) {
+  const t = T[theme];
+  const navHidden = !!compactHeader;
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <PublicNav hideActions />
-      <main className="mx-auto w-full max-w-3xl px-5 sm:px-8 pb-40">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-6"
+    <ThemeCtx.Provider value={theme}>
+      <div className={cn('min-h-screen', t.shell)}>
+        {!navHidden && <PublicNav hideActions />}
+        <main className="mx-auto w-full max-w-3xl px-5 sm:px-8 pb-40">
+          {compactHeader ? (
+            compactHeader
+          ) : (
+            <Link
+              to="/"
+              className={cn('inline-flex items-center gap-1.5 text-xs hover:opacity-100 transition-opacity mt-6', t.muted)}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Retour
+            </Link>
+          )}
+          {children}
+        </main>
+      </div>
+    </ThemeCtx.Provider>
+  );
+}
+
+/** Compact header used when flow is fused into selection page. */
+export function FlowCompactHeader({
+  eyebrow, title, onSwap, swapLabel, theme = 'light',
+}: {
+  eyebrow: string;
+  title: string;
+  onSwap: () => void;
+  swapLabel: string;
+  theme?: FlowTheme;
+}) {
+  const t = T[theme];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+      className={cn('sticky top-0 z-40 -mx-5 sm:-mx-8 px-5 sm:px-8 py-4 backdrop-blur-md border-b',
+        theme === 'dark' ? 'bg-zinc-950/85 border-white/10' : 'bg-background/85 border-border'
+      )}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>{eyebrow}</p>
+          <h1 className="mt-0.5 text-base sm:text-lg font-bold tracking-tight truncate">{title}</h1>
+        </div>
+        <button
+          onClick={onSwap}
+          className={cn(
+            'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all shrink-0',
+            theme === 'dark'
+              ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+              : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+          )}
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Retour
-        </Link>
-        {children}
-      </main>
-    </div>
+          <RefreshCw className="w-3 h-3" /> {swapLabel}
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -32,30 +144,32 @@ export function FlowHero({
 }: {
   eyebrow: string; title: string; subtitle: string; info?: ReactNode;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <section className="pt-8 sm:pt-12 pb-6">
       <motion.p
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-        className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-medium"
+        className={cn('text-[11px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}
       >
         {eyebrow}
       </motion.p>
       <motion.h1
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}
-        className="mt-3 text-3xl sm:text-5xl font-bold tracking-tight leading-[1.05] text-balance text-foreground"
+        className="mt-3 text-3xl sm:text-5xl font-bold tracking-tight leading-[1.05] text-balance"
       >
         {title}
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }}
-        className="mt-4 text-base sm:text-lg text-muted-foreground max-w-xl text-pretty leading-relaxed"
+        className={cn('mt-4 text-base sm:text-lg max-w-xl text-pretty leading-relaxed', t.muted)}
       >
         {subtitle}
       </motion.p>
       {info && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.25 }}
-          className="mt-6 rounded-xl border border-border bg-secondary/50 px-4 py-3 text-xs text-muted-foreground leading-relaxed"
+          className={cn('mt-6 rounded-xl border px-4 py-3 text-xs leading-relaxed', t.info)}
         >
           {info}
         </motion.div>
@@ -64,10 +178,6 @@ export function FlowHero({
   );
 }
 
-/**
- * Progressive disclosure block. Renders only when `revealed` is true.
- * Auto-scrolls into view the first time it's revealed → continuous flow.
- */
 export function FlowSection({
   revealed, label, title, hint, children,
 }: {
@@ -77,13 +187,14 @@ export function FlowSection({
   hint?: string;
   children: ReactNode;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   const ref = useRef<HTMLElement>(null);
   const scrolled = useRef(false);
 
   useEffect(() => {
     if (revealed && !scrolled.current && ref.current) {
       scrolled.current = true;
-      // Small delay so animation has time to mount
       setTimeout(() => {
         ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 250);
@@ -99,15 +210,15 @@ export function FlowSection({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="py-10 border-t border-border first:border-t-0 scroll-mt-20"
+          className={cn('py-10 border-t first:border-t-0 scroll-mt-24', t.border)}
         >
           {label && (
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium mb-2">
+            <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium mb-2', t.muted)}>
               {label}
             </p>
           )}
-          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
-          {hint && <p className="mt-2 text-sm text-muted-foreground">{hint}</p>}
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">{title}</h2>
+          {hint && <p className={cn('mt-2 text-sm', t.muted)}>{hint}</p>}
           <div className="mt-6">{children}</div>
         </motion.section>
       )}
@@ -117,12 +228,14 @@ export function FlowSection({
 
 /* ─────────── Inputs / selectors ─────────── */
 
-interface ChipGroupProps<T extends string> {
-  options: { id: T; label: string; desc?: string; icon?: ReactNode }[];
-  value: T | null;
-  onChange: (v: T) => void;
+interface ChipGroupProps<T2 extends string> {
+  options: { id: T2; label: string; desc?: string; icon?: ReactNode }[];
+  value: T2 | null;
+  onChange: (v: T2) => void;
 }
-export function ChipGroup<T extends string>({ options, value, onChange }: ChipGroupProps<T>) {
+export function ChipGroup<T2 extends string>({ options, value, onChange }: ChipGroupProps<T2>) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <div className="grid sm:grid-cols-3 gap-2.5">
       {options.map(o => {
@@ -133,17 +246,15 @@ export function ChipGroup<T extends string>({ options, value, onChange }: ChipGr
             onClick={() => onChange(o.id)}
             className={cn(
               'group relative text-left rounded-xl border-2 px-4 py-3.5 transition-all',
-              active
-                ? 'border-foreground bg-foreground/[0.03]'
-                : 'border-border bg-card hover:border-foreground/40 hover:-translate-y-0.5'
+              active ? t.cardActive : t.cardIdle
             )}
           >
             <div className="flex items-center gap-2">
-              {o.icon && <span className={cn('text-muted-foreground', active && 'text-foreground')}>{o.icon}</span>}
-              <span className="text-sm font-semibold text-foreground">{o.label}</span>
-              {active && <Check className="w-3.5 h-3.5 text-foreground ml-auto" strokeWidth={3} />}
+              {o.icon && <span className={cn(t.muted, active && t.accent)}>{o.icon}</span>}
+              <span className="text-sm font-semibold">{o.label}</span>
+              {active && <Check className={cn('w-3.5 h-3.5 ml-auto', t.accent)} strokeWidth={3} />}
             </div>
-            {o.desc && <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{o.desc}</p>}
+            {o.desc && <p className={cn('mt-1 text-xs leading-relaxed', t.muted)}>{o.desc}</p>}
           </button>
         );
       })}
@@ -158,6 +269,8 @@ export function CountryGrid({
   value: string | null;
   onChange: (v: string) => void;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
       {countries.map(c => {
@@ -168,13 +281,11 @@ export function CountryGrid({
             onClick={() => onChange(c.id)}
             className={cn(
               'rounded-xl border-2 py-3 text-center transition-all',
-              active
-                ? 'border-foreground bg-foreground/[0.03]'
-                : 'border-border bg-card hover:border-foreground/40 hover:-translate-y-0.5'
+              active ? t.cardActive : t.cardIdle
             )}
           >
             <div className="text-2xl leading-none">{c.flag}</div>
-            <div className="mt-1.5 text-[11px] font-medium text-foreground/80">{c.label}</div>
+            <div className="mt-1.5 text-[11px] font-medium opacity-80">{c.label}</div>
           </button>
         );
       })}
@@ -193,23 +304,26 @@ export function TextField({
   icon?: ReactNode;
   suffix?: ReactNode;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <label className="block">
-      {label && <span className="block text-xs text-muted-foreground mb-1.5 font-medium">{label}</span>}
+      {label && <span className={cn('block text-xs mb-1.5 font-medium', t.muted)}>{label}</span>}
       <div className="relative">
-        {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>}
+        {icon && <span className={cn('absolute left-3.5 top-1/2 -translate-y-1/2', t.muted)}>{icon}</span>}
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            'w-full bg-card border-2 border-border rounded-xl px-4 py-3.5 text-base text-foreground placeholder:text-muted-foreground/60',
-            'focus:outline-none focus:border-foreground transition-all',
+            'w-full border-2 rounded-xl px-4 py-3.5 text-base focus:outline-none transition-all',
+            t.inputBg, t.border, t.inputPlaceholder,
+            theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground',
             icon && 'pl-10', suffix && 'pr-14'
           )}
         />
-        {suffix && <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{suffix}</span>}
+        {suffix && <span className={cn('absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium', t.muted)}>{suffix}</span>}
       </div>
     </label>
   );
@@ -221,20 +335,22 @@ export function NumberSlider({
   label: string; value: number; onChange: (v: number) => void;
   min: number; max: number; step?: number; unit?: string;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
-        <span className="text-base font-bold tabular-nums text-foreground">
-          {value}{unit && <span className="text-muted-foreground ml-1 font-normal">{unit}</span>}
+        <span className={cn('text-xs font-medium', t.muted)}>{label}</span>
+        <span className="text-base font-bold tabular-nums">
+          {value}{unit && <span className={cn('ml-1 font-normal', t.muted)}>{unit}</span>}
         </span>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full mt-3 accent-foreground"
+        className={cn('w-full mt-3', t.sliderAccent)}
       />
-      <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+      <div className={cn('flex justify-between text-[10px] mt-1', t.muted)}>
         <span>{min}{unit}</span><span>{max}{unit}</span>
       </div>
     </div>
@@ -244,31 +360,23 @@ export function NumberSlider({
 export function ToggleRow({
   label, desc, value, onChange,
 }: { label: string; desc?: string; value: boolean; onChange: (v: boolean) => void }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <button
       type="button"
       onClick={() => onChange(!value)}
       className={cn(
         'w-full flex items-center justify-between gap-4 rounded-xl border-2 px-4 py-3.5 text-left transition-all',
-        value ? 'border-foreground bg-foreground/[0.03]' : 'border-border bg-card hover:border-foreground/40'
+        value ? t.cardActive : t.cardIdle
       )}
     >
       <div>
-        <p className="text-sm font-semibold text-foreground">{label}</p>
-        {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
+        <p className="text-sm font-semibold">{label}</p>
+        {desc && <p className={cn('mt-0.5 text-xs', t.muted)}>{desc}</p>}
       </div>
-      <span
-        className={cn(
-          'relative w-10 h-6 rounded-full transition-colors shrink-0',
-          value ? 'bg-foreground' : 'bg-border'
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-background transition-transform shadow-sm',
-            value && 'translate-x-4'
-          )}
-        />
+      <span className={cn('relative w-10 h-6 rounded-full transition-colors shrink-0', value ? t.toggleOn : t.toggleOff)}>
+        <span className={cn('absolute top-0.5 left-0.5 w-5 h-5 rounded-full transition-transform shadow-sm', t.toggleHandle, value && 'translate-x-4')} />
       </span>
     </button>
   );
@@ -290,36 +398,33 @@ export function MatchOptionCard({
 }: {
   opt: MatchOptionView; active: boolean; onClick: () => void; icon: ReactNode;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <button
       onClick={onClick}
       className={cn(
         'group relative text-left rounded-2xl border-2 p-5 transition-all',
-        active
-          ? 'border-foreground bg-foreground/[0.03]'
-          : 'border-border bg-card hover:border-foreground/40 hover:-translate-y-0.5'
+        active ? t.cardActive : t.cardIdle
       )}
     >
       <div className="flex items-center justify-between">
-        <div className={cn(
-          'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
-          active ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground'
-        )}>
+        <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center transition-colors', active ? t.iconBg : t.iconBgIdle)}>
           {icon}
         </div>
         {opt.highlight && (
-          <span className="text-[10px] uppercase tracking-wider text-foreground font-bold bg-secondary px-2 py-1 rounded-md">
+          <span className={cn('text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md', t.badgeBg, t.accent)}>
             {opt.highlight}
           </span>
         )}
       </div>
-      <p className="mt-4 text-base font-bold text-foreground">{opt.label}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{opt.eta_days}</p>
-      <p className="mt-3 text-2xl font-bold tabular-nums text-foreground">
-        {opt.price_eur.toLocaleString('fr-FR')} <span className="text-sm text-muted-foreground font-medium">€</span>
+      <p className="mt-4 text-base font-bold">{opt.label}</p>
+      <p className={cn('mt-1 text-xs', t.muted)}>{opt.eta_days}</p>
+      <p className="mt-3 text-2xl font-bold tabular-nums">
+        {opt.price_eur.toLocaleString('fr-FR')} <span className={cn('text-sm font-medium', t.muted)}>€</span>
       </p>
       {opt.departure_date && (
-        <p className="mt-1 text-[11px] text-muted-foreground">Départ {new Date(opt.departure_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
+        <p className={cn('mt-1 text-[11px]', t.muted)}>Départ {new Date(opt.departure_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
       )}
     </button>
   );
@@ -337,6 +442,8 @@ export function LiveSummaryBar({
   submitting: boolean;
   sideContent?: ReactNode;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <AnimatePresence>
       {visible && (
@@ -345,18 +452,21 @@ export function LiveSummaryBar({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.08)]"
+          className={cn('fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg', t.summaryBar)}
         >
           <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Récapitulatif</p>
-              <p className="mt-1 text-sm font-semibold truncate text-foreground">{summary}</p>
-              {sideContent && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sideContent}</p>}
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>Récapitulatif</p>
+              <p className="mt-1 text-sm font-semibold truncate">{summary}</p>
+              {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
             </div>
             <button
               onClick={onSubmit}
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-xl px-6 py-3.5 text-sm hover:bg-foreground/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className={cn(
+                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed',
+                t.cta
+              )}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {ctaLabel}
@@ -376,24 +486,26 @@ export function FlowSuccess({
   reference: string; title: string; subtitle: string;
   ctaHref: string; ctaLabel: string;
 }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
       className="py-16 sm:py-24 text-center"
     >
-      <div className="inline-flex w-16 h-16 rounded-2xl bg-foreground text-background items-center justify-center">
+      <div className={cn('inline-flex w-16 h-16 rounded-2xl items-center justify-center', t.iconBg)}>
         <Check className="w-8 h-8" strokeWidth={3} />
       </div>
-      <h2 className="mt-6 text-3xl sm:text-4xl font-bold tracking-tight text-foreground">{title}</h2>
-      <p className="mt-3 text-base text-muted-foreground max-w-md mx-auto">{subtitle}</p>
-      <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2.5">
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Réf.</span>
-        <span className="text-sm font-mono font-semibold text-foreground">{reference}</span>
+      <h2 className="mt-6 text-3xl sm:text-4xl font-bold tracking-tight">{title}</h2>
+      <p className={cn('mt-3 text-base max-w-md mx-auto', t.muted)}>{subtitle}</p>
+      <div className={cn('mt-6 inline-flex items-center gap-2 rounded-xl border px-4 py-2.5', t.border, t.card)}>
+        <span className={cn('text-[11px] uppercase tracking-wider', t.muted)}>Réf.</span>
+        <span className="text-sm font-mono font-semibold">{reference}</span>
       </div>
       <div className="mt-8">
         <Link
           to={ctaHref}
-          className="inline-flex items-center gap-2 bg-foreground text-background font-bold rounded-xl px-6 py-3.5 text-sm hover:bg-foreground/90 transition-all"
+          className={cn('inline-flex items-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm transition-all', t.cta)}
         >
           {ctaLabel}
         </Link>
