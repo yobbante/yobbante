@@ -155,8 +155,8 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             </p>
             <p className="text-xs text-muted-foreground">Expédiez maintenant pour éviter les frais de stockage.</p>
           </div>
-          <Button size="sm" onClick={() => openShip(idlePackages[0].warehouse_country)}>
-            Expédier
+          <Button size="sm" onClick={() => setIdleOpen(true)}>
+            Expédier en 1 clic
           </Button>
         </motion.div>
       )}
@@ -245,6 +245,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
       </section>
 
       <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} presetCountry={presetCountry} />
+      <IdleShipDialog open={idleOpen} onOpenChange={setIdleOpen} idlePackages={idlePackages} />
       <SmartImportDialog
         open={smartOpen}
         onOpenChange={setSmartOpen}
