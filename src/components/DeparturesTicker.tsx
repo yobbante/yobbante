@@ -119,20 +119,10 @@ function SourceBadge({
 
 export function DeparturesTicker() {
   const navigate = useNavigate();
-  const { data, isLoading } = useQuery({
-    queryKey: ['public-departures'],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('list-departures');
-      if (error) throw error;
-      return data as DeparturesResponse;
-    },
-    staleTime: 10 * 60 * 1000,
-    refetchInterval: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { data, isLoading } = useDepartures();
 
   const departures = useMemo(
-    () => dedupClient(data?.departures || []),
+    () => dedupClient((data?.departures || []) as Departure[]),
     [data?.departures],
   );
 
@@ -170,7 +160,12 @@ export function DeparturesTicker() {
         <span className="shrink-0 ml-4 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary">
           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           Prochains départs
-          <SourceBadge source={source} />
+          <SourceBadge
+            source={source}
+            authed={Boolean(data?.partner_authenticated)}
+            lkgUpdatedAt={data?.lkg_updated_at ?? null}
+            generatedAt={data?.generated_at ?? null}
+          />
         </span>
 
         <div className="flex-1 overflow-hidden">
