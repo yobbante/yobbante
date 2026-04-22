@@ -73,11 +73,35 @@ export function FlowShell({
 }: {
   children: ReactNode;
   theme?: FlowTheme;
-  /** Optional compact header rendered above the flow (e.g. selected mode pill + swap button). */
   compactHeader?: ReactNode;
 }) {
   const t = T[theme];
   const navHidden = !!compactHeader;
+
+  // Persist theme on <html> + <body> so background, scroll-bg, and overscroll
+  // areas all match — no white flash around the dark Recevoir flow.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevColorScheme = html.style.colorScheme;
+    if (theme === 'dark') {
+      html.style.backgroundColor = 'rgb(9 9 11)';   // zinc-950
+      body.style.backgroundColor = 'rgb(9 9 11)';
+      html.style.colorScheme = 'dark';
+    } else {
+      html.style.backgroundColor = 'hsl(var(--background))';
+      body.style.backgroundColor = 'hsl(var(--background))';
+      html.style.colorScheme = 'light';
+    }
+    return () => {
+      html.style.backgroundColor = prevHtmlBg;
+      body.style.backgroundColor = prevBodyBg;
+      html.style.colorScheme = prevColorScheme;
+    };
+  }, [theme]);
+
   return (
     <ThemeCtx.Provider value={theme}>
       <div className={cn('min-h-screen', t.shell)}>
@@ -179,13 +203,16 @@ export function FlowHero({
 }
 
 export function FlowSection({
-  revealed, label, title, hint, children,
+  revealed, label, title, hint, children, step, total,
 }: {
   revealed: boolean;
   label?: string;
   title: string;
   hint?: string;
   children: ReactNode;
+  /** Optional progress: shows "Étape N · Total" pill in the section header. */
+  step?: number;
+  total?: number;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
@@ -201,6 +228,9 @@ export function FlowSection({
     }
   }, [revealed]);
 
+  const showProgress = step != null && total != null;
+  const pct = showProgress ? Math.min(100, Math.round((step! / total!) * 100)) : 0;
+
   return (
     <AnimatePresence initial={false}>
       {revealed && (
@@ -212,6 +242,22 @@ export function FlowSection({
           transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
           className={cn('py-10 border-t first:border-t-0 scroll-mt-24', t.border)}
         >
+          {showProgress && (
+            <div className="flex items-center gap-3 mb-3">
+              <div className={cn('h-0.5 w-10 rounded-full overflow-hidden',
+                theme === 'dark' ? 'bg-white/10' : 'bg-border'
+              )}>
+                <motion.div
+                  initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className={theme === 'dark' ? 'h-full bg-yellow-400' : 'h-full bg-foreground'}
+                />
+              </div>
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium tabular-nums', t.muted)}>
+                Étape {step} <span className="opacity-50">/ {total}</span>
+              </p>
+            </div>
+          )}
           {label && (
             <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium mb-2', t.muted)}>
               {label}
