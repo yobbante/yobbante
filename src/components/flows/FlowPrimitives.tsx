@@ -110,13 +110,12 @@ export function FlowSection({
 
 /* ─────────── Inputs / selectors ─────────── */
 
-export function ChipGroup<T extends string>({
-  options, value, onChange,
-}: {
+interface ChipGroupProps<T extends string> {
   options: { id: T; label: string; desc?: string; icon?: ReactNode }[];
   value: T | null;
   onChange: (v: T) => void;
-}) {
+}
+export function ChipGroup<T extends string>({ options, value, onChange }: ChipGroupProps<T>) {
   return (
     <div className="grid sm:grid-cols-3 gap-2.5">
       {options.map(o => {
