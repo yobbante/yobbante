@@ -162,7 +162,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error('Connectez-vous pour valider'); navigate('/auth'); return; }
+      if (!user) {
+        toast.error('Connectez-vous pour valider');
+        navigate(`/auth?redirect=${encodeURIComponent('/expedier/recevoir')}`);
+        return;
+      }
 
       const productSummary = items.map(it => `• ${it.title} (${it.platform}, ~${it.estimatedWeightKg}kg)`).join('\n');
       const dossier = await createDossier.mutateAsync({
