@@ -57,21 +57,31 @@ export function KonnektMonitorTab() {
   const runTest = async () => {
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('list-departures', {
-        body: undefined,
-        // pass query string via fetch override
-      });
-      // supabase.functions.invoke does not pass query params; do a manual fetch instead:
+      // supabase.functions.invoke() drops query params, so we call the function URL directly
+      // with ?refresh=1 to bypass CDN cache and force a fresh Konnekt fetch.
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const url = `https://${projectId}.supabase.co/functions/v1/list-departures?refresh=1`;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || anonKey;
+
       const res = await fetch(url, {
-        headers: { 'Cache-Control': 'no-cache' },
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'apikey': anonKey,
+          'Authorization': `Bearer ${token}`,
+        },
       });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status} — ${txt.slice(0, 200)}`);
+      }
       const json = (await res.json()) as LiveResponse;
       setLive(json);
       await refetchLogs();
       toast.success(`Retest OK · source=${json.source} · ${json.count} départs`);
-      void data; void error;
     } catch (e) {
       toast.error(`Échec retest : ${(e as Error).message}`);
     } finally {
