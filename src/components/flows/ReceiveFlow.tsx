@@ -175,7 +175,7 @@ export function ReceiveFlow() {
         eyebrow="Expédier · Recevoir"
         title="Recevez votre commande, où qu'elle soit achetée."
         subtitle="Donnez-nous le lien. On réceptionne, regroupe, vérifie et vous livre chez vous."
-        info={<><strong className="text-white">Pour les commandes Amazon, Shein, Alibaba, etc.</strong> Pour du sourcing fournisseur en gros, utilisez plutôt « Lancer un sourcing produit ».</>}
+        info={<><strong className="text-foreground">Pour les commandes Amazon, Shein, Alibaba, etc.</strong> Pour du sourcing fournisseur en gros, utilisez plutôt « Lancer un sourcing produit ».</>}
       />
 
       <FlowSection revealed title="Collez le lien de votre commande" hint="Amazon, Shein, AliExpress, Alibaba… ou décrivez le produit.">
@@ -189,7 +189,7 @@ export function ReceiveFlow() {
             <button
               onClick={runParse}
               disabled={parsing}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:opacity-70 disabled:opacity-50"
             >
               {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Analyser cette description
@@ -198,23 +198,23 @@ export function ReceiveFlow() {
         </div>
 
         {parsing && (
-          <div className="mt-5 flex items-center gap-2 text-sm text-white/55">
+          <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" /> Analyse du produit en cours…
           </div>
         )}
 
         {parsed && (
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 flex gap-4 max-w-xl animate-fade-in">
-            <div className="w-20 h-20 rounded-xl bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="mt-6 rounded-2xl border-2 border-border bg-card p-4 sm:p-5 flex gap-4 max-w-xl animate-fade-in">
+            <div className="w-20 h-20 rounded-xl bg-secondary overflow-hidden shrink-0 flex items-center justify-center">
               {parsed.imageUrl
                 ? <img src={parsed.imageUrl} alt={parsed.title} className="w-full h-full object-cover" />
-                : <Inbox className="w-7 h-7 text-white/30" />}
+                : <Inbox className="w-7 h-7 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-yellow-400/80 font-medium">{parsed.platform}</p>
-              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2">{parsed.title}</p>
-              <div className="mt-2 flex items-center gap-3 text-xs text-white/55">
-                {parsed.estimatedPriceEur > 0 && <span className="font-semibold text-white">{parsed.estimatedPriceEur}€</span>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{parsed.platform}</p>
+              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2 text-foreground">{parsed.title}</p>
+              <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                {parsed.estimatedPriceEur > 0 && <span className="font-semibold text-foreground">{parsed.estimatedPriceEur}€</span>}
                 <span>~{parsed.estimatedWeightKg} kg</span>
               </div>
             </div>
@@ -226,16 +226,16 @@ export function ReceiveFlow() {
         <CountryGrid countries={HUBS} value={hub} onChange={setHub} />
 
         {hubAddress && (
-          <div className="mt-5 rounded-2xl border border-yellow-400/30 bg-yellow-400/5 p-5 max-w-xl animate-fade-in">
-            <p className="text-[10px] uppercase tracking-wider text-yellow-400 font-semibold">Votre adresse {COUNTRY_NAME(hub!)}</p>
-            <p className="mt-2 text-sm text-white whitespace-pre-line leading-relaxed">{hubAddress.address_line}</p>
+          <div className="mt-5 rounded-2xl border-2 border-foreground bg-foreground/[0.03] p-5 max-w-xl animate-fade-in">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Votre adresse {COUNTRY_NAME(hub!)}</p>
+            <p className="mt-2 text-sm text-foreground whitespace-pre-line leading-relaxed">{hubAddress.address_line}</p>
             <div className="mt-3 flex items-center gap-2 text-xs">
-              <span className="text-white/50">Réf:</span>
-              <code className="font-mono font-semibold text-yellow-400">{hubAddress.identifier_code}</code>
+              <span className="text-muted-foreground">Réf:</span>
+              <code className="font-mono font-semibold text-foreground">{hubAddress.identifier_code}</code>
             </div>
             <button
               onClick={copyAddress}
-              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold bg-white text-zinc-950 rounded-lg px-3 py-2 hover:bg-white/90 transition-colors"
+              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold bg-foreground text-background rounded-lg px-3 py-2 hover:opacity-90 transition-opacity"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copié' : 'Copier l\'adresse'}
@@ -268,7 +268,7 @@ export function ReceiveFlow() {
       >
         {matching && (
           <div className="grid sm:grid-cols-3 gap-3">
-            {[1,2,3].map(i => <div key={i} className="h-44 rounded-2xl border border-white/10 bg-white/[0.02] animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-44 rounded-2xl border border-border bg-secondary/40 animate-pulse" />)}
           </div>
         )}
         {!matching && options.length > 0 && (
@@ -284,8 +284,8 @@ export function ReceiveFlow() {
               ))}
             </div>
             {next_departure_in_days != null && (
-              <p className="mt-5 inline-flex items-center gap-2 text-xs text-white/55">
-                <ShieldCheck className="w-3.5 h-3.5 text-yellow-400" />
+              <p className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
                 Prochain départ dans {next_departure_in_days} j · suivi inclus
               </p>
             )}
