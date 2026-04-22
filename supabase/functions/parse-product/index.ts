@@ -2,26 +2,37 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const TOOL = {
   type: "function",
   function: {
     name: "extract_product",
-    description: "Extract product info from a marketplace URL or text description.",
+    description: "Extract structured product info from scraped marketplace page or text description.",
     parameters: {
       type: "object",
       properties: {
         title: { type: "string", description: "Concise product title (max 80 chars)" },
-        platform: { type: "string", description: "Detected platform (Alibaba, Amazon, etc.) or 'unknown'" },
-        estimatedPriceEur: { type: "number", description: "Estimated unit price in EUR (best guess based on category)" },
+        platform: { type: "string", description: "Detected platform (Alibaba, Amazon, Shein, etc.) or 'unknown'" },
+        estimatedPriceEur: { type: "number", description: "Unit price in EUR (use scraped data if available)" },
         estimatedWeightKg: { type: "number", description: "Estimated weight per unit in kg" },
         category: { type: "string", description: "Product category (electronics, textile, food, etc.)" },
-        imageUrl: { type: "string", description: "Likely image URL or empty string" },
+        imageUrl: { type: "string", description: "Best product image URL or empty string" },
         suggestedQuantity: { type: "number", description: "Typical order quantity, default 1" },
+        dimensions: { type: "string", description: "Approx dimensions if available (e.g. '30x20x10 cm') or empty" },
       },
-      required: ["title", "platform", "estimatedPriceEur", "estimatedWeightKg", "category", "imageUrl", "suggestedQuantity"],
+      required: [
+        "title",
+        "platform",
+        "estimatedPriceEur",
+        "estimatedWeightKg",
+        "category",
+        "imageUrl",
+        "suggestedQuantity",
+        "dimensions",
+      ],
       additionalProperties: false,
     },
   },
@@ -47,7 +58,58 @@ function fallback(input: string) {
     category: "general",
     imageUrl: "",
     suggestedQuantity: 1,
+    dimensions: "",
   };
+}
+
+/**
+ * Scrape une page produit via Firecrawl.
+ * Renvoie markdown + meta + image principale.
+ */
+async function firecrawlScrape(url: string): Promise<{
+  markdown: string;
+  title: string;
+  image: string;
+} | null> {
+  const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!FIRECRAWL_API_KEY) return null;
+
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 15000);
+    const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        waitFor: 1500,
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+
+    if (!r.ok) {
+      console.warn("Firecrawl status:", r.status, await r.text().catch(() => ""));
+      return null;
+    }
+    const data = await r.json();
+    // v2 SDK shape: data.data.markdown / data.data.metadata
+    const payload = data?.data ?? data;
+    const md: string = (payload?.markdown ?? "").slice(0, 8000);
+    const meta = payload?.metadata ?? {};
+    const title: string = meta?.title ?? meta?.ogTitle ?? "";
+    const image: string = meta?.ogImage ?? meta?.image ?? "";
+    if (!md && !title) return null;
+    return { markdown: md, title, image };
+  } catch (e) {
+    console.warn("Firecrawl failed:", e instanceof Error ? e.message : e);
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -69,38 +131,30 @@ serve(async (req) => {
       });
     }
 
-    const isUrl = /^https?:\/\//i.test(input.trim());
-    let scrapedSnippet = "";
+    const trimmed = input.trim();
+    const isUrl = /^https?:\/\//i.test(trimmed);
 
-    // Best-effort fetch to extract title/meta from URL
+    let scrapeContext = "";
+    let prefilledImage = "";
+    let prefilledTitle = "";
+
     if (isUrl) {
-      try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 5000);
-        const r = await fetch(input.trim(), {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; YobbanteBot/1.0)" },
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (r.ok) {
-          const html = (await r.text()).slice(0, 60000);
-          const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ?? "";
-          const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i)?.[1] ?? "";
-          const ogImage = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)/i)?.[1] ?? "";
-          const ogPrice = html.match(/<meta[^>]+(?:property|name)=["'](?:product:price:amount|og:price:amount)["'][^>]+content=["']([^"']+)/i)?.[1] ?? "";
-          scrapedSnippet = `Title: ${ogTitle || title}\nImage: ${ogImage}\nPrice: ${ogPrice}`;
-        }
-      } catch (e) {
-        console.warn("scrape failed:", e instanceof Error ? e.message : e);
+      const scraped = await firecrawlScrape(trimmed);
+      if (scraped) {
+        prefilledImage = scraped.image;
+        prefilledTitle = scraped.title;
+        scrapeContext = `\n\n--- Page scrapée (Firecrawl) ---\nTitre: ${scraped.title}\nImage principale: ${scraped.image}\n\nContenu:\n${scraped.markdown}`;
       }
     }
 
-    const systemPrompt = `Tu es un expert en e-commerce international (Alibaba, Amazon, AliExpress, etc.).
-À partir d'une URL produit ou d'une description, extrais les informations clés.
-Si tu n'as pas de données précises, fais une estimation réaliste basée sur la catégorie.
+    const systemPrompt = `Tu es un expert en e-commerce international (Alibaba, Amazon, AliExpress, Shein, Temu, eBay).
+À partir d'une URL produit (avec contenu scrapé) ou d'une description, extrais les informations structurées.
+- Si le prix est clairement visible dans le scrape, utilise-le. Sinon, estime intelligemment.
+- Pour le poids et les dimensions, base-toi sur la catégorie et le type de produit.
+- Pour l'image, utilise celle fournie par le scrape si disponible.
 Réponds toujours via l'outil extract_product.`;
 
-    const userPrompt = `Input: ${input}${scrapedSnippet ? `\n\nDonnées scrapées:\n${scrapedSnippet}` : ""}`;
+    const userPrompt = `Input utilisateur: ${trimmed}${scrapeContext}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -121,7 +175,10 @@ Réponds toujours via l'outil extract_product.`;
 
     if (!response.ok) {
       console.error("AI error:", response.status, await response.text());
-      return new Response(JSON.stringify(fallback(input)), {
+      const fb = fallback(trimmed);
+      if (prefilledImage) fb.imageUrl = prefilledImage;
+      if (prefilledTitle) fb.title = prefilledTitle;
+      return new Response(JSON.stringify(fb), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -133,8 +190,11 @@ Réponds toujours via l'outil extract_product.`;
       parsed = JSON.parse(args ?? "{}");
       if (!parsed.title) throw new Error("invalid");
     } catch {
-      parsed = fallback(input);
+      parsed = fallback(trimmed);
     }
+
+    // Privilégier les données réelles scrapées si l'IA n'a rien retourné de mieux
+    if (!parsed.imageUrl && prefilledImage) parsed.imageUrl = prefilledImage;
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
