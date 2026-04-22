@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, ShoppingCart } from 'lucide-react';
+import { Menu, X, Package, Factory } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface PublicNavProps {
@@ -44,7 +44,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               }`}
             >
-              <ShoppingCart className="w-3.5 h-3.5" /> Acheter
+              <Factory className="w-3.5 h-3.5" /> Sourcing
             </button>
           </div>
         )}
@@ -95,7 +95,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   onClick={goAcheter}
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
                 >
-                  <ShoppingCart className="w-4 h-4" /> Acheter un produit
+                  <Factory className="w-4 h-4" /> Lancer un sourcing produit
                 </button>
                 <div className="border-t border-border mt-3 pt-3 space-y-1">
                   <Link
