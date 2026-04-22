@@ -139,7 +139,11 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error('Connectez-vous pour valider'); navigate('/auth'); return; }
+      if (!user) {
+        toast.error('Connectez-vous pour valider');
+        navigate(`/auth?redirect=${encodeURIComponent('/acheter')}`);
+        return;
+      }
 
       const dossier = await createDossier.mutateAsync({
         product_description: parsed?.title ?? productInput.trim(),

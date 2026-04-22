@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, Loader2, Copy, Check, Inbox, ShieldCheck, Zap, Clock, Boxes, Sparkles, X, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -111,8 +111,62 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     } finally { setParsing(false); }
   }
 
+  // Refs for keyboard navigation: input → first item → next/prev item.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  function focusItem(index: number) {
+    itemRefs.current[index]?.focus();
+  }
+
   function removeItem(id: string) {
+    const idx = items.findIndex(it => it.id === id);
+    if (idx < 0) return;
+    const removed = items[idx];
     setItems(prev => prev.filter(it => it.id !== id));
+    // Undo snackbar — restore at original position if user changed mind.
+    toast('Produit retiré', {
+      description: removed.title,
+      action: {
+        label: 'Annuler',
+        onClick: () => {
+          setItems(prev => {
+            if (prev.some(it => it.id === removed.id)) return prev;
+            const next = [...prev];
+            next.splice(Math.min(idx, next.length), 0, removed);
+            return next;
+          });
+        },
+      },
+      duration: 5000,
+    });
+  }
+
+  // Input keyboard handler: Enter parses, ArrowDown jumps into the items list.
+  function onInputKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (productInput.trim().length >= 4 && !parsing) runParse();
+    } else if (e.key === 'ArrowDown' && items.length > 0) {
+      e.preventDefault();
+      focusItem(0);
+    }
+  }
+
+  // Item keyboard handler: Arrow keys to move focus, Backspace/Delete removes.
+  function onItemKey(e: KeyboardEvent<HTMLLIElement>, index: number) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (index + 1 < items.length) focusItem(index + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (index > 0) focusItem(index - 1);
+      else inputRef.current?.focus();
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      const id = items[index]?.id;
+      if (id) removeItem(id);
+    }
   }
 
   // Auto-parse when user pastes a URL
@@ -162,7 +216,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error('Connectez-vous pour valider'); navigate('/auth'); return; }
+      if (!user) {
+        toast.error('Connectez-vous pour valider');
+        navigate(`/auth?redirect=${encodeURIComponent('/expedier/recevoir')}`);
+        return;
+      }
 
       const productSummary = items.map(it => `• ${it.title} (${it.platform}, ~${it.estimatedWeightKg}kg)`).join('\n');
       const dossier = await createDossier.mutateAsync({
@@ -227,11 +285,20 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         hint="Amazon, Shein, AliExpress, Alibaba… ou décrivez le produit. Vous pouvez en ajouter plusieurs."
       >
         <div className="space-y-3 max-w-xl">
-          <TextField
-            value={productInput} onChange={setProductInput}
-            placeholder="https://… ou « casque audio sans fil »"
-            icon={<Link2 className="w-4 h-4" />}
-          />
+          <div className="relative">
+            <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/55" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={productInput}
+              onChange={(e) => setProductInput(e.target.value)}
+              onKeyDown={onInputKey}
+              placeholder="https://… ou « casque audio sans fil »  ·  Entrée pour ajouter"
+              aria-label="Lien ou description du produit"
+              autoComplete="off"
+              className="w-full border-2 rounded-xl pl-10 pr-4 py-3.5 text-base focus:outline-none transition-all bg-white/[0.03] border-white/10 placeholder:text-white/30 focus:border-yellow-400/60"
+            />
+          </div>
           {productInput.trim().length >= 4 && !/^https?:\/\//i.test(productInput) && (
             <button
               onClick={() => runParse()}
@@ -242,6 +309,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
               Ajouter ce produit
             </button>
           )}
+          <p className="text-[11px] text-white/40">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-mono">↵</kbd> ajouter ·
+            <kbd className="ml-1.5 px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-mono">↑↓</kbd> naviguer ·
+            <kbd className="ml-1.5 px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-mono">⌫</kbd> supprimer
+          </p>
         </div>
 
         {parsing && (
@@ -257,13 +329,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="mt-6 space-y-2.5 max-w-xl"
             >
-              {items.map((it) => (
+              {items.map((it, idx) => (
                 <motion.li
                   key={it.id}
+                  ref={(el) => { itemRefs.current[idx] = el; }}
                   layout
+                  tabIndex={0}
+                  onKeyDown={(e) => onItemKey(e, idx)}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
-                  className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 transition-colors"
+                  className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 focus:outline-none focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/20 transition-colors"
                 >
                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
                     {it.imageUrl
@@ -281,7 +356,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
                   <button
                     onClick={() => removeItem(it.id)}
                     aria-label="Supprimer ce produit"
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-white/35 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-white/35 hover:text-white hover:bg-white/10 transition-all opacity-60 group-hover:opacity-100 group-focus-within:opacity-100"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

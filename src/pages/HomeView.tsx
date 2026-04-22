@@ -54,36 +54,38 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   return (
-    <div className="space-y-8 pb-28 md:pb-8">
-      {/* Hero greeting + KPI rail */}
+    <div className="space-y-10 pb-28 md:pb-12">
+      {/* Hero greeting — minimal, premium, aligned with new flow aesthetic */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-secondary/40 p-5 md:p-7"
+        className="pt-2"
       >
-        <div className="absolute -top-12 -right-12 w-44 h-44 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Mon espace</p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1.5">{greeting}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Suivi en temps réel de vos colis et expéditions.</p>
+        <p className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground">Mon espace</p>
+        <h2 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
+          {greeting}.
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+          Un seul endroit pour vos envois, réceptions et sourcing.
+        </p>
 
-          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            {[
-              { value: activeDossiers.length, label: 'Dossiers actifs', accent: activeDossiers.length > 0 },
-              { value: waitingPackages.length, label: 'Colis en attente', accent: waitingPackages.length > 0 },
-              { value: activeShipments.length, label: 'Expéditions', accent: activeShipments.length > 0 },
-              { value: addresses.length, label: 'Hubs actifs', accent: false },
-            ].map((kpi) => (
-              <div key={kpi.label} className="rounded-xl bg-background/60 backdrop-blur-sm border border-border p-3">
-                <p className={`text-2xl font-bold tracking-tight ${kpi.accent ? 'text-primary' : 'text-foreground'}`}>{kpi.value}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{kpi.label}</p>
-              </div>
-            ))}
-          </div>
+        {/* KPI rail — flat, no gradients */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          {[
+            { value: activeDossiers.length, label: 'Dossiers actifs' },
+            { value: waitingPackages.length, label: 'Colis en attente' },
+            { value: activeShipments.length, label: 'Expéditions' },
+            { value: addresses.length, label: 'Hubs actifs' },
+          ].map((kpi) => (
+            <div key={kpi.label} className="rounded-xl border border-border bg-card p-3">
+              <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">{kpi.value}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{kpi.label}</p>
+            </div>
+          ))}
         </div>
       </motion.section>
 
-      {/* Action Bar — primary CTAs */}
+      {/* Action Bar — 2-CTA model + minimal trio, mirrors public landing */}
       <ActionBar
         onDossier={openDossier}
         onEstimate={() => setSmartOpen(true)}

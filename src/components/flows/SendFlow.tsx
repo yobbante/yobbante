@@ -98,7 +98,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error('Connectez-vous pour valider'); navigate('/auth'); return; }
+      if (!user) {
+        toast.error('Connectez-vous pour valider');
+        navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer')}`);
+        return;
+      }
 
       const dossier = await createDossier.mutateAsync({
         product_description: `Expédition ${type} — ${COUNTRY_NAME(origin)} → ${COUNTRY_NAME(destination)}`,

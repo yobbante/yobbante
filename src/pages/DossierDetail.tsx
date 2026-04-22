@@ -35,7 +35,10 @@ export default function DossierDetail() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate('/auth');
+      if (!session) {
+        const here = window.location.pathname + window.location.search;
+        navigate(`/auth?redirect=${encodeURIComponent(here)}`, { replace: true });
+      }
     });
   }, [navigate]);
 
