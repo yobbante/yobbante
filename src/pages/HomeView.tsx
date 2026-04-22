@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // Realtime streaming lives inside useTimeline now — true subscription, not just cache invalidation.
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
   const { packages, consolidationGroups, idlePackages } = usePackages();
@@ -32,22 +32,9 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
+  const [idleOpen, setIdleOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
 
-  // Real-time stream: any change to packages / shipments / timeline events
-  // triggers an instant cache refresh so the timeline updates live.
-  useEffect(() => {
-    const channel = supabase
-      .channel('home-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_events' },
-        () => queryClient.invalidateQueries({ queryKey: ['timeline'] }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' },
-        () => queryClient.invalidateQueries({ queryKey: ['packages'] }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' },
-        () => queryClient.invalidateQueries({ queryKey: ['shipments'] }))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
