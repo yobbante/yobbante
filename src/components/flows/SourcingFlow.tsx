@@ -193,7 +193,7 @@ export function SourcingFlow() {
         eyebrow="Sourcing · Pour les entreprises et projets"
         title="Trouvez et importez vos produits directement auprès des fournisseurs."
         subtitle="Yobbanté s'occupe du sourcing, de la négociation, du contrôle qualité et de la livraison."
-        info={<><strong className="text-white">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
+        info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
       />
 
       <FlowSection revealed title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
@@ -206,7 +206,7 @@ export function SourcingFlow() {
           {!parsed && productInput.trim().length >= 4 && !/^https?:\/\//i.test(productInput) && (
             <button
               onClick={runParse} disabled={parsing}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:opacity-70 disabled:opacity-50"
             >
               {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               Analyser ce besoin
@@ -215,22 +215,22 @@ export function SourcingFlow() {
         </div>
 
         {parsing && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" /> Analyse en cours…
           </div>
         )}
 
         {parsed && (
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 flex gap-4 max-w-xl animate-fade-in">
-            <div className="w-20 h-20 rounded-xl bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="mt-5 rounded-2xl border-2 border-border bg-card p-4 sm:p-5 flex gap-4 max-w-xl animate-fade-in">
+            <div className="w-20 h-20 rounded-xl bg-secondary overflow-hidden shrink-0 flex items-center justify-center">
               {parsed.imageUrl
                 ? <img src={parsed.imageUrl} alt={parsed.title} className="w-full h-full object-cover" />
-                : <Factory className="w-7 h-7 text-white/30" />}
+                : <Factory className="w-7 h-7 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-wider text-yellow-400/80 font-medium">{parsed.platform}</p>
-              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2">{parsed.title}</p>
-              <div className="mt-2 text-xs text-white/55">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{parsed.platform}</p>
+              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2 text-foreground">{parsed.title}</p>
+              <div className="mt-2 text-xs text-muted-foreground">
                 ~{parsed.estimatedWeightKg} kg / unité
               </div>
             </div>
@@ -248,8 +248,8 @@ export function SourcingFlow() {
           />
         </div>
         {parsed && (
-          <p className="mt-4 text-xs text-white/50">
-            👉 Vous recherchez <span className="text-white font-semibold">{quantity} unités</span> de <span className="text-white font-semibold">{parsed.title.slice(0, 50)}</span>
+          <p className="mt-4 text-xs text-muted-foreground">
+            👉 Vous recherchez <span className="text-foreground font-semibold">{quantity} unités</span> de <span className="text-foreground font-semibold">{parsed.title.slice(0, 50)}</span>
           </p>
         )}
       </FlowSection>
@@ -269,14 +269,14 @@ export function SourcingFlow() {
               key={r.title}
               initial={{ opacity: 0, x: -8 }} whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4 }}
-              className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4"
+              className="flex items-start gap-3 rounded-xl border-2 border-border bg-card p-4"
             >
-              <div className="w-9 h-9 rounded-lg bg-yellow-400/15 text-yellow-400 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-foreground text-background flex items-center justify-center shrink-0">
                 <r.Icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold">{r.title}</p>
-                <p className="mt-0.5 text-xs text-white/55 leading-relaxed">{r.desc}</p>
+                <p className="text-sm font-semibold text-foreground">{r.title}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{r.desc}</p>
               </div>
             </motion.div>
           ))}
@@ -298,7 +298,7 @@ export function SourcingFlow() {
       >
         {matching && (
           <div className="grid sm:grid-cols-3 gap-3">
-            {[1,2,3].map(i => <div key={i} className="h-44 rounded-2xl border border-white/10 bg-white/[0.02] animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-44 rounded-2xl border border-border bg-secondary/40 animate-pulse" />)}
           </div>
         )}
         {!matching && options.length > 0 && (
@@ -312,8 +312,8 @@ export function SourcingFlow() {
               ))}
             </div>
             {next_departure_in_days != null && (
-              <p className="mt-5 inline-flex items-center gap-2 text-xs text-white/55">
-                <ShieldCheck className="w-3.5 h-3.5 text-yellow-400" />
+              <p className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
                 Prochain départ dans {next_departure_in_days} j · contrôle qualité inclus
               </p>
             )}

@@ -184,7 +184,7 @@ export function SendFlow() {
         {matching && (
           <div className="grid sm:grid-cols-3 gap-3">
             {[1,2,3].map(i => (
-              <div key={i} className="h-44 rounded-2xl border border-white/10 bg-white/[0.02] animate-pulse" />
+              <div key={i} className="h-44 rounded-2xl border border-border bg-secondary/40 animate-pulse" />
             ))}
           </div>
         )}
@@ -203,9 +203,9 @@ export function SendFlow() {
             {next_departure_in_days != null && (
               <motion.p
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                className="mt-5 inline-flex items-center gap-2 text-xs text-white/55"
+                className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground"
               >
-                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                <Sparkles className="w-3.5 h-3.5 text-foreground" />
                 Prochain départ dans {next_departure_in_days} jour{next_departure_in_days > 1 ? 's' : ''} ·
                 <ShieldCheck className="w-3.5 h-3.5" /> Suivi & assurance inclus
               </motion.p>
