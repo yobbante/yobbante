@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, Loader2, Copy, Check, Inbox, ShieldCheck, Zap, Clock, Boxes, Sparkles, X, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
