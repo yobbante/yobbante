@@ -36,9 +36,12 @@ export default function Index() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate('/auth');
+      if (!session) {
+        const here = location.pathname + location.search;
+        navigate(`/auth?redirect=${encodeURIComponent(here)}`, { replace: true });
+      }
     });
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, location.search]);
 
   return (
     <div className="min-h-screen bg-background">
