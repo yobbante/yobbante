@@ -148,7 +148,7 @@ export default function EnterprisesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Demander un devis', onClick: goDevis }]} />
+      <PublicNav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

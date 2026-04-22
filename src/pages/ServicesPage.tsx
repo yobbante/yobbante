@@ -120,7 +120,7 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: goDossier }]} />
+      <PublicNav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

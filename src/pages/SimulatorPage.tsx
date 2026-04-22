@@ -13,7 +13,7 @@ export default function SimulatorPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicNav extraItems={[{ label: 'Confier un dossier', onClick: () => goDossier() }]} />
+      <PublicNav />
 
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 pb-8 md:pt-24 md:pb-14 text-center md:text-left">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-5 md:mb-6">
