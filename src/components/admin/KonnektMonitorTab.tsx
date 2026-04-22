@@ -69,7 +69,6 @@ export function KonnektMonitorTab() {
       const res = await fetch(url, {
         method: 'GET',
         headers: {
-          'Cache-Control': 'no-cache',
           'apikey': anonKey,
           'Authorization': `Bearer ${token}`,
         },
@@ -81,7 +80,13 @@ export function KonnektMonitorTab() {
       const json = (await res.json()) as LiveResponse;
       setLive(json);
       await refetchLogs();
-      toast.success(`Retest OK · source=${json.source} · ${json.count} départs`);
+      if (json.source === 'konnekt') {
+        toast.success(`Konnekt OK · ${json.count} départs live`);
+      } else if (json.source === 'cache') {
+        toast.warning(`Konnekt KO → cache LKG (${json.count}). ${json.error_message || ''}`);
+      } else {
+        toast.error(`Konnekt KO → mock. ${json.error_message || 'Aucune donnée'}`);
+      }
     } catch (e) {
       toast.error(`Échec retest : ${(e as Error).message}`);
     } finally {
