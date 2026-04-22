@@ -19,8 +19,14 @@ import { estimateTransport, type Transport as TransportMode } from '@/lib/pricin
 interface DossierWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When provided, skip the intent split screen and start directly on step 1 of that flow. */
-  presetIntent?: 'ship' | 'buy';
+  /**
+   * When provided, skip the intent split screen and start directly on step 1 of that flow.
+   * - 'ship'         → generic ship flow (legacy)
+   * - 'ship-send'    → user is sending a package out
+   * - 'ship-receive' → user is receiving an order from abroad
+   * - 'buy'          → Yobbanté sources & buys for the user
+   */
+  presetIntent?: 'ship' | 'ship-send' | 'ship-receive' | 'buy';
 }
 
 type Intent = 'ship' | 'buy';
@@ -107,14 +113,19 @@ export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizar
   // Reset on open
   useEffect(() => {
     if (open) {
-      setStep(presetIntent ? 1 : 0);
-      setIntent(presetIntent ?? null);
+      // Map sub-intents to internal canonical intent
+      const canonicalIntent: Intent | null = presetIntent
+        ? presetIntent === 'buy' ? 'buy' : 'ship'
+        : null;
+      setStep(canonicalIntent ? 1 : 0);
+      setIntent(canonicalIntent);
       setReference(null);
       setOrigin(null);
       setDestination('SN');
       setTransport(null);
       setUrgency('standard');
-      setShipType(null);
+      // Pre-select shipment type for "receive" flow (almost always a package)
+      setShipType(presetIntent === 'ship-receive' ? 'package' : null);
       setWeight(5);
       setProductInput('');
       setBudget(500);
@@ -124,7 +135,7 @@ export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizar
       setParsed(null);
       setName(''); setPhone(''); setWhatsapp(''); setEmail('');
     }
-  }, [open]);
+  }, [open, presetIntent]);
 
   const totalSteps = 6;
 
