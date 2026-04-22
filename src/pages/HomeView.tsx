@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
@@ -9,6 +8,7 @@ import { AddressCard } from '@/components/AddressCard';
 import { DossierCard } from '@/components/DossierCard';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { IdleShipDialog } from '@/components/IdleShipDialog';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
@@ -19,7 +19,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Package, Clock, FolderPlus, ArrowRight, Layers } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const navigate = useNavigate();
