@@ -29,6 +29,7 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           {/* New 2-CTAs entry points */}
           <Route path="/expedier" element={<ExpedierPage />} />
+          <Route path="/expedier/:mode" element={<ExpedierPage />} />
           <Route path="/acheter" element={<AcheterPage />} />
           {/* Legacy public URLs → folded into the 2 user-facing flows */}
           <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
