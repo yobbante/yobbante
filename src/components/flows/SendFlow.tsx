@@ -53,7 +53,7 @@ const OPTION_ICONS = {
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
 
-export function SendFlow() {
+export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
@@ -130,7 +130,7 @@ export function SendFlow() {
 
   if (reference) {
     return (
-      <FlowShell>
+      <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
           reference={reference}
           title="Votre expédition est lancée."
@@ -142,13 +142,14 @@ export function SendFlow() {
   }
 
   return (
-    <FlowShell>
-      <FlowHero
-        eyebrow="Expédier · Envoyer"
-        title="Envoyez un colis n'importe où dans le monde."
-        subtitle="Décrivez votre envoi. Yobbanté trouve la meilleure option et gère transport, douane et livraison."
-      />
-
+    <FlowShell theme="light" compactHeader={compactHeader}>
+      {!compactHeader && (
+        <FlowHero
+          eyebrow="Expédier · Envoyer"
+          title="Envoyez un colis n'importe où dans le monde."
+          subtitle="Décrivez votre envoi. Yobbanté trouve la meilleure option et gère transport, douane et livraison."
+        />
+      )}
       <FlowSection revealed title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
         <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>

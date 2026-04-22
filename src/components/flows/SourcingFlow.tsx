@@ -59,7 +59,7 @@ const OPTION_ICONS = {
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
 
-export function SourcingFlow() {
+export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();

@@ -38,7 +38,7 @@ const OPTION_ICONS = {
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
 
-export function ReceiveFlow() {
+export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
@@ -158,7 +158,7 @@ export function ReceiveFlow() {
 
   if (reference) {
     return (
-      <FlowShell>
+      <FlowShell theme="dark" compactHeader={compactHeader}>
         <FlowSuccess
           reference={reference}
           title="Votre commande va être réceptionnée."
@@ -170,14 +170,15 @@ export function ReceiveFlow() {
   }
 
   return (
-    <FlowShell>
-      <FlowHero
-        eyebrow="Expédier · Recevoir"
-        title="Recevez votre commande, où qu'elle soit achetée."
-        subtitle="Donnez-nous le lien. On réceptionne, regroupe, vérifie et vous livre chez vous."
-        info={<><strong className="text-foreground">Pour les commandes Amazon, Shein, Alibaba, etc.</strong> Pour du sourcing fournisseur en gros, utilisez plutôt « Lancer un sourcing produit ».</>}
-      />
-
+    <FlowShell theme="dark" compactHeader={compactHeader}>
+      {!compactHeader && (
+        <FlowHero
+          eyebrow="Expédier · Recevoir"
+          title="Recevez votre commande, où qu'elle soit achetée."
+          subtitle="Donnez-nous le lien. On réceptionne, regroupe, vérifie et vous livre chez vous."
+          info={<><strong className="text-foreground">Pour les commandes Amazon, Shein, Alibaba, etc.</strong> Pour du sourcing fournisseur en gros, utilisez plutôt « Lancer un sourcing produit ».</>}
+        />
+      )}
       <FlowSection revealed title="Collez le lien de votre commande" hint="Amazon, Shein, AliExpress, Alibaba… ou décrivez le produit.">
         <div className="space-y-3 max-w-xl">
           <TextField
