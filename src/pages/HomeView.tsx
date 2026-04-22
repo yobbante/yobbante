@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
@@ -15,15 +16,17 @@ import { useAddresses } from '@/hooks/useAddresses';
 import { useProfile } from '@/hooks/useProfile';
 import { useDossiers } from '@/hooks/useDossiers';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, AlertTriangle, FolderPlus, ArrowRight } from 'lucide-react';
+import { Package, Clock, FolderPlus, ArrowRight, Layers } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
-  const { packages, consolidationGroups } = usePackages();
+  const { packages, consolidationGroups, idlePackages } = usePackages();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
@@ -31,6 +34,21 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
+
+  // Real-time stream: any change to packages / shipments / timeline events
+  // triggers an instant cache refresh so the timeline updates live.
+  useEffect(() => {
+    const channel = supabase
+      .channel('home-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_events' },
+        () => queryClient.invalidateQueries({ queryKey: ['timeline'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' },
+        () => queryClient.invalidateQueries({ queryKey: ['packages'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' },
+        () => queryClient.invalidateQueries({ queryKey: ['shipments'] }))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
@@ -46,7 +64,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   const openDossier = () => {
-    navigate('/confier-dossier');
+    navigate('/acheter');
   };
 
   return (
@@ -59,9 +77,9 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
       >
         <div className="absolute -top-12 -right-12 w-44 h-44 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Tableau de bord</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Mon espace</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1.5">{greeting}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Votre opérateur logistique. De bout en bout.</p>
+          <p className="text-sm text-muted-foreground mt-1">Suivi en temps réel de vos colis et expéditions.</p>
 
           <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2.5">
             {[
@@ -104,7 +122,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             <FolderPlus className="w-7 h-7 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-semibold text-foreground">Aucun dossier en cours</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Confiez votre premier import. Nous gérons tout : sourcing, transport, douane, livraison.
+              Confiez votre premier achat. Nous trouvons, achetons et livrons pour vous.
             </p>
             <Button onClick={openDossier} size="sm" className="mt-4">
               Confier un dossier <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -137,7 +155,27 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
         </motion.div>
       )}
 
-      {/* Consolidation prompts */}
+      {/* 48h idle prompt — one-click ship-now */}
+      {idlePackages.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30"
+        >
+          <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {idlePackages.length} colis en attente depuis +48h
+            </p>
+            <p className="text-xs text-muted-foreground">Expédiez maintenant pour éviter les frais de stockage.</p>
+          </div>
+          <Button size="sm" onClick={() => openShip(idlePackages[0].warehouse_country)}>
+            Expédier
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Consolidation prompts — auto-grouping suggestions */}
       {Object.entries(consolidationGroups).map(([country, pkgs]) => (
         pkgs.length >= 2 && (
           <motion.div
@@ -146,17 +184,17 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
           >
-            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <Layers className="w-5 h-5 text-foreground flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} colis en {country}
+                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} colis prêts à grouper
               </p>
-              <p className="text-xs text-muted-foreground">Économisez en groupant</p>
+              <p className="text-xs text-muted-foreground">Une seule expédition, des frais réduits.</p>
             </div>
             <Button
               variant="link"
               size="sm"
-              className="text-amber-600 p-0 h-auto"
+              className="text-foreground p-0 h-auto"
               onClick={() => openShip(country as WarehouseCountry)}
             >
               Consolider
@@ -226,7 +264,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
         onOpenChange={setSmartOpen}
         onConfideDossier={(p) => {
           setSmartOpen(false);
-          navigate('/confier-dossier', {
+          navigate('/acheter', {
             state: {
               preset: { product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost },
             },
