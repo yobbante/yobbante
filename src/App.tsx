@@ -5,8 +5,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
-import ServicesPage from "./pages/ServicesPage";
-import SimulatorPage from "./pages/SimulatorPage";
 import EnterprisesPage from "./pages/EnterprisesPage";
 import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
@@ -32,12 +30,12 @@ const App = () => (
           {/* New 2-CTAs entry points */}
           <Route path="/expedier" element={<ExpedierPage />} />
           <Route path="/acheter" element={<AcheterPage />} />
-          {/* Legacy URLs → fold into new flows */}
+          {/* Legacy public URLs → folded into the 2 user-facing flows */}
           <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
           <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
-          {/* Secondary pages still reachable from footer */}
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/simulateur" element={<SimulatorPage />} />
+          <Route path="/services" element={<Navigate to="/" replace />} />
+          <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
+          {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
           <Route path="/entreprises" element={<EnterprisesPage />} />
           <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
           <Route path="/auth" element={<Auth />} />
