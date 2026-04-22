@@ -383,36 +383,57 @@ export type Database = {
       }
       shipments: {
         Row: {
+          client_note: string | null
           created_at: string
+          departure_date: string | null
+          destination_city: string | null
           destination_country: string
           eta: string | null
           id: string
+          konnekt_departure_id: string | null
           konnekt_id: string | null
+          manual_request: boolean
+          origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          pending_assignment: boolean
           status: Database["public"]["Enums"]["shipment_status"]
           total_cost: number | null
           transport_type: string | null
           user_id: string
         }
         Insert: {
+          client_note?: string | null
           created_at?: string
+          departure_date?: string | null
+          destination_city?: string | null
           destination_country?: string
           eta?: string | null
           id?: string
+          konnekt_departure_id?: string | null
           konnekt_id?: string | null
+          manual_request?: boolean
+          origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          pending_assignment?: boolean
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
           transport_type?: string | null
           user_id: string
         }
         Update: {
+          client_note?: string | null
           created_at?: string
+          departure_date?: string | null
+          destination_city?: string | null
           destination_country?: string
           eta?: string | null
           id?: string
+          konnekt_departure_id?: string | null
           konnekt_id?: string | null
+          manual_request?: boolean
+          origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          pending_assignment?: boolean
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
           transport_type?: string | null

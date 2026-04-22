@@ -23,10 +23,23 @@ export function useShipments() {
       destination_country: string;
       transport_type?: string;
       package_ids?: string[];
+      // Konnekt departure (when client picks an existing one)
+      konnekt_departure_id?: string | null;
+      departure_date?: string | null;
+      origin_city?: string | null;
+      destination_city?: string | null;
+      // Manual request (no matching Konnekt departure)
+      manual_request?: boolean;
+      client_note?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      
+
+      const isManual = !!shipment.manual_request;
+      const eta = shipment.departure_date
+        ? new Date(new Date(shipment.departure_date).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
       const { data, error } = await supabase
         .from('shipments')
         .insert({
@@ -34,8 +47,15 @@ export function useShipments() {
           origin_country: shipment.origin_country,
           destination_country: shipment.destination_country,
           transport_type: shipment.transport_type || 'standard',
-          konnekt_id: `KNK-${Date.now()}`,
-          eta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          konnekt_id: shipment.konnekt_departure_id || `KNK-${Date.now()}`,
+          konnekt_departure_id: shipment.konnekt_departure_id ?? null,
+          departure_date: shipment.departure_date ?? null,
+          origin_city: shipment.origin_city ?? null,
+          destination_city: shipment.destination_city ?? null,
+          manual_request: isManual,
+          pending_assignment: isManual,
+          client_note: shipment.client_note ?? null,
+          eta,
         })
         .select()
         .single();
