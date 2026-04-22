@@ -59,7 +59,7 @@ const OPTION_ICONS = {
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
 
-export function SourcingFlow() {
+export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
@@ -176,7 +176,7 @@ export function SourcingFlow() {
 
   if (reference) {
     return (
-      <FlowShell>
+      <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
           reference={reference}
           title="Votre sourcing est lancé."
@@ -188,14 +188,15 @@ export function SourcingFlow() {
   }
 
   return (
-    <FlowShell>
-      <FlowHero
-        eyebrow="Sourcing · Pour les entreprises et projets"
-        title="Trouvez et importez vos produits directement auprès des fournisseurs."
-        subtitle="Yobbanté s'occupe du sourcing, de la négociation, du contrôle qualité et de la livraison."
-        info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
-      />
-
+    <FlowShell theme="light" compactHeader={compactHeader}>
+      {!compactHeader && (
+        <FlowHero
+          eyebrow="Sourcing · Pour les entreprises et projets"
+          title="Trouvez et importez vos produits directement auprès des fournisseurs."
+          subtitle="Yobbanté s'occupe du sourcing, de la négociation, du contrôle qualité et de la livraison."
+          info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
+        />
+      )}
       <FlowSection revealed title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
         <div className="space-y-3 max-w-xl">
           <TextField
