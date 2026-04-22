@@ -111,8 +111,62 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     } finally { setParsing(false); }
   }
 
+  // Refs for keyboard navigation: input → first item → next/prev item.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  function focusItem(index: number) {
+    itemRefs.current[index]?.focus();
+  }
+
   function removeItem(id: string) {
+    const idx = items.findIndex(it => it.id === id);
+    if (idx < 0) return;
+    const removed = items[idx];
     setItems(prev => prev.filter(it => it.id !== id));
+    // Undo snackbar — restore at original position if user changed mind.
+    toast('Produit retiré', {
+      description: removed.title,
+      action: {
+        label: 'Annuler',
+        onClick: () => {
+          setItems(prev => {
+            if (prev.some(it => it.id === removed.id)) return prev;
+            const next = [...prev];
+            next.splice(Math.min(idx, next.length), 0, removed);
+            return next;
+          });
+        },
+      },
+      duration: 5000,
+    });
+  }
+
+  // Input keyboard handler: Enter parses, ArrowDown jumps into the items list.
+  function onInputKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (productInput.trim().length >= 4 && !parsing) runParse();
+    } else if (e.key === 'ArrowDown' && items.length > 0) {
+      e.preventDefault();
+      focusItem(0);
+    }
+  }
+
+  // Item keyboard handler: Arrow keys to move focus, Backspace/Delete removes.
+  function onItemKey(e: KeyboardEvent<HTMLLIElement>, index: number) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (index + 1 < items.length) focusItem(index + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (index > 0) focusItem(index - 1);
+      else inputRef.current?.focus();
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      const id = items[index]?.id;
+      if (id) removeItem(id);
+    }
   }
 
   // Auto-parse when user pastes a URL
