@@ -23,9 +23,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
-  const { packages, consolidationGroups } = usePackages();
+  const { packages, consolidationGroups, idlePackages } = usePackages();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
@@ -33,6 +34,21 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
+
+  // Real-time stream: any change to packages / shipments / timeline events
+  // triggers an instant cache refresh so the timeline updates live.
+  useEffect(() => {
+    const channel = supabase
+      .channel('home-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_events' },
+        () => queryClient.invalidateQueries({ queryKey: ['timeline'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' },
+        () => queryClient.invalidateQueries({ queryKey: ['packages'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' },
+        () => queryClient.invalidateQueries({ queryKey: ['shipments'] }))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
@@ -48,7 +64,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
   };
 
   const openDossier = () => {
-    navigate('/confier-dossier');
+    navigate('/acheter');
   };
 
   return (
