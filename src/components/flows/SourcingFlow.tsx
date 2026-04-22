@@ -1,0 +1,334 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Factory, Search, Handshake, BadgeCheck, Truck, Sparkles, Loader2,
+  Boxes, Crown, Zap, Clock, ShieldCheck,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  FlowShell, FlowHero, FlowSection, ChipGroup, CountryGrid, NumberSlider,
+  TextField, MatchOptionCard, LiveSummaryBar, FlowSuccess, type MatchOptionView,
+} from './FlowPrimitives';
+import { useMatchOptions } from './useMatchOptions';
+import { useDossiers } from '@/hooks/useDossiers';
+import { useShipments } from '@/hooks/useShipments';
+import { supabase } from '@/integrations/supabase/client';
+import type { WarehouseCountry } from '@/lib/types';
+
+const ORIGINS = [
+  { id: 'CN', flag: '🇨🇳', label: 'Chine' },
+  { id: 'FR', flag: '🇫🇷', label: 'France' },
+  { id: 'AE', flag: '🇦🇪', label: 'Dubai' },
+  { id: 'US', flag: '🇺🇸', label: 'USA' },
+];
+const DESTINATIONS = [
+  { id: 'SN', flag: '🇸🇳', label: 'Sénégal' },
+  { id: 'CI', flag: '🇨🇮', label: "Côte d'Ivoire" },
+  { id: 'ML', flag: '🇲🇱', label: 'Mali' },
+  { id: 'GN', flag: '🇬🇳', label: 'Guinée' },
+  { id: 'BF', flag: '🇧🇫', label: 'Burkina' },
+  { id: 'TG', flag: '🇹🇬', label: 'Togo' },
+];
+const QUALITIES = [
+  { id: 'standard' as const, label: 'Standard', desc: 'Bon rapport qualité-prix' },
+  { id: 'premium'  as const, label: 'Premium',  desc: 'Fournisseurs vérifiés haut de gamme' },
+  { id: 'custom'   as const, label: 'Sur mesure', desc: 'Personnalisation, OEM' },
+];
+const URGENCIES = [
+  { id: 'flexible' as const, label: 'Flexible', desc: 'Délai souple' },
+  { id: 'standard' as const, label: 'Standard', desc: 'Sous 2-3 semaines' },
+  { id: 'urgent'   as const, label: 'Urgent',   desc: 'Priorité maximale' },
+];
+
+const ROLES = [
+  { Icon: Search,     title: 'Sourcing fournisseurs', desc: '3 à 5 fournisseurs identifiés et qualifiés.' },
+  { Icon: Handshake,  title: 'Négociation prix',     desc: 'Meilleur tarif obtenu, MOQ optimisé.' },
+  { Icon: BadgeCheck, title: 'Contrôle qualité',     desc: 'Inspection avant expédition.' },
+  { Icon: Truck,      title: 'Logistique complète',  desc: 'Transport, douane, livraison à votre porte.' },
+];
+
+const ORIGIN_CITY: Record<string, string> = { CN: 'Shenzhen', FR: 'Paris', AE: 'Dubai', US: 'Miami' };
+const DEST_CITY:   Record<string, string> = { SN: 'Dakar', CI: 'Abidjan', ML: 'Bamako', GN: 'Conakry', BF: 'Ouagadougou', TG: 'Lomé' };
+const COUNTRY_NAME = (id: string) =>
+  [...ORIGINS, ...DESTINATIONS].find(c => c.id === id)?.label ?? id;
+
+const OPTION_ICONS = {
+  fast:    <Zap className="w-4 h-4" />,
+  economy: <Clock className="w-4 h-4" />,
+  volume:  <Boxes className="w-4 h-4" />,
+} as const;
+
+export function SourcingFlow() {
+  const navigate = useNavigate();
+  const { createDossier } = useDossiers();
+  const { createShipment } = useShipments();
+
+  const [productInput, setProductInput] = useState('');
+  const [parsing, setParsing] = useState(false);
+  const [parsed, setParsed] = useState<null | {
+    title: string; platform: string; estimatedPriceEur: number;
+    estimatedWeightKg: number; imageUrl: string; suggestedQuantity: number;
+  }>(null);
+
+  const [quantity, setQuantity] = useState(100);
+  const [budget, setBudget] = useState('');
+  const [quality, setQuality] = useState<typeof QUALITIES[number]['id'] | null>(null);
+  const [urgency, setUrgency] = useState<typeof URGENCIES[number]['id'] | null>(null);
+  const [origin, setOrigin] = useState<string | null>('CN');
+  const [destination, setDestination] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<MatchOptionView | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [reference, setReference] = useState<string | null>(null);
+
+  async function runParse() {
+    const v = productInput.trim();
+    if (v.length < 4) return;
+    setParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-product', { body: { input: v } });
+      if (error) throw error;
+      if (data && !data.error) {
+        setParsed(data);
+        if (data.suggestedQuantity && quantity === 100) setQuantity(Math.max(50, data.suggestedQuantity * 50));
+      }
+    } catch { /* silent */ } finally { setParsing(false); }
+  }
+
+  useEffect(() => {
+    const v = productInput.trim();
+    if (v.length < 8 || !/^https?:\/\//i.test(v)) return;
+    const t = setTimeout(runParse, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productInput]);
+
+  // Total estimated weight for shipping match
+  const totalWeight = useMemo(() => {
+    const w = parsed?.estimatedWeightKg ?? 0.3;
+    return Math.max(1, Math.round(w * quantity));
+  }, [parsed, quantity]);
+
+  const matchInput = useMemo(() => {
+    if (!origin || !destination || !quality || !urgency) return null;
+    return {
+      origin_city: ORIGIN_CITY[origin] ?? COUNTRY_NAME(origin),
+      destination_city: DEST_CITY[destination] ?? COUNTRY_NAME(destination),
+      weight_kg: totalWeight,
+      urgency: urgency === 'urgent' ? ('fast' as const) : urgency === 'flexible' ? ('flexible' as const) : ('normal' as const),
+    };
+  }, [origin, destination, quality, urgency, totalWeight]);
+
+  const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
+
+  useEffect(() => {
+    if (!chosen && options.length > 0) {
+      setChosen(options.find(o => o.id === 'volume') ?? options[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.length]);
+
+  const summary = chosen && parsed && quantity && destination
+    ? `Sourcing ${quantity} × ${parsed.title.slice(0, 24)}… · ${chosen.label} · ${chosen.price_eur}€`
+    : quantity && productInput && destination
+      ? `Sourcing ${quantity} unités · livraison vers ${COUNTRY_NAME(destination)}`
+      : '';
+
+  async function submit() {
+    if (!quantity || !origin || !destination || !quality || !urgency) return;
+    setSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error('Connectez-vous pour valider'); navigate('/auth'); return; }
+
+      const dossier = await createDossier.mutateAsync({
+        product_description: parsed?.title ?? productInput.trim(),
+        estimated_weight: totalWeight,
+        origin_country: origin as WarehouseCountry,
+        destination_country: destination,
+        budget_eur: budget ? Number(budget) : null,
+        needs_sourcing: true,
+        notes: [
+          `Brief: ${productInput}`,
+          `Quantité: ${quantity}`,
+          budget ? `Budget: ${budget}€` : '',
+          `Qualité: ${quality}`, `Urgence: ${urgency}`,
+          chosen ? `Option transport: ${chosen.label} (${chosen.price_eur}€)` : '',
+        ].filter(Boolean).join('\n'),
+      });
+
+      if (chosen) {
+        await createShipment.mutateAsync({
+          origin_country: origin as 'FR' | 'CN' | 'US',
+          destination_country: destination,
+          origin_city: ORIGIN_CITY[origin],
+          destination_city: DEST_CITY[destination],
+          match_option: chosen,
+        });
+      }
+
+      setReference(dossier.reference);
+      toast.success('Sourcing lancé 🏭');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erreur');
+    } finally { setSubmitting(false); }
+  }
+
+  if (reference) {
+    return (
+      <FlowShell>
+        <FlowSuccess
+          reference={reference}
+          title="Votre sourcing est lancé."
+          subtitle="Notre équipe identifie les meilleurs fournisseurs et vous présente une short-list sous 48h."
+          ctaHref="/app" ctaLabel="Voir mon espace"
+        />
+      </FlowShell>
+    );
+  }
+
+  return (
+    <FlowShell>
+      <FlowHero
+        eyebrow="Sourcing · Pour les entreprises et projets"
+        title="Trouvez et importez vos produits directement auprès des fournisseurs."
+        subtitle="Yobbanté s'occupe du sourcing, de la négociation, du contrôle qualité et de la livraison."
+        info={<><strong className="text-white">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
+      />
+
+      <FlowSection revealed title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
+        <div className="space-y-3 max-w-xl">
+          <TextField
+            value={productInput} onChange={setProductInput}
+            placeholder="ex. « 500 t-shirts coton bio brodés » ou https://alibaba.com/…"
+            icon={<Factory className="w-4 h-4" />}
+          />
+          {!parsed && productInput.trim().length >= 4 && !/^https?:\/\//i.test(productInput) && (
+            <button
+              onClick={runParse} disabled={parsing}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
+            >
+              {parsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Analyser ce besoin
+            </button>
+          )}
+        </div>
+
+        {parsing && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
+            <Loader2 className="w-4 h-4 animate-spin" /> Analyse en cours…
+          </div>
+        )}
+
+        {parsed && (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 flex gap-4 max-w-xl animate-fade-in">
+            <div className="w-20 h-20 rounded-xl bg-white/5 overflow-hidden shrink-0 flex items-center justify-center">
+              {parsed.imageUrl
+                ? <img src={parsed.imageUrl} alt={parsed.title} className="w-full h-full object-cover" />
+                : <Factory className="w-7 h-7 text-white/30" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-yellow-400/80 font-medium">{parsed.platform}</p>
+              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2">{parsed.title}</p>
+              <div className="mt-2 text-xs text-white/55">
+                ~{parsed.estimatedWeightKg} kg / unité
+              </div>
+            </div>
+          </div>
+        )}
+      </FlowSection>
+
+      <FlowSection revealed={productInput.trim().length >= 4} title="Combien d'unités ?" hint="La quantité est essentielle pour obtenir le meilleur prix fournisseur.">
+        <div className="space-y-5 max-w-md">
+          <NumberSlider label="Quantité" value={quantity} onChange={setQuantity} min={10} max={5000} step={10} unit=" u." />
+          <TextField
+            label="Budget cible (optionnel)"
+            value={budget} onChange={setBudget}
+            placeholder="ex. 5000" suffix="€" type="number"
+          />
+        </div>
+        {parsed && (
+          <p className="mt-4 text-xs text-white/50">
+            👉 Vous recherchez <span className="text-white font-semibold">{quantity} unités</span> de <span className="text-white font-semibold">{parsed.title.slice(0, 50)}</span>
+          </p>
+        )}
+      </FlowSection>
+
+      <FlowSection revealed={!!parsed || productInput.trim().length >= 4} title="Niveau de qualité">
+        <ChipGroup options={QUALITIES} value={quality} onChange={(v) => setQuality(v)} />
+      </FlowSection>
+
+      <FlowSection revealed={!!quality} title="Urgence du projet">
+        <ChipGroup options={URGENCIES} value={urgency} onChange={(v) => setUrgency(v)} />
+      </FlowSection>
+
+      <FlowSection revealed={!!urgency} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
+        <div className="grid sm:grid-cols-2 gap-2.5">
+          {ROLES.map((r, i) => (
+            <motion.div
+              key={r.title}
+              initial={{ opacity: 0, x: -8 }} whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4 }}
+              className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4"
+            >
+              <div className="w-9 h-9 rounded-lg bg-yellow-400/15 text-yellow-400 flex items-center justify-center shrink-0">
+                <r.Icon className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{r.title}</p>
+                <p className="mt-0.5 text-xs text-white/55 leading-relaxed">{r.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </FlowSection>
+
+      <FlowSection revealed={!!urgency} title="Origine du sourcing">
+        <CountryGrid countries={ORIGINS} value={origin} onChange={setOrigin} />
+      </FlowSection>
+
+      <FlowSection revealed={!!origin} title="Destination de livraison">
+        <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
+      </FlowSection>
+
+      <FlowSection
+        revealed={!!matchInput}
+        title="Estimation logistique"
+        hint={matching ? 'Calcul des options en cours…' : `Pour ${quantity} unités · ~${totalWeight} kg total.`}
+      >
+        {matching && (
+          <div className="grid sm:grid-cols-3 gap-3">
+            {[1,2,3].map(i => <div key={i} className="h-44 rounded-2xl border border-white/10 bg-white/[0.02] animate-pulse" />)}
+          </div>
+        )}
+        {!matching && options.length > 0 && (
+          <>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {options.map(o => (
+                <MatchOptionCard
+                  key={o.id} opt={o} active={chosen?.id === o.id}
+                  onClick={() => setChosen(o)} icon={OPTION_ICONS[o.id]}
+                />
+              ))}
+            </div>
+            {next_departure_in_days != null && (
+              <p className="mt-5 inline-flex items-center gap-2 text-xs text-white/55">
+                <ShieldCheck className="w-3.5 h-3.5 text-yellow-400" />
+                Prochain départ dans {next_departure_in_days} j · contrôle qualité inclus
+              </p>
+            )}
+          </>
+        )}
+      </FlowSection>
+
+      <LiveSummaryBar
+        visible={!!destination && !!quality && !!urgency}
+        summary={summary}
+        ctaLabel="Lancer le sourcing"
+        onSubmit={submit}
+        submitting={submitting}
+        sideContent={chosen ? `Livraison ${chosen.eta_days} après production` : undefined}
+      />
+    </FlowShell>
+  );
+}

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import {
-  Package, ShoppingCart, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset,
+  Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset,
 } from 'lucide-react';
 
 const fadeUp = {
@@ -22,9 +22,9 @@ const SHIP_STEPS = [
 ];
 
 const BUY_STEPS = [
-  { n: '01', title: 'Vous décrivez le produit', desc: 'Un lien Amazon, Alibaba, Shein — ou simple description.' },
-  { n: '02', title: 'On s\'occupe de tout', desc: 'Sourcing, négociation, vérification qualité, expédition.' },
-  { n: '03', title: 'Vous recevez chez vous', desc: 'Livraison à votre porte, sans démarche douanière.' },
+  { n: '01', title: 'Vous décrivez votre besoin', desc: 'Quantité, qualité, budget — un brief suffit.' },
+  { n: '02', title: 'On source et négocie',       desc: '3-5 fournisseurs qualifiés, meilleur prix obtenu.' },
+  { n: '03', title: 'Production, contrôle, livraison', desc: 'Inspection qualité puis livraison directe à votre porte.' },
 ];
 
 const REASONS = [
@@ -98,11 +98,12 @@ export default function LandingPage() {
               onClick={goBuy}
               className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold border-2 border-foreground text-foreground px-7 py-4 rounded-2xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
             >
-              <ShoppingCart className="w-5 h-5" />
-              Acheter un produit
+              <Factory className="w-5 h-5" />
+              Lancer un sourcing produit
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </motion.div>
+          <p className="mt-3 text-[11px] text-muted-foreground">Pour les entreprises et projets · achats fournisseurs en gros</p>
 
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}
@@ -159,9 +160,10 @@ export default function LandingPage() {
             <div className="bg-background p-8 md:p-10">
               <div className="flex items-center gap-2.5 mb-6">
                 <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
-                  <ShoppingCart className="w-4.5 h-4.5" />
+                  <Factory className="w-4.5 h-4.5" />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight">Pour acheter</h3>
+                <h3 className="text-lg font-bold tracking-tight">Pour sourcer</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Entreprises & projets</span>
               </div>
               <ol className="space-y-5">
                 {BUY_STEPS.map((s, i) => (
@@ -182,7 +184,7 @@ export default function LandingPage() {
                 onClick={goBuy}
                 className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
-                Décrire un produit <ArrowRight className="w-4 h-4" />
+                Lancer un sourcing <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -254,7 +256,7 @@ export default function LandingPage() {
               onClick={goBuy}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 border-foreground text-foreground px-6 py-3.5 rounded-xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
             >
-              <ShoppingCart className="w-4 h-4" /> Acheter un produit
+              <Factory className="w-4 h-4" /> Lancer un sourcing produit
             </button>
           </div>
           <p className="mt-6 text-xs text-muted-foreground">

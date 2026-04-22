@@ -1,29 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DossierWizard } from '@/components/DossierWizard';
+import { useEffect } from 'react';
+import { SourcingFlow } from '@/components/flows/SourcingFlow';
 
 /**
- * Dedicated entry point for the "Buy a product" flow.
- * The wizard opens immediately on the buy intent. Closing it returns home.
+ * /acheter — flow continu (no wizard) de sourcing produit fournisseur.
+ * Renommé en "Lancer un sourcing produit" pour éviter la confusion avec
+ * un achat e-commerce one-click.
  */
 export default function AcheterPage() {
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(true);
-
   useEffect(() => {
-    const prevTitle = document.title;
-    document.title = 'Acheter un produit à l\'international · Yobbanté';
-    return () => { document.title = prevTitle; };
+    const prev = document.title;
+    document.title = 'Lancer un sourcing produit · Yobbanté';
+    return () => { document.title = prev; };
   }, []);
 
-  const handleClose = (next: boolean) => {
-    setOpen(next);
-    if (!next) navigate('/');
-  };
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <DossierWizard open={open} onOpenChange={handleClose} presetIntent="buy" />
-    </div>
-  );
+  return <SourcingFlow />;
 }
