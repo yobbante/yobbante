@@ -628,6 +628,29 @@ export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dia
             </button>
           </div>
         )}
+    </>
+  );
+
+  if (variant === 'page') {
+    if (!open) return null;
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+        {pageTitle && (
+          <div className="sr-only" aria-live="polite">{pageTitle}</div>
+        )}
+        <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-6 py-6 sm:py-10">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-3rem)]">
+            {inner}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-0 max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-hidden border-0 bg-zinc-950 text-white rounded-2xl">
+        {inner}
       </DialogContent>
     </Dialog>
   );
