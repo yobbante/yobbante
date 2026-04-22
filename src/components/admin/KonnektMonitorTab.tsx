@@ -170,12 +170,13 @@ export function KonnektMonitorTab() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, tone }: {
+function StatCard({ label, value, icon, tone }: {
   label: string;
   value: string;
   icon?: React.ComponentType<{ className?: string }> | null;
   tone: 'ok' | 'warn' | 'error' | 'muted';
 }) {
+  const IconCmp = icon as React.ComponentType<{ className?: string }> | null | undefined;
   const toneCls = {
     ok: 'text-emerald-500',
     warn: 'text-amber-500',
@@ -186,7 +187,7 @@ function StatCard({ label, value, icon: Icon, tone }: {
     <div className="bg-card border border-border rounded-xl p-3">
       <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">{label}</p>
       <div className={cn('mt-1 flex items-center gap-1.5 text-base font-bold', toneCls)}>
-        {Icon && <Icon className="w-4 h-4" />}
+        {IconCmp ? <IconCmp className="w-4 h-4" /> : null}
         {value}
       </div>
     </div>
@@ -205,7 +206,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function LogRow({ log }: { log: SyncLog }) {
   const [open, setOpen] = useState(false);
   const meta = SOURCE_META[(log.source as keyof typeof SOURCE_META)] || SOURCE_META.mock;
-  const Icon = meta.Icon;
+  const IconCmp = meta.Icon;
   return (
     <div className="bg-card border border-border rounded-xl">
       <button
@@ -213,7 +214,7 @@ function LogRow({ log }: { log: SyncLog }) {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 p-3 text-left hover:bg-secondary/40 transition-colors rounded-xl"
       >
-        <Icon className={cn('w-4 h-4 shrink-0', meta.cls)} />
+        {IconCmp ? <IconCmp className={cn('w-4 h-4 shrink-0', meta.cls)} /> : null}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs">
             <span className="font-semibold text-foreground">{meta.label}</span>
