@@ -27,6 +27,13 @@ interface DossierWizardProps {
    * - 'buy'          → Yobbanté sources & buys for the user
    */
   presetIntent?: 'ship' | 'ship-send' | 'ship-receive' | 'buy';
+  /**
+   * 'dialog' (default) — modal popup. 'page' — full-screen embedded flow,
+   * styled like the rest of the app, used by /expedier/envoyer & /expedier/recevoir.
+   */
+  variant?: 'dialog' | 'page';
+  /** Optional eyebrow shown in the header for page variant ("Envoyer un colis" etc.) */
+  pageTitle?: string;
 }
 
 type Intent = 'ship' | 'buy';
@@ -73,7 +80,7 @@ const URGENCIES: { id: Urgency; label: string; desc: string; Icon: typeof Clock 
 
 const intentLabel = (i: Intent | null) => i === 'ship' ? 'Expédier un colis' : i === 'buy' ? 'Acheter un produit' : '';
 
-export function DossierWizard({ open, onOpenChange, presetIntent }: DossierWizardProps) {
+export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dialog', pageTitle }: DossierWizardProps) {
   const { createDossier } = useDossiers();
   const navigate = useNavigate();
 
