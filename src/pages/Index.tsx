@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { BottomNav } from '@/components/BottomNav';
+import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
 import { HomeView } from '@/pages/HomeView';
+import { DossiersView } from '@/pages/DossiersView';
 import { ShipmentsView } from '@/pages/ShipmentsView';
 import { ProfileView } from '@/pages/ProfileView';
 
-type View = 'home' | 'shipments' | 'profile';
+const ALLOWED: TabId[] = ['home', 'dossiers', 'shipments', 'profile'];
 
 export default function Index() {
   const location = useLocation();
@@ -16,10 +17,10 @@ export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // View is fully driven by ?view=... so refresh + deep-links + bottom nav stay in sync.
-  const rawView = searchParams.get('view');
-  const view: View = rawView === 'shipments' || rawView === 'profile' ? rawView : 'home';
+  const rawView = searchParams.get('view') as TabId | null;
+  const view: TabId = rawView && ALLOWED.includes(rawView) ? rawView : 'home';
 
-  const setView = (next: View) => {
+  const setView = (next: TabId) => {
     const sp = new URLSearchParams(searchParams);
     if (next === 'home') {
       sp.delete('view');
@@ -32,6 +33,8 @@ export default function Index() {
       sp.delete('destination');
     }
     setSearchParams(sp, { replace: false });
+    // Scroll back to top on tab switch — feels native.
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
   useEffect(() => {
@@ -46,8 +49,14 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <DesktopNav active={view} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
-      <main className="max-w-4xl mx-auto px-5 md:px-8 pt-6 md:pt-10">
-        {view === 'home' && <HomeView onNavigateShipments={() => setView('shipments')} />}
+      <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-10">
+        {view === 'home' && (
+          <HomeView
+            onNavigateShipments={() => setView('shipments')}
+            onNavigateDossiers={() => setView('dossiers')}
+          />
+        )}
+        {view === 'dossiers' && <DossiersView />}
         {view === 'shipments' && <ShipmentsView />}
         {view === 'profile' && <ProfileView />}
       </main>
