@@ -1,64 +1,53 @@
 import { forwardRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Package, ShoppingCart } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-interface NavItem {
-  to?: string;
-  href?: string;
-  label: string;
-  onClick?: () => void;
-}
-
 interface PublicNavProps {
-  /** Optional extra items (e.g. a button that opens a dialog) injected after the static links */
-  extraItems?: NavItem[];
+  /** Hide the inline action chips (Expédier / Acheter) when the page already exposes them prominently. */
+  hideActions?: boolean;
 }
 
-const STATIC_ITEMS: NavItem[] = [
-  { to: '/services', label: 'Services' },
-  { to: '/entreprises', label: 'Entreprises' },
-  { to: '/simulateur', label: 'Simulateur' },
-];
-
-export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ extraItems = [] }, ref) {
+export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ hideActions = false }, ref) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const location = useLocation();
-  const items = [...STATIC_ITEMS, ...extraItems];
 
-  const isActive = (to?: string) => {
-    if (!to) return false;
-    if (to === '/') return location.pathname === '/';
-    return location.pathname.startsWith(to.split('#')[0]) && to !== '/#warehouses';
-  };
+  const isActive = (to: string) => location.pathname === to || location.pathname.startsWith(to + '/');
+
+  const goExpedier = () => { setOpen(false); navigate('/expedier'); };
+  const goAcheter = () => { setOpen(false); navigate('/acheter'); };
 
   return (
     <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between">
         <Link to="/" className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</Link>
 
-        {/* Desktop */}
-        <div className="hidden md:flex items-center gap-7">
-          {items.map((item) => {
-            const cls = `text-sm transition-colors ${
-              isActive(item.to)
-                ? 'font-medium text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`;
-            if (item.onClick) {
-              return (
-                <button key={item.label} onClick={item.onClick} className={cls}>
-                  {item.label}
-                </button>
-              );
-            }
-            return (
-              <Link key={item.label} to={item.to!} className={cls}>
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Desktop: only the 2 main entry points */}
+        {!hideActions && (
+          <div className="hidden md:flex items-center gap-1">
+            <button
+              onClick={goExpedier}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/expedier')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" /> Expédier
+            </button>
+            <button
+              onClick={goAcheter}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/acheter')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <ShoppingCart className="w-3.5 h-3.5" /> Acheter
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
@@ -71,7 +60,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
             to="/auth"
             className="text-sm font-semibold bg-foreground text-background px-3.5 sm:px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
           >
-            Commencer
+            Mon espace
           </Link>
 
           {/* Mobile burger */}
@@ -96,36 +85,39 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 </button>
               </div>
               <div className="flex flex-col px-3 py-4 gap-1">
-                {items.map((item) => {
-                  const cls = `w-full text-left text-base font-medium px-3 py-3 rounded-lg transition-colors ${
-                    isActive(item.to)
-                      ? 'bg-secondary text-foreground'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`;
-                  if (item.onClick) {
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => { setOpen(false); item.onClick!(); }}
-                        className={cls}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  }
-                  return (
-                    <Link key={item.label} to={item.to!} onClick={() => setOpen(false)} className={cls}>
-                      {item.label}
-                    </Link>
-                  );
-                })}
-                <div className="border-t border-border mt-3 pt-3">
+                <button
+                  onClick={goExpedier}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-foreground text-background font-semibold"
+                >
+                  <Package className="w-4 h-4" /> Expédier un colis
+                </button>
+                <button
+                  onClick={goAcheter}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
+                >
+                  <ShoppingCart className="w-4 h-4" /> Acheter un produit
+                </button>
+                <div className="border-t border-border mt-3 pt-3 space-y-1">
                   <Link
                     to="/auth"
                     onClick={() => setOpen(false)}
-                    className="block text-base font-medium px-3 py-3 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                   >
                     Connexion
+                  </Link>
+                  <Link
+                    to="/services"
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  >
+                    À propos
+                  </Link>
+                  <Link
+                    to="/entreprises"
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  >
+                    Entreprises
                   </Link>
                 </div>
               </div>
