@@ -77,9 +77,9 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
       >
         <div className="absolute -top-12 -right-12 w-44 h-44 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Tableau de bord</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Mon espace</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1.5">{greeting}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Votre opérateur logistique. De bout en bout.</p>
+          <p className="text-sm text-muted-foreground mt-1">Suivi en temps réel de vos colis et expéditions.</p>
 
           <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2.5">
             {[
