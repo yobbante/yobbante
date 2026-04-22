@@ -398,6 +398,7 @@ export type Database = {
           pending_assignment: boolean
           status: Database["public"]["Enums"]["shipment_status"]
           total_cost: number | null
+          transport_metadata: Json | null
           transport_type: string | null
           user_id: string
         }
@@ -417,6 +418,7 @@ export type Database = {
           pending_assignment?: boolean
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
+          transport_metadata?: Json | null
           transport_type?: string | null
           user_id: string
         }
@@ -436,6 +438,7 @@ export type Database = {
           pending_assignment?: boolean
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
+          transport_metadata?: Json | null
           transport_type?: string | null
           user_id?: string
         }

@@ -15,8 +15,14 @@ import Auth from "./pages/Auth";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
+import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 
 const queryClient = new QueryClient();
+
+function GlobalNotifiers() {
+  usePackageNotifier();
+  return null;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -25,6 +31,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <GlobalNotifiers />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           {/* New 2-CTAs entry points */}
