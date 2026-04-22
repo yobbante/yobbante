@@ -26,9 +26,11 @@ export function useTimeline() {
   });
 
   // True realtime: mutate the cache in place, in-order.
+  // Use a fresh channel name per-mount so React StrictMode's double-mount
+  // (or a quick remount) never tries to .on() a channel already SUBSCRIBED.
   useEffect(() => {
     const channel = supabase
-      .channel('timeline-stream')
+      .channel(`timeline-stream-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'timeline_events' },
