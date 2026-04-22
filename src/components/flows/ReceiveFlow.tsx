@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link2, Loader2, Copy, Check, Inbox, ShieldCheck, Zap, Clock, Boxes, Sparkles } from 'lucide-react';
+import { Link2, Loader2, Copy, Check, Inbox, ShieldCheck, Zap, Clock, Boxes, Sparkles, X, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   FlowShell, FlowHero, FlowSection, CountryGrid, ToggleRow, TextField,
@@ -38,6 +39,16 @@ const OPTION_ICONS = {
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
 
+type ParsedItem = {
+  id: string;
+  source: string; // raw input (URL or description)
+  title: string;
+  platform: string;
+  estimatedPriceEur: number;
+  estimatedWeightKg: number;
+  imageUrl: string;
+};
+
 export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
@@ -46,10 +57,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   const [productInput, setProductInput] = useState('');
   const [parsing, setParsing] = useState(false);
-  const [parsed, setParsed] = useState<null | {
-    title: string; platform: string; estimatedPriceEur: number;
-    estimatedWeightKg: number; imageUrl: string;
-  }>(null);
+  const [items, setItems] = useState<ParsedItem[]>([]);
 
   const [hub, setHub] = useState<string | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
@@ -60,21 +68,51 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
 
+  const hasItems = items.length > 0;
+  const totalWeight = useMemo(
+    () => items.reduce((s, it) => s + (it.estimatedWeightKg || 0.5), 0),
+    [items]
+  );
+  const totalValue = useMemo(
+    () => items.reduce((s, it) => s + (it.estimatedPriceEur || 0), 0),
+    [items]
+  );
+
   const hubAddress = useMemo(
     () => hub ? addresses.find(a => a.country === hub) : null,
     [hub, addresses]
   );
 
-  async function runParse() {
-    const v = productInput.trim();
+  async function runParse(input?: string) {
+    const v = (input ?? productInput).trim();
     if (v.length < 4) return;
     setParsing(true);
     try {
       const { data, error } = await supabase.functions.invoke('parse-product', { body: { input: v } });
       if (error) throw error;
-      if (data && !data.error) setParsed(data);
-    } catch (e) { /* silent */ }
-    finally { setParsing(false); }
+      if (data && !data.error) {
+        const item: ParsedItem = {
+          id: crypto.randomUUID(),
+          source: v,
+          title: data.title,
+          platform: data.platform,
+          estimatedPriceEur: data.estimatedPriceEur ?? 0,
+          estimatedWeightKg: data.estimatedWeightKg ?? 0.5,
+          imageUrl: data.imageUrl ?? '',
+        };
+        setItems(prev => [...prev, item]);
+        setProductInput(''); // ready for next link
+        toast.success('Produit ajouté');
+      } else {
+        toast.error('Produit non reconnu');
+      }
+    } catch {
+      toast.error('Analyse échouée');
+    } finally { setParsing(false); }
+  }
+
+  function removeItem(id: string) {
+    setItems(prev => prev.filter(it => it.id !== id));
   }
 
   // Auto-parse when user pastes a URL
@@ -82,20 +120,20 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     const v = productInput.trim();
     if (v.length < 8) return;
     if (!/^https?:\/\//i.test(v)) return;
-    const t = setTimeout(runParse, 600);
+    const t = setTimeout(() => runParse(v), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productInput]);
 
   const matchInput = useMemo(() => {
-    if (!hub || !destination || !parsed?.estimatedWeightKg) return null;
+    if (!hub || !destination || !hasItems) return null;
     return {
       origin_city: ORIGIN_CITY[hub] ?? COUNTRY_NAME(hub),
       destination_city: DEST_CITY[destination] ?? COUNTRY_NAME(destination),
-      weight_kg: Math.max(0.5, parsed.estimatedWeightKg),
+      weight_kg: Math.max(0.5, totalWeight),
       urgency: 'normal' as const,
     };
-  }, [hub, destination, parsed]);
+  }, [hub, destination, hasItems, totalWeight]);
 
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
