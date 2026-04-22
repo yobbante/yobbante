@@ -170,12 +170,13 @@ export function KonnektMonitorTab() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, tone }: {
+function StatCard({ label, value, icon, tone }: {
   label: string;
   value: string;
   icon?: React.ComponentType<{ className?: string }> | null;
   tone: 'ok' | 'warn' | 'error' | 'muted';
 }) {
+  const IconCmp = icon as React.ComponentType<{ className?: string }> | null | undefined;
   const toneCls = {
     ok: 'text-emerald-500',
     warn: 'text-amber-500',
@@ -186,7 +187,7 @@ function StatCard({ label, value, icon: Icon, tone }: {
     <div className="bg-card border border-border rounded-xl p-3">
       <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">{label}</p>
       <div className={cn('mt-1 flex items-center gap-1.5 text-base font-bold', toneCls)}>
-        {Icon && <Icon className="w-4 h-4" />}
+        {IconCmp ? <IconCmp className="w-4 h-4" /> : null}
         {value}
       </div>
     </div>
