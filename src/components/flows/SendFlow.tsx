@@ -150,19 +150,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           subtitle="Décrivez votre envoi. Yobbanté trouve la meilleure option et gère transport, douane et livraison."
         />
       )}
-      <FlowSection revealed title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
+      <FlowSection revealed step={1} total={6} title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
         <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!type} title="D'où part votre envoi ?">
+      <FlowSection revealed={!!type} step={2} total={6} title="D'où part votre envoi ?">
         <CountryGrid countries={ORIGINS} value={origin} onChange={setOrigin} />
       </FlowSection>
 
-      <FlowSection revealed={!!origin} title="Où doit-il arriver ?">
+      <FlowSection revealed={!!origin} step={3} total={6} title="Où doit-il arriver ?">
         <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
       </FlowSection>
 
-      <FlowSection revealed={!!destination} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard.">
+      <FlowSection revealed={!!destination} step={4} total={6} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard.">
         <div className="space-y-5 max-w-md">
           <NumberSlider label="Poids estimé" value={weight} onChange={setWeight} min={1} max={500} unit=" kg" />
           <TextField
@@ -173,12 +173,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      <FlowSection revealed={!!destination} title="Quelle priorité ?">
+      <FlowSection revealed={!!destination} step={5} total={6} title="Quelle priorité ?">
         <ChipGroup options={PRIORITIES} value={priority} onChange={(v) => setPriority(v)} />
       </FlowSection>
 
       <FlowSection
         revealed={!!matchInput}
+        step={6} total={6}
         title="Options disponibles"
         hint={matching ? 'Recherche des meilleures options en cours…' : 'Choisissez l\'offre qui vous convient.'}
       >
