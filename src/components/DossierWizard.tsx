@@ -249,11 +249,6 @@ export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dia
 
   const progressPct = step === 0 ? 0 : Math.min(100, (step / totalSteps) * 100);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="p-0 max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[92vh] overflow-hidden border-0 bg-zinc-950 text-white rounded-2xl"
-      >
   const inner = (
     <>
       {/* Header / progress */}
