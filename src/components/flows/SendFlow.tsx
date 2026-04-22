@@ -150,7 +150,7 @@ export function SendFlow() {
       />
 
       <FlowSection revealed title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
-        <ChipGroup options={TYPES} value={type} onChange={setType} />
+        <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>
 
       <FlowSection revealed={!!type} title="D'où part votre envoi ?">
@@ -173,7 +173,7 @@ export function SendFlow() {
       </FlowSection>
 
       <FlowSection revealed={!!destination} title="Quelle priorité ?">
-        <ChipGroup options={PRIORITIES} value={priority} onChange={setPriority} />
+        <ChipGroup options={PRIORITIES} value={priority} onChange={(v) => setPriority(v)} />
       </FlowSection>
 
       <FlowSection

@@ -255,11 +255,11 @@ export function SourcingFlow() {
       </FlowSection>
 
       <FlowSection revealed={!!parsed || productInput.trim().length >= 4} title="Niveau de qualité">
-        <ChipGroup options={QUALITIES} value={quality} onChange={setQuality} />
+        <ChipGroup options={QUALITIES} value={quality} onChange={(v) => setQuality(v)} />
       </FlowSection>
 
       <FlowSection revealed={!!quality} title="Urgence du projet">
-        <ChipGroup options={URGENCIES} value={urgency} onChange={setUrgency} />
+        <ChipGroup options={URGENCIES} value={urgency} onChange={(v) => setUrgency(v)} />
       </FlowSection>
 
       <FlowSection revealed={!!urgency} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
