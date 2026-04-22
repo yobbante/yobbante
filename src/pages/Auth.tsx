@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,12 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  // Where to send the user after auth. Defaults to /app, but flows can pass
+  // ?redirect=/expedier/recevoir to come back to where they were.
+  const rawRedirect = params.get('redirect') || '/app';
+  const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,12 +30,12 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/app');
+        navigate(redirectTo, { replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}${redirectTo}` },
         });
         if (error) throw error;
         toast.success('Vérifiez votre email pour confirmer votre compte.');
@@ -43,14 +49,14 @@ export default function Auth() {
 
   const handleGoogleLogin = async () => {
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: `${window.location.origin}/app`,
+      redirect_uri: `${window.location.origin}${redirectTo}`,
     });
     if (result.error) {
       toast.error(result.error.message || 'Connexion Google échouée');
       return;
     }
     if (result.redirected) return;
-    navigate('/app');
+    navigate(redirectTo, { replace: true });
   };
 
   return (
