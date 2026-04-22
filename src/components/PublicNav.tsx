@@ -106,13 +106,6 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                     Connexion
                   </Link>
                   <Link
-                    to="/services"
-                    onClick={() => setOpen(false)}
-                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                  >
-                    À propos
-                  </Link>
-                  <Link
                     to="/entreprises"
                     onClick={() => setOpen(false)}
                     className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"

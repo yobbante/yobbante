@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { ActionBar } from '@/components/ActionBar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { ShipmentCard } from '@/components/ShipmentCard';
@@ -9,6 +8,7 @@ import { AddressCard } from '@/components/AddressCard';
 import { DossierCard } from '@/components/DossierCard';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
 import { SmartImportDialog } from '@/components/SmartImportDialog';
+import { IdleShipDialog } from '@/components/IdleShipDialog';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
@@ -19,11 +19,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Package, Clock, FolderPlus, ArrowRight, Layers } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => void } = {}) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  // Realtime streaming lives inside useTimeline now — true subscription, not just cache invalidation.
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
   const { packages, consolidationGroups, idlePackages } = usePackages();
@@ -33,22 +32,9 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
+  const [idleOpen, setIdleOpen] = useState(false);
   const [presetCountry, setPresetCountry] = useState<WarehouseCountry | undefined>();
 
-  // Real-time stream: any change to packages / shipments / timeline events
-  // triggers an instant cache refresh so the timeline updates live.
-  useEffect(() => {
-    const channel = supabase
-      .channel('home-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_events' },
-        () => queryClient.invalidateQueries({ queryKey: ['timeline'] }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' },
-        () => queryClient.invalidateQueries({ queryKey: ['packages'] }))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' },
-        () => queryClient.invalidateQueries({ queryKey: ['shipments'] }))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
 
   const activeShipments = shipments.filter(s => s.status !== 'DELIVERED');
   const activeDossiers = dossiers.filter(d => d.status !== 'CLOSED' && d.status !== 'DELIVERED');
@@ -169,8 +155,8 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             </p>
             <p className="text-xs text-muted-foreground">Expédiez maintenant pour éviter les frais de stockage.</p>
           </div>
-          <Button size="sm" onClick={() => openShip(idlePackages[0].warehouse_country)}>
-            Expédier
+          <Button size="sm" onClick={() => setIdleOpen(true)}>
+            Expédier en 1 clic
           </Button>
         </motion.div>
       )}
@@ -259,6 +245,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
       </section>
 
       <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} presetCountry={presetCountry} />
+      <IdleShipDialog open={idleOpen} onOpenChange={setIdleOpen} idlePackages={idlePackages} />
       <SmartImportDialog
         open={smartOpen}
         onOpenChange={setSmartOpen}

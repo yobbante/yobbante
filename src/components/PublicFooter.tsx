@@ -35,11 +35,10 @@ export function PublicFooter() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">À propos</p>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Entreprises</p>
             <div className="space-y-2">
-              <Link to="/services" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Nos services</Link>
-              <Link to="/entreprises" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Entreprises</Link>
-              <Link to="/simulateur" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Simulateur</Link>
+              <Link to="/entreprises" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Solution B2B</Link>
+              <Link to="/devis-entreprise" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Demander un devis</Link>
             </div>
           </div>
 
