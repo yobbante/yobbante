@@ -17,21 +17,24 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
     <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <h1 className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</h1>
       <nav className="flex items-center gap-1">
-        {links.map(link => (
-          <button
-            key={link.id}
-            onClick={() => onChange(link.id)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              active === link.id
-                ? 'text-primary bg-primary/8'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-            )}
-          >
-            <link.icon className="w-4 h-4" />
-            {link.label}
-          </button>
-        ))}
+        {links.map(link => {
+          const LinkIcon = link.icon;
+          return (
+            <button
+              key={link.id}
+              onClick={() => onChange(link.id)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                active === link.id
+                  ? 'text-primary bg-primary/8'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              )}
+            >
+              <LinkIcon className="w-4 h-4" />
+              {link.label}
+            </button>
+          );
+        })}
         {isStaff && (
           <button
             onClick={() => navigate('/admin')}
