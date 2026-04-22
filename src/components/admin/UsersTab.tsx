@@ -89,9 +89,10 @@ export function UsersTab() {
                     <p className="text-sm font-semibold text-foreground truncate">{u.full_name || u.email}</p>
                     {u.roles.map(r => {
                       const m = ROLE_META[r];
+                      const RoleIcon = m.Icon;
                       return (
                         <span key={r} className={cn('inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full', m.cls)}>
-                          <m.Icon className="w-3 h-3" /> {m.label}
+                          <RoleIcon className="w-3 h-3" /> {m.label}
                         </span>
                       );
                     })}
