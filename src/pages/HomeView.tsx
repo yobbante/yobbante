@@ -122,7 +122,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             <FolderPlus className="w-7 h-7 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-semibold text-foreground">Aucun dossier en cours</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Confiez votre premier import. Nous gérons tout : sourcing, transport, douane, livraison.
+              Confiez votre premier achat. Nous trouvons, achetons et livrons pour vous.
             </p>
             <Button onClick={openDossier} size="sm" className="mt-4">
               Confier un dossier <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -155,7 +155,27 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
         </motion.div>
       )}
 
-      {/* Consolidation prompts */}
+      {/* 48h idle prompt — one-click ship-now */}
+      {idlePackages.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30"
+        >
+          <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {idlePackages.length} colis en attente depuis +48h
+            </p>
+            <p className="text-xs text-muted-foreground">Expédiez maintenant pour éviter les frais de stockage.</p>
+          </div>
+          <Button size="sm" onClick={() => openShip(idlePackages[0].warehouse_country)}>
+            Expédier
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Consolidation prompts — auto-grouping suggestions */}
       {Object.entries(consolidationGroups).map(([country, pkgs]) => (
         pkgs.length >= 2 && (
           <motion.div
@@ -164,17 +184,17 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border"
           >
-            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <Layers className="w-5 h-5 text-foreground flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">
-                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} colis en {country}
+                {COUNTRY_FLAGS[country as keyof typeof COUNTRY_FLAGS]} {pkgs.length} colis prêts à grouper
               </p>
-              <p className="text-xs text-muted-foreground">Économisez en groupant</p>
+              <p className="text-xs text-muted-foreground">Une seule expédition, des frais réduits.</p>
             </div>
             <Button
               variant="link"
               size="sm"
-              className="text-amber-600 p-0 h-auto"
+              className="text-foreground p-0 h-auto"
               onClick={() => openShip(country as WarehouseCountry)}
             >
               Consolider
@@ -244,7 +264,7 @@ export function HomeView({ onNavigateShipments }: { onNavigateShipments?: () => 
         onOpenChange={setSmartOpen}
         onConfideDossier={(p) => {
           setSmartOpen(false);
-          navigate('/confier-dossier', {
+          navigate('/acheter', {
             state: {
               preset: { product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost },
             },
