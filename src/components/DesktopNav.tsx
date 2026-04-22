@@ -1,4 +1,4 @@
-import { Home, Truck, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Home, FolderOpen, Truck, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -9,13 +9,19 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
   const { isStaff } = useUserRole();
   const links = [
     { id: 'home' as TabId, icon: Home, label: 'Accueil' },
+    { id: 'dossiers' as TabId, icon: FolderOpen, label: 'Dossiers' },
     { id: 'shipments' as TabId, icon: Truck, label: 'Envois' },
     { id: 'profile' as TabId, icon: User, label: 'Profil' },
   ];
 
   return (
-    <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-border bg-background/85 backdrop-blur-xl sticky top-0 z-50">
-      <h1 className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</h1>
+    <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-border bg-background/85 backdrop-blur-xl sticky top-0 z-40">
+      <button
+        onClick={() => onChange('home')}
+        className="text-lg font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
+      >
+        YOBBANTÉ
+      </button>
       <nav className="flex items-center gap-1">
         {links.map(link => {
           const LinkIcon = link.icon;
@@ -25,7 +31,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
               key={link.id}
               onClick={() => onChange(link.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'text-foreground bg-secondary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
@@ -39,7 +45,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
         {isStaff && (
           <button
             onClick={() => navigate('/admin')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors ml-1"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors ml-1"
           >
             <ShieldCheck className="w-4 h-4" />
             Admin
@@ -48,7 +54,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
         <button
           onClick={onSignOut}
           aria-label="Se déconnecter"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-2"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-1"
         >
           <LogOut className="w-4 h-4" />
         </button>
