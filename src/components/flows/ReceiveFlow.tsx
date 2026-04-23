@@ -605,9 +605,13 @@ function PreOrderFlow({
       <FlowSection
         revealed step={1} total={TOTAL}
         title="Choisissez où recevoir votre colis"
-        hint="On vous donne une adresse Yobbanté dans le hub que vous choisissez."
+        hint="Notre réseau de 6 hubs internationaux réceptionne et consolide vos commandes."
       >
-        <CountryGrid countries={HUBS} value={hub} onChange={setHub} />
+        <HubsWorldMap
+          value={hub}
+          onChange={(id) => setHub(id)}
+          variant="dark"
+        />
       </FlowSection>
 
       <FlowSection
