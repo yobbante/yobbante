@@ -15,6 +15,19 @@ import { useAddresses } from '@/hooks/useAddresses';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
+import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+
+/** Detect a recommended hub from a free-text input (URL or paste). */
+function detectHubFromInput(text: string): HubId | null {
+  const t = text.toLowerCase();
+  if (/alibaba|aliexpress|shein|temu|1688|taobao|\.cn\b/.test(t)) return 'CN';
+  if (/amazon\.fr|cdiscount|fnac|laposte|colissimo|chronopost/.test(t)) return 'FR';
+  if (/amazon\.com|ebay\.com|walmart|usps|fedex\.com\/us/.test(t)) return 'US';
+  if (/amazon\.ae|noon\.com|\.ae\b/.test(t)) return 'AE';
+  if (/trendyol|hepsiburada|\.tr\b/.test(t)) return 'TR';
+  if (/amazon\.de|otto\.de|zalando\.de|\.de\b/.test(t)) return 'FR'; // DE → routed via FR hub
+  return null;
+}
 
 /* ──────────────────────────────────────────────────────────────────────
    Static data
