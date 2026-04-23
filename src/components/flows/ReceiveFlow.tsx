@@ -533,6 +533,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         <TrackingFlow
           hub={hub} setHub={setHub}
           destination={destination} setDestination={setDestination}
+          recommendedHub={recommendedHub}
           inputRef={inputRef} itemRefs={itemRefs}
           trackingInput={trackingInput} setTrackingInput={setTrackingInput}
           parsing={parsing}
