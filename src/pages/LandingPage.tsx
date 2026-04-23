@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import { HubsWorldMap } from '@/components/HubsWorldMap';
 import {
   Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset,
 } from 'lucide-react';
@@ -187,6 +188,45 @@ export default function LandingPage() {
                 Lancer un sourcing <ArrowRight className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───── GLOBAL NETWORK ───── */}
+      <section className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
+          <div className="grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-14 items-center">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Réseau global</p>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05] text-balance">
+                Un réseau global,<br className="hidden sm:block" /> proche de vos achats.
+              </h2>
+              <p className="mt-5 text-base text-muted-foreground leading-relaxed text-pretty max-w-md">
+                Yobbanté s'appuie sur un réseau de hubs internationaux pour réceptionner,
+                consolider et expédier vos colis rapidement — sans que vous ayez à comprendre
+                la moindre ligne de logistique.
+              </p>
+              <ul className="mt-6 space-y-2.5 text-sm">
+                {[
+                  'Adresses dédiées dans 6 pays',
+                  'Consolidation multi-colis automatique',
+                  'Départs réguliers vers l\'Afrique de l\'Ouest',
+                ].map(t => (
+                  <li key={t} className="flex items-start gap-2.5 text-foreground/80">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-primary shrink-0" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => navigate('/expedier/recevoir')}
+                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
+              >
+                Voir vos hubs disponibles <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <HubsWorldMap value={null} onChange={() => {}} variant="dark" />
           </div>
         </div>
       </section>

@@ -15,6 +15,19 @@ import { useAddresses } from '@/hooks/useAddresses';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
+import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+
+/** Detect a recommended hub from a free-text input (URL or paste). */
+function detectHubFromInput(text: string): HubId | null {
+  const t = text.toLowerCase();
+  if (/alibaba|aliexpress|shein|temu|1688|taobao|\.cn\b/.test(t)) return 'CN';
+  if (/amazon\.fr|cdiscount|fnac|laposte|colissimo|chronopost/.test(t)) return 'FR';
+  if (/amazon\.com|ebay\.com|walmart|usps|fedex\.com\/us/.test(t)) return 'US';
+  if (/amazon\.ae|noon\.com|\.ae\b/.test(t)) return 'AE';
+  if (/trendyol|hepsiburada|\.tr\b/.test(t)) return 'TR';
+  if (/amazon\.de|otto\.de|zalando\.de|\.de\b/.test(t)) return 'FR'; // DE → routed via FR hub
+  return null;
+}
 
 /* ──────────────────────────────────────────────────────────────────────
    Static data
@@ -196,6 +209,17 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     [hub, addresses]
   );
   const portals = hub ? EXTERNAL_PORTAL[hub] ?? [] : [];
+
+  /** Auto-suggest a hub from the current text input or last imported items. */
+  const recommendedHub = useMemo<HubId | null>(() => {
+    const fromInput = detectHubFromInput(trackingInput);
+    if (fromInput) return fromInput;
+    for (const it of items) {
+      const fromItem = detectHubFromInput(`${it.platform} ${it.source}`);
+      if (fromItem) return fromItem;
+    }
+    return null;
+  }, [trackingInput, items]);
 
   /* ── Persist core selections ── */
   useEffect(() => {
@@ -509,6 +533,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         <TrackingFlow
           hub={hub} setHub={setHub}
           destination={destination} setDestination={setDestination}
+          recommendedHub={recommendedHub}
           inputRef={inputRef} itemRefs={itemRefs}
           trackingInput={trackingInput} setTrackingInput={setTrackingInput}
           parsing={parsing}
@@ -592,9 +617,13 @@ function PreOrderFlow({
       <FlowSection
         revealed step={1} total={TOTAL}
         title="Choisissez où recevoir votre colis"
-        hint="On vous donne une adresse Yobbanté dans le hub que vous choisissez."
+        hint="Notre réseau de 6 hubs internationaux réceptionne et consolide vos commandes."
       >
-        <CountryGrid countries={HUBS} value={hub} onChange={setHub} />
+        <HubsWorldMap
+          value={hub}
+          onChange={(id) => setHub(id)}
+          variant="dark"
+        />
       </FlowSection>
 
       <FlowSection
@@ -730,7 +759,7 @@ function PreOrderFlow({
    ────────────────────────────────────────────────────────────────────── */
 
 function TrackingFlow({
-  hub, setHub, destination, setDestination,
+  hub, setHub, destination, setDestination, recommendedHub,
   inputRef, itemRefs,
   trackingInput, setTrackingInput, parsing,
   items, trackingEntries, onInputKey, onItemKey,
@@ -740,6 +769,7 @@ function TrackingFlow({
 }: {
   hub: string | null; setHub: (v: string) => void;
   destination: string | null; setDestination: (v: string) => void;
+  recommendedHub: HubId | null;
   inputRef: React.RefObject<HTMLInputElement>;
   itemRefs: React.MutableRefObject<Array<HTMLLIElement | null>>;
   trackingInput: string; setTrackingInput: (v: string) => void;
@@ -880,9 +910,16 @@ function TrackingFlow({
       <FlowSection
         revealed={hasItems} step={2} total={TOTAL}
         title="Hub de réception"
-        hint="Où arrive le colis avant qu'on vous le réexpédie."
+        hint={recommendedHub
+          ? "On a détecté l'origine de votre commande — un hub est suggéré."
+          : "Où arrive le colis avant qu'on vous le réexpédie."}
       >
-        <CountryGrid countries={HUBS} value={hub} onChange={setHub} />
+        <HubsWorldMap
+          value={hub}
+          onChange={(id) => setHub(id)}
+          recommended={recommendedHub}
+          variant="dark"
+        />
       </FlowSection>
 
       <FlowSection
