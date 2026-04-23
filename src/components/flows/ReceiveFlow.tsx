@@ -759,7 +759,7 @@ function PreOrderFlow({
    ────────────────────────────────────────────────────────────────────── */
 
 function TrackingFlow({
-  hub, setHub, destination, setDestination,
+  hub, setHub, destination, setDestination, recommendedHub,
   inputRef, itemRefs,
   trackingInput, setTrackingInput, parsing,
   items, trackingEntries, onInputKey, onItemKey,
@@ -769,6 +769,7 @@ function TrackingFlow({
 }: {
   hub: string | null; setHub: (v: string) => void;
   destination: string | null; setDestination: (v: string) => void;
+  recommendedHub: HubId | null;
   inputRef: React.RefObject<HTMLInputElement>;
   itemRefs: React.MutableRefObject<Array<HTMLLIElement | null>>;
   trackingInput: string; setTrackingInput: (v: string) => void;
