@@ -910,9 +910,16 @@ function TrackingFlow({
       <FlowSection
         revealed={hasItems} step={2} total={TOTAL}
         title="Hub de réception"
-        hint="Où arrive le colis avant qu'on vous le réexpédie."
+        hint={recommendedHub
+          ? "On a détecté l'origine de votre commande — un hub est suggéré."
+          : "Où arrive le colis avant qu'on vous le réexpédie."}
       >
-        <CountryGrid countries={HUBS} value={hub} onChange={setHub} />
+        <HubsWorldMap
+          value={hub}
+          onChange={(id) => setHub(id)}
+          recommended={recommendedHub}
+          variant="dark"
+        />
       </FlowSection>
 
       <FlowSection
