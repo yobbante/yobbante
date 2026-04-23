@@ -210,6 +210,17 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   );
   const portals = hub ? EXTERNAL_PORTAL[hub] ?? [] : [];
 
+  /** Auto-suggest a hub from the current text input or last imported items. */
+  const recommendedHub = useMemo<HubId | null>(() => {
+    const fromInput = detectHubFromInput(trackingInput);
+    if (fromInput) return fromInput;
+    for (const it of items) {
+      const fromItem = detectHubFromInput(`${it.platform} ${it.source}`);
+      if (fromItem) return fromItem;
+    }
+    return null;
+  }, [trackingInput, items]);
+
   /* ── Persist core selections ── */
   useEffect(() => {
     if (step === 'ask') return;
