@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS, type Package } from '@/lib/types';
+import { OrderDetailDrawer, type OrderRowRef } from './OrderDetailDrawer';
 
 type Shipment = {
   id: string;
@@ -32,6 +33,7 @@ const STATUS_TONE: Record<string, string> = {
 
 export function OrdersTab() {
   const [q, setQ] = useState('');
+  const [selected, setSelected] = useState<OrderRowRef | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-orders'],
@@ -111,30 +113,42 @@ export function OrdersTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map(r => (
-                <tr key={`${r.kind}-${r.id}`} className="hover:bg-secondary/30">
-                  <td className="px-4 py-2.5 font-mono text-xs text-foreground">{r.ref}</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground capitalize">{r.kind}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="text-base mr-1">{COUNTRY_FLAGS[r.hub as keyof typeof COUNTRY_FLAGS] || '🌍'}</span>
-                    <span className="text-xs text-muted-foreground">{r.hub}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-foreground truncate max-w-[260px]">{r.label}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide', STATUS_TONE[r.status] || 'bg-muted text-muted-foreground')}>
-                      {r.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{r.transport}</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground tabular-nums hidden md:table-cell">
-                    {r.eta ? new Date(r.eta).toLocaleDateString('fr-FR') : '—'}
-                  </td>
-                </tr>
-              ))}
+              {rows.map(r => {
+                const isActive = selected?.kind === r.kind && selected?.id === r.id;
+                return (
+                  <tr
+                    key={`${r.kind}-${r.id}`}
+                    onClick={() => setSelected({ kind: r.kind, id: r.id })}
+                    className={cn(
+                      'cursor-pointer transition-colors',
+                      isActive ? 'bg-primary/8' : 'hover:bg-secondary/30'
+                    )}
+                  >
+                    <td className="px-4 py-2.5 font-mono text-xs text-foreground">{r.ref}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground capitalize">{r.kind}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="text-base mr-1">{COUNTRY_FLAGS[r.hub as keyof typeof COUNTRY_FLAGS] || '🌍'}</span>
+                      <span className="text-xs text-muted-foreground">{r.hub}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-foreground truncate max-w-[260px]">{r.label}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide', STATUS_TONE[r.status] || 'bg-muted text-muted-foreground')}>
+                        {r.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{r.transport}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground tabular-nums hidden md:table-cell">
+                      {r.eta ? new Date(r.eta).toLocaleDateString('fr-FR') : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <OrderDetailDrawer row={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

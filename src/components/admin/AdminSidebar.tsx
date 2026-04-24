@@ -19,9 +19,9 @@ export const ADMIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDa
   { id: 'hubs',      label: 'Hubs',              icon: Globe2,          live: true },
   { id: 'transport', label: 'Transport',         icon: Truck,           live: true },
   { id: 'sourcing',  label: 'Sourcing',          icon: ShoppingCart,    live: true },
-  { id: 'tracking',  label: 'Tracking global',   icon: MapPin,          live: false },
-  { id: 'clients',   label: 'Clients',           icon: Users,           live: false },
-  { id: 'settings',  label: 'Paramètres',        icon: Settings,        live: false },
+  { id: 'tracking',  label: 'Tracking global',   icon: MapPin,          live: true },
+  { id: 'clients',   label: 'Clients',           icon: Users,           live: true },
+  { id: 'settings',  label: 'Paramètres',        icon: Settings,        live: true },
 ];
 
 export function AdminSidebar({ active, onChange, isAdmin }: {
