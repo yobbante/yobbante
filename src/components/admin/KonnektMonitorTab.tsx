@@ -109,6 +109,23 @@ export function KonnektMonitorTab() {
         </Button>
       </div>
 
+      {/* Live failure banner — only when last sync failed or fell back to mock */}
+      {last && (last.status === 'error' || (last.source === 'mock' && last.error_message)) && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-destructive">Dernière synchronisation Konnekt en échec</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {last.error_message || 'Source dégradée vers fallback. Voir l\'historique pour le détail.'}
+            </p>
+          </div>
+          <Button onClick={runTest} disabled={testing} variant="outline" size="sm" className="gap-1.5 shrink-0">
+            <RefreshCw className={cn('w-3.5 h-3.5', testing && 'animate-spin')} />
+            Réessayer
+          </Button>
+        </div>
+      )}
+
       {/* Last status card */}
       <div className="grid sm:grid-cols-3 gap-3">
         <StatCard

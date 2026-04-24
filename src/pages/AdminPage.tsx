@@ -12,7 +12,9 @@ import { OrdersTab } from '@/components/admin/OrdersTab';
 import { HubsTab } from '@/components/admin/HubsTab';
 import { SourcingTab } from '@/components/admin/SourcingTab';
 import { KonnektMonitorTab } from '@/components/admin/KonnektMonitorTab';
-import { PlaceholderTab } from '@/components/admin/PlaceholderTab';
+import { TrackingTab } from '@/components/admin/TrackingTab';
+import { ClientsTab } from '@/components/admin/ClientsTab';
+import { SettingsTab } from '@/components/admin/SettingsTab';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -123,9 +125,9 @@ export default function AdminPage() {
           {section === 'hubs'      && <HubsTab />}
           {section === 'transport' && <KonnektMonitorTab />}
           {section === 'sourcing'  && <SourcingTab />}
-          {section === 'tracking'  && <PlaceholderTab title="Tracking global" description="Timeline unifiée multi-commandes." />}
-          {section === 'clients'   && <PlaceholderTab title="Clients" description="Annuaire et historique client." />}
-          {section === 'settings'  && <PlaceholderTab title="Paramètres" description="Hubs, API keys, règles de pricing." />}
+          {section === 'tracking'  && <TrackingTab />}
+          {section === 'clients'   && <ClientsTab />}
+          {section === 'settings'  && <SettingsTab />}
         </main>
       </div>
     </div>
