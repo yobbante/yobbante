@@ -276,6 +276,9 @@ export default function LandingPage() {
                 )}
               </AnimatePresence>
             </div>
+          </div>
+        </div>
+      </section>
 
       {/* ───── WHY YOBBANTÉ ───── */}
       <section className="border-t border-border">
