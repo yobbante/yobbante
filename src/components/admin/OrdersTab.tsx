@@ -147,6 +147,8 @@ export function OrdersTab() {
           </table>
         </div>
       )}
+
+      <OrderDetailDrawer row={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
