@@ -552,6 +552,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       {step === 'pre-order' && (
         <PreOrderFlow
           hub={hub} setHub={setHub}
+          recommendedHub={recommendedHub}
           hubAddress={hubAddress}
           portals={portals}
           copied={copied}
