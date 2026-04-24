@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS, type Package } from '@/lib/types';
+import { OrderDetailDrawer, type OrderRowRef } from './OrderDetailDrawer';
 
 type Shipment = {
   id: string;
