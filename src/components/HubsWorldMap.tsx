@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Sparkles, Plane, Ship, Truck, Activity } from 'lucide-react';
+import {
+  MapPin, Sparkles, Plane, Ship, Truck, Activity,
+  Inbox, Warehouse, PackageCheck, Calendar, Layers,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDepartures, type KonnektDeparture } from '@/hooks/useDepartures';
 
 /* ──────────────────────────────────────────────────────────────────────
    HubsWorldMap — interactive dark world map with 6 glowing hub nodes.
-   Premium UX: hover/tap reveals hub details + Konnekt trust layer.
+   Premium UX: hover/tap reveals hub details, Konnekt trust layer,
+   compact legend and a small timeline preview for the active hub.
    ────────────────────────────────────────────────────────────────────── */
 
 export type HubId = 'CN' | 'FR' | 'US' | 'AE' | 'TR' | 'SN';
@@ -20,18 +24,34 @@ type HubMeta = {
   /** Position in % on the SVG viewBox 0..100 */
   x: number;
   y: number;
-  /** Country codes Konnekt may report this hub as */
+  /**
+   * Authoritative mapping table for matching Konnekt `origin_country` values
+   * to this hub. Values are normalized (uppercased, trimmed) before compare.
+   * Use exact equality — no substring heuristics.
+   */
   konnektMatch: string[];
 };
 
 export const WORLD_HUBS: HubMeta[] = [
-  { id: 'US', flag: '🇺🇸', label: 'USA',     city: 'Miami',     tagline: 'Idéal Amazon US, eBay, Walmart',  x: 22, y: 38, konnektMatch: ['US', 'USA', 'United States'] },
-  { id: 'FR', flag: '🇫🇷', label: 'France',  city: 'Paris',     tagline: 'Amazon FR, Cdiscount, Fnac',      x: 50, y: 30, konnektMatch: ['FR', 'France'] },
-  { id: 'TR', flag: '🇹🇷', label: 'Turquie', city: 'Istanbul',  tagline: 'Mode, textile, gros volumes',     x: 56, y: 36, konnektMatch: ['TR', 'Turkey', 'Türkiye'] },
-  { id: 'AE', flag: '🇦🇪', label: 'Dubai',   city: 'Dubai',     tagline: 'Électronique, luxe, Amazon.ae',   x: 62, y: 44, konnektMatch: ['AE', 'UAE', 'Dubai', 'United Arab Emirates'] },
-  { id: 'CN', flag: '🇨🇳', label: 'Chine',   city: 'Shenzhen',  tagline: 'Alibaba, AliExpress, Shein, Temu',x: 78, y: 40, konnektMatch: ['CN', 'China'] },
-  { id: 'SN', flag: '🇸🇳', label: 'Sénégal', city: 'Dakar',     tagline: 'Hub local · regroupement & livraison', x: 44, y: 52, konnektMatch: ['SN', 'Senegal'] },
+  { id: 'US', flag: '🇺🇸', label: 'USA',     city: 'Miami',     tagline: 'Idéal Amazon US, eBay, Walmart',  x: 22, y: 38, konnektMatch: ['US', 'USA', 'UNITED STATES', 'UNITED STATES OF AMERICA'] },
+  { id: 'FR', flag: '🇫🇷', label: 'France',  city: 'Paris',     tagline: 'Amazon FR, Cdiscount, Fnac',      x: 50, y: 30, konnektMatch: ['FR', 'FRANCE', 'FRA'] },
+  { id: 'TR', flag: '🇹🇷', label: 'Turquie', city: 'Istanbul',  tagline: 'Mode, textile, gros volumes',     x: 56, y: 36, konnektMatch: ['TR', 'TUR', 'TURKEY', 'TÜRKIYE', 'TURKIYE'] },
+  { id: 'AE', flag: '🇦🇪', label: 'Dubai',   city: 'Dubai',     tagline: 'Électronique, luxe, Amazon.ae',   x: 62, y: 44, konnektMatch: ['AE', 'ARE', 'UAE', 'DUBAI', 'UNITED ARAB EMIRATES'] },
+  { id: 'CN', flag: '🇨🇳', label: 'Chine',   city: 'Shenzhen',  tagline: 'Alibaba, AliExpress, Shein, Temu',x: 78, y: 40, konnektMatch: ['CN', 'CHN', 'CHINA'] },
+  { id: 'SN', flag: '🇸🇳', label: 'Sénégal', city: 'Dakar',     tagline: 'Hub local · regroupement & livraison', x: 44, y: 52, konnektMatch: ['SN', 'SEN', 'SENEGAL', 'SÉNÉGAL'] },
 ];
+
+/** Build an O(1) lookup table: normalized token -> hub id. */
+const KONNEKT_LOOKUP: Record<string, HubId> = (() => {
+  const out: Record<string, HubId> = {};
+  for (const h of WORLD_HUBS) for (const m of h.konnektMatch) out[m.trim().toUpperCase()] = h.id;
+  return out;
+})();
+
+export function matchKonnektOrigin(raw: string | null | undefined): HubId | null {
+  if (!raw) return null;
+  return KONNEKT_LOOKUP[raw.trim().toUpperCase()] ?? null;
+}
 
 /* Derived live insights per hub from Konnekt departures */
 function useHubInsights() {
@@ -44,17 +64,24 @@ function useHubInsights() {
       AE: { count: 0 }, TR: { count: 0 }, SN: { count: 0 },
     };
 
-    for (const hub of WORLD_HUBS) {
-      const matching = departures
-        .filter(d => hub.konnektMatch.some(m =>
-          d.origin_country?.toUpperCase().includes(m.toUpperCase())
-        ))
-        .sort((a, b) => new Date(a.departure_date).getTime() - new Date(b.departure_date).getTime());
-
-      byHub[hub.id] = { next: matching[0], count: matching.length };
+    let totalMatched = 0;
+    for (const dep of departures) {
+      const hubId = matchKonnektOrigin(dep.origin_country);
+      if (!hubId) continue;
+      totalMatched++;
+      const slot = byHub[hubId];
+      slot.count += 1;
+      if (!slot.next || new Date(dep.departure_date).getTime() < new Date(slot.next.departure_date).getTime()) {
+        slot.next = dep;
+      }
     }
 
-    return { byHub, isLoading, hasLiveData: (data?.count ?? 0) > 0 };
+    return {
+      byHub,
+      isLoading,
+      hasLiveData: (data?.count ?? 0) > 0,
+      hasMatchedAny: totalMatched > 0,
+    };
   }, [departures, isLoading, data?.count]);
 }
 
@@ -82,6 +109,8 @@ export function HubsWorldMap({
   recommended,
   destination = 'SN',
   variant = 'dark',
+  showLegend = true,
+  showTimelinePreview = true,
   className,
 }: {
   value: string | null;
@@ -91,9 +120,13 @@ export function HubsWorldMap({
   /** Destination hub id for path drawing — defaults to Senegal. */
   destination?: HubId;
   variant?: 'dark' | 'light';
+  /** Compact legend explaining the trust-layer icons. */
+  showLegend?: boolean;
+  /** Mini timeline preview shown for the active hub. */
+  showTimelinePreview?: boolean;
   className?: string;
 }) {
-  const { byHub, isLoading, hasLiveData } = useHubInsights();
+  const { byHub, isLoading, hasLiveData, hasMatchedAny } = useHubInsights();
   const [hovered, setHovered] = useState<HubId | null>(null);
   const dest = WORLD_HUBS.find(h => h.id === destination) ?? WORLD_HUBS[5];
   const active = (hovered ?? (value as HubId) ?? recommended ?? null);
@@ -106,7 +139,10 @@ export function HubsWorldMap({
     ? 'bg-gradient-to-b from-zinc-950 to-zinc-900 border-white/10'
     : 'bg-gradient-to-b from-secondary to-background border-border';
   const muted = isDark ? 'text-white/55' : 'text-muted-foreground';
+  const subtle = isDark ? 'text-white/40' : 'text-muted-foreground/70';
   const fg = isDark ? 'text-white' : 'text-foreground';
+  const border = isDark ? 'border-white/10' : 'border-border';
+  const chipBg = isDark ? 'bg-white/[0.04]' : 'bg-secondary';
 
   return (
     <div className={cn('relative rounded-2xl border-2 overflow-hidden', bg, className)}>
@@ -135,19 +171,12 @@ export function HubsWorldMap({
           <g fill={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}
              stroke={isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}
              strokeWidth="0.15">
-            {/* North America */}
             <path d="M8,18 Q14,10 24,12 Q32,14 30,22 Q34,28 26,32 Q18,34 12,28 Q6,24 8,18 Z" />
-            {/* South America */}
             <path d="M24,38 Q30,36 30,42 Q28,48 22,46 Q20,42 24,38 Z" />
-            {/* Europe */}
             <path d="M44,20 Q52,18 56,22 Q54,28 48,28 Q42,26 44,20 Z" />
-            {/* Africa */}
             <path d="M46,30 Q56,28 56,38 Q52,48 44,46 Q40,38 46,30 Z" />
-            {/* Middle East / West Asia */}
             <path d="M56,28 Q64,26 66,34 Q60,38 56,34 Z" />
-            {/* Asia */}
             <path d="M64,18 Q80,14 88,22 Q86,32 76,34 Q66,30 64,18 Z" />
-            {/* Oceania */}
             <path d="M82,38 Q88,36 90,42 Q84,46 80,42 Z" />
           </g>
 
@@ -216,7 +245,6 @@ export function HubsWorldMap({
               )}
               style={{ left: `${h.x}%`, top: `${h.y}%` }}
             >
-              {/* Pulse ring (recommended/selected) */}
               {(isRecommended || isSelected) && (
                 <span
                   className={cn(
@@ -227,7 +255,6 @@ export function HubsWorldMap({
                 />
               )}
 
-              {/* Node */}
               <span
                 className={cn(
                   'relative inline-flex items-center justify-center rounded-full border-2 transition-all ring-2',
@@ -248,7 +275,6 @@ export function HubsWorldMap({
                 {!isDest && <span className="text-sm sm:text-base leading-none">{h.flag}</span>}
               </span>
 
-              {/* Tooltip label */}
               <span
                 className={cn(
                   'absolute left-1/2 -translate-x-1/2 top-full mt-1.5 px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap pointer-events-none transition-opacity',
@@ -262,7 +288,6 @@ export function HubsWorldMap({
                 {isDest ? `${h.flag} ${h.label}` : h.label}
               </span>
 
-              {/* Recommended badge */}
               {isRecommended && (
                 <span className="absolute -top-2 left-full ml-1 inline-flex items-center gap-0.5 rounded-full bg-yellow-400 text-zinc-950 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 whitespace-nowrap shadow-lg">
                   <Sparkles className="w-2.5 h-2.5" /> Recommandé
@@ -273,8 +298,8 @@ export function HubsWorldMap({
         })}
       </div>
 
-      {/* Detail panel — slides up on hover/select */}
-      <div className={cn('relative border-t px-4 sm:px-5 py-3 sm:py-3.5 min-h-[78px]', isDark ? 'border-white/10 bg-zinc-950/60' : 'border-border bg-card/60')}>
+      {/* Detail panel */}
+      <div className={cn('relative border-t px-4 sm:px-5 py-3 sm:py-3.5 min-h-[78px]', border, isDark ? 'bg-zinc-950/60' : 'bg-card/60')}>
         <AnimatePresence mode="wait">
           {activeHub ? (
             <motion.div
@@ -306,7 +331,7 @@ export function HubsWorldMap({
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                   <span className="inline-flex items-center gap-1 text-emerald-400">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Hub actif cette semaine
+                    Hub actif
                   </span>
                   {activeInsights?.next ? (
                     <span className={cn('inline-flex items-center gap-1', muted)}>
@@ -317,18 +342,22 @@ export function HubsWorldMap({
                     <span className={cn('inline-flex items-center gap-1', muted)}>
                       <Activity className="w-3 h-3 animate-pulse" /> Lecture du planning…
                     </span>
+                  ) : hasLiveData && !hasMatchedAny ? (
+                    <span className={cn('inline-flex items-center gap-1', muted)}>
+                      <Calendar className="w-3 h-3" /> Départs sur demande
+                    </span>
                   ) : hasLiveData ? (
                     <span className={cn('inline-flex items-center gap-1', muted)}>
-                      <Activity className="w-3 h-3" /> Départs sur demande
+                      <Calendar className="w-3 h-3" /> Pas de départ planifié — sur demande
                     </span>
                   ) : (
                     <span className={cn('inline-flex items-center gap-1', muted)}>
-                      <Activity className="w-3 h-3" /> Départs réguliers
+                      <Calendar className="w-3 h-3" /> Départs réguliers
                     </span>
                   )}
                   {(activeInsights?.count ?? 0) > 0 && (
                     <span className={cn('inline-flex items-center gap-1', muted)}>
-                      <Plane className="w-3 h-3" /> {activeInsights!.count} expédition{activeInsights!.count > 1 ? 's' : ''} planifiée{activeInsights!.count > 1 ? 's' : ''}
+                      <Layers className="w-3 h-3" /> {activeInsights!.count} départ{activeInsights!.count > 1 ? 's' : ''} planifié{activeInsights!.count > 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -346,6 +375,64 @@ export function HubsWorldMap({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Timeline preview — connects map ↔ timeline-first experience */}
+      {showTimelinePreview && activeHub && activeHub.id !== destination && (
+        <div className={cn('relative border-t px-4 sm:px-5 py-3', border, isDark ? 'bg-zinc-950/40' : 'bg-secondary/30')}>
+          <div className="flex items-center justify-between mb-2">
+            <p className={cn('text-[10px] uppercase tracking-wider font-semibold', subtle)}>
+              Parcours type depuis {activeHub.label}
+            </p>
+            <p className={cn('text-[10px]', subtle)}>~ 4 étapes suivies</p>
+          </div>
+          <ol className="flex items-center gap-1.5 sm:gap-2">
+            {[
+              { Icon: Inbox,         label: 'Reçu au hub' },
+              { Icon: Warehouse,     label: 'En stockage' },
+              { Icon: Plane,         label: 'Prêt à partir' },
+              { Icon: PackageCheck,  label: `Livré · ${dest.label}` },
+            ].map((s, i, arr) => (
+              <li key={s.label} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] sm:text-[11px] font-medium',
+                  chipBg, fg
+                )}>
+                  <s.Icon className="w-3 h-3 opacity-70" />
+                  <span className="truncate">{s.label}</span>
+                </span>
+                {i < arr.length - 1 && (
+                  <span className={cn('h-px w-3 sm:w-5', isDark ? 'bg-white/15' : 'bg-foreground/15')} />
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* Compact legend — explains trust metrics */}
+      {showLegend && (
+        <div className={cn('relative border-t px-4 sm:px-5 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px]', border, isDark ? 'bg-zinc-950/30' : 'bg-secondary/20', subtle)}>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            Hub actif
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="w-3 h-3" /> Prochain départ
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Plane className="w-3 h-3" />/<Ship className="w-3 h-3" />/<Truck className="w-3 h-3" />
+            Mode de transport
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Layers className="w-3 h-3" /> Départs planifiés
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-yellow-400" /> Recommandé
+            <span className="mx-1.5 opacity-30">·</span>
+            <span className="inline-block w-2 h-2 rounded-full bg-primary" /> Sélectionné
+          </span>
+        </div>
+      )}
     </div>
   );
 }
