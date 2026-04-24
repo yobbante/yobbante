@@ -236,10 +236,46 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <HubsWorldMap value={null} onChange={() => {}} variant="dark" />
-          </div>
-        </div>
-      </section>
+            <div>
+              <HubsWorldMap
+                value={selectedHub}
+                onChange={handleHubPick}
+                variant="dark"
+              />
+              <AnimatePresence>
+                {selectedHubMeta && (
+                  <motion.div
+                    key={selectedHubMeta.id}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/[0.06] p-4"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">
+                        {selectedHubMeta.flag}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          Hub <span className="text-primary">{selectedHubMeta.label}</span> sélectionné
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          <MapPin className="w-3 h-3 inline -mt-0.5 mr-1" />
+                          {selectedHubMeta.city} · {selectedHubMeta.tagline}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={goReceiveWithHub}
+                      className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground px-4 py-2.5 rounded-xl hover:opacity-90 hover:-translate-y-0.5 transition-all shrink-0"
+                    >
+                      Continuer avec ce hub <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
       {/* ───── WHY YOBBANTÉ ───── */}
       <section className="border-t border-border">
