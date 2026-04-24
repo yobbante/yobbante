@@ -42,8 +42,11 @@ const METRICS = [
   { value: '98%',     label: 'satisfaction client' },
 ];
 
+const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
+
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
 
   useEffect(() => {
     document.title = 'Yobbanté · Expédiez ou achetez à l\'international, simplement.';
@@ -51,6 +54,13 @@ export default function LandingPage() {
 
   const goShip = () => navigate('/expedier');
   const goBuy = () => navigate('/acheter');
+
+  const handleHubPick = (id: HubId) => {
+    setSelectedHub(id);
+    try { localStorage.setItem(LANDING_HUB_KEY, id); } catch { /* noop */ }
+  };
+  const goReceiveWithHub = () => navigate('/expedier/recevoir');
+  const selectedHubMeta = selectedHub ? WORLD_HUBS.find(h => h.id === selectedHub) : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
