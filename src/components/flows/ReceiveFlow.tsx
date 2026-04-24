@@ -84,17 +84,24 @@ type SavedSession = {
   ordered: 'yes' | 'no' | null;
   hub: string | null;
   destination: string | null;
+  /** Auto-suggested hub — persisted so it survives step navigation. */
+  recommendedHub: HubId | null;
   generatedAt: number | null;
   exitedAt: number | null;
+};
+
+const EMPTY_SESSION: SavedSession = {
+  ordered: null, hub: null, destination: null, recommendedHub: null,
+  generatedAt: null, exitedAt: null,
 };
 
 function loadSession(): SavedSession {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { ordered: null, hub: null, destination: null, generatedAt: null, exitedAt: null };
-    return { ordered: null, hub: null, destination: null, generatedAt: null, exitedAt: null, ...JSON.parse(raw) };
+    if (!raw) return { ...EMPTY_SESSION };
+    return { ...EMPTY_SESSION, ...JSON.parse(raw) };
   } catch {
-    return { ordered: null, hub: null, destination: null, generatedAt: null, exitedAt: null };
+    return { ...EMPTY_SESSION };
   }
 }
 function saveSession(s: Partial<SavedSession>) {
@@ -105,6 +112,18 @@ function saveSession(s: Partial<SavedSession>) {
 }
 function clearSession() {
   try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
+}
+
+/** Public hand-off key used by the landing-page hub map. */
+const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
+function readLandingHub(): HubId | null {
+  try {
+    const v = localStorage.getItem(LANDING_HUB_KEY);
+    return v && ['CN', 'FR', 'US', 'AE', 'TR', 'SN'].includes(v) ? (v as HubId) : null;
+  } catch { return null; }
+}
+function clearLandingHub() {
+  try { localStorage.removeItem(LANDING_HUB_KEY); } catch { /* noop */ }
 }
 
 /* ──────────────────────────────────────────────────────────────────────
