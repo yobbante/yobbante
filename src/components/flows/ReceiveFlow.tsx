@@ -628,11 +628,12 @@ function ChoicePill({
    ────────────────────────────────────────────────────────────────────── */
 
 function PreOrderFlow({
-  hub, setHub, hubAddress, portals, copied, copyAddress, openExternal,
+  hub, setHub, recommendedHub, hubAddress, portals, copied, copyAddress, openExternal,
   reminderEmail, setReminderEmail, reminderSaved, saveReminder,
   goTracking, goBack,
 }: {
   hub: string | null; setHub: (v: string) => void;
+  recommendedHub: HubId | null;
   hubAddress: ReturnType<typeof useAddresses>['addresses'][number] | null | undefined;
   portals: { label: string; url: string }[];
   copied: boolean; copyAddress: () => void;
@@ -661,6 +662,7 @@ function PreOrderFlow({
         <HubsWorldMap
           value={hub}
           onChange={(id) => setHub(id)}
+          recommended={recommendedHub}
           variant="dark"
         />
       </FlowSection>
