@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-import { HubsWorldMap } from '@/components/HubsWorldMap';
+import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import {
-  Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset,
+  Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
 } from 'lucide-react';
 
 const fadeUp = {
@@ -42,8 +42,11 @@ const METRICS = [
   { value: '98%',     label: 'satisfaction client' },
 ];
 
+const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
+
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
 
   useEffect(() => {
     document.title = 'Yobbanté · Expédiez ou achetez à l\'international, simplement.';
@@ -51,6 +54,13 @@ export default function LandingPage() {
 
   const goShip = () => navigate('/expedier');
   const goBuy = () => navigate('/acheter');
+
+  const handleHubPick = (id: HubId) => {
+    setSelectedHub(id);
+    try { localStorage.setItem(LANDING_HUB_KEY, id); } catch { /* noop */ }
+  };
+  const goReceiveWithHub = () => navigate('/expedier/recevoir');
+  const selectedHubMeta = selectedHub ? WORLD_HUBS.find(h => h.id === selectedHub) : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -226,7 +236,46 @@ export default function LandingPage() {
               </button>
             </div>
 
-            <HubsWorldMap value={null} onChange={() => {}} variant="dark" />
+            <div>
+              <HubsWorldMap
+                value={selectedHub}
+                onChange={handleHubPick}
+                variant="dark"
+              />
+              <AnimatePresence>
+                {selectedHubMeta && (
+                  <motion.div
+                    key={selectedHubMeta.id}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/[0.06] p-4"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">
+                        {selectedHubMeta.flag}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          Hub <span className="text-primary">{selectedHubMeta.label}</span> sélectionné
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          <MapPin className="w-3 h-3 inline -mt-0.5 mr-1" />
+                          {selectedHubMeta.city} · {selectedHubMeta.tagline}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={goReceiveWithHub}
+                      className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground px-4 py-2.5 rounded-xl hover:opacity-90 hover:-translate-y-0.5 transition-all shrink-0"
+                    >
+                      Continuer avec ce hub <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </section>
