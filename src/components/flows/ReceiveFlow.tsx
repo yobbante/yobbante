@@ -208,7 +208,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   });
 
   /* ── Pre-order flow state ── */
-  const [hub, setHub] = useState<string | null>(initialSession.hub);
+  const landingHub = useMemo(readLandingHub, []);
+  const [hub, setHubState] = useState<string | null>(initialSession.hub ?? landingHub);
   const [destination, setDestination] = useState<string | null>(initialSession.destination);
   const [copied, setCopied] = useState(false);
   const [reminderEmail, setReminderEmail] = useState('');
@@ -222,6 +223,12 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
 
+  /**
+   * Recommended hub is now durable state — it survives step navigation and
+   * is only cleared when the user manually picks a different hub.
+   */
+  const [recommendedHub, setRecommendedHub] = useState<HubId | null>(initialSession.recommendedHub);
+
   /* ── Derived ── */
   const hubAddress = useMemo(
     () => hub ? addresses.find(a => a.country === hub) : null,
@@ -229,22 +236,34 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   );
   const portals = hub ? EXTERNAL_PORTAL[hub] ?? [] : [];
 
-  /** Auto-suggest a hub from the current text input or last imported items. */
-  const recommendedHub = useMemo<HubId | null>(() => {
+  /** Wraps setHub: any *manual* hub change clears the recommendation. */
+  const setHub = (next: string | null) => {
+    setHubState(next);
+    if (next) setRecommendedHub(null);
+  };
+
+  /** Auto-detect: update the persisted recommendation when input/items change,
+   *  but never override an existing user pick. */
+  useEffect(() => {
+    if (hub) return; // user already chose — leave them alone
     const fromInput = detectHubFromInput(trackingInput);
-    if (fromInput) return fromInput;
+    if (fromInput) { setRecommendedHub(prev => prev === fromInput ? prev : fromInput); return; }
     for (const it of items) {
       const fromItem = detectHubFromInput(`${it.platform} ${it.source}`);
-      if (fromItem) return fromItem;
+      if (fromItem) { setRecommendedHub(prev => prev === fromItem ? prev : fromItem); return; }
     }
-    return null;
-  }, [trackingInput, items]);
+  }, [trackingInput, items, hub]);
 
   /* ── Persist core selections ── */
   useEffect(() => {
     if (step === 'ask') return;
-    saveSession({ hub, destination });
-  }, [hub, destination, step]);
+    saveSession({ hub, destination, recommendedHub });
+  }, [hub, destination, recommendedHub, step]);
+
+  /* Once we've consumed the landing hand-off, clear it so it doesn't leak. */
+  useEffect(() => {
+    if (landingHub) clearLandingHub();
+  }, [landingHub]);
 
   /* ── Handlers — ASK step ── */
   function chooseOrdered(value: 'yes' | 'no') {
