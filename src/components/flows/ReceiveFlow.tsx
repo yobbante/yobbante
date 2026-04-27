@@ -12,6 +12,7 @@ import {
 } from './FlowPrimitives';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useAddresses } from '@/hooks/useAddresses';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
@@ -72,6 +73,18 @@ const EXTERNAL_PORTAL: Record<string, { label: string; url: string }[]> = {
     { label: 'Amazon.ae', url: 'https://www.amazon.ae' },
     { label: 'Noon',      url: 'https://www.noon.com' },
   ],
+};
+
+/** Public template addresses for each hub — used as fallback when the
+ *  visitor isn't authenticated yet. The personal `identifier_code` is
+ *  generated only after sign-up (see `handle_new_user` trigger). */
+const FALLBACK_HUB_ADDRESS: Record<string, string> = {
+  CN: 'Room 501, Building 3, Nanshan District, Shenzhen 518000, China',
+  FR: '12 Rue de la Logistique, 93200 Saint-Denis, France',
+  US: '1200 NW 78th Ave, Suite 200, Miami, FL 33126, USA',
+  AE: 'Warehouse 14, Jebel Ali Free Zone, Dubai, UAE',
+  TR: 'Atatürk Havalimanı Cargo Terminal, 34149 Istanbul, Türkiye',
+  SN: "Zone de fret Aéroport Blaise Diagne, Diass, Sénégal",
 };
 
 /* ──────────────────────────────────────────────────────────────────────
