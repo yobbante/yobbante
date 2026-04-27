@@ -487,6 +487,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </div>
         }
       />
+      {originCity && destCity && (
+        <ManualQuoteDialog
+          open={manualQuoteOpen}
+          onOpenChange={setManualQuoteOpen}
+          prefill={{
+            origin_country: originCity.country,
+            origin_city: originCity.city,
+            destination_country: destCity.country,
+            destination_city: destCity.city,
+            weight_kg: weight,
+            transport_mode: chosen?.transport_type ?? null,
+            priority: 'normal',
+          }}
+          defaultName={senderName || recipientName}
+          defaultPhone={senderPhone || recipientPhone}
+        />
+      )}
     </FlowShell>
   );
 }
