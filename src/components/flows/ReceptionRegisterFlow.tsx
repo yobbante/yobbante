@@ -490,7 +490,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{COUNTRY_FLAG[r.country_code] ?? '🌍'}</span>
+                    <MapPin className="w-4 h-4 text-yellow-400 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-white">{r.country}</p>
                       <p className="text-xs text-white/55">{r.city}</p>
@@ -529,7 +529,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
               {form.estimated_weight_kg && <Row label="Poids estimé" value={`${form.estimated_weight_kg} kg`} />}
               <Row label="Type" value={GOODS_TYPES.find(g => g.id === form.goods_type)?.label ?? ''} />
               <Row label="Transport" value={`${form.transport_mode === 'air' ? 'Aérien' : 'Maritime LCL'} · ${form.priority === 'express' ? 'Express' : 'Standard'}`} />
-              <Row label="Relais" value={`${COUNTRY_FLAG[selectedRelay.country_code] ?? ''} ${selectedRelay.city}, ${selectedRelay.country}`} />
+              <Row label="Relais" value={`${selectedRelay.city}, ${selectedRelay.country}`} />
               <Row label="Nb colis attendus" value={String(form.expected_packages)} />
 
               <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-3 text-xs text-yellow-100 flex gap-2">
