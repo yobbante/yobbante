@@ -318,9 +318,24 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           popularIds={POPULAR_DEST_IDS}
         />
         {originCity && destCity && !dakarRouteOk && (
-          <p className="mt-3 text-xs text-amber-600">
-            Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée. Choisissez Dakar pour l'une des deux villes.
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-amber-600">
+              Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée.
+            </p>
+            {(() => {
+              const dakarDest = DESTINATION_CITIES.find(c => c.city.toLowerCase().includes('dakar'));
+              if (!dakarDest) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => setDestCity(dakarDest.id)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition"
+                >
+                  <MapPin className="w-3 h-3" /> Choisir Dakar comme destination
+                </button>
+              );
+            })()}
+          </div>
         )}
         {destCity && (
           <motion.fieldset
