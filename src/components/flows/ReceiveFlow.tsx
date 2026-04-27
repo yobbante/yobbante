@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+import { ReceptionRegisterFlow } from './ReceptionRegisterFlow';
 
 /** Detect a recommended hub from a free-text input (URL or paste). */
 function detectHubFromInput(text: string): HubId | null {
@@ -204,7 +205,7 @@ type ParsedItem = {
   imageUrl: string;
 };
 
-type Step = 'ask' | 'pre-order' | 'returning' | 'tracking' | 'orders';
+type Step = 'ask' | 'pre-order' | 'returning' | 'tracking' | 'orders' | 'reception';
 
 export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
@@ -535,7 +536,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
             transition={{ duration: 0.35 }}
           >
             <FlowSection revealed title="Avez-vous déjà passé votre commande ?" hint="On adapte la suite selon votre situation.">
-              <div className="grid sm:grid-cols-3 gap-3 max-w-3xl">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl">
                 <ChoicePill
                   icon={<ShoppingBag className="w-5 h-5" />}
                   title="Non, pas encore"
@@ -548,6 +549,12 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
                   desc="J'ai un lien de commande ou un numéro de suivi."
                   onClick={() => chooseOrdered('yes')}
                   accent
+                />
+                <ChoicePill
+                  icon={<Inbox className="w-5 h-5" />}
+                  title="Réception internationale"
+                  desc="J'ai commandé sur Amazon, AliExpress… et j'ai besoin d'une adresse relais."
+                  onClick={() => setStep('reception')}
                 />
                 <ChoicePill
                   icon={<ListChecks className="w-5 h-5" />}
@@ -649,6 +656,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           goAddOrder={() => setStep('tracking')}
           goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
         />
+      )}
+
+      {/* ── STEP F: RECEPTION — register an international order ──────── */}
+      {step === 'reception' && (
+        <ReceptionRegisterFlow goBack={() => setStep('ask')} />
       )}
     </FlowShell>
   );
