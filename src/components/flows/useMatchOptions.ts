@@ -6,6 +6,8 @@ interface MatchInput {
   origin_city: string;
   destination_city: string;
   weight_kg: number;
+  origin_country?: string;
+  destination_country?: string;
   urgency?: 'normal' | 'fast' | 'flexible';
 }
 
