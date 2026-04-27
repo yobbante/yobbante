@@ -274,7 +274,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!type} step={2} total={5} title="D'où part votre envoi ?" hint="Recherchez la ville de départ.">
+      <FlowSection revealed={!!type} step={2} total={5} title="D'où part votre envoi ?" hint="Recherchez la ville de départ, puis indiquez l'expéditeur.">
         <CitySelector
           cities={ORIGIN_CITIES}
           value={originCityId}
@@ -287,9 +287,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
           </p>
         )}
+        {originCity && (
+          <motion.fieldset
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+            className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4 max-w-xl"
+          >
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
+              <User className="w-3 h-3" /> Expéditeur à {originCity.city}
+            </legend>
+            <TextField label="Nom complet" value={senderName} onChange={setSenderName} placeholder="Ex. Awa Diop" />
+            <TextField label="Téléphone" value={senderPhone} onChange={setSenderPhone} placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+            <AddressField label="Adresse de retrait" value={pickupAddress} onChange={setPickup} placeholder="N°, rue, quartier, ville, code postal" />
+          </motion.fieldset>
+        )}
       </FlowSection>
 
-      <FlowSection revealed={!!originCity} step={3} total={5} title="Où doit-il arriver ?" hint="Recherchez la ville d'arrivée.">
+      <FlowSection revealed={!!originCity} step={3} total={5} title="Où doit-il arriver ?" hint="Recherchez la ville d'arrivée, puis indiquez le destinataire.">
         <CitySelector
           cities={DESTINATION_CITIES}
           value={destCityId}
@@ -297,6 +310,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           placeholder="Ex. Dakar, Abidjan, Bamako…"
           popularIds={POPULAR_DEST_IDS}
         />
+        {destCity && (
+          <motion.fieldset
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+            className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4 max-w-xl"
+          >
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
+              <MapPin className="w-3 h-3" /> Destinataire à {destCity.city}
+            </legend>
+            <TextField label="Nom complet" value={recipientName} onChange={setRecipientName} placeholder="Ex. Mamadou Sall" />
+            <TextField label="Téléphone" value={recipientPhone} onChange={setRecipientPhone} placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+            <AddressField label="Adresse de livraison" value={deliveryAddress} onChange={setDelivery} placeholder="N°, rue, quartier, ville, code postal" />
+          </motion.fieldset>
+        )}
       </FlowSection>
 
       <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Indiquez le poids — c'est obligatoire pour calculer le prix.">
