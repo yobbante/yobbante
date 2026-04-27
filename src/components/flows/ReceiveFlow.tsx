@@ -305,10 +305,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   /* ── Handlers — PRE-ORDER step ── */
   function copyAddress() {
     if (!hubAddress) return;
-    const text = `${hubAddress.address_line}\nRéf: ${hubAddress.identifier_code}`;
+    const text = hubAddress.identifier_code
+      ? `${hubAddress.address_line}\nRéf: ${hubAddress.identifier_code}`
+      : hubAddress.address_line;
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success('Adresse copiée — collez-la dans le formulaire de livraison');
+    toast.success(
+      isFallbackAddress
+        ? 'Adresse copiée. Connectez-vous pour obtenir votre code destinataire personnel.'
+        : 'Adresse copiée — collez-la dans le formulaire de livraison',
+    );
     setTimeout(() => setCopied(false), 1800);
   }
 
