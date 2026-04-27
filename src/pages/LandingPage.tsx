@@ -5,7 +5,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import {
-  Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
+  Package, Factory, Inbox, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
 } from 'lucide-react';
 
 const fadeUp = {
