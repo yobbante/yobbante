@@ -401,23 +401,23 @@ export function HubsWorldMap({
             </p>
             <p className={cn('text-[10px]', subtle)}>~ 4 étapes suivies</p>
           </div>
-          <ol className="flex items-center gap-1.5 sm:gap-2">
+          <ol className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[
               { Icon: Inbox,         label: 'Reçu au hub' },
               { Icon: Warehouse,     label: 'En stockage' },
               { Icon: Plane,         label: 'Prêt à partir' },
               { Icon: PackageCheck,  label: `Livré · ${dest.label}` },
             ].map((s, i, arr) => (
-              <li key={s.label} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <li key={s.label} className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <span className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] sm:text-[11px] font-medium',
+                  'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] sm:text-[11px] font-medium whitespace-nowrap',
                   chipBg, fg
                 )}>
-                  <s.Icon className="w-3 h-3 opacity-70" />
-                  <span className="truncate">{s.label}</span>
+                  <s.Icon className="w-3 h-3 opacity-70 shrink-0" />
+                  <span>{s.label}</span>
                 </span>
                 {i < arr.length - 1 && (
-                  <span className={cn('h-px w-3 sm:w-5', isDark ? 'bg-white/15' : 'bg-foreground/15')} />
+                  <span className={cn('h-px w-3 sm:w-5 shrink-0', isDark ? 'bg-white/15' : 'bg-foreground/15')} />
                 )}
               </li>
             ))}
