@@ -1,0 +1,1 @@
+ALTER VIEW public.all_active_departures SET (security_invoker = true);

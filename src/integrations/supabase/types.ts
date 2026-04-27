@@ -744,6 +744,7 @@ export type Database = {
       }
       shipments: {
         Row: {
+          assigned_departure_source: string | null
           client_note: string | null
           created_at: string
           departure_date: string | null
@@ -753,6 +754,7 @@ export type Database = {
           id: string
           konnekt_departure_id: string | null
           konnekt_id: string | null
+          manual_departure_id: string | null
           manual_request: boolean
           origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -770,6 +772,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          assigned_departure_source?: string | null
           client_note?: string | null
           created_at?: string
           departure_date?: string | null
@@ -779,6 +782,7 @@ export type Database = {
           id?: string
           konnekt_departure_id?: string | null
           konnekt_id?: string | null
+          manual_departure_id?: string | null
           manual_request?: boolean
           origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -796,6 +800,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          assigned_departure_source?: string | null
           client_note?: string | null
           created_at?: string
           departure_date?: string | null
@@ -805,6 +810,7 @@ export type Database = {
           id?: string
           konnekt_departure_id?: string | null
           konnekt_id?: string | null
+          manual_departure_id?: string | null
           manual_request?: boolean
           origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
@@ -821,7 +827,15 @@ export type Database = {
           user_id?: string
           weight_kg?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shipments_manual_departure_id_fkey"
+            columns: ["manual_departure_id"]
+            isOneToOne: false
+            referencedRelation: "manual_departures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timeline_events: {
         Row: {
@@ -979,10 +993,8 @@ export type Database = {
     Views: {
       all_active_departures: {
         Row: {
-          arrival_estimate: string | null
           available_capacity_kg: number | null
           carrier_name: string | null
-          created_at: string | null
           departure_date: string | null
           destination_city: string | null
           destination_country: string | null
@@ -991,10 +1003,12 @@ export type Database = {
           origin_city: string | null
           origin_country: string | null
           price_override_xof: number | null
+          price_per_kg_eur: number | null
           source: string | null
           status: string | null
           total_capacity_kg: number | null
           transport_mode: string | null
+          transporter_id: string | null
         }
         Relationships: []
       }
