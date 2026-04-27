@@ -1190,7 +1190,7 @@ function OrdersOverview({
     (async () => {
       setLoading(true);
       try {
-        const [{ data: dossiers }, { data: shipments }, { data: packages }] = await Promise.all([
+        const [{ data: dossiers }, { data: shipments }, { data: packages }, { data: receptions }] = await Promise.all([
           supabase.from('dossiers')
             .select('id, reference, product_description, status, created_at, origin_country, destination_country')
             .order('created_at', { ascending: false }).limit(20),
@@ -1199,6 +1199,9 @@ function OrdersOverview({
             .order('created_at', { ascending: false }).limit(20),
           supabase.from('packages')
             .select('id, description, status, created_at, warehouse_country')
+            .order('created_at', { ascending: false }).limit(20),
+          supabase.from('reception_orders')
+            .select('id, reference, merchant_name, order_description, status, created_at, actual_weight_kg, final_price_eur, relay_address_id, relay_addresses(country, city, country_code)')
             .order('created_at', { ascending: false }).limit(20),
         ]);
 
