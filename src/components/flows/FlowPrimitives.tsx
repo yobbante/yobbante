@@ -771,7 +771,6 @@ export function LiveSummaryBar({
           ref={containerRef}
           role="region"
           aria-label="Récapitulatif et confirmation"
-          ref={containerRef}
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
