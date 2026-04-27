@@ -1,6 +1,6 @@
 export type WarehouseCountry = 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE';
 export type PackageStatus = 'CREATED' | 'RECEIVED' | 'IN_STORAGE' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED';
-export type ShipmentStatus = 'PENDING' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
+export type ShipmentStatus = 'PENDING' | 'WAITING_FOR_MATCH' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
 export type DossierStatus =
   | 'SUBMITTED' | 'IN_REVIEW' | 'SOURCING' | 'PROCURED'
   | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED' | 'CLOSED';
@@ -10,7 +10,7 @@ export const PACKAGE_STATUS_ORDER: PackageStatus[] = [
 ];
 
 export const SHIPMENT_STATUS_ORDER: ShipmentStatus[] = [
-  'PENDING', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED'
+  'PENDING', 'WAITING_FOR_MATCH', 'IN_TRANSIT', 'CUSTOMS', 'DELIVERED'
 ];
 
 export const DOSSIER_STATUS_ORDER: DossierStatus[] = [
