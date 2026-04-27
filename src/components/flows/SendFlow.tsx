@@ -87,7 +87,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     if (d.type) setType(d.type);
     if (d.originCityId) setOriginCity(d.originCityId);
     if (d.destCityId) setDestCity(d.destCityId);
-    if (typeof d.weight === 'number') setWeight(d.weight);
+    if (typeof d.weight === 'number') { setWeight(d.weight); setWeightTouched(true); }
     if (d.declaredValue) setDeclared(d.declaredValue);
     if (d.senderName) setSenderName(d.senderName);
     if (d.senderPhone) setSenderPhone(d.senderPhone);
