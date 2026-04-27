@@ -7,13 +7,14 @@ import { ShipmentCard } from '@/components/ShipmentCard';
 import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
+import { PackageTimelineDialog } from '@/components/PackageTimelineDialog';
 import { SearchFilterBar } from '@/components/SearchFilterBar';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Package, Truck, Send, X, Radar } from 'lucide-react';
-import { COUNTRY_FLAGS, type Shipment } from '@/lib/types';
+import { Package, Truck, Send, X, Radar, Activity } from 'lucide-react';
+import { COUNTRY_FLAGS, type Shipment, type Package as PackageType, type WarehouseCountry } from '@/lib/types';
 
 type StatusFilter = 'all' | 'active' | 'transit' | 'delivered';
 
@@ -21,11 +22,18 @@ export function ShipmentsView() {
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
   const [shipOpen, setShipOpen] = useState(false);
+  const [shipPreset, setShipPreset] = useState<WarehouseCountry | undefined>();
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const openShipForPackage = (pkg: PackageType) => {
+    setShipPreset(pkg.warehouse_country);
+    setShipOpen(true);
+  };
 
   const followOrigin = searchParams.get('origin')?.toUpperCase() || '';
   const followDestination = searchParams.get('destination')?.toUpperCase() || '';
