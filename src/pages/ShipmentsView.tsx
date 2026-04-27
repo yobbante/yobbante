@@ -7,13 +7,14 @@ import { ShipmentCard } from '@/components/ShipmentCard';
 import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipNowDialog } from '@/components/ShipNowDialog';
+import { PackageTimelineDialog } from '@/components/PackageTimelineDialog';
 import { SearchFilterBar } from '@/components/SearchFilterBar';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Package, Truck, Send, X, Radar } from 'lucide-react';
-import { COUNTRY_FLAGS, type Shipment } from '@/lib/types';
+import { Package, Truck, Send, X, Radar, Activity } from 'lucide-react';
+import { COUNTRY_FLAGS, type Shipment, type Package as PackageType, type WarehouseCountry } from '@/lib/types';
 
 type StatusFilter = 'all' | 'active' | 'transit' | 'delivered';
 
@@ -21,11 +22,18 @@ export function ShipmentsView() {
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
   const [shipOpen, setShipOpen] = useState(false);
+  const [shipPreset, setShipPreset] = useState<WarehouseCountry | undefined>();
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const openShipForPackage = (pkg: PackageType) => {
+    setShipPreset(pkg.warehouse_country);
+    setShipOpen(true);
+  };
 
   const followOrigin = searchParams.get('origin')?.toUpperCase() || '';
   const followDestination = searchParams.get('destination')?.toUpperCase() || '';
@@ -208,31 +216,66 @@ export function ShipmentsView() {
             />
           ) : (
             <div className="space-y-2">
-              {filteredPackages.map(pkg => (
-                <div
-                  key={pkg.id}
-                  className="flex items-center gap-3 p-3.5 bg-card border border-border rounded-xl hover:border-foreground/20 transition-colors"
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLORS[pkg.status] || 'bg-muted-foreground'}`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {COUNTRY_FLAGS[pkg.warehouse_country]} {pkg.description || 'Colis sans description'}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {pkg.weight ? `${pkg.weight} kg` : 'Poids inconnu'}
-                    </p>
+              {filteredPackages.map(pkg => {
+                const canShipNow = pkg.status === 'READY_TO_SHIP' && !pkg.shipment_id;
+                return (
+                  <div
+                    key={pkg.id}
+                    className="flex items-center gap-3 p-3.5 bg-card border border-border rounded-xl hover:border-foreground/20 transition-colors"
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLORS[pkg.status] || 'bg-muted-foreground'}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {COUNTRY_FLAGS[pkg.warehouse_country]} {pkg.description || 'Colis sans description'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {pkg.weight ? `${pkg.weight} kg` : 'Poids inconnu'}
+                      </p>
+                    </div>
+                    <StatusBadge status={pkg.status} />
+                    <div className="flex items-center gap-1 ml-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setTrackPkg(pkg)}
+                        className="h-8 px-2 text-[11px]"
+                        aria-label="Suivre ce colis"
+                      >
+                        <Activity className="w-3.5 h-3.5 sm:mr-1" />
+                        <span className="hidden sm:inline">Suivre</span>
+                      </Button>
+                      {canShipNow && (
+                        <Button
+                          size="sm"
+                          onClick={() => openShipForPackage(pkg)}
+                          className="h-8 px-2.5 text-[11px] gap-1"
+                          aria-label="Expédier ce colis maintenant"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Expédier</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <StatusBadge status={pkg.status} />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
       </Tabs>
 
-      <ShipNowDialog open={shipOpen} onOpenChange={setShipOpen} />
+      <ShipNowDialog
+        open={shipOpen}
+        onOpenChange={(o) => { setShipOpen(o); if (!o) setShipPreset(undefined); }}
+        presetCountry={shipPreset}
+      />
+      <PackageTimelineDialog
+        open={Boolean(trackPkg)}
+        onOpenChange={(o) => { if (!o) setTrackPkg(null); }}
+        pkg={trackPkg}
+      />
       <ShipmentDetailDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
