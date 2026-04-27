@@ -254,9 +254,20 @@ export function ShipmentsWorkflowTab() {
 
                         <footer className="mt-2 pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px]">
                           <span className="font-semibold text-foreground">{formatPrice(s.total_cost)}</span>
-                          <span className="text-muted-foreground inline-flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5" /> {timeSince(s.updated_at ?? s.created_at)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground inline-flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" /> {timeSince(s.updated_at ?? s.created_at)}
+                            </span>
+                            {status !== 'CANCELLED' && status !== 'DELIVERED' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCancel(s.id, s.tracking_number); }}
+                                title="Annuler cet envoi"
+                                className="text-muted-foreground hover:text-rose-600 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </footer>
                       </article>
                     ))}
@@ -267,7 +278,11 @@ export function ShipmentsWorkflowTab() {
           </div>
         </div>
       ) : (
-        <ShipmentsList shipments={shipments} onChangeStatus={(id, to) => updateStatus.mutate({ id, to })} />
+        <ShipmentsList
+          shipments={shipments}
+          onChangeStatus={(id, to) => updateStatus.mutate({ id, to })}
+          onCancel={handleCancel}
+        />
       )}
 
       <p className="text-[11px] text-muted-foreground">
