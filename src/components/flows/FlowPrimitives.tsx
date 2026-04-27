@@ -127,12 +127,21 @@ export function FlowShell({
 /** Compact header used when flow is fused into selection page. */
 export function FlowCompactHeader({
   eyebrow, title, onSwap, swapLabel, theme = 'light',
+  secondaryAction,
 }: {
   eyebrow: string;
   title: string;
   onSwap: () => void;
   swapLabel: string;
   theme?: FlowTheme;
+  /** Optional secondary action shown to the left of the swap button. */
+  secondaryAction?: {
+    label: string;
+    icon?: ReactNode;
+    onClick: () => void;
+    /** Visual emphasis. 'accent' = highlighted brand pill. */
+    variant?: 'ghost' | 'accent';
+  };
 }) {
   const t = T[theme];
   return (
@@ -142,22 +151,44 @@ export function FlowCompactHeader({
         theme === 'dark' ? 'bg-zinc-950/85 border-white/10' : 'bg-background/85 border-border'
       )}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>{eyebrow}</p>
           <h1 className="mt-0.5 text-base sm:text-lg font-bold tracking-tight truncate">{title}</h1>
         </div>
-        <button
-          onClick={onSwap}
-          className={cn(
-            'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all shrink-0',
-            theme === 'dark'
-              ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
-              : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+        <div className="flex items-center gap-2 shrink-0">
+          {secondaryAction && (
+            <button
+              onClick={secondaryAction.onClick}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all',
+                secondaryAction.variant === 'accent'
+                  ? theme === 'dark'
+                    ? 'bg-yellow-400 text-zinc-950 hover:bg-yellow-300'
+                    : 'bg-primary text-primary-foreground hover:opacity-90'
+                  : theme === 'dark'
+                    ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+                    : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+              )}
+              aria-label={secondaryAction.label}
+            >
+              {secondaryAction.icon}
+              <span className="hidden sm:inline">{secondaryAction.label}</span>
+            </button>
           )}
-        >
-          <RefreshCw className="w-3 h-3" /> {swapLabel}
-        </button>
+          <button
+            onClick={onSwap}
+            className={cn(
+              'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all',
+              theme === 'dark'
+                ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+                : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span className="hidden sm:inline">{swapLabel}</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );

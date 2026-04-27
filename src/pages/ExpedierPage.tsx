@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Inbox, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Package, Inbox, ArrowRight, ArrowLeft, ListChecks } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
@@ -48,6 +48,17 @@ export default function ExpedierPage() {
         onSwap={swapMode}
         swapLabel="Changer"
         theme={mode === 'envoyer' ? 'light' : 'dark'}
+        secondaryAction={
+          mode === 'recevoir'
+            ? {
+                label: 'Mes commandes',
+                icon: <ListChecks className="w-3.5 h-3.5" />,
+                variant: 'accent',
+                onClick: () =>
+                  window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
+              }
+            : undefined
+        }
       />
     );
     return mode === 'envoyer'
