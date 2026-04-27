@@ -249,6 +249,63 @@ export type Database = {
         }
         Relationships: []
       }
+      konnekt_departures: {
+        Row: {
+          available_capacity_kg: number
+          created_at: string
+          departure_date: string
+          destination_city: string
+          destination_country: string
+          id: string
+          konnekt_departure_id: string
+          origin_city: string
+          origin_country: string
+          price_per_kg_eur: number | null
+          raw: Json | null
+          status: string
+          total_capacity_kg: number
+          transport: string
+          transporter_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          available_capacity_kg?: number
+          created_at?: string
+          departure_date: string
+          destination_city: string
+          destination_country: string
+          id?: string
+          konnekt_departure_id: string
+          origin_city: string
+          origin_country: string
+          price_per_kg_eur?: number | null
+          raw?: Json | null
+          status?: string
+          total_capacity_kg?: number
+          transport?: string
+          transporter_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          available_capacity_kg?: number
+          created_at?: string
+          departure_date?: string
+          destination_city?: string
+          destination_country?: string
+          id?: string
+          konnekt_departure_id?: string
+          origin_city?: string
+          origin_country?: string
+          price_per_kg_eur?: number | null
+          raw?: Json | null
+          status?: string
+          total_capacity_kg?: number
+          transport?: string
+          transporter_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       konnekt_departures_cache: {
         Row: {
           count: number
@@ -305,6 +362,60 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      matches: {
+        Row: {
+          created_at: string
+          date_score: number
+          departure_id: string
+          id: string
+          route_score: number
+          score: number
+          shipment_id: string
+          status: string
+          transporter_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_score: number
+          departure_id: string
+          id?: string
+          route_score: number
+          score: number
+          shipment_id: string
+          status?: string
+          transporter_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_score?: number
+          departure_id?: string
+          id?: string
+          route_score?: number
+          score?: number
+          shipment_id?: string
+          status?: string
+          transporter_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "konnekt_departures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       packages: {
         Row: {
@@ -396,11 +507,13 @@ export type Database = {
           origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           pending_assignment: boolean
+          priority: string
           status: Database["public"]["Enums"]["shipment_status"]
           total_cost: number | null
           transport_metadata: Json | null
           transport_type: string | null
           user_id: string
+          weight_kg: number | null
         }
         Insert: {
           client_note?: string | null
@@ -416,11 +529,13 @@ export type Database = {
           origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           pending_assignment?: boolean
+          priority?: string
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
           transport_metadata?: Json | null
           transport_type?: string | null
           user_id: string
+          weight_kg?: number | null
         }
         Update: {
           client_note?: string | null
@@ -436,11 +551,13 @@ export type Database = {
           origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           pending_assignment?: boolean
+          priority?: string
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
           transport_metadata?: Json | null
           transport_type?: string | null
           user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }
@@ -521,6 +638,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
@@ -534,6 +652,26 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      rematch_waiting_shipments: { Args: never; Returns: number }
+      score_departure: {
+        Args: {
+          d_departure_date: string
+          d_dest_city: string
+          d_dest_country: string
+          d_origin_city: string
+          d_origin_country: string
+          s_dest_city: string
+          s_dest_country: string
+          s_origin_city: string
+          s_origin_country: string
+          s_ready_date: string
+        }
+        Returns: {
+          date_score: number
+          final_score: number
+          route_score: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "staff" | "user"
@@ -559,7 +697,12 @@ export type Database = {
         | "READY_TO_SHIP"
         | "SHIPPED"
         | "DELIVERED"
-      shipment_status: "PENDING" | "IN_TRANSIT" | "CUSTOMS" | "DELIVERED"
+      shipment_status:
+        | "PENDING"
+        | "IN_TRANSIT"
+        | "CUSTOMS"
+        | "DELIVERED"
+        | "WAITING_FOR_MATCH"
       warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE"
     }
     CompositeTypes: {
@@ -708,7 +851,13 @@ export const Constants = {
         "SHIPPED",
         "DELIVERED",
       ],
-      shipment_status: ["PENDING", "IN_TRANSIT", "CUSTOMS", "DELIVERED"],
+      shipment_status: [
+        "PENDING",
+        "IN_TRANSIT",
+        "CUSTOMS",
+        "DELIVERED",
+        "WAITING_FOR_MATCH",
+      ],
       warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE"],
     },
   },
