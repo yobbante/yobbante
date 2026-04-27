@@ -210,12 +210,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ].filter(Boolean).join('\n'),
       });
 
+      // Enrich the chosen option with the TRUE travel direction so the
+      // shipment record (and any Konnekt payload) reflects reality even when
+      // the stored origin_country enum is a placeholder hub code.
+      const enrichedOption = {
+        ...chosen,
+        meta: {
+          ...(chosen.meta ?? {}),
+          true_direction: {
+            origin_city: originCity.city,
+            origin_country: originCity.country,
+            destination_city: destCity.city,
+            destination_country: destCity.country,
+          },
+        },
+      };
+
       await createShipment.mutateAsync({
         origin_country: originCity.country as 'FR' | 'CN' | 'US',
         destination_country: destCity.country,
         origin_city: originCity.city,
         destination_city: destCity.city,
-        match_option: chosen,
+        match_option: enrichedOption,
       });
 
       setConfirmed({
