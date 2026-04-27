@@ -91,6 +91,31 @@ export function ShipmentsWorkflowTab() {
     },
   });
 
+  const cancelShipment = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await supabase.rpc('cancel_shipment', {
+        p_shipment_id: id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(data?.refund_id ? 'Envoi annulé · Remboursement programmé' : 'Envoi annulé');
+      qc.invalidateQueries({ queryKey: ['admin', 'shipments-workflow'] });
+      qc.invalidateQueries({ queryKey: ['shipments'] });
+    },
+    onError: (e: any) => {
+      toast.error('Annulation impossible', { description: e?.message ?? 'Erreur inconnue' });
+    },
+  });
+
+  const handleCancel = (id: string, tracking: string | null | undefined) => {
+    const reason = window.prompt(`Raison d'annulation pour ${tracking ?? id.slice(0, 8)} ?`, 'Annulation manuelle');
+    if (reason === null) return;
+    cancelShipment.mutate({ id, reason: reason.trim() || 'Annulation manuelle' });
+  };
+
   const grouped = useMemo(() => {
     const map = new Map<ShipmentStatus, ShipmentRow[]>();
     SHIPMENT_WORKFLOW_ORDER.forEach((s) => map.set(s, []));
