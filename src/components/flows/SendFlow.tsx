@@ -166,11 +166,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   async function submit() {
     if (!chosen || !originCity || !destCity || !type) return;
     if (!dakarRouteOk) {
-      toast.error('Dakar doit être la ville de départ ou d\'arrivée.');
+      // Aligné avec l'avertissement ambre de l'étape 3 — informatif, pas alarmiste.
+      toast('Choisissez Dakar', {
+        description: "Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée.",
+      });
       return;
     }
     if (!contactsComplete) {
-      toast.error('Renseignez les coordonnées d\'expéditeur et de destinataire.');
+      toast('Coordonnées incomplètes', {
+        description: "Renseignez l'expéditeur et le destinataire pour continuer.",
+      });
       return;
     }
     setSubmitting(true);
