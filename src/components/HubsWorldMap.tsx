@@ -167,17 +167,33 @@ export function HubsWorldMap({
               stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'} strokeWidth="0.1" />
           ))}
 
-          {/* Stylised continent silhouettes (abstract, not geographically exact) */}
-          <g fill={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}
-             stroke={isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}
-             strokeWidth="0.15">
-            <path d="M8,18 Q14,10 24,12 Q32,14 30,22 Q34,28 26,32 Q18,34 12,28 Q6,24 8,18 Z" />
-            <path d="M24,38 Q30,36 30,42 Q28,48 22,46 Q20,42 24,38 Z" />
-            <path d="M44,20 Q52,18 56,22 Q54,28 48,28 Q42,26 44,20 Z" />
-            <path d="M46,30 Q56,28 56,38 Q52,48 44,46 Q40,38 46,30 Z" />
-            <path d="M56,28 Q64,26 66,34 Q60,38 56,34 Z" />
-            <path d="M64,18 Q80,14 88,22 Q86,32 76,34 Q66,30 64,18 Z" />
-            <path d="M82,38 Q88,36 90,42 Q84,46 80,42 Z" />
+          {/* Stylised continent silhouettes — closer to real-world shapes (Equirectangular-ish) */}
+          <g fill={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.045)'}
+             stroke={isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.09)'}
+             strokeWidth="0.12"
+             strokeLinejoin="round">
+            {/* North America */}
+            <path d="M6,14 L14,11 L22,12 L27,15 L29,20 L26,24 L22,28 L18,30 L14,28 L10,25 L7,21 L5,17 Z" />
+            {/* Central America bridge */}
+            <path d="M18,30 L21,33 L23,36 L22,38 L19,36 L17,33 Z" />
+            {/* South America */}
+            <path d="M22,38 L27,38 L29,42 L28,46 L25,49 L22,48 L20,44 L21,40 Z" />
+            {/* Greenland */}
+            <path d="M34,9 L39,8 L41,12 L38,15 L34,13 Z" />
+            {/* Europe */}
+            <path d="M44,16 L49,14 L54,15 L57,18 L55,22 L51,23 L47,22 L44,20 Z" />
+            {/* Africa */}
+            <path d="M46,24 L52,23 L56,26 L57,32 L54,38 L50,42 L46,40 L44,34 L44,28 Z" />
+            {/* Middle East */}
+            <path d="M55,22 L60,22 L63,26 L61,29 L57,28 L55,25 Z" />
+            {/* Asia */}
+            <path d="M57,14 L68,12 L78,13 L86,16 L88,20 L85,24 L80,26 L74,25 L68,24 L62,22 L58,19 Z" />
+            {/* India */}
+            <path d="M70,26 L74,26 L75,30 L72,33 L69,30 Z" />
+            {/* South-East Asia */}
+            <path d="M78,28 L83,28 L84,32 L81,33 L79,31 Z" />
+            {/* Australia */}
+            <path d="M82,38 L89,37 L92,40 L90,44 L84,44 L81,41 Z" />
           </g>
 
           {/* Routes from each hub to destination */}
