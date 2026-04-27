@@ -295,9 +295,11 @@ export function ShipmentsWorkflowTab() {
 function ShipmentsList({
   shipments,
   onChangeStatus,
+  onCancel,
 }: {
   shipments: ShipmentRow[];
   onChangeStatus: (id: string, to: ShipmentStatus) => void;
+  onCancel: (id: string, tracking: string | null | undefined) => void;
 }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
