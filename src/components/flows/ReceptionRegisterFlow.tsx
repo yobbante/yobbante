@@ -174,7 +174,8 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
         merchant_name: form.merchant_name,
         merchant_url: form.merchant_url || null,
         order_reference: form.order_reference || null,
-        order_description: form.order_description,
+        order_description: form.order_description
+          + (form.tracking_number ? `\n\nN° suivi transporteur: ${form.tracking_number}` : ''),
         estimated_value_eur: form.estimated_value_eur ? Number(form.estimated_value_eur) : null,
         estimated_weight_kg: form.estimated_weight_kg ? Number(form.estimated_weight_kg) : null,
         expected_packages: form.expected_packages,
@@ -544,6 +545,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
               <Row label="Transport" value={`${form.transport_mode === 'air' ? 'Aérien' : 'Maritime LCL'} · ${form.priority === 'express' ? 'Express' : 'Standard'}`} />
               <Row label="Relais" value={`${selectedRelay.city}, ${selectedRelay.country}`} />
               <Row label="Nb colis attendus" value={String(form.expected_packages)} />
+              {form.tracking_number && <Row label="N° de suivi" value={form.tracking_number} />}
 
               <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-3 text-xs text-yellow-100 flex gap-2">
                 <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -572,7 +574,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
       {/* ── STEP 5: Success ──────────────────────────────────────────── */}
       {step === 'success' && selectedRelay && createdReference && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <FlowSection revealed title="✅ Commande enregistrée" hint="Utilisez l'adresse ci-dessous sur le site marchand.">
+          <FlowSection revealed title="Commande enregistrée" hint="Utilisez l'adresse ci-dessous sur le site marchand.">
             <div className="rounded-2xl border-2 border-yellow-400/40 bg-yellow-400/5 p-5 max-w-xl space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300">
