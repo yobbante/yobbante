@@ -678,22 +678,28 @@ export type Database = {
         Row: {
           created_at: string
           default_delivery_country: string | null
+          email: string | null
           full_name: string | null
           id: string
+          phone: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           default_delivery_country?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           default_delivery_country?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1080,6 +1086,14 @@ export type Database = {
         Returns: string
       }
       generate_shipment_tracking_number: { Args: never; Returns: string }
+      get_user_contact: {
+        Args: { _user_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          phone: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1108,6 +1122,10 @@ export type Database = {
           final_score: number
           route_score: number
         }[]
+      }
+      shipment_status_message: {
+        Args: { _status: string; _tracking: string }
+        Returns: string
       }
     }
     Enums: {
