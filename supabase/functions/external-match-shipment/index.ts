@@ -103,48 +103,92 @@ serve(async (req) => {
     // Volume option only makes sense for heavier shipments.
     const showVolume = body.weight_kg >= 30;
 
+    // Map our bucket transport vocabulary to the values stored in
+    // konnekt_departures.transport (UPPER) and manual_departures.transport_mode (lower).
+    const transportKeys = (t: 'AIR' | 'ROAD' | 'SEA') => ({
+      konnekt: t,
+      manual: t === 'AIR' ? 'air' : t === 'SEA' ? 'sea_lcl' : 'road',
+    });
+
     for (const b of BUCKETS) {
       if (b.id === "volume" && !showVolume) continue;
       if (basePrice <= 0) continue;
 
-      const price = Math.round(basePrice * b.multiplier);
+      const keys = transportKeys(b.transport);
 
-      const { data: dep } = await supabase
-        .from("konnekt_departures")
-        .select("departure_date")
-        .eq("status", "OPEN")
-        .ilike("origin_country", origin_country)
-        .ilike("destination_country", destination_country)
-        .eq("transport", b.transport)
-        .gte("departure_date", fmt(today))
-        .gte("available_capacity_kg", body.weight_kg)
-        .order("departure_date", { ascending: b.id === "fast" })
-        .limit(1)
-        .maybeSingle();
+      // Look up a REAL departure (Konnekt OR manual) for this transport.
+      // Without a real departure we don't surface this option — the UI then
+      // shows the "Aucun départ disponible" fallback card.
+      const [{ data: konDep }, { data: manDep }] = await Promise.all([
+        supabase
+          .from("konnekt_departures")
+          .select("departure_date")
+          .eq("status", "OPEN")
+          .ilike("origin_country", origin_country)
+          .ilike("destination_country", destination_country)
+          .eq("transport", keys.konnekt)
+          .gte("departure_date", fmt(today))
+          .gte("available_capacity_kg", body.weight_kg)
+          .order("departure_date", { ascending: b.id === "fast" })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("manual_departures")
+          .select("departure_date")
+          .eq("status", "active")
+          .ilike("origin_country", origin_country)
+          .ilike("destination_country", destination_country)
+          .eq("transport_mode", keys.manual)
+          .gte("departure_date", fmt(today))
+          .gte("available_capacity_kg", body.weight_kg)
+          .order("departure_date", { ascending: b.id === "fast" })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const dep = konDep ?? manDep;
+      if (!dep) continue; // ← key change: no real departure → no option
 
       options.push({
         id: b.id,
         label: b.label,
         transport_type: b.transport,
         eta_days: b.eta_days,
-        price_eur: price,
-        departure_date: dep?.departure_date ?? fmt(addDays(today, b.eta_offset)),
+        price_eur: Math.round(basePrice * b.multiplier),
+        departure_date: dep.departure_date,
         highlight: b.highlight,
         confidence: baseConfidence,
         note: b.note,
       });
     }
 
-    const { data: nextDep } = await supabase
-      .from("konnekt_departures")
-      .select("departure_date")
-      .eq("status", "OPEN")
-      .ilike("origin_country", origin_country)
-      .ilike("destination_country", destination_country)
-      .gte("departure_date", fmt(today))
-      .order("departure_date", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Next departure across both sources (any transport)
+    const [{ data: nextKon }, { data: nextMan }] = await Promise.all([
+      supabase
+        .from("konnekt_departures")
+        .select("departure_date")
+        .eq("status", "OPEN")
+        .ilike("origin_country", origin_country)
+        .ilike("destination_country", destination_country)
+        .gte("departure_date", fmt(today))
+        .order("departure_date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("manual_departures")
+        .select("departure_date")
+        .eq("status", "active")
+        .ilike("origin_country", origin_country)
+        .ilike("destination_country", destination_country)
+        .gte("departure_date", fmt(today))
+        .order("departure_date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const candidates = [nextKon?.departure_date, nextMan?.departure_date].filter(Boolean) as string[];
+    const nextDep = candidates.length
+      ? { departure_date: candidates.sort()[0] }
+      : null;
 
     const next_departure_in_days = nextDep
       ? Math.max(0, Math.ceil((new Date(nextDep.departure_date).getTime() - today.getTime()) / 86400000))
