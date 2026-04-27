@@ -217,7 +217,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   const initialSession = useMemo(loadSession, []);
   const [step, setStep] = useState<Step>(() => {
     if (initialSession.exitedAt && initialSession.hub) return 'returning';
-    if (initialSession.ordered === 'yes') return 'tracking';
+    if (initialSession.ordered === 'yes') return 'reception';
     if (initialSession.ordered === 'no' && initialSession.hub) return 'pre-order';
     return 'ask';
   });
