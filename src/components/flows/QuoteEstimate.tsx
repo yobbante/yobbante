@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, TrendingUp, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Sparkles, TrendingUp, ShieldCheck, ChevronDown, AlertTriangle } from 'lucide-react';
 import type { Quote } from '@/hooks/useQuote';
+
+const fmtXof = (n: number) =>
+  new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n));
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
-
-const fmtEurDec = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(n);
 
 const CONFIDENCE_LABEL: Record<Quote['confidence'], string> = {
   high: 'Estimation fiable',
@@ -21,6 +21,15 @@ const CONFIDENCE_DOT: Record<Quote['confidence'], string> = {
   low: 'bg-muted-foreground',
 };
 
+const MODE_LABEL: Record<string, string> = {
+  air: 'Aérien',
+  sea_lcl: 'Maritime LCL',
+  road: 'Routier',
+  AIR: 'Aérien',
+  SEA: 'Maritime',
+  ROAD: 'Routier',
+};
+
 interface Props {
   quote: Quote | null;
   loading: boolean;
@@ -28,12 +37,13 @@ interface Props {
 }
 
 /**
- * Real-time pricing card. Skeleton while loading, fallback message when no price.
- * Shows a debug breakdown panel toggleable via the "Détails" button.
+ * Real-time pricing card v2 — XOF principal + EUR équivalent.
+ * Skeleton while loading, fallback message when no price.
+ * Detail panel shows the full v2 breakdown (zone, poids volumétrique, multiplicateurs).
  */
 export function QuoteEstimate({ quote, loading, error }: Props) {
   const [showDebug, setShowDebug] = useState(false);
-  const isFallback = !!quote?.fallback || error === 'fallback';
+  const isFallback = !!quote?.fallback_mode || error === 'fallback';
 
   return (
     <AnimatePresence mode="wait">
@@ -64,39 +74,69 @@ export function QuoteEstimate({ quote, loading, error }: Props) {
           className="rounded-2xl border border-foreground/10 bg-gradient-to-br from-background to-secondary/40 p-5 shadow-sm"
         >
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Votre estimation
               </div>
-              <div className="mt-1 flex items-baseline gap-2">
-                <div className="text-3xl font-bold tracking-tight">{fmtEur(quote.price)}</div>
-                <div className="text-xs text-muted-foreground">tout inclus</div>
+              {/* XOF principal, EUR secondaire */}
+              <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+                <div className="text-3xl font-bold tracking-tight tabular-nums">
+                  {fmtXof(quote.price_xof)} <span className="text-base font-medium text-muted-foreground">XOF</span>
+                </div>
+                <div className="text-sm text-muted-foreground tabular-nums">
+                  ≈ {fmtEur(quote.price_eur)}
+                </div>
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
-                Livraison {quote.estimated_delivery} · {quote.transport_type === 'AIR' ? 'Aérien' : quote.transport_type === 'SEA' ? 'Maritime' : quote.transport_type}
+                {quote.estimated_delivery} · {MODE_LABEL[quote.transport_mode] ?? MODE_LABEL[quote.transport_type] ?? quote.transport_type}
+                {quote.zone_id && <span className="opacity-60"> · {quote.zone_id}</span>}
               </div>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-2.5 py-1 text-[11px] font-medium">
                 <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT[quote.confidence]}`} />
                 {CONFIDENCE_LABEL[quote.confidence]}
               </span>
-              {!isFallback && quote.breakdown.supply_adjustment_eur < 0 && (
+              {!isFallback && quote.breakdown.supply_mult < 1 && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                  <TrendingUp className="w-3 h-3 rotate-180" /> -10% offre abondante
+                  <TrendingUp className="w-3 h-3 rotate-180" /> Offre abondante
                 </span>
               )}
-              {!isFallback && quote.breakdown.supply_adjustment_eur > 0 && (
+              {!isFallback && quote.breakdown.supply_mult > 1 && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 font-medium">
-                  <TrendingUp className="w-3 h-3" /> +15% capacité limitée
+                  <TrendingUp className="w-3 h-3" /> Capacité limitée
                 </span>
               )}
             </div>
           </div>
 
+          {/* Validation messages */}
+          {quote.validation_errors?.length > 0 && (
+            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800 space-y-1">
+              {quote.validation_errors.map((m, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>{m}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {quote.requires_manual_quote && (
+            <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-[12px] text-blue-800">
+              Volume important : un de nos experts vous contacte pour un devis sur-mesure.
+            </div>
+          )}
+
+          {quote.insurance_required && (
+            <div className="mt-2 text-[11px] text-muted-foreground inline-flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Assurance obligatoire (marchandise de valeur)
+            </div>
+          )}
+
           <div className="mt-4 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Suivi & assurance inclus</span>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Suivi & assurance</span>
               <span className="inline-flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> Marge plateforme incluse</span>
             </div>
             <button
@@ -118,26 +158,26 @@ export function QuoteEstimate({ quote, loading, error }: Props) {
                 className="mt-3 overflow-hidden"
               >
                 <div className="rounded-lg border border-foreground/10 bg-background/60 p-3 text-[11px] space-y-1.5 font-mono">
-                  <Row k="Prix de base" v={fmtEurDec(quote.breakdown.base_price_eur)} />
-                  <Row k="Coût au poids" v={fmtEurDec(quote.breakdown.weight_cost_eur)} />
-                  <Row k="Multiplicateur urgence" v={`× ${quote.breakdown.urgency_multiplier}`} />
-                  <Row
-                    k="Ajustement offre"
-                    v={`${quote.breakdown.supply_adjustment_eur >= 0 ? '+' : ''}${fmtEurDec(quote.breakdown.supply_adjustment_eur)}`}
-                  />
-                  <Row k="Marge plateforme" v={`× ${quote.breakdown.margin_multiplier}`} />
-                  <Row k="Départs Konnekt ouverts" v={String(quote.breakdown.open_departures ?? 0)} />
-                  {quote.breakdown.route_used ? (
-                    <Row
-                      k="Route tarifaire"
-                      v={`${quote.breakdown.route_used.origin_country}→${quote.breakdown.route_used.destination_country} (${quote.breakdown.route_used.transport_type})`}
-                    />
-                  ) : (
-                    <Row k="Route tarifaire" v="fallback (route inconnue)" />
+                  <Row k="Zone" v={`${quote.zone_id} — ${quote.zone_name}`} />
+                  <Row k="Poids réel" v={`${quote.taxable_weight_kg.toFixed(1)} kg`} />
+                  {quote.volumetric_weight_kg > 0 && (
+                    <Row k="Poids volumétrique" v={`${quote.volumetric_weight_kg.toFixed(1)} kg`} />
                   )}
+                  <Row k="Poids taxable" v={`${quote.taxable_weight_kg.toFixed(1)} kg`} />
+                  <div className="pt-1 border-t border-foreground/10" />
+                  <Row k="Prix de base" v={`${fmtXof(quote.breakdown.base_price_xof)} XOF`} />
+                  <Row k="Coût additionnel poids" v={`${fmtXof(quote.breakdown.weight_cost_xof)} XOF`} />
+                  <Row k="Sous-total brut" v={`${fmtXof(quote.breakdown.raw_price_xof)} XOF`} />
+                  <div className="pt-1 border-t border-foreground/10" />
+                  <Row k="× palier de poids" v={`× ${quote.breakdown.weight_bracket_mult}`} />
+                  <Row k="× type de marchandise" v={`× ${quote.breakdown.goods_mult}`} />
+                  <Row k="× urgence" v={`× ${quote.breakdown.urgency_mult}`} />
+                  <Row k="× offre Konnekt" v={`× ${quote.breakdown.supply_mult}`} />
+                  <Row k="× marge plateforme" v={`× ${quote.breakdown.margin_mult}`} />
+                  <Row k="Départs Konnekt ouverts" v={String(quote.breakdown.open_departures)} />
                   <div className="pt-1.5 border-t border-foreground/10 flex items-center justify-between font-semibold">
                     <span>Prix final</span>
-                    <span>{fmtEurDec(quote.price)}</span>
+                    <span>{fmtXof(quote.price_xof)} XOF · {fmtEur(quote.price_eur)}</span>
                   </div>
                 </div>
               </motion.div>
