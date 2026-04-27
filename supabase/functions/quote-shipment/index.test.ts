@@ -1,6 +1,5 @@
 import "https://deno.land/std@0.224.0/dotenv/load.ts";
 import { assert, assertEquals, assertAlmostEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const SUPABASE_ANON = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
@@ -25,9 +24,17 @@ interface QuoteResp {
 }
 
 async function callQuote(body: Record<string, unknown>): Promise<QuoteResp> {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  const { data, error } = await supabase.functions.invoke('quote-shipment', { body });
-  assert(!error, `quote-shipment error: ${error?.message}`);
+  // Direct fetch — avoids supabase-js realtime/auth timers that leak in Deno test sandbox.
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/quote-shipment`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_ANON}`,
+      "apikey": SUPABASE_ANON,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
   return data as QuoteResp;
 }
 
@@ -92,8 +99,11 @@ Deno.test("returns confidence + estimated_delivery on every successful response"
 });
 
 Deno.test("missing inputs returns 400-style error in body", async () => {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  const { data } = await supabase.functions.invoke('quote-shipment', { body: { origin_country: "FR" } });
-  // Either error in body or non-2xx — both acceptable.
-  if (data) assert((data as any).error, "should signal validation error");
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/quote-shipment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_ANON}`, "apikey": SUPABASE_ANON },
+    body: JSON.stringify({ origin_country: "FR" }),
+  });
+  const data = await res.json();
+  assert(data.error, "should signal validation error");
 });
