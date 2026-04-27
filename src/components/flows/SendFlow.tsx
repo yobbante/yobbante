@@ -60,6 +60,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [originCityId, setOriginCity] = useState<string | null>(presetOriginCityId);
   const [destCityId, setDestCity]     = useState<string | null>(presetDestCityId);
   const [weight, setWeight]           = useState(preset?.weight ?? 5);
+  const [weightTouched, setWeightTouched] = useState<boolean>(!!preset?.weight);
   const [declaredValue, setDeclared]  = useState('');
 
   // Contact / addresses
