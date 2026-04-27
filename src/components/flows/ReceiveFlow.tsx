@@ -210,6 +210,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { addresses } = useAddresses();
+  const { user } = useAuth();
 
   /* ── Session restoration: detect returning users ── */
   const initialSession = useMemo(loadSession, []);
@@ -242,11 +243,28 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
    */
   const [recommendedHub, setRecommendedHub] = useState<HubId | null>(initialSession.recommendedHub);
 
-  /* ── Derived ── */
-  const hubAddress = useMemo(
-    () => hub ? addresses.find(a => a.country === hub) : null,
-    [hub, addresses]
-  );
+  /* ── Derived ──
+   * Real per-user address requires sign-up (RLS-protected). For unauthenticated
+   * visitors we synthesize a public template so the flow keeps progressing
+   * after they pick a hub — the personal `identifier_code` is filled in once
+   * they sign in (a banner prompts them).
+   */
+  const hubAddress = useMemo(() => {
+    if (!hub) return null;
+    const real = addresses.find(a => a.country === hub);
+    if (real) return real;
+    const template = FALLBACK_HUB_ADDRESS[hub];
+    if (!template) return null;
+    return {
+      id: `fallback-${hub}`,
+      country: hub as any,
+      address_line: template,
+      identifier_code: '',
+      user_id: '',
+      created_at: new Date().toISOString(),
+    } as ReturnType<typeof useAddresses>['addresses'][number];
+  }, [hub, addresses]);
+  const isFallbackAddress = !!hubAddress && !hubAddress.identifier_code;
   const portals = hub ? EXTERNAL_PORTAL[hub] ?? [] : [];
 
   /** Wraps setHub: any *manual* hub change clears the recommendation. */
