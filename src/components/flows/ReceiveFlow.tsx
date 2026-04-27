@@ -535,31 +535,25 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.35 }}
           >
-            <FlowSection revealed title="Avez-vous déjà passé votre commande ?" hint="On adapte la suite selon votre situation.">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl">
+            <FlowSection revealed title="Que souhaitez-vous faire ?" hint="On adapte la suite selon votre situation.">
+              <div className="grid sm:grid-cols-3 gap-3 max-w-4xl">
                 <ChoicePill
                   icon={<ShoppingBag className="w-5 h-5" />}
-                  title="Non, pas encore"
-                  desc="Je veux d'abord récupérer mon adresse Yobbanté."
+                  title="Pas encore commandé"
+                  desc="Je veux d'abord récupérer une adresse Yobbanté pour faire mes achats."
                   onClick={() => chooseOrdered('no')}
                 />
                 <ChoicePill
-                  icon={<Package className="w-5 h-5" />}
-                  title="Oui, déjà commandé"
-                  desc="J'ai un lien de commande ou un numéro de suivi."
-                  onClick={() => chooseOrdered('yes')}
-                  accent
-                />
-                <ChoicePill
                   icon={<Inbox className="w-5 h-5" />}
-                  title="Réception internationale"
-                  desc="J'ai commandé sur Amazon, AliExpress… et j'ai besoin d'une adresse relais."
+                  title="J'ai déjà commandé"
+                  desc="Enregistrer ma commande Amazon, AliExpress, Shein… avec son numéro de suivi."
                   onClick={() => setStep('reception')}
+                  accent
                 />
                 <ChoicePill
                   icon={<ListChecks className="w-5 h-5" />}
                   title="Suivre mes commandes"
-                  desc="Voir mes commandes en cours, déjà réceptionnées ou en route."
+                  desc="Voir mes commandes en cours, réceptionnées ou en route."
                   onClick={() => setStep('orders')}
                 />
               </div>
@@ -574,7 +568,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.35 }}
           >
-            <FlowSection revealed title="Bon retour 👋" hint="Vous avez généré une adresse récemment. Souhaitez-vous suivre votre colis ?">
+            <FlowSection revealed title="Bon retour" hint="Vous avez généré une adresse récemment. Souhaitez-vous suivre votre colis ?">
               <div className="rounded-2xl border-2 border-yellow-400/40 bg-yellow-400/5 p-5 max-w-xl">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-yellow-400 text-zinc-950 flex items-center justify-center shrink-0">
