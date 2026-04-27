@@ -217,15 +217,21 @@ export function FlowSection({
   const theme = useFlowTheme();
   const t = T[theme];
   const ref = useRef<HTMLElement>(null);
-  const scrolled = useRef(false);
+  const wasRevealed = useRef(false);
 
   useEffect(() => {
-    if (revealed && !scrolled.current && ref.current) {
-      scrolled.current = true;
-      setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 250);
-    }
+    if (!revealed) { wasRevealed.current = false; return; }
+    if (wasRevealed.current) return;
+    wasRevealed.current = true;
+    // Wait for mount + reveal animation to settle, then snap with header offset.
+    const id = window.setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const targetTop = window.scrollY + rect.top - 80;
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }, 320);
+    return () => window.clearTimeout(id);
   }, [revealed]);
 
   const showProgress = step != null && total != null;
