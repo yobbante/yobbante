@@ -753,7 +753,7 @@ export function LiveSummaryBar({
       const el = containerRef.current;
       if (el && !el.contains(e.target as Node)) setExpanded(false);
     };
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    const handleKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
     document.addEventListener('mousedown', handlePointer);
     document.addEventListener('touchstart', handlePointer, { passive: true });
     document.addEventListener('keydown', handleKey);
