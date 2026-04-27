@@ -100,8 +100,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const originCity = findCity(ORIGIN_CITIES, originCityId);
   const destCity   = findCity(DESTINATION_CITIES, destCityId);
 
-  // Origin country must belong to warehouse enum, otherwise we can't insert a shipment.
-  const originCountrySupported = !!originCity && (SUPPORTED_ORIGIN_COUNTRIES as readonly string[]).includes(originCity.country);
+  // Yobbanté opère depuis Dakar : Dakar doit être au départ OU à l'arrivée.
+  const isDakar = (c?: { city?: string } | null) => !!c?.city && c.city.toLowerCase().includes('dakar');
+  const dakarRouteOk = !originCity || !destCity ? true : (isDakar(originCity) || isDakar(destCity));
 
   // Step 5 only fetches options once the user has actually confirmed a weight
   // (otherwise the default value of 5 kg would auto-reveal step 5 and skip step 4).
@@ -163,8 +164,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   async function submit() {
     if (!chosen || !originCity || !destCity || !type) return;
-    if (!originCountrySupported) {
-      toast.error(`Origine ${originCity.countryLabel} indisponible — choisissez une ville en FR / CN / US / AE / DE / CA.`);
+    if (!dakarRouteOk) {
+      toast.error('Dakar doit être la ville de départ ou d\'arrivée.');
       return;
     }
     if (!contactsComplete) {
@@ -282,9 +283,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           placeholder="Ex. Shenzhen, Paris, Dubai…"
           popularIds={POPULAR_ORIGIN_IDS}
         />
-        {originCity && !originCountrySupported && (
-          <p className="mt-3 text-xs text-amber-600">
-            Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
+        {originCity && !isDakar(originCity) && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            ✦ Astuce : Yobbanté opère depuis Dakar — pensez à choisir Dakar comme destination si vous expédiez vers le Sénégal.
           </p>
         )}
         {originCity && (
@@ -310,6 +311,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           placeholder="Ex. Dakar, Abidjan, Bamako…"
           popularIds={POPULAR_DEST_IDS}
         />
+        {originCity && destCity && !dakarRouteOk && (
+          <p className="mt-3 text-xs text-amber-600">
+            Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée. Choisissez Dakar pour l'une des deux villes.
+          </p>
+        )}
         {destCity && (
           <motion.fieldset
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
