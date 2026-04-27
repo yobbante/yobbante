@@ -224,23 +224,37 @@ export function FlowSection({
     if (wasRevealed.current) return;
     wasRevealed.current = true;
 
-    // Debounced auto-scroll: if several sections reveal in cascade (rapid input
-    // changes), the global "last scheduled scroll wins" — we end up at the
-    // most recent section instead of janking between them.
-    const w = window as unknown as { __flowScrollTimer?: number };
+    // Debounced auto-scroll with "first wins" semantics: when several sections
+    // reveal in cascade (e.g. answering step 3 also unlocks step 4 + 5 because
+    // weight has a default value), we want to scroll to the FIRST newly-revealed
+    // section, not the last — otherwise the user never sees the intermediate
+    // steps. We track the earliest target's DOM position in the same tick.
+    const w = window as unknown as {
+      __flowScrollTimer?: number;
+      __flowScrollTargetTop?: number;
+    };
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const myTop = window.scrollY + rect.top - 80;
+
+    // Keep the smallest (topmost) target seen during this debounce window.
+    if (w.__flowScrollTargetTop == null || myTop < w.__flowScrollTargetTop) {
+      w.__flowScrollTargetTop = myTop;
+    }
+
     if (w.__flowScrollTimer) window.clearTimeout(w.__flowScrollTimer);
     w.__flowScrollTimer = window.setTimeout(() => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const targetTop = window.scrollY + rect.top - 80;
-      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      const top = w.__flowScrollTargetTop;
+      if (top != null) window.scrollTo({ top, behavior: 'smooth' });
       w.__flowScrollTimer = undefined;
+      w.__flowScrollTargetTop = undefined;
     }, 380);
     return () => {
       if (w.__flowScrollTimer) {
         window.clearTimeout(w.__flowScrollTimer);
         w.__flowScrollTimer = undefined;
+        w.__flowScrollTargetTop = undefined;
       }
     };
   }, [revealed]);
