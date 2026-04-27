@@ -781,6 +781,7 @@ export function LiveSummaryBar({
           <AnimatePresence initial={false}>
             {expanded && details && (
               <motion.div
+                id="flow-summary-details"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
