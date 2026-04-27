@@ -416,7 +416,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Connectez-vous pour valider');
+        toast.message('Connectez-vous pour finaliser — vos colis restent enregistrés.');
         navigate(`/auth?redirect=${encodeURIComponent('/expedier/recevoir')}`);
         return;
       }
