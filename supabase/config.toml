@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.konnekt-webhook]
 verify_jwt = false
+
+[functions.whatsapp-notify]
+verify_jwt = false
+
+[functions.dispatch-notifications]
+verify_jwt = false
