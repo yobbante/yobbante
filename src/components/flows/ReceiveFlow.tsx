@@ -1239,7 +1239,23 @@ function OrdersOverview({
             createdAt: p.created_at,
           });
         }
-        out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+        for (const r of receptions ?? []) {
+          const meta = RECEPTION_STATUS_LABEL[r.status as string] ?? { label: r.status, tone: 'info' as const };
+          const relay = (r as any).relay_addresses;
+          const subtitleBits = [
+            relay ? `Relais ${relay.city}` : null,
+            r.actual_weight_kg ? `${r.actual_weight_kg} kg` : null,
+            r.final_price_eur ? `${r.final_price_eur} €` : null,
+          ].filter(Boolean);
+          out.push({
+            id: r.id, source: 'reception',
+            reference: r.reference,
+            title: `${r.merchant_name} — ${(r.order_description as string)?.slice(0, 60) ?? ''}`,
+            subtitle: subtitleBits.join(' · '),
+            status: r.status, statusLabel: meta.label, statusTone: meta.tone,
+            createdAt: r.created_at,
+          });
+        }
         if (alive) setRows(out);
       } finally {
         if (alive) setLoading(false);
