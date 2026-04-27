@@ -497,7 +497,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             destination_country: destCity.country,
             destination_city: destCity.city,
             weight_kg: weight,
-            transport_mode: chosen?.transport_type ?? null,
+            transport_mode: chosen?.id === 'fast' ? 'AIR' : chosen?.id === 'volume' ? 'SEA' : chosen?.id === 'economy' ? 'ROAD' : null,
             priority: 'normal',
           }}
           defaultName={senderName || recipientName}
