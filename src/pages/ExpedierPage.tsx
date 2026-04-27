@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Inbox, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Package, Inbox, ArrowRight, ArrowLeft, ListChecks } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
