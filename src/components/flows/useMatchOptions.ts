@@ -57,7 +57,7 @@ export function useMatchOptions(input: MatchInput | null): MatchResult {
     }, 350);
 
     return () => clearTimeout(t);
-  }, [input?.origin_city, input?.destination_city, input?.weight_kg, input?.urgency]);
+  }, [input?.origin_city, input?.destination_city, input?.weight_kg, input?.urgency, input?.origin_country, input?.destination_country]);
 
   return state;
 }
