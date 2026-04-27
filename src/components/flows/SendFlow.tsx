@@ -207,6 +207,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         price: finalPrice ?? Math.round(chosen.price_eur),
         eta: chosen.eta_days,
       });
+      clearDraft(DRAFT_KEY);
       toast.success('Expédition confirmée 🚀');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
