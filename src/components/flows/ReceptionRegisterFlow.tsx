@@ -32,21 +32,21 @@ type RelayAddress = {
   notes: string | null;
 };
 
-const COUNTRY_FLAG: Record<string, string> = {
-  US: '🇺🇸', FR: '🇫🇷', CN: '🇨🇳', GB: '🇬🇧', AE: '🇦🇪',
+const COUNTRY_LABEL: Record<string, string> = {
+  US: 'USA', FR: 'France', CN: 'Chine', GB: 'UK', AE: 'Dubai',
 };
 
-const MERCHANT_PRESETS: { name: string; emoji: string; suggestedRelay: string }[] = [
-  { name: 'Amazon US',   emoji: '🛒', suggestedRelay: 'US' },
-  { name: 'Amazon FR',   emoji: '🛍️', suggestedRelay: 'FR' },
-  { name: 'AliExpress',  emoji: '🧧', suggestedRelay: 'CN' },
-  { name: 'eBay',        emoji: '🏷️', suggestedRelay: 'US' },
-  { name: 'SHEIN',       emoji: '👗', suggestedRelay: 'CN' },
-  { name: 'Temu',        emoji: '🟠', suggestedRelay: 'CN' },
-  { name: 'Etsy',        emoji: '🎨', suggestedRelay: 'US' },
-  { name: 'RockAuto',    emoji: '🔧', suggestedRelay: 'US' },
-  { name: 'B&H Photo',   emoji: '📷', suggestedRelay: 'US' },
-  { name: 'iHerb',       emoji: '🌿', suggestedRelay: 'US' },
+const MERCHANT_PRESETS: { name: string; suggestedRelay: string }[] = [
+  { name: 'Amazon US',   suggestedRelay: 'US' },
+  { name: 'Amazon FR',   suggestedRelay: 'FR' },
+  { name: 'AliExpress',  suggestedRelay: 'CN' },
+  { name: 'eBay',        suggestedRelay: 'US' },
+  { name: 'SHEIN',       suggestedRelay: 'CN' },
+  { name: 'Temu',        suggestedRelay: 'CN' },
+  { name: 'Etsy',        suggestedRelay: 'US' },
+  { name: 'RockAuto',    suggestedRelay: 'US' },
+  { name: 'B&H Photo',   suggestedRelay: 'US' },
+  { name: 'iHerb',       suggestedRelay: 'US' },
 ];
 
 const GOODS_TYPES = [
@@ -59,7 +59,7 @@ const GOODS_TYPES = [
   { id: 'high_value', label: 'Forte valeur',      desc: 'Assurance recommandée' },
 ] as const;
 
-const HAZARDOUS_HINT = "⚠️ Batteries lithium, aérosols ou liquides : transport aérien interdit, choisissez maritime.";
+const HAZARDOUS_HINT = "Batteries lithium, aérosols ou liquides : transport aérien interdit, choisissez maritime.";
 
 type Step = 'merchant' | 'details' | 'relay' | 'review' | 'success';
 
@@ -67,6 +67,7 @@ type FormState = {
   merchant_name: string;
   merchant_url: string;
   order_reference: string;
+  tracking_number: string;
   order_description: string;
   estimated_value_eur: string;
   estimated_weight_kg: string;
@@ -81,6 +82,7 @@ const EMPTY_FORM: FormState = {
   merchant_name: '',
   merchant_url: '',
   order_reference: '',
+  tracking_number: '',
   order_description: '',
   estimated_value_eur: '',
   estimated_weight_kg: '',
@@ -172,7 +174,8 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
         merchant_name: form.merchant_name,
         merchant_url: form.merchant_url || null,
         order_reference: form.order_reference || null,
-        order_description: form.order_description,
+        order_description: form.order_description
+          + (form.tracking_number ? `\n\nN° suivi transporteur: ${form.tracking_number}` : ''),
         estimated_value_eur: form.estimated_value_eur ? Number(form.estimated_value_eur) : null,
         estimated_weight_kg: form.estimated_weight_kg ? Number(form.estimated_weight_kg) : null,
         expected_packages: form.expected_packages,
@@ -255,7 +258,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                       : "border-white/10 bg-white/[0.03] hover:border-white/30"
                   )}
                 >
-                  <div className="text-xl">{m.emoji}</div>
+                  <ShoppingBag className="w-4 h-4 text-white/70" />
                   <p className="mt-1.5 text-xs font-semibold text-white truncate">{m.name}</p>
                 </button>
               ))}
@@ -263,7 +266,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                 onClick={() => { update('merchant_name', ''); setStep('details'); }}
                 className="rounded-xl border-2 border-dashed border-white/15 bg-transparent p-3 text-left hover:border-white/40 transition-colors"
               >
-                <div className="text-xl">✏️</div>
+                <Package className="w-4 h-4 text-white/50" />
                 <p className="mt-1.5 text-xs font-semibold text-white/80">Autre marchand…</p>
               </button>
             </div>
@@ -352,6 +355,19 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                     className="mt-1 bg-white/5 border-white/10 text-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/70">Numéro de suivi du transporteur</label>
+                <Input
+                  value={form.tracking_number}
+                  onChange={e => update('tracking_number', e.target.value)}
+                  placeholder="Ex: 1Z999AA10123456784, TBA123456789012, LZ123456789FR…"
+                  className="mt-1 bg-white/5 border-white/10 text-white font-mono text-xs"
+                />
+                <p className="mt-1 text-[11px] text-white/45">
+                  Collez ici le numéro fourni par le marchand (DHL, UPS, FedEx, La Poste, Amazon…). On suit l'acheminement jusqu'au relais.
+                </p>
               </div>
 
               <div>
@@ -488,7 +504,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{COUNTRY_FLAG[r.country_code] ?? '🌍'}</span>
+                    <MapPin className="w-4 h-4 text-yellow-400 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-white">{r.country}</p>
                       <p className="text-xs text-white/55">{r.city}</p>
@@ -527,8 +543,9 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
               {form.estimated_weight_kg && <Row label="Poids estimé" value={`${form.estimated_weight_kg} kg`} />}
               <Row label="Type" value={GOODS_TYPES.find(g => g.id === form.goods_type)?.label ?? ''} />
               <Row label="Transport" value={`${form.transport_mode === 'air' ? 'Aérien' : 'Maritime LCL'} · ${form.priority === 'express' ? 'Express' : 'Standard'}`} />
-              <Row label="Relais" value={`${COUNTRY_FLAG[selectedRelay.country_code] ?? ''} ${selectedRelay.city}, ${selectedRelay.country}`} />
+              <Row label="Relais" value={`${selectedRelay.city}, ${selectedRelay.country}`} />
               <Row label="Nb colis attendus" value={String(form.expected_packages)} />
+              {form.tracking_number && <Row label="N° de suivi" value={form.tracking_number} />}
 
               <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-3 text-xs text-yellow-100 flex gap-2">
                 <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -557,7 +574,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
       {/* ── STEP 5: Success ──────────────────────────────────────────── */}
       {step === 'success' && selectedRelay && createdReference && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <FlowSection revealed title="✅ Commande enregistrée" hint="Utilisez l'adresse ci-dessous sur le site marchand.">
+          <FlowSection revealed title="Commande enregistrée" hint="Utilisez l'adresse ci-dessous sur le site marchand.">
             <div className="rounded-2xl border-2 border-yellow-400/40 bg-yellow-400/5 p-5 max-w-xl space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-yellow-300">
