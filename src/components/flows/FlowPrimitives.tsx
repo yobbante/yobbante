@@ -223,15 +223,26 @@ export function FlowSection({
     if (!revealed) { wasRevealed.current = false; return; }
     if (wasRevealed.current) return;
     wasRevealed.current = true;
-    // Wait for mount + reveal animation to settle, then snap with header offset.
-    const id = window.setTimeout(() => {
+
+    // Debounced auto-scroll: if several sections reveal in cascade (rapid input
+    // changes), the global "last scheduled scroll wins" — we end up at the
+    // most recent section instead of janking between them.
+    const w = window as unknown as { __flowScrollTimer?: number };
+    if (w.__flowScrollTimer) window.clearTimeout(w.__flowScrollTimer);
+    w.__flowScrollTimer = window.setTimeout(() => {
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const targetTop = window.scrollY + rect.top - 80;
       window.scrollTo({ top: targetTop, behavior: 'smooth' });
-    }, 320);
-    return () => window.clearTimeout(id);
+      w.__flowScrollTimer = undefined;
+    }, 380);
+    return () => {
+      if (w.__flowScrollTimer) {
+        window.clearTimeout(w.__flowScrollTimer);
+        w.__flowScrollTimer = undefined;
+      }
+    };
   }, [revealed]);
 
   const showProgress = step != null && total != null;
