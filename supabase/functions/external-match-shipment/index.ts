@@ -28,6 +28,7 @@ interface MatchOption {
   highlight?: string;
   transport_type: string;
   confidence: string;
+  note?: string;
 }
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
@@ -37,10 +38,21 @@ const addDays = (base: Date, n: number) => {
   return d;
 };
 
-const BUCKETS: Array<{ id: OptionId; label: string; transport: 'AIR' | 'ROAD' | 'SEA'; highlight: string }> = [
-  { id: "fast",    label: "Express",    transport: "AIR",  highlight: "Le plus rapide" },
-  { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix" },
-  { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois" },
+// Distinct multipliers per option. Each option transforms the SAME base
+// calculation differently so prices must always differ.
+const BUCKETS: Array<{
+  id: OptionId;
+  label: string;
+  transport: 'AIR' | 'ROAD' | 'SEA';
+  highlight: string;
+  multiplier: number;   // applied on base price
+  eta_days: string;
+  eta_offset: number;   // for fallback departure_date
+  note?: string;
+}> = [
+  { id: "fast",    label: "Express",    transport: "AIR",  highlight: "Le plus rapide",                  multiplier: 1.35, eta_days: "1-2 jours", eta_offset: 1 },
+  { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix",   multiplier: 1.00, eta_days: "3-5 jours", eta_offset: 4 },
+  { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois",            multiplier: 0.85, eta_days: "5-7 jours", eta_offset: 7, note: "Tarif dégressif pour gros envois" },
 ];
 
 serve(async (req) => {
@@ -69,22 +81,33 @@ serve(async (req) => {
     const today = new Date();
     const options: MatchOption[] = [];
 
+    // Compute ONE base price (no urgency, no transport-specific markup) using
+    // the economy/road quote as our neutral reference. Then we apply distinct
+    // multipliers per option so the three prices are guaranteed to differ.
+    const { data: baseData, error: baseErr } = await supabase.rpc("calculate_quote", {
+      p_origin_country: origin_country,
+      p_destination_country: destination_country,
+      p_weight_kg: body.weight_kg,
+      p_transport_type: "ROAD",
+      p_priority: "normal",
+      p_origin_city: body.origin_city,
+      p_destination_city: body.destination_city,
+    });
+    if (baseErr) {
+      console.warn("base calculate_quote failed:", baseErr.message);
+    }
+    const baseRow = Array.isArray(baseData) ? baseData[0] : baseData;
+    const basePrice = baseRow ? Number(baseRow.price_eur) : 0;
+    const baseConfidence = baseRow?.confidence ?? "medium";
+
+    // Volume option only makes sense for heavier shipments.
+    const showVolume = body.weight_kg >= 30;
+
     for (const b of BUCKETS) {
-      const { data, error } = await supabase.rpc("calculate_quote", {
-        p_origin_country: origin_country,
-        p_destination_country: destination_country,
-        p_weight_kg: body.weight_kg,
-        p_transport_type: b.transport,
-        p_priority: body.urgency === "fast" ? "urgent" : "normal",
-        p_origin_city: body.origin_city,
-        p_destination_city: body.destination_city,
-      });
-      if (error) {
-        console.warn(`calculate_quote failed for ${b.transport}:`, error.message);
-        continue;
-      }
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) continue;
+      if (b.id === "volume" && !showVolume) continue;
+      if (basePrice <= 0) continue;
+
+      const price = Math.round(basePrice * b.multiplier);
 
       const { data: dep } = await supabase
         .from("konnekt_departures")
@@ -95,7 +118,7 @@ serve(async (req) => {
         .eq("transport", b.transport)
         .gte("departure_date", fmt(today))
         .gte("available_capacity_kg", body.weight_kg)
-        .order("departure_date", { ascending: true })
+        .order("departure_date", { ascending: b.id === "fast" })
         .limit(1)
         .maybeSingle();
 
@@ -103,11 +126,12 @@ serve(async (req) => {
         id: b.id,
         label: b.label,
         transport_type: b.transport,
-        eta_days: `${row.eta_min_days}–${row.eta_max_days} jours`,
-        price_eur: Number(row.price_eur),
-        departure_date: dep?.departure_date ?? fmt(addDays(today, b.id === "fast" ? 2 : b.id === "economy" ? 4 : 7)),
+        eta_days: b.eta_days,
+        price_eur: price,
+        departure_date: dep?.departure_date ?? fmt(addDays(today, b.eta_offset)),
         highlight: b.highlight,
-        confidence: row.confidence,
+        confidence: baseConfidence,
+        note: b.note,
       });
     }
 

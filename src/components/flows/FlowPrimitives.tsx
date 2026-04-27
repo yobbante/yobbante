@@ -712,6 +712,7 @@ export interface MatchOptionView {
   price_eur: number;
   departure_date?: string | null;
   highlight?: string;
+  note?: string;
 }
 
 export function MatchOptionCard({
@@ -746,6 +747,9 @@ export function MatchOptionCard({
       </p>
       {opt.departure_date && (
         <p className={cn('mt-1 text-[11px]', t.muted)}>Départ {new Date(opt.departure_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
+      )}
+      {opt.note && (
+        <p className={cn('mt-2 text-[11px] italic', t.muted)}>{opt.note}</p>
       )}
     </button>
   );
