@@ -873,7 +873,7 @@ export type Database = {
         | "CUSTOMS"
         | "DELIVERED"
         | "WAITING_FOR_MATCH"
-      warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE"
+      warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE" | "SN"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1028,7 +1028,7 @@ export const Constants = {
         "DELIVERED",
         "WAITING_FOR_MATCH",
       ],
-      warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE"],
+      warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE", "SN"],
     },
   },
 } as const

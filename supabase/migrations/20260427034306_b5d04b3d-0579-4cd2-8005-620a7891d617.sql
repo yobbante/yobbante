@@ -1,0 +1,1 @@
+ALTER TYPE public.warehouse_country ADD VALUE IF NOT EXISTS 'SN';

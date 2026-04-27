@@ -31,7 +31,7 @@ const DEFAULT_DESTINATION = {
   port: 'Port Autonome de Dakar',
 } as const;
 
-export const HUB_ROUTES: Record<WarehouseCountry, HubRoute> = {
+export const HUB_ROUTES: Partial<Record<WarehouseCountry, HubRoute>> = {
   CN: {
     origin_country: 'CN',
     origin_city: 'Shenzhen',
@@ -94,7 +94,7 @@ export const HUB_ROUTES: Record<WarehouseCountry, HubRoute> = {
   },
 };
 
-export function getHubRoute(origin: WarehouseCountry): HubRoute {
+export function getHubRoute(origin: WarehouseCountry): HubRoute | undefined {
   return HUB_ROUTES[origin];
 }
 
