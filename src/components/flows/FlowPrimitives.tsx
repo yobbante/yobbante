@@ -769,6 +769,9 @@ export function LiveSummaryBar({
       {visible && (
         <motion.div
           ref={containerRef}
+          role="region"
+          aria-label="Récapitulatif et confirmation"
+          ref={containerRef}
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
@@ -798,15 +801,20 @@ export function LiveSummaryBar({
               onClick={() => details && setExpanded(v => !v)}
               disabled={!details}
               className={cn(
-                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors',
+                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                theme === 'dark'
+                  ? 'focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
+                  : 'focus-visible:ring-foreground focus-visible:ring-offset-background',
                 details && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
               )}
               aria-expanded={expanded}
+              aria-controls="flow-summary-details"
+              aria-label={expanded ? 'Masquer le détail du récapitulatif' : 'Afficher le détail du récapitulatif'}
             >
               <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
                 Récapitulatif
                 {details && (
-                  <span className={cn('text-[9px] font-semibold', t.muted)}>
+                  <span className={cn('text-[9px] font-semibold', t.muted)} aria-hidden="true">
                     {expanded ? '▾ Masquer' : '▴ Détails'}
                   </span>
                 )}
