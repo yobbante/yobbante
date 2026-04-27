@@ -86,6 +86,10 @@ const withId = (l: Array<Omit<CityOption, 'id'>>): CityOption[] =>
 export const ORIGIN_CITIES: CityOption[] = withId(RAW);
 export const DESTINATION_CITIES: CityOption[] = withId(DEST_RAW);
 
+/** IDs of "popular" cities pinned at the top of the selectors. */
+export const POPULAR_ORIGIN_IDS = ['FR-Paris', 'FR-Lyon', 'FR-Marseille', 'AE-Dubai', 'CN-Shenzhen', 'CN-Guangzhou', 'US-New York', 'CA-Montréal'];
+export const POPULAR_DEST_IDS   = ['SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'GN-Conakry', 'BF-Ouagadougou', 'TG-Lomé', 'CM-Douala', 'GA-Libreville'];
+
 export function findCity(list: CityOption[], id: string | null): CityOption | null {
   if (!id) return null;
   return list.find(c => c.id === id) ?? null;
