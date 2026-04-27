@@ -270,15 +270,35 @@ export function ShipmentsView() {
                         <span className="hidden sm:inline">Suivre</span>
                       </Button>
                       {canShipNow && (
-                        <Button
-                          size="sm"
-                          onClick={() => openShipForPackage(pkg)}
-                          className="h-8 px-2.5 text-[11px] gap-1"
-                          aria-label="Expédier ce colis maintenant"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Expédier</span>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              className="h-8 px-2.5 text-[11px] gap-1"
+                              aria-label="Expédier ce colis maintenant"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Expédier</span>
+                              <ChevronDown className="w-3 h-3 opacity-70" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => openShipForPackage(pkg)} className="gap-2">
+                              <Zap className="w-4 h-4 text-primary" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">Expédition rapide</span>
+                                <span className="text-[10px] text-muted-foreground">Choisir un départ Konnekt</span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openSendFlowForPackage(pkg)} className="gap-2">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">Flow guidé</span>
+                                <span className="text-[10px] text-muted-foreground">Pré-rempli depuis le hub</span>
+                              </div>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
