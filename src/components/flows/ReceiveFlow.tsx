@@ -204,7 +204,7 @@ type ParsedItem = {
   imageUrl: string;
 };
 
-type Step = 'ask' | 'pre-order' | 'returning' | 'tracking';
+type Step = 'ask' | 'pre-order' | 'returning' | 'tracking' | 'orders';
 
 export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
