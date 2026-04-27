@@ -357,6 +357,19 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
               </div>
 
               <div>
+                <label className="text-xs font-semibold text-white/70">Numéro de suivi du transporteur</label>
+                <Input
+                  value={form.tracking_number}
+                  onChange={e => update('tracking_number', e.target.value)}
+                  placeholder="Ex: 1Z999AA10123456784, TBA123456789012, LZ123456789FR…"
+                  className="mt-1 bg-white/5 border-white/10 text-white font-mono text-xs"
+                />
+                <p className="mt-1 text-[11px] text-white/45">
+                  Collez ici le numéro fourni par le marchand (DHL, UPS, FedEx, La Poste, Amazon…). On suit l'acheminement jusqu'au relais.
+                </p>
+              </div>
+
+              <div>
                 <label className="text-xs font-semibold text-white/70 mb-2 block">Type de marchandise *</label>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {GOODS_TYPES.map(g => (
