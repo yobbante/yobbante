@@ -1,6 +1,31 @@
 export type WarehouseCountry = 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE' | 'SN';
 export type PackageStatus = 'CREATED' | 'RECEIVED' | 'IN_STORAGE' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED';
-export type ShipmentStatus = 'PENDING' | 'WAITING_FOR_MATCH' | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED';
+export type ShipmentStatus =
+  | 'PENDING' | 'WAITING_FOR_MATCH' | 'CONFIRMED' | 'MATCHED' | 'IN_PREPARATION'
+  | 'IN_TRANSIT' | 'CUSTOMS' | 'ARRIVED' | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED' | 'CANCELLED' | 'ON_HOLD';
+
+/** Full workflow order used by the admin Kanban / state machine. */
+export const SHIPMENT_WORKFLOW_ORDER: ShipmentStatus[] = [
+  'PENDING', 'WAITING_FOR_MATCH', 'CONFIRMED', 'MATCHED', 'IN_PREPARATION',
+  'IN_TRANSIT', 'CUSTOMS', 'ARRIVED', 'OUT_FOR_DELIVERY', 'DELIVERED',
+  'ON_HOLD', 'CANCELLED',
+];
+
+export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
+  PENDING: 'En attente',
+  WAITING_FOR_MATCH: 'Sans départ',
+  CONFIRMED: 'Confirmé',
+  MATCHED: 'Assigné',
+  IN_PREPARATION: 'Préparation',
+  IN_TRANSIT: 'En transit',
+  CUSTOMS: 'Douane',
+  ARRIVED: 'Arrivé',
+  OUT_FOR_DELIVERY: 'En livraison',
+  DELIVERED: 'Livré',
+  CANCELLED: 'Annulé',
+  ON_HOLD: 'À traiter',
+};
 export type DossierStatus =
   | 'SUBMITTED' | 'IN_REVIEW' | 'SOURCING' | 'PROCURED'
   | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED' | 'CLOSED';
@@ -87,7 +112,16 @@ export interface Shipment {
   konnekt_id: string | null;
   origin_country: WarehouseCountry;
   destination_country: string;
+  tracking_number?: string | null;
+  payment_status?: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
+  weight_kg?: number | null;
+  priority?: string | null;
+  pending_assignment?: boolean | null;
+  manual_request?: boolean | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface TimelineEvent {

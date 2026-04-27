@@ -16,6 +16,7 @@ import { DeparturesTab } from '@/components/admin/DeparturesTab';
 import { TrackingTab } from '@/components/admin/TrackingTab';
 import { ClientsTab } from '@/components/admin/ClientsTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
+import { ShipmentsWorkflowTab } from '@/components/admin/ShipmentsWorkflowTab';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -122,6 +123,7 @@ export default function AdminPage() {
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
           {section === 'overview'   && <OverviewTab onJump={setSection} />}
           {section === 'requests'   && <RequestsTab />}
+          {section === 'shipments'  && <ShipmentsWorkflowTab />}
           {section === 'orders'     && <OrdersTab />}
           {section === 'hubs'       && <HubsTab />}
           {section === 'transport'  && <KonnektMonitorTab />}
