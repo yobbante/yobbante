@@ -1161,6 +1161,17 @@ const DOSSIER_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['stat
   CANCELLED:    { label: 'Annulé',          tone: 'warning' },
 };
 
+const RECEPTION_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['statusTone'] }> = {
+  pending_arrival: { label: 'Attendu au relais',  tone: 'info' },
+  received:        { label: 'Reçu au relais',     tone: 'progress' },
+  inspected:       { label: 'Inspecté · Devis',   tone: 'progress' },
+  consolidated:    { label: 'Consolidé',          tone: 'progress' },
+  in_transit:      { label: 'En transit',         tone: 'progress' },
+  customs:         { label: 'Douane',             tone: 'progress' },
+  delivered:       { label: 'Livré',              tone: 'success' },
+  cancelled:       { label: 'Annulé',             tone: 'warning' },
+};
+
 function OrdersOverview({
   isAuthenticated, goBack, goAddOrder, goSignIn,
 }: {
