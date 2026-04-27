@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useEffect, useRef, createContext, useContext, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, createContext, useContext, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
 
 /* =========================================================================
@@ -335,6 +335,86 @@ export function CountryGrid({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/* ─────────── City selector (searchable, same look as CountryGrid) ─────────── */
+
+export interface CityOption {
+  id: string;          // unique key, e.g. "FR-Paris"
+  city: string;
+  country: string;     // ISO-2 code
+  countryLabel: string;
+  flag: string;
+}
+
+export function CitySelector({
+  cities, value, onChange, placeholder = 'Rechercher une ville…', emptyHint = 'Aucune ville trouvée.',
+}: {
+  cities: CityOption[];
+  value: string | null;
+  onChange: (id: string) => void;
+  placeholder?: string;
+  emptyHint?: string;
+}) {
+  const theme = useFlowTheme();
+  const t = T[theme];
+  const [q, setQ] = useState('');
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return cities;
+    return cities.filter(c =>
+      c.city.toLowerCase().includes(needle) ||
+      c.countryLabel.toLowerCase().includes(needle) ||
+      c.country.toLowerCase().includes(needle)
+    );
+  }, [cities, q]);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4', t.muted)} />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={placeholder}
+          className={cn(
+            'w-full border-2 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none transition-all',
+            t.inputBg, t.border, t.inputPlaceholder,
+            theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground',
+          )}
+        />
+      </div>
+      {filtered.length === 0 ? (
+        <p className={cn('text-xs py-6 text-center', t.muted)}>{emptyHint}</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
+          {filtered.map(c => {
+            const active = value === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => onChange(c.id)}
+                className={cn(
+                  'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
+                  active ? t.cardActive : t.cardIdle
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg leading-none">{c.flag}</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate">{c.city}</div>
+                    <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
+                  </div>
+                  {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

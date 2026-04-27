@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Package, FileText, Boxes, Zap, Clock, Crown, ShieldCheck, Sparkles } from 'lucide-react';
+import { Package, FileText, Boxes, Zap, Clock, Sparkles, ShieldCheck, MapPin, Phone, User } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  FlowShell, FlowHero, FlowSection, ChipGroup, CountryGrid, NumberSlider,
+  FlowShell, FlowHero, FlowSection, ChipGroup, CitySelector, NumberSlider,
   TextField, MatchOptionCard, LiveSummaryBar, FlowSuccess,
   type MatchOptionView,
 } from './FlowPrimitives';
@@ -14,46 +14,26 @@ import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { supabase } from '@/integrations/supabase/client';
+import { ORIGIN_CITIES, DESTINATION_CITIES, findCity } from '@/lib/worldCities';
 import type { WarehouseCountry } from '@/lib/types';
 
-const ORIGINS = [
-  { id: 'CN', flag: '🇨🇳', label: 'Chine' },
-  { id: 'FR', flag: '🇫🇷', label: 'France' },
-  { id: 'AE', flag: '🇦🇪', label: 'Dubai' },
-  { id: 'US', flag: '🇺🇸', label: 'USA' },
-  { id: 'DE', flag: '🇩🇪', label: 'Allemagne' },
-  { id: 'CA', flag: '🇨🇦', label: 'Canada' },
-];
-const DESTINATIONS = [
-  { id: 'SN', flag: '🇸🇳', label: 'Sénégal' },
-  { id: 'CI', flag: '🇨🇮', label: "Côte d'Ivoire" },
-  { id: 'ML', flag: '🇲🇱', label: 'Mali' },
-  { id: 'GN', flag: '🇬🇳', label: 'Guinée' },
-  { id: 'BF', flag: '🇧🇫', label: 'Burkina' },
-  { id: 'TG', flag: '🇹🇬', label: 'Togo' },
-];
-
 const TYPES = [
-  { id: 'documents' as const, label: 'Documents', desc: 'Plis, contrats', icon: <FileText className="w-3.5 h-3.5" /> },
-  { id: 'package'   as const, label: 'Colis',     desc: 'Petit / moyen', icon: <Package className="w-3.5 h-3.5" /> },
-  { id: 'bulk'      as const, label: 'Volume',    desc: 'Cartons / palette', icon: <Boxes className="w-3.5 h-3.5" /> },
+  { id: 'documents' as const, label: 'Documents', desc: 'Plis, contrats',     icon: <FileText className="w-3.5 h-3.5" /> },
+  { id: 'package'   as const, label: 'Colis',     desc: 'Petit / moyen',      icon: <Package  className="w-3.5 h-3.5" /> },
+  { id: 'bulk'      as const, label: 'Volume',    desc: 'Cartons / palette',  icon: <Boxes    className="w-3.5 h-3.5" /> },
 ];
-const PRIORITIES = [
-  { id: 'flexible' as const, label: 'Flexible', desc: 'Délai souple, prix doux', icon: <Clock className="w-3.5 h-3.5" /> },
-  { id: 'normal'   as const, label: 'Standard', desc: 'Équilibre temps / prix', icon: <Zap className="w-3.5 h-3.5" /> },
-  { id: 'fast'     as const, label: 'Rapide',   desc: 'Priorité absolue', icon: <Crown className="w-3.5 h-3.5" /> },
-];
-
-const ORIGIN_CITY: Record<string, string> = { CN: 'Shenzhen', FR: 'Paris', AE: 'Dubai', US: 'Miami', DE: 'Hambourg', CA: 'Montréal' };
-const DEST_CITY:   Record<string, string> = { SN: 'Dakar', CI: 'Abidjan', ML: 'Bamako', GN: 'Conakry', BF: 'Ouagadougou', TG: 'Lomé' };
-const COUNTRY_NAME = (id: string) =>
-  [...ORIGINS, ...DESTINATIONS].find(c => c.id === id)?.label ?? id;
 
 const OPTION_ICONS = {
-  fast:    <Zap className="w-4 h-4" />,
+  fast:    <Zap   className="w-4 h-4" />,
   economy: <Clock className="w-4 h-4" />,
   volume:  <Boxes className="w-4 h-4" />,
 } as const;
+
+/** Origin countries supported by the warehouse network (constraint of the DB enum). */
+const SUPPORTED_ORIGIN_COUNTRIES: ReadonlyArray<WarehouseCountry> = ['FR', 'CN', 'US', 'AE', 'DE', 'CA'];
+
+const fmtEur = (n: number) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
 export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
@@ -61,55 +41,70 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
 
-  // Optional preset injected via navigation state (Ship Now from a package).
   const preset = (location.state as {
-    preset?: {
-      type?: typeof TYPES[number]['id'];
-      origin?: string;
-      destination?: string;
-      weight?: number;
-      packageId?: string;
-      packageDescription?: string;
-    };
+    preset?: { type?: typeof TYPES[number]['id']; origin?: string; destination?: string; weight?: number };
   } | null)?.preset;
 
-  const [type, setType] = useState<typeof TYPES[number]['id'] | null>(preset?.type ?? null);
-  const [origin, setOrigin] = useState<string | null>(preset?.origin ?? null);
-  const [destination, setDestination] = useState<string | null>(preset?.destination ?? null);
-  const [weight, setWeight] = useState(preset?.weight ?? 5);
-  const [declaredValue, setDeclaredValue] = useState('');
-  const [priority, setPriority] = useState<typeof PRIORITIES[number]['id'] | null>(preset ? 'normal' : null);
-  const [chosen, setChosen] = useState<MatchOptionView | null>(null);
+  // Map legacy country preset → city id (default city for that country)
+  const presetOriginCityId = useMemo(() => {
+    if (!preset?.origin) return null;
+    return ORIGIN_CITIES.find(c => c.country === preset.origin)?.id ?? null;
+  }, [preset?.origin]);
+  const presetDestCityId = useMemo(() => {
+    if (!preset?.destination) return null;
+    return DESTINATION_CITIES.find(c => c.country === preset.destination)?.id ?? null;
+  }, [preset?.destination]);
+
+  const [type, setType]               = useState<typeof TYPES[number]['id'] | null>(preset?.type ?? null);
+  const [originCityId, setOriginCity] = useState<string | null>(presetOriginCityId);
+  const [destCityId, setDestCity]     = useState<string | null>(presetDestCityId);
+  const [weight, setWeight]           = useState(preset?.weight ?? 5);
+  const [declaredValue, setDeclared]  = useState('');
+
+  // Contact / addresses
+  const [senderName, setSenderName]       = useState('');
+  const [senderPhone, setSenderPhone]     = useState('');
+  const [pickupAddress, setPickup]        = useState('');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [deliveryAddress, setDelivery]    = useState('');
+
+  const [chosen, setChosen]   = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [reference, setReference] = useState<string | null>(null);
+  const [confirmed, setConfirmed]   = useState<{ reference: string; price: number; eta: string } | null>(null);
+
+  const originCity = findCity(ORIGIN_CITIES, originCityId);
+  const destCity   = findCity(DESTINATION_CITIES, destCityId);
+
+  // Origin country must belong to warehouse enum, otherwise we can't insert a shipment.
+  const originCountrySupported = !!originCity && (SUPPORTED_ORIGIN_COUNTRIES as readonly string[]).includes(originCity.country);
 
   const matchInput = useMemo(() => {
-    if (!origin || !destination || !weight || !priority) return null;
+    if (!originCity || !destCity || !weight) return null;
     return {
-      origin_city: ORIGIN_CITY[origin] ?? COUNTRY_NAME(origin),
-      destination_city: DEST_CITY[destination] ?? COUNTRY_NAME(destination),
+      origin_city: originCity.city,
+      destination_city: destCity.city,
       weight_kg: weight,
-      urgency: priority,
+      urgency: 'normal' as const,
     };
-  }, [origin, destination, weight, priority]);
+  }, [originCity, destCity, weight]);
 
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
-  // Real-time pricing engine: maps the chosen Konnekt option's transport tier to AIR/SEA.
   const quoteInput = useMemo(() => {
-    if (!origin || !destination || !weight) return null;
-    const transport: 'AIR' | 'SEA' | null =
-      chosen?.id === 'volume' ? 'SEA' : chosen?.id === 'fast' ? 'AIR' : null;
+    if (!originCity || !destCity || !weight) return null;
+    const transport: 'AIR' | 'SEA' | 'ROAD' | null =
+      chosen?.id === 'volume' ? 'SEA' : chosen?.id === 'fast' ? 'AIR' : chosen?.id === 'economy' ? 'ROAD' : null;
     return {
-      origin_country: origin,
-      destination_country: destination,
+      origin_country: originCity.country,
+      destination_country: destCity.country,
       weight_kg: weight,
       transport_type: transport,
-      priority: priority === 'fast' ? 'urgent' as const : 'normal' as const,
-      origin_city: ORIGIN_CITY[origin] ?? null,
-      destination_city: DEST_CITY[destination] ?? null,
+      priority: 'normal' as const,
+      origin_city: originCity.city,
+      destination_city: destCity.city,
     };
-  }, [origin, destination, weight, chosen?.id, priority]);
+  }, [originCity, destCity, weight, chosen?.id]);
   const { quote, loading: quoting, error: quoteError } = useQuote(quoteInput);
 
   // Auto-pre-select the recommended (economy) option once results arrive
@@ -121,12 +116,29 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
-  const summary = chosen
-    ? `${COUNTRY_NAME(origin!)} → ${COUNTRY_NAME(destination!)} · ${chosen.label} · livraison ${chosen.eta_days} · ${quote ? Math.round(quote.price) : chosen.price_eur}€`
+  const finalPrice = quote ? Math.round(quote.price) : chosen ? Math.round(chosen.price_eur) : null;
+
+  // Recap section appears once a transport option is chosen.
+  const recapRevealed = !!chosen;
+  // Submit eligible when contacts/addresses are filled.
+  const contactsComplete =
+    senderName.trim() && senderPhone.trim() && pickupAddress.trim() &&
+    recipientName.trim() && recipientPhone.trim() && deliveryAddress.trim();
+
+  const summary = chosen && originCity && destCity
+    ? `${originCity.city} → ${destCity.city} · ${chosen.label} · livraison ${chosen.eta_days}${finalPrice != null ? ` · ${fmtEur(finalPrice)}` : ''}`
     : '';
 
   async function submit() {
-    if (!chosen || !origin || !destination || !type) return;
+    if (!chosen || !originCity || !destCity || !type) return;
+    if (!originCountrySupported) {
+      toast.error(`Origine ${originCity.countryLabel} indisponible — choisissez une ville en FR / CN / US / AE / DE / CA.`);
+      return;
+    }
+    if (!contactsComplete) {
+      toast.error('Renseignez les coordonnées d\'expéditeur et de destinataire.');
+      return;
+    }
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -137,42 +149,78 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       }
 
       const dossier = await createDossier.mutateAsync({
-        product_description: `Expédition ${type} — ${COUNTRY_NAME(origin)} → ${COUNTRY_NAME(destination)}`,
+        product_description: `Expédition ${type} — ${originCity.city} → ${destCity.city}`,
         estimated_weight: weight,
-        origin_country: origin as WarehouseCountry,
-        destination_country: destination,
+        origin_country: originCity.country as WarehouseCountry,
+        destination_country: destCity.country,
         notes: [
-          `Type: ${type}`, `Poids: ${weight} kg`,
-          declaredValue ? `Valeur: ${declaredValue}€` : '',
-          `Priorité: ${priority}`, `Option: ${chosen.label} (${chosen.price_eur}€)`,
+          `Type: ${type}`,
+          `Poids: ${weight} kg`,
+          declaredValue ? `Valeur déclarée: ${declaredValue}€` : '',
+          `Option: ${chosen.label} (${Math.round(chosen.price_eur)}€)`,
+          '',
+          '— Expéditeur —',
+          `${senderName} · ${senderPhone}`,
+          pickupAddress,
+          '',
+          '— Destinataire —',
+          `${recipientName} · ${recipientPhone}`,
+          deliveryAddress,
         ].filter(Boolean).join('\n'),
       });
 
-      // Persist the chosen Konnekt option as a real shipment
       await createShipment.mutateAsync({
-        origin_country: origin as 'FR' | 'CN' | 'US',
-        destination_country: destination,
-        origin_city: ORIGIN_CITY[origin],
-        destination_city: DEST_CITY[destination],
+        origin_country: originCity.country as 'FR' | 'CN' | 'US',
+        destination_country: destCity.country,
+        origin_city: originCity.city,
+        destination_city: destCity.city,
         match_option: chosen,
       });
 
-      setReference(dossier.reference);
-      toast.success('Expédition enregistrée 🚀');
+      setConfirmed({
+        reference: dossier.reference,
+        price: finalPrice ?? Math.round(chosen.price_eur),
+        eta: chosen.eta_days,
+      });
+      toast.success('Expédition confirmée 🚀');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
   }
 
-  if (reference) {
+  // ─────────── Confirmation page ───────────
+  if (confirmed) {
     return (
       <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
-          reference={reference}
-          title="Votre expédition est lancée."
-          subtitle="Notre équipe organise tout et vous recontacte sous 24h. Suivez l'avancement dans votre espace."
+          reference={confirmed.reference}
+          title="Votre expédition est confirmée."
+          subtitle={`${originCity?.city} → ${destCity?.city} · livraison estimée ${confirmed.eta} · ${fmtEur(confirmed.price)} tout inclus. Notre équipe vous recontacte sous 24h.`}
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
+        <section className="mt-8 mb-20 rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 text-sm">
+          <h3 className="text-base font-semibold tracking-tight">Récapitulatif de l'expédition</h3>
+          <RecapRow label="Type" value={TYPES.find(t => t.id === type)?.label ?? type ?? ''} />
+          <RecapRow label="Trajet" value={`${originCity?.city} (${originCity?.countryLabel}) → ${destCity?.city} (${destCity?.countryLabel})`} />
+          <RecapRow label="Poids" value={`${weight} kg`} />
+          {declaredValue && <RecapRow label="Valeur déclarée" value={`${declaredValue} €`} />}
+          <RecapRow label="Option" value={`${chosen?.label} · ${chosen?.eta_days}`} />
+          <RecapRow label="Prix total" value={fmtEur(confirmed.price)} strong />
+          <div className="grid sm:grid-cols-2 gap-4 pt-3 border-t border-border">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
+              <p className="mt-1.5 font-semibold">{senderName}</p>
+              <p className="text-muted-foreground">{senderPhone}</p>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line">{pickupAddress}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Destinataire</p>
+              <p className="mt-1.5 font-semibold">{recipientName}</p>
+              <p className="text-muted-foreground">{recipientPhone}</p>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line">{deliveryAddress}</p>
+            </div>
+          </div>
+        </section>
       </FlowShell>
     );
   }
@@ -186,38 +234,40 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           subtitle="Décrivez votre envoi. Yobbanté trouve la meilleure option et gère transport, douane et livraison."
         />
       )}
-      <FlowSection revealed step={1} total={6} title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
+
+      <FlowSection revealed step={1} total={5} title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
         <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!type} step={2} total={6} title="D'où part votre envoi ?">
-        <CountryGrid countries={ORIGINS} value={origin} onChange={setOrigin} />
+      <FlowSection revealed={!!type} step={2} total={5} title="D'où part votre envoi ?" hint="Recherchez la ville de départ.">
+        <CitySelector cities={ORIGIN_CITIES} value={originCityId} onChange={setOriginCity} placeholder="Ex. Shenzhen, Paris, Dubai…" />
+        {originCity && !originCountrySupported && (
+          <p className="mt-3 text-xs text-amber-600">
+            Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
+          </p>
+        )}
       </FlowSection>
 
-      <FlowSection revealed={!!origin} step={3} total={6} title="Où doit-il arriver ?">
-        <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
+      <FlowSection revealed={!!originCity} step={3} total={5} title="Où doit-il arriver ?" hint="Recherchez la ville d'arrivée.">
+        <CitySelector cities={DESTINATION_CITIES} value={destCityId} onChange={setDestCity} placeholder="Ex. Dakar, Abidjan, Bamako…" />
       </FlowSection>
 
-      <FlowSection revealed={!!destination} step={4} total={6} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard.">
+      <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard — le prix se met à jour automatiquement.">
         <div className="space-y-5 max-w-md">
           <NumberSlider label="Poids estimé" value={weight} onChange={setWeight} min={1} max={500} unit=" kg" />
           <TextField
             label="Valeur déclarée (optionnel)"
-            value={declaredValue} onChange={setDeclaredValue}
+            value={declaredValue} onChange={setDeclared}
             placeholder="ex. 250" suffix="€" type="number"
           />
         </div>
       </FlowSection>
 
-      <FlowSection revealed={!!destination} step={5} total={6} title="Quelle priorité ?">
-        <ChipGroup options={PRIORITIES} value={priority} onChange={(v) => setPriority(v)} />
-      </FlowSection>
-
       <FlowSection
         revealed={!!matchInput}
-        step={6} total={6}
+        step={5} total={5}
         title="Options disponibles"
-        hint={matching ? 'Recherche des meilleures options en cours…' : 'Choisissez l\'offre qui vous convient.'}
+        hint={matching ? 'Recherche des meilleures options en cours…' : "Choisissez l'offre qui vous convient."}
       >
         {matching && (
           <div className="grid sm:grid-cols-3 gap-3">
@@ -231,7 +281,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <div className="grid sm:grid-cols-3 gap-3">
               {options.map(o => (
                 <MatchOptionCard
-                  key={o.id} opt={o}
+                  key={o.id} opt={{ ...o, price_eur: Math.round(o.price_eur) }}
                   active={chosen?.id === o.id}
                   onClick={() => setChosen(o)}
                   icon={OPTION_ICONS[o.id]}
@@ -255,14 +305,99 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </FlowSection>
 
+      {/* Step 6 visible after a transport option is picked: contacts + addresses */}
+      <FlowSection
+        revealed={recapRevealed}
+        title="Coordonnées et adresses"
+        hint="Indiquez qui envoie, qui reçoit et où récupérer / livrer."
+      >
+        <div className="grid sm:grid-cols-2 gap-5">
+          <fieldset className="space-y-3 rounded-2xl border border-border bg-card p-4">
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
+              <User className="w-3 h-3" /> Expéditeur
+            </legend>
+            <TextField label="Nom complet"   value={senderName}   onChange={setSenderName}   placeholder="Ex. Awa Diop" />
+            <TextField label="Téléphone"     value={senderPhone}  onChange={setSenderPhone}  placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+            <AddressField label="Adresse de retrait" value={pickupAddress} onChange={setPickup} placeholder="N°, rue, quartier, ville, code postal" />
+          </fieldset>
+          <fieldset className="space-y-3 rounded-2xl border border-border bg-card p-4">
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
+              <MapPin className="w-3 h-3" /> Destinataire
+            </legend>
+            <TextField label="Nom complet"   value={recipientName}  onChange={setRecipientName}  placeholder="Ex. Mamadou Sall" />
+            <TextField label="Téléphone"     value={recipientPhone} onChange={setRecipientPhone} placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+            <AddressField label="Adresse de livraison" value={deliveryAddress} onChange={setDelivery} placeholder="N°, rue, quartier, ville, code postal" />
+          </fieldset>
+        </div>
+      </FlowSection>
+
+      {/* Recap step, before confirmation */}
+      <FlowSection
+        revealed={recapRevealed && !!contactsComplete}
+        title="Récapitulatif"
+        hint="Vérifiez les informations avant de confirmer."
+      >
+        <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-3 text-sm">
+          <RecapRow label="Type" value={TYPES.find(t => t.id === type)?.label ?? '—'} />
+          <RecapRow
+            label="Trajet"
+            value={originCity && destCity ? `${originCity.city} (${originCity.countryLabel}) → ${destCity.city} (${destCity.countryLabel})` : '—'}
+          />
+          <RecapRow label="Poids" value={`${weight} kg`} />
+          {declaredValue && <RecapRow label="Valeur déclarée" value={`${declaredValue} €`} />}
+          {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
+          {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+          <div className="grid sm:grid-cols-2 gap-4 pt-3 border-t border-border">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
+              <p className="mt-1.5 font-semibold">{senderName}</p>
+              <p className="text-muted-foreground">{senderPhone}</p>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line">{pickupAddress}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Destinataire</p>
+              <p className="mt-1.5 font-semibold">{recipientName}</p>
+              <p className="text-muted-foreground">{recipientPhone}</p>
+              <p className="text-muted-foreground mt-1 whitespace-pre-line">{deliveryAddress}</p>
+            </div>
+          </div>
+        </div>
+      </FlowSection>
+
       <LiveSummaryBar
         visible={!!chosen}
         summary={summary}
-        ctaLabel="Confirmer l'expédition"
+        ctaLabel={contactsComplete ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
         sideContent={next_departure_in_days != null ? `Prochain départ dans ${next_departure_in_days} j` : undefined}
       />
     </FlowShell>
+  );
+}
+
+function RecapRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={strong ? 'text-base font-bold tabular-nums' : 'font-medium text-right'}>{value}</span>
+    </div>
+  );
+}
+
+function AddressField({
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <label className="block">
+      <span className="block text-xs mb-1.5 font-medium text-muted-foreground">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+      />
+    </label>
   );
 }
