@@ -257,7 +257,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                       : "border-white/10 bg-white/[0.03] hover:border-white/30"
                   )}
                 >
-                  <div className="text-xl">{m.emoji}</div>
+                  <ShoppingBag className="w-4 h-4 text-white/70" />
                   <p className="mt-1.5 text-xs font-semibold text-white truncate">{m.name}</p>
                 </button>
               ))}
@@ -265,7 +265,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                 onClick={() => { update('merchant_name', ''); setStep('details'); }}
                 className="rounded-xl border-2 border-dashed border-white/15 bg-transparent p-3 text-left hover:border-white/40 transition-colors"
               >
-                <div className="text-xl">✏️</div>
+                <Package className="w-4 h-4 text-white/50" />
                 <p className="mt-1.5 text-xs font-semibold text-white/80">Autre marchand…</p>
               </button>
             </div>
