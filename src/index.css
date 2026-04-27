@@ -164,8 +164,9 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .hover-glow:hover {
-    border-color: hsl(var(--foreground) / 0.15);
-    box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
-    transform: translateY(-2px);
+      border-color: hsl(var(--foreground) / 0.15);
+      box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
+    }
   }
 }
+
