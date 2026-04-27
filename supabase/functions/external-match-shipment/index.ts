@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,26 +11,23 @@ interface MatchRequest {
   origin_city: string;
   destination_city: string;
   weight_kg: number;
+  origin_country?: string;
+  destination_country?: string;
   urgency?: "normal" | "fast" | "flexible";
   declared_value_eur?: number;
 }
 
 type OptionId = "fast" | "economy" | "volume";
 
-interface KonnektOption {
+interface MatchOption {
   id: OptionId;
   label: string;
   eta_days: string;
   price_eur: number;
   departure_date?: string | null;
   highlight?: string;
-  // Anything extra from upstream is preserved here for the client.
-  meta?: Record<string, unknown>;
-}
-
-interface KonnektResponse {
-  options: KonnektOption[];
-  next_departure_in_days?: number | null;
+  transport_type: string;
+  confidence: string;
 }
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
@@ -39,81 +37,36 @@ const addDays = (base: Date, n: number) => {
   return d;
 };
 
-/**
- * Mock structuré : 3 options réalistes basées sur le poids.
- */
-function buildOptionsFallback(req: MatchRequest): KonnektResponse {
-  const w = Math.max(0.5, Number(req.weight_kg) || 1);
-  const today = new Date();
-  const fast = Math.round(w * 14 + 35);
-  const eco = Math.round(w * 6 + 25);
-  const volume = Math.round(w * 2.5 + 30);
-
-  return {
-    next_departure_in_days: 2,
-    options: [
-      { id: "fast", label: "Rapide", eta_days: "3–6 jours", price_eur: fast, departure_date: fmt(addDays(today, 2)), highlight: "Le plus rapide" },
-      { id: "economy", label: "Économique", eta_days: "8–14 jours", price_eur: eco, departure_date: fmt(addDays(today, 4)), highlight: "Meilleur rapport qualité-prix" },
-      { id: "volume", label: "Volume", eta_days: "25–40 jours", price_eur: volume, departure_date: fmt(addDays(today, 7)), highlight: "Pour les gros envois" },
-    ],
-  };
-}
-
-/**
- * Normalise une réponse upstream hétérogène en 3 buckets fixes
- * (Rapide / Économique / Volume). Si une catégorie manque, on la
- * complète depuis le fallback pour garantir un UX uniforme.
- */
-function normalizeToThree(upstream: unknown, req: MatchRequest): KonnektResponse {
-  const fallback = buildOptionsFallback(req);
-  const byId = new Map<OptionId, KonnektOption>();
-  for (const o of fallback.options) byId.set(o.id, o);
-
-  const rawOptions: any[] =
-    Array.isArray((upstream as any)?.options) ? (upstream as any).options :
-    Array.isArray(upstream) ? (upstream as any) : [];
-
-  const classify = (raw: any): OptionId => {
-    const explicit = String(raw?.id ?? raw?.tier ?? raw?.category ?? "").toLowerCase();
-    if (["fast", "express", "rapide", "air"].some(k => explicit.includes(k))) return "fast";
-    if (["volume", "sea", "bateau", "maritime"].some(k => explicit.includes(k))) return "volume";
-    if (["eco", "economy", "standard", "économique"].some(k => explicit.includes(k))) return "economy";
-    // Heuristique de secours sur l'ETA si présente.
-    const eta = String(raw?.eta_days ?? raw?.eta ?? "");
-    const days = parseInt(eta, 10);
-    if (!isNaN(days)) {
-      if (days <= 7) return "fast";
-      if (days >= 20) return "volume";
-    }
-    return "economy";
-  };
-
-  for (const raw of rawOptions) {
-    const id = classify(raw);
-    const base = byId.get(id)!;
-    byId.set(id, {
-      id,
-      label: base.label,
-      eta_days: String(raw?.eta_days ?? raw?.eta ?? base.eta_days),
-      price_eur: Number(raw?.price_eur ?? raw?.price ?? base.price_eur),
-      departure_date: raw?.departure_date ?? base.departure_date ?? null,
-      highlight: raw?.highlight ?? base.highlight,
-      meta: { upstream: raw },
-    });
-  }
-
-  return {
-    next_departure_in_days: (upstream as any)?.next_departure_in_days ?? fallback.next_departure_in_days ?? null,
-    options: [byId.get("fast")!, byId.get("economy")!, byId.get("volume")!],
-  };
-}
+const BUCKETS: Array<{ id: OptionId; label: string; transport: 'AIR' | 'ROAD' | 'SEA'; highlight: string }> = [
+  { id: "fast",    label: "Rapide",     transport: "AIR",  highlight: "Le plus rapide" },
+  { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix" },
+  { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois" },
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const body = (await req.json()) as MatchRequest;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (claimsErr || !claims?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = (await req.json()) as MatchRequest;
     if (!body.origin_city || !body.destination_city || !body.weight_kg) {
       return new Response(
         JSON.stringify({ error: "origin_city, destination_city et weight_kg sont requis" }),
@@ -121,47 +74,77 @@ serve(async (req) => {
       );
     }
 
-    const KONNEKT_BASE_URL = Deno.env.get("KONNEKT_BASE_URL");
-    const YOBBANTE_API_KEY = Deno.env.get("YOBBANTE_API_KEY");
+    // Resolve country codes if missing (best effort via routes_pricing or fallback)
+    const origin_country = (body.origin_country ?? "FR").toUpperCase();
+    const destination_country = (body.destination_country ?? "SN").toUpperCase();
 
-    if (KONNEKT_BASE_URL && YOBBANTE_API_KEY) {
-      try {
-        const url = `${KONNEKT_BASE_URL.replace(/\/$/, "")}/match`;
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 8000);
-        const r = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Yobbante-Api-Key": YOBBANTE_API_KEY,
-          },
-          body: JSON.stringify({
-            origin_city: body.origin_city,
-            destination_city: body.destination_city,
-            weight_kg: body.weight_kg,
-            urgency: body.urgency ?? "normal",
-            declared_value_eur: body.declared_value_eur ?? null,
-          }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
+    // For each bucket, call calculate_quote (single source of truth).
+    const today = new Date();
+    const options: MatchOption[] = [];
 
-        if (r.ok) {
-          const data = await r.json();
-          const normalized = normalizeToThree(data, body);
-          return new Response(JSON.stringify(normalized), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        console.warn("Konnekt /match non disponible:", r.status, await r.text().catch(() => ""));
-      } catch (e) {
-        console.warn("Konnekt call failed, using fallback:", e instanceof Error ? e.message : e);
+    for (const b of BUCKETS) {
+      const { data, error } = await supabase.rpc("calculate_quote", {
+        p_origin_country: origin_country,
+        p_destination_country: destination_country,
+        p_weight_kg: body.weight_kg,
+        p_transport_type: b.transport,
+        p_priority: body.urgency === "fast" ? "urgent" : "normal",
+        p_origin_city: body.origin_city,
+        p_destination_city: body.destination_city,
+      });
+      if (error) {
+        console.warn(`calculate_quote failed for ${b.transport}:`, error.message);
+        continue;
       }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) continue;
+
+      // Find earliest matching departure for this transport+route
+      const { data: dep } = await supabase
+        .from("konnekt_departures")
+        .select("departure_date")
+        .eq("status", "OPEN")
+        .ilike("origin_country", origin_country)
+        .ilike("destination_country", destination_country)
+        .eq("transport", b.transport)
+        .gte("departure_date", fmt(today))
+        .gte("available_capacity_kg", body.weight_kg)
+        .order("departure_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      options.push({
+        id: b.id,
+        label: b.label,
+        transport_type: b.transport,
+        eta_days: `${row.eta_min_days}–${row.eta_max_days} jours`,
+        price_eur: Number(row.price_eur),
+        departure_date: dep?.departure_date ?? fmt(addDays(today, b.id === "fast" ? 2 : b.id === "economy" ? 4 : 7)),
+        highlight: b.highlight,
+        confidence: row.confidence,
+      });
     }
 
-    return new Response(JSON.stringify(buildOptionsFallback(body)), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Compute next_departure_in_days from any open departure
+    const { data: nextDep } = await supabase
+      .from("konnekt_departures")
+      .select("departure_date")
+      .eq("status", "OPEN")
+      .ilike("origin_country", origin_country)
+      .ilike("destination_country", destination_country)
+      .gte("departure_date", fmt(today))
+      .order("departure_date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const next_departure_in_days = nextDep
+      ? Math.max(0, Math.ceil((new Date(nextDep.departure_date).getTime() - today.getTime()) / 86400000))
+      : null;
+
+    return new Response(
+      JSON.stringify({ options, next_departure_in_days }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("external-match-shipment error:", e);
     return new Response(
