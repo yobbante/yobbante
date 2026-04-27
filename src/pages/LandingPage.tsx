@@ -205,6 +205,38 @@ export default function LandingPage() {
                 Lancer un sourcing <ArrowRight className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Receive */}
+            <div className="bg-background p-8 md:p-10">
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
+                  <Inbox className="w-4.5 h-4.5" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight">Pour recevoir</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Achats en ligne</span>
+              </div>
+              <ol className="space-y-5">
+                {RECEIVE_STEPS.map((s, i) => (
+                  <motion.li
+                    key={s.n}
+                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
+                    className="flex gap-4"
+                  >
+                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
+                    </div>
+                  </motion.li>
+                ))}
+              </ol>
+              <button
+                onClick={goReceive}
+                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
+              >
+                Recevoir une commande <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
