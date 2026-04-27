@@ -223,15 +223,26 @@ export function FlowSection({
     if (!revealed) { wasRevealed.current = false; return; }
     if (wasRevealed.current) return;
     wasRevealed.current = true;
-    // Wait for mount + reveal animation to settle, then snap with header offset.
-    const id = window.setTimeout(() => {
+
+    // Debounced auto-scroll: if several sections reveal in cascade (rapid input
+    // changes), the global "last scheduled scroll wins" — we end up at the
+    // most recent section instead of janking between them.
+    const w = window as unknown as { __flowScrollTimer?: number };
+    if (w.__flowScrollTimer) window.clearTimeout(w.__flowScrollTimer);
+    w.__flowScrollTimer = window.setTimeout(() => {
       const el = ref.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const targetTop = window.scrollY + rect.top - 80;
       window.scrollTo({ top: targetTop, behavior: 'smooth' });
-    }, 320);
-    return () => window.clearTimeout(id);
+      w.__flowScrollTimer = undefined;
+    }, 380);
+    return () => {
+      if (w.__flowScrollTimer) {
+        window.clearTimeout(w.__flowScrollTimer);
+        w.__flowScrollTimer = undefined;
+      }
+    };
   }, [revealed]);
 
   const showProgress = step != null && total != null;
@@ -795,7 +806,7 @@ export function LiveSummaryBar({
               </motion.div>
             )}
           </AnimatePresence>
-          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center gap-3 sm:gap-5">
+          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
             <button
               type="button"
               onClick={() => details && setExpanded(v => !v)}
@@ -812,26 +823,28 @@ export function LiveSummaryBar({
               aria-label={expanded ? 'Masquer le détail du récapitulatif' : 'Afficher le détail du récapitulatif'}
             >
               <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
-                Récapitulatif
+                <span>Récapitulatif</span>
                 {details && (
                   <span className={cn('text-[9px] font-semibold', t.muted)} aria-hidden="true">
-                    {expanded ? '▾ Masquer' : '▴ Détails'}
+                    {expanded ? '▾' : '▴'}
                   </span>
                 )}
               </p>
-              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2 break-words">{summary}</p>
+              {/* Single-line recap that truncates with ellipsis to never wrap
+                  under the CTA. Tap to expand for full details. */}
+              <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
               {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
             </button>
             <button
               onClick={onSubmit}
               disabled={submitting}
               className={cn(
-                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-5 sm:px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0',
+                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-4 sm:px-6 py-3 sm:py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0 max-w-[55%] sm:max-w-none',
                 t.cta
               )}
             >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span className="whitespace-nowrap">{ctaLabel}</span>
+              {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+              <span className="truncate">{ctaLabel}</span>
             </button>
           </div>
         </motion.div>
