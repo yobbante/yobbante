@@ -38,7 +38,7 @@ const addDays = (base: Date, n: number) => {
 };
 
 const BUCKETS: Array<{ id: OptionId; label: string; transport: 'AIR' | 'ROAD' | 'SEA'; highlight: string }> = [
-  { id: "fast",    label: "Rapide",     transport: "AIR",  highlight: "Le plus rapide" },
+  { id: "fast",    label: "Express",    transport: "AIR",  highlight: "Le plus rapide" },
   { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix" },
   { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois" },
 ];
