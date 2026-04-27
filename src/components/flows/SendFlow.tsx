@@ -100,8 +100,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const originCity = findCity(ORIGIN_CITIES, originCityId);
   const destCity   = findCity(DESTINATION_CITIES, destCityId);
 
-  // Origin country must belong to warehouse enum, otherwise we can't insert a shipment.
-  const originCountrySupported = !!originCity && (SUPPORTED_ORIGIN_COUNTRIES as readonly string[]).includes(originCity.country);
+  // Yobbanté opère depuis Dakar : Dakar doit être au départ OU à l'arrivée.
+  const isDakar = (c?: { city?: string } | null) => !!c?.city && c.city.toLowerCase().includes('dakar');
+  const dakarRouteOk = !originCity || !destCity ? true : (isDakar(originCity) || isDakar(destCity));
 
   // Step 5 only fetches options once the user has actually confirmed a weight
   // (otherwise the default value of 5 kg would auto-reveal step 5 and skip step 4).
