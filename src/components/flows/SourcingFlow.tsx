@@ -154,7 +154,8 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Connectez-vous pour valider');
+        saveDraft(DRAFT_KEY, draftSnapshot);
+        toast.message('Connectez-vous pour finaliser — votre brief reste enregistré.');
         navigate(`/auth?redirect=${encodeURIComponent('/acheter')}`);
         return;
       }
