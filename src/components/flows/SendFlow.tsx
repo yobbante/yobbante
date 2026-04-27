@@ -103,15 +103,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Origin country must belong to warehouse enum, otherwise we can't insert a shipment.
   const originCountrySupported = !!originCity && (SUPPORTED_ORIGIN_COUNTRIES as readonly string[]).includes(originCity.country);
 
+  // Step 5 only fetches options once the user has actually confirmed a weight
+  // (otherwise the default value of 5 kg would auto-reveal step 5 and skip step 4).
   const matchInput = useMemo(() => {
-    if (!originCity || !destCity || !weight) return null;
+    if (!originCity || !destCity || !weight || !weightTouched) return null;
     return {
       origin_city: originCity.city,
       destination_city: destCity.city,
+      origin_country: originCity.country,
+      destination_country: destCity.country,
       weight_kg: weight,
       urgency: 'normal' as const,
     };
-  }, [originCity, destCity, weight]);
+  }, [originCity, destCity, weight, weightTouched]);
 
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
