@@ -371,6 +371,27 @@ export function CitySelector({
   // Reset edit-mode when selection changes from outside.
   useEffect(() => { setEditing(false); setQ(''); }, [value]);
 
+  // Order: popular pinned first (in given order), then the rest.
+  const ordered = useMemo(() => {
+    if (!popularIds?.length) return cities;
+    const popularSet = new Set(popularIds);
+    const popular = popularIds
+      .map(id => cities.find(c => c.id === id))
+      .filter((c): c is CityOption => !!c);
+    const rest = cities.filter(c => !popularSet.has(c.id));
+    return [...popular, ...rest];
+  }, [cities, popularIds]);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return ordered;
+    return ordered.filter(c =>
+      c.city.toLowerCase().includes(needle) ||
+      c.countryLabel.toLowerCase().includes(needle) ||
+      c.country.toLowerCase().includes(needle)
+    );
+  }, [ordered, q]);
+
   // Once a city is picked, collapse to a compact card (with a "Modifier" affordance)
   // — keeps the flow uncluttered and lets the user move on to the next step.
   if (selected && !editing) {
@@ -401,29 +422,31 @@ export function CitySelector({
     );
   }
 
-  // Order: popular pinned first (in given order), then the rest A→Z.
-  const ordered = useMemo(() => {
-    if (!popularIds?.length) return cities;
-    const popularSet = new Set(popularIds);
-    const popular = popularIds
-      .map(id => cities.find(c => c.id === id))
-      .filter((c): c is CityOption => !!c);
-    const rest = cities.filter(c => !popularSet.has(c.id));
-    return [...popular, ...rest];
-  }, [cities, popularIds]);
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return ordered;
-    return ordered.filter(c =>
-      c.city.toLowerCase().includes(needle) ||
-      c.countryLabel.toLowerCase().includes(needle) ||
-      c.country.toLowerCase().includes(needle)
-    );
-  }, [ordered, q]);
-
   const showPopularLabel = !q.trim() && !!popularIds?.length;
   const popularCount = popularIds?.length ?? 0;
+
+  const renderCard = (c: CityOption) => {
+    const active = value === c.id;
+    return (
+      <button
+        key={c.id}
+        onClick={() => onChange(c.id)}
+        className={cn(
+          'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
+          active ? t.cardActive : t.cardIdle
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-lg leading-none">{c.flag}</span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold truncate">{c.city}</div>
+            <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
+          </div>
+          {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -451,9 +474,7 @@ export function CitySelector({
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map(c => (
-              <CityCard key={c.id} c={c} active={value === c.id} onClick={() => onChange(c.id)} t={t} />
-            ))}
+            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map(renderCard)}
           </div>
           {showPopularLabel && filtered.length > popularCount && (
             <>
@@ -461,36 +482,13 @@ export function CitySelector({
                 Toutes les villes
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {filtered.slice(popularCount).map(c => (
-                  <CityCard key={c.id} c={c} active={value === c.id} onClick={() => onChange(c.id)} t={t} />
-                ))}
+                {filtered.slice(popularCount).map(renderCard)}
               </div>
             </>
           )}
         </div>
       )}
     </div>
-  );
-}
-
-function CityCard({ c, active, onClick, t }: { c: CityOption; active: boolean; onClick: () => void; t: typeof T['light'] }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
-        active ? t.cardActive : t.cardIdle
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-lg leading-none">{c.flag}</span>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold truncate">{c.city}</div>
-          <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
-        </div>
-        {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
-      </div>
-    </button>
   );
 }
 
