@@ -591,6 +591,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           hub={hub} setHub={setHub}
           recommendedHub={recommendedHub}
           hubAddress={hubAddress}
+          isFallbackAddress={isFallbackAddress}
+          isAuthenticated={!!user}
           portals={portals}
           copied={copied}
           copyAddress={copyAddress}
@@ -601,6 +603,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           saveReminder={saveReminder}
           goTracking={() => setStep('tracking')}
           goBack={() => setStep('ask')}
+          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
         />
       )}
 
