@@ -22,11 +22,11 @@ import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 interface HomeViewProps {
-  onNavigateShipments?: () => void;
-  onNavigateDossiers?: () => void;
+  /** Navigate to the unified Mes envois screen, optionally pre-selecting a tab. */
+  onNavigateOrders?: (kind?: 'sourcing' | 'receive' | 'send') => void;
 }
 
-export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewProps = {}) {
+export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
   const navigate = useNavigate();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
@@ -34,6 +34,7 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
+  const goOrders = (kind?: 'sourcing' | 'receive' | 'send') => onNavigateOrders?.(kind);
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
