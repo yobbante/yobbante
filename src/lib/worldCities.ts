@@ -101,16 +101,27 @@ export const ALL_CITIES: CityOption[] = withId(dedup(ALL_RAW));
 export const ORIGIN_CITIES: CityOption[] = ALL_CITIES;
 export const DESTINATION_CITIES: CityOption[] = ALL_CITIES;
 
-/** IDs of "popular" cities pinned at the top of the selectors. */
-export const POPULAR_ORIGIN_IDS = [
-  'FR-Paris', 'FR-Lyon', 'FR-Marseille', 'AE-Dubai',
-  'CN-Shenzhen', 'CN-Guangzhou', 'US-New York', 'CA-Montréal',
-  'SN-Dakar', 'CI-Abidjan',
+/**
+ * IDs of "popular" cities pinned at the top of the selectors.
+ *
+ * Yobbanté opère depuis Dakar mais les trajets GP sont **bidirectionnels** :
+ * un client peut aussi bien partir de Dakar vers Dubai que de Dubai vers Dakar.
+ * On garde donc la même liste de villes phares pour l'origine et la destination,
+ * en mettant simplement Dakar en tête côté destination (le cas le plus courant).
+ */
+const POPULAR_HUBS = [
+  'SN-Dakar', 'FR-Paris', 'CA-Montréal', 'FR-Lyon',
+  'AE-Dubai', 'CI-Abidjan', 'CN-Guangzhou', 'CN-Shenzhen',
+  'US-New York', 'FR-Marseille', 'ML-Bamako', 'CM-Douala',
 ];
+
+export const POPULAR_ORIGIN_IDS = POPULAR_HUBS;
 export const POPULAR_DEST_IDS = [
-  'SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'GN-Conakry',
-  'BF-Ouagadougou', 'TG-Lomé', 'CM-Douala', 'GA-Libreville',
-  'FR-Paris', 'CA-Montréal',
+  // Dakar pinned first for the typical "vers l'Afrique de l'Ouest" route,
+  // but the rest mirrors the origin list so les retours sont aussi évidents.
+  'SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'CM-Douala',
+  'FR-Paris', 'CA-Montréal', 'AE-Dubai', 'FR-Lyon',
+  'CN-Guangzhou', 'US-New York', 'FR-Marseille', 'GA-Libreville',
 ];
 
 export function findCity(list: CityOption[], id: string | null): CityOption | null {
