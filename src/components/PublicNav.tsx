@@ -38,6 +38,16 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               <Package className="w-3.5 h-3.5" /> Expédier
             </button>
             <button
+              onClick={goRecevoir}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/expedier/recevoir')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" /> Recevoir
+            </button>
+            <button
               onClick={goAcheter}
               className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
                 isActive('/acheter')
