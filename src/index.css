@@ -96,6 +96,12 @@
     background: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));
   }
+
+  /* Mobile: no blue tap flash, no double-tap zoom on interactive elements */
+  button, a, [role="button"], input, select, textarea, label {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
 }
 
 @layer components {
@@ -111,18 +117,23 @@
     box-shadow: var(--shadow-cta);
     --tw-ring-color: hsl(var(--primary) / 0.5);
   }
-  .btn-cta:hover {
-    background-color: hsl(var(--primary-hover));
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: var(--shadow-cta-hover);
+  /* Hover effects only on devices that truly support hover (desktop with mouse) */
+  @media (hover: hover) and (pointer: fine) {
+    .btn-cta:hover {
+      background-color: hsl(var(--primary-hover));
+      box-shadow: var(--shadow-cta-hover);
+    }
   }
   .btn-cta:active {
     background-color: hsl(var(--primary-active));
-    transform: translateY(0) scale(0.99);
   }
   .btn-cta:disabled {
     @apply opacity-50 cursor-not-allowed;
-    transform: none;
+  }
+  /* Disable iOS tap highlight + prevent double-tap zoom on CTAs */
+  .btn-cta {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   .btn-cta-yellow { @apply btn-cta; }
@@ -153,13 +164,15 @@
     border-color: hsl(var(--primary) / 0.6);
   }
 
-  /* Hover lift — neutre éditorial */
+  /* Hover lift — neutre éditorial, desktop uniquement */
   .hover-glow {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
-  .hover-glow:hover {
-    border-color: hsl(var(--foreground) / 0.15);
-    box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
-    transform: translateY(-2px);
+  @media (hover: hover) and (pointer: fine) {
+    .hover-glow:hover {
+      border-color: hsl(var(--foreground) / 0.15);
+      box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
+    }
   }
 }
+
