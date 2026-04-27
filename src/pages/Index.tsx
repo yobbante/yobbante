@@ -5,11 +5,17 @@ import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
 import { HomeView } from '@/pages/HomeView';
-import { DossiersView } from '@/pages/DossiersView';
-import { ShipmentsView } from '@/pages/ShipmentsView';
+import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
 
-const ALLOWED: TabId[] = ['home', 'dossiers', 'shipments', 'profile'];
+const ALLOWED: TabId[] = ['home', 'orders', 'profile'];
+
+/** Map legacy ?view= values (dossiers, shipments) to the new "orders" tab,
+ *  optionally pre-selecting the right kind on the Mes envois screen. */
+const LEGACY: Record<string, { tab: TabId; kind?: 'sourcing' | 'receive' | 'send' }> = {
+  dossiers: { tab: 'orders', kind: 'sourcing' },
+  shipments: { tab: 'orders', kind: 'send' },
+};
 
 export default function Index() {
   const location = useLocation();
@@ -17,8 +23,27 @@ export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // View is fully driven by ?view=... so refresh + deep-links + bottom nav stay in sync.
-  const rawView = searchParams.get('view') as TabId | null;
-  const view: TabId = rawView && ALLOWED.includes(rawView) ? rawView : 'home';
+  const rawView = searchParams.get('view');
+  let view: TabId = 'home';
+  if (rawView && ALLOWED.includes(rawView as TabId)) {
+    view = rawView as TabId;
+  } else if (rawView && LEGACY[rawView]) {
+    // Auto-rewrite legacy URLs (?view=dossiers / ?view=shipments) to the new schema.
+    const legacy = LEGACY[rawView];
+    view = legacy.tab;
+  }
+
+  // Auto-rewrite legacy URLs once on mount.
+  useEffect(() => {
+    if (rawView && LEGACY[rawView]) {
+      const sp = new URLSearchParams(searchParams);
+      sp.set('view', LEGACY[rawView].tab);
+      const k = LEGACY[rawView].kind;
+      if (k && !sp.get('kind')) sp.set('kind', k);
+      setSearchParams(sp, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setView = (next: TabId) => {
     const sp = new URLSearchParams(searchParams);
@@ -27,13 +52,13 @@ export default function Index() {
     } else {
       sp.set('view', next);
     }
-    // Drop tracking filters when leaving the shipments tab so they don't leak.
-    if (next !== 'shipments') {
+    // Drop tab-specific filters when leaving so they don't leak.
+    if (next !== 'orders') {
+      sp.delete('kind');
       sp.delete('origin');
       sp.delete('destination');
     }
     setSearchParams(sp, { replace: false });
-    // Scroll back to top on tab switch — feels native.
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
@@ -52,12 +77,16 @@ export default function Index() {
       <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-10">
         {view === 'home' && (
           <HomeView
-            onNavigateShipments={() => setView('shipments')}
-            onNavigateDossiers={() => setView('dossiers')}
+            onNavigateOrders={(kind) => {
+              const sp = new URLSearchParams(searchParams);
+              sp.set('view', 'orders');
+              if (kind) sp.set('kind', kind);
+              setSearchParams(sp, { replace: false });
+              if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+            }}
           />
         )}
-        {view === 'dossiers' && <DossiersView />}
-        {view === 'shipments' && <ShipmentsView />}
+        {view === 'orders' && <OrdersView />}
         {view === 'profile' && <ProfileView />}
       </main>
       <BottomNav active={view} onChange={setView} />
