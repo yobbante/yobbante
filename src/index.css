@@ -3,74 +3,74 @@
 @tailwind utilities;
 
 /* ============================================================
-   YOBBANTÉ × KONNEKT — Premium Green Design System
-   Primary: #33CCAD  ·  Hover: #2BB89C  ·  Active: #249E88
-   Background: #061A17  ·  Cards: #0F332C
+   YOBBANTÉ × KONNEKT — Premium Editorial Design System
+   Palette: Noir profond + blancs cassés + gris doux
+   Accent (CTA only): #33CCAD
    ============================================================ */
 
 @layer base {
   :root {
-    /* Backgrounds — premium dark green infrastructure */
-    --background: 168 64% 6%;          /* #061A17 */
-    --foreground: 0 0% 100%;           /* white */
+    /* ─── Neutrals — épuré, premium, intemporel ───────────── */
+    --background: 0 0% 4%;              /* #0A0A0A — noir profond */
+    --foreground: 30 15% 96%;           /* #F7F5F2 — blanc cassé chaud */
 
-    --card: 168 55% 13%;               /* #0F332C */
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 7%;                    /* #121212 */
+    --card-foreground: 30 15% 96%;
 
-    --popover: 168 55% 13%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 30 15% 96%;
 
-    /* Brand green — #33CCAD */
-    --primary: 168 60% 50%;            /* #33CCAD */
-    --primary-foreground: 168 80% 6%;  /* near-black on green for premium contrast */
-    --primary-hover: 168 62% 45%;      /* #2BB89C */
-    --primary-active: 168 63% 38%;     /* #249E88 */
-    --primary-soft: 168 70% 95%;       /* #E6FAF6 — soft surface */
-    --primary-glow: 168 60% 50%;       /* alias for shadows */
+    --secondary: 0 0% 10%;              /* #1A1A1A */
+    --secondary-foreground: 30 10% 90%;
 
-    /* Surfaces */
-    --secondary: 168 50% 9%;           /* #0B2621 */
-    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;                  /* #1F1F1F */
+    --muted-foreground: 30 6% 64%;      /* #A6A29E — gris doux */
 
-    --muted: 168 50% 11%;
-    --muted-foreground: 168 25% 73%;   /* #A8CFC6 */
+    /* Accent neutre (PAS le vert) — utilisé pour hovers/highlights subtils */
+    --accent: 0 0% 14%;
+    --accent-foreground: 30 15% 96%;
 
-    --accent: 168 60% 50%;
-    --accent-foreground: 168 80% 6%;
+    --border: 0 0% 16%;                 /* #292929 */
+    --input: 0 0% 16%;
 
-    --destructive: 0 75% 55%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 168 40% 18%;
-    --input: 168 40% 18%;
-    --ring: 168 60% 50%;
+    /* ─── BRAND GREEN — CTA & focus ONLY ──────────────────── */
+    --primary: 168 60% 50%;             /* #33CCAD */
+    --primary-foreground: 0 0% 6%;      /* near-black for premium contrast */
+    --primary-hover: 168 62% 45%;       /* #2BB89C */
+    --primary-active: 168 63% 38%;      /* #249E88 */
+    --primary-soft: 168 60% 50%;
+    --primary-glow: 168 60% 50%;
 
-    /* CTA tokens — kept as aliases of primary for back-compat */
+    --ring: 168 60% 50%;                /* focus ring = green */
+
+    /* CTA tokens (aliases) */
     --cta: 168 60% 50%;
-    --cta-foreground: 0 0% 0%;
+    --cta-foreground: 0 0% 6%;
     --cta-glow: 168 62% 45%;
 
-    --radius: 0.875rem;                /* 14px — premium feel */
+    --radius: 0.875rem;                 /* 14px */
 
-    /* Sidebar — deepest surface */
-    --sidebar-background: 168 64% 5%;
-    --sidebar-foreground: 0 0% 100%;
+    /* ─── Sidebar — surface la plus profonde ──────────────── */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 30 10% 88%;
     --sidebar-primary: 168 60% 50%;
-    --sidebar-primary-foreground: 168 80% 6%;
-    --sidebar-accent: 168 50% 11%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 168 40% 16%;
+    --sidebar-primary-foreground: 0 0% 6%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 30 15% 96%;
+    --sidebar-border: 0 0% 14%;
     --sidebar-ring: 168 60% 50%;
 
     /* Premium gradients & shadows */
     --gradient-primary: linear-gradient(135deg, hsl(168 60% 50%), hsl(168 62% 45%));
-    --gradient-surface: linear-gradient(180deg, hsl(168 55% 13%), hsl(168 58% 10%));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 8%), hsl(0 0% 6%));
     --shadow-cta: 0 10px 30px hsl(168 60% 50% / 0.25);
     --shadow-cta-hover: 0 16px 40px hsl(168 60% 50% / 0.40);
-    --shadow-card: 0 4px 24px hsl(168 80% 4% / 0.4);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.5);
   }
 
-  /* Force dark scheme — the brand IS dark */
   .dark { color-scheme: dark; }
   :root { color-scheme: dark; }
 }
@@ -87,13 +87,11 @@
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
 
-  /* Typography refinement */
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
     font-weight: 700;
   }
 
-  /* Selection — branded */
   ::selection {
     background: hsl(var(--primary) / 0.35);
     color: hsl(var(--foreground));
@@ -101,7 +99,7 @@
 }
 
 @layer components {
-  /* ─── PRIMARY CTA — premium conversion button ─────────────── */
+  /* ─── PRIMARY CTA — la SEULE place du vert ──────────────── */
   .btn-cta {
     @apply inline-flex items-center justify-center gap-2 font-semibold
            px-6 py-3.5 text-sm tracking-tight
@@ -127,10 +125,9 @@
     transform: none;
   }
 
-  /* Legacy alias kept for back-compat with existing markup */
   .btn-cta-yellow { @apply btn-cta; }
 
-  /* ─── Surfaces ────────────────────────────────────────────── */
+  /* ─── Surfaces neutres ──────────────────────────────────── */
   .surface-card {
     background: var(--gradient-surface);
     border: 1px solid hsl(var(--border));
@@ -138,7 +135,6 @@
     box-shadow: var(--shadow-card);
   }
 
-  /* ─── Glow utilities ──────────────────────────────────────── */
   .glow-primary {
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4),
                 0 8px 32px hsl(var(--primary) / 0.25);
@@ -152,19 +148,20 @@
     color: transparent;
   }
 
-  /* ─── Inputs — soft focus glow ────────────────────────────── */
+  /* Inputs — focus vert subtil */
   .input-glow:focus-visible {
     box-shadow: 0 0 0 4px hsl(var(--primary) / 0.18);
     border-color: hsl(var(--primary) / 0.6);
   }
 
-  /* ─── Hover lift used on cards (e.g. Prochains départs) ───── */
+  /* Hover lift neutre — plus de bordure verte au hover */
   .hover-glow {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .hover-glow:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 8px 24px hsl(var(--primary) / 0.18);
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--accent));
+    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.4);
     transform: translateY(-2px);
   }
 }
