@@ -37,7 +37,7 @@ const TOTAL = 5; // 1.value 2.contact 3.reveal 4.education 5.action
 const ALL_COUNTRIES: WarehouseCountry[] = ['FR', 'CN', 'US', 'AE', 'DE', 'CA'];
 const DEFAULT_COUNTRIES: WarehouseCountry[] = ['FR', 'CN', 'US'];
 
-const COUNTRY_HUBS: Record<WarehouseCountry, { hub: string; line: string }> = {
+const COUNTRY_HUBS: Partial<Record<WarehouseCountry, { hub: string; line: string }>> = {
   FR: { hub: 'Hub Europe', line: '12 Rue de la Logistique, 93200 Saint-Denis, France' },
   CN: { hub: 'Direct usines', line: 'Room 501, Building 3, Nanshan District, Shenzhen 518000, China' },
   US: { hub: 'E-commerce US', line: '1200 NW 78th Ave, Suite 200, Miami, FL 33126, USA' },
