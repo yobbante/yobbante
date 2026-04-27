@@ -5,7 +5,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import {
-  Package, Factory, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
+  Package, Factory, Inbox, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
 } from 'lucide-react';
 
 const fadeUp = {
@@ -26,6 +26,12 @@ const BUY_STEPS = [
   { n: '01', title: 'Vous décrivez votre besoin', desc: 'Quantité, qualité, budget — un brief suffit.' },
   { n: '02', title: 'On source et négocie',       desc: '3-5 fournisseurs qualifiés, meilleur prix obtenu.' },
   { n: '03', title: 'Production, contrôle, livraison', desc: 'Inspection qualité puis livraison directe à votre porte.' },
+];
+
+const RECEIVE_STEPS = [
+  { n: '01', title: 'Vous commandez en ligne', desc: 'Amazon, AliExpress, RockAuto — où vous voulez.' },
+  { n: '02', title: 'On réceptionne au relais', desc: 'Adresse Yobbanté à l\'étranger. Photo + pesée à l\'arrivée.' },
+  { n: '03', title: 'Vous payez puis recevez', desc: 'Prix réel calculé, vous validez, on livre en Afrique.' },
 ];
 
 const REASONS = [
@@ -54,6 +60,7 @@ export default function LandingPage() {
 
   const goShip = () => navigate('/expedier');
   const goBuy = () => navigate('/acheter');
+  const goReceive = () => navigate('/expedier/recevoir');
 
   const handleHubPick = (id: HubId) => {
     setSelectedHub(id);
@@ -135,7 +142,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+          <div className="grid md:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
             {/* Ship */}
             <div className="bg-background p-8 md:p-10">
               <div className="flex items-center gap-2.5 mb-6">
@@ -196,6 +203,38 @@ export default function LandingPage() {
                 className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
                 Lancer un sourcing <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Receive */}
+            <div className="bg-background p-8 md:p-10">
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
+                  <Inbox className="w-4.5 h-4.5" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight">Pour recevoir</h3>
+                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Achats en ligne</span>
+              </div>
+              <ol className="space-y-5">
+                {RECEIVE_STEPS.map((s, i) => (
+                  <motion.li
+                    key={s.n}
+                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
+                    className="flex gap-4"
+                  >
+                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
+                    </div>
+                  </motion.li>
+                ))}
+              </ol>
+              <button
+                onClick={goReceive}
+                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
+              >
+                Recevoir une commande <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

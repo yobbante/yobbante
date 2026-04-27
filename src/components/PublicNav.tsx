@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, Factory } from 'lucide-react';
+import { Menu, X, Package, Factory, Inbox } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface PublicNavProps {
@@ -17,6 +17,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
 
   const goExpedier = () => { setOpen(false); navigate('/expedier'); };
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
+  const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
 
   return (
     <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -35,6 +36,16 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               }`}
             >
               <Package className="w-3.5 h-3.5" /> Expédier
+            </button>
+            <button
+              onClick={goRecevoir}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/expedier/recevoir')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" /> Recevoir
             </button>
             <button
               onClick={goAcheter}
@@ -90,6 +101,12 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-foreground text-background font-semibold"
                 >
                   <Package className="w-4 h-4" /> Expédier un colis
+                </button>
+                <button
+                  onClick={goRecevoir}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-zinc-950 text-white font-semibold"
+                >
+                  <Inbox className="w-4 h-4 text-yellow-400" /> Recevoir une commande
                 </button>
                 <button
                   onClick={goAcheter}
