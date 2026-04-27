@@ -1115,7 +1115,7 @@ function FormatHint({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 type OrderRow = {
   id: string;
-  source: 'dossier' | 'shipment' | 'package';
+  source: 'dossier' | 'shipment' | 'package' | 'reception';
   reference: string;
   title: string;
   subtitle?: string;
@@ -1161,6 +1161,17 @@ const DOSSIER_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['stat
   CANCELLED:    { label: 'Annulé',          tone: 'warning' },
 };
 
+const RECEPTION_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['statusTone'] }> = {
+  pending_arrival: { label: 'Attendu au relais',  tone: 'info' },
+  received:        { label: 'Reçu au relais',     tone: 'progress' },
+  inspected:       { label: 'Inspecté · Devis',   tone: 'progress' },
+  consolidated:    { label: 'Consolidé',          tone: 'progress' },
+  in_transit:      { label: 'En transit',         tone: 'progress' },
+  customs:         { label: 'Douane',             tone: 'progress' },
+  delivered:       { label: 'Livré',              tone: 'success' },
+  cancelled:       { label: 'Annulé',             tone: 'warning' },
+};
+
 function OrdersOverview({
   isAuthenticated, goBack, goAddOrder, goSignIn,
 }: {
@@ -1179,7 +1190,7 @@ function OrdersOverview({
     (async () => {
       setLoading(true);
       try {
-        const [{ data: dossiers }, { data: shipments }, { data: packages }] = await Promise.all([
+        const [{ data: dossiers }, { data: shipments }, { data: packages }, { data: receptions }] = await Promise.all([
           supabase.from('dossiers')
             .select('id, reference, product_description, status, created_at, origin_country, destination_country')
             .order('created_at', { ascending: false }).limit(20),
@@ -1188,6 +1199,9 @@ function OrdersOverview({
             .order('created_at', { ascending: false }).limit(20),
           supabase.from('packages')
             .select('id, description, status, created_at, warehouse_country')
+            .order('created_at', { ascending: false }).limit(20),
+          supabase.from('reception_orders')
+            .select('id, reference, merchant_name, order_description, status, created_at, actual_weight_kg, final_price_eur, relay_address_id, relay_addresses(country, city, country_code)')
             .order('created_at', { ascending: false }).limit(20),
         ]);
 
@@ -1223,6 +1237,23 @@ function OrdersOverview({
             subtitle: `Hub ${p.warehouse_country}`,
             status: p.status, statusLabel: meta.label, statusTone: meta.tone,
             createdAt: p.created_at,
+          });
+        }
+        for (const r of receptions ?? []) {
+          const meta = RECEPTION_STATUS_LABEL[r.status as string] ?? { label: r.status, tone: 'info' as const };
+          const relay = (r as any).relay_addresses;
+          const subtitleBits = [
+            relay ? `Relais ${relay.city}` : null,
+            r.actual_weight_kg ? `${r.actual_weight_kg} kg` : null,
+            r.final_price_eur ? `${r.final_price_eur} €` : null,
+          ].filter(Boolean);
+          out.push({
+            id: r.id, source: 'reception',
+            reference: r.reference,
+            title: `${r.merchant_name} — ${(r.order_description as string)?.slice(0, 60) ?? ''}`,
+            subtitle: subtitleBits.join(' · '),
+            status: r.status, statusLabel: meta.label, statusTone: meta.tone,
+            createdAt: r.created_at,
           });
         }
         out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
