@@ -28,6 +28,7 @@ interface MatchOption {
   highlight?: string;
   transport_type: string;
   confidence: string;
+  note?: string;
 }
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
@@ -37,10 +38,21 @@ const addDays = (base: Date, n: number) => {
   return d;
 };
 
-const BUCKETS: Array<{ id: OptionId; label: string; transport: 'AIR' | 'ROAD' | 'SEA'; highlight: string }> = [
-  { id: "fast",    label: "Express",    transport: "AIR",  highlight: "Le plus rapide" },
-  { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix" },
-  { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois" },
+// Distinct multipliers per option. Each option transforms the SAME base
+// calculation differently so prices must always differ.
+const BUCKETS: Array<{
+  id: OptionId;
+  label: string;
+  transport: 'AIR' | 'ROAD' | 'SEA';
+  highlight: string;
+  multiplier: number;   // applied on base price
+  eta_days: string;
+  eta_offset: number;   // for fallback departure_date
+  note?: string;
+}> = [
+  { id: "fast",    label: "Express",    transport: "AIR",  highlight: "Le plus rapide",                  multiplier: 1.35, eta_days: "1-2 jours", eta_offset: 1 },
+  { id: "economy", label: "Économique", transport: "ROAD", highlight: "Meilleur rapport qualité-prix",   multiplier: 1.00, eta_days: "3-5 jours", eta_offset: 4 },
+  { id: "volume",  label: "Volume",     transport: "SEA",  highlight: "Pour les gros envois",            multiplier: 0.85, eta_days: "5-7 jours", eta_offset: 7, note: "Tarif dégressif pour gros envois" },
 ];
 
 serve(async (req) => {
