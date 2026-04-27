@@ -36,17 +36,17 @@ const COUNTRY_FLAG: Record<string, string> = {
   US: '🇺🇸', FR: '🇫🇷', CN: '🇨🇳', GB: '🇬🇧', AE: '🇦🇪',
 };
 
-const MERCHANT_PRESETS: { name: string; emoji: string; suggestedRelay: string }[] = [
-  { name: 'Amazon US',   emoji: '🛒', suggestedRelay: 'US' },
-  { name: 'Amazon FR',   emoji: '🛍️', suggestedRelay: 'FR' },
-  { name: 'AliExpress',  emoji: '🧧', suggestedRelay: 'CN' },
-  { name: 'eBay',        emoji: '🏷️', suggestedRelay: 'US' },
-  { name: 'SHEIN',       emoji: '👗', suggestedRelay: 'CN' },
-  { name: 'Temu',        emoji: '🟠', suggestedRelay: 'CN' },
-  { name: 'Etsy',        emoji: '🎨', suggestedRelay: 'US' },
-  { name: 'RockAuto',    emoji: '🔧', suggestedRelay: 'US' },
-  { name: 'B&H Photo',   emoji: '📷', suggestedRelay: 'US' },
-  { name: 'iHerb',       emoji: '🌿', suggestedRelay: 'US' },
+const MERCHANT_PRESETS: { name: string; suggestedRelay: string }[] = [
+  { name: 'Amazon US',   suggestedRelay: 'US' },
+  { name: 'Amazon FR',   suggestedRelay: 'FR' },
+  { name: 'AliExpress',  suggestedRelay: 'CN' },
+  { name: 'eBay',        suggestedRelay: 'US' },
+  { name: 'SHEIN',       suggestedRelay: 'CN' },
+  { name: 'Temu',        suggestedRelay: 'CN' },
+  { name: 'Etsy',        suggestedRelay: 'US' },
+  { name: 'RockAuto',    suggestedRelay: 'US' },
+  { name: 'B&H Photo',   suggestedRelay: 'US' },
+  { name: 'iHerb',       suggestedRelay: 'US' },
 ];
 
 const GOODS_TYPES = [
