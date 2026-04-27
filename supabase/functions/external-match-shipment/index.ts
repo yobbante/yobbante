@@ -81,22 +81,33 @@ serve(async (req) => {
     const today = new Date();
     const options: MatchOption[] = [];
 
+    // Compute ONE base price (no urgency, no transport-specific markup) using
+    // the economy/road quote as our neutral reference. Then we apply distinct
+    // multipliers per option so the three prices are guaranteed to differ.
+    const { data: baseData, error: baseErr } = await supabase.rpc("calculate_quote", {
+      p_origin_country: origin_country,
+      p_destination_country: destination_country,
+      p_weight_kg: body.weight_kg,
+      p_transport_type: "ROAD",
+      p_priority: "normal",
+      p_origin_city: body.origin_city,
+      p_destination_city: body.destination_city,
+    });
+    if (baseErr) {
+      console.warn("base calculate_quote failed:", baseErr.message);
+    }
+    const baseRow = Array.isArray(baseData) ? baseData[0] : baseData;
+    const basePrice = baseRow ? Number(baseRow.price_eur) : 0;
+    const baseConfidence = baseRow?.confidence ?? "medium";
+
+    // Volume option only makes sense for heavier shipments.
+    const showVolume = body.weight_kg >= 30;
+
     for (const b of BUCKETS) {
-      const { data, error } = await supabase.rpc("calculate_quote", {
-        p_origin_country: origin_country,
-        p_destination_country: destination_country,
-        p_weight_kg: body.weight_kg,
-        p_transport_type: b.transport,
-        p_priority: body.urgency === "fast" ? "urgent" : "normal",
-        p_origin_city: body.origin_city,
-        p_destination_city: body.destination_city,
-      });
-      if (error) {
-        console.warn(`calculate_quote failed for ${b.transport}:`, error.message);
-        continue;
-      }
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) continue;
+      if (b.id === "volume" && !showVolume) continue;
+      if (basePrice <= 0) continue;
+
+      const price = Math.round(basePrice * b.multiplier);
 
       const { data: dep } = await supabase
         .from("konnekt_departures")
@@ -107,7 +118,7 @@ serve(async (req) => {
         .eq("transport", b.transport)
         .gte("departure_date", fmt(today))
         .gte("available_capacity_kg", body.weight_kg)
-        .order("departure_date", { ascending: true })
+        .order("departure_date", { ascending: b.id === "fast" })
         .limit(1)
         .maybeSingle();
 
@@ -115,11 +126,12 @@ serve(async (req) => {
         id: b.id,
         label: b.label,
         transport_type: b.transport,
-        eta_days: `${row.eta_min_days}–${row.eta_max_days} jours`,
-        price_eur: Number(row.price_eur),
-        departure_date: dep?.departure_date ?? fmt(addDays(today, b.id === "fast" ? 2 : b.id === "economy" ? 4 : 7)),
+        eta_days: b.eta_days,
+        price_eur: price,
+        departure_date: dep?.departure_date ?? fmt(addDays(today, b.eta_offset)),
         highlight: b.highlight,
-        confidence: row.confidence,
+        confidence: baseConfidence,
+        note: b.note,
       });
     }
 
