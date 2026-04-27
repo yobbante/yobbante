@@ -1115,7 +1115,7 @@ function FormatHint({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 type OrderRow = {
   id: string;
-  source: 'dossier' | 'shipment' | 'package';
+  source: 'dossier' | 'shipment' | 'package' | 'reception';
   reference: string;
   title: string;
   subtitle?: string;
