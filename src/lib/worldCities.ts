@@ -83,12 +83,35 @@ const DEST_RAW: Array<Omit<CityOption, 'id'>> = [
 const withId = (l: Array<Omit<CityOption, 'id'>>): CityOption[] =>
   l.map(c => ({ ...c, id: `${c.country}-${c.city}` }));
 
-export const ORIGIN_CITIES: CityOption[] = withId(RAW);
-export const DESTINATION_CITIES: CityOption[] = withId(DEST_RAW);
+// Yobbanté is a worldwide service: both origin and destination selectors expose
+// the FULL world catalog (origin world cities + West-Africa destinations merged
+// & deduplicated by id). The "popular" pins differ by direction so the most
+// likely choice surfaces on top.
+const ALL_RAW = [...RAW, ...DEST_RAW];
+const dedup = (l: typeof ALL_RAW) => {
+  const seen = new Set<string>();
+  return l.filter(c => {
+    const id = `${c.country}-${c.city}`;
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+};
+
+export const ALL_CITIES: CityOption[] = withId(dedup(ALL_RAW));
+export const ORIGIN_CITIES: CityOption[] = ALL_CITIES;
+export const DESTINATION_CITIES: CityOption[] = ALL_CITIES;
 
 /** IDs of "popular" cities pinned at the top of the selectors. */
-export const POPULAR_ORIGIN_IDS = ['FR-Paris', 'FR-Lyon', 'FR-Marseille', 'AE-Dubai', 'CN-Shenzhen', 'CN-Guangzhou', 'US-New York', 'CA-Montréal'];
-export const POPULAR_DEST_IDS   = ['SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'GN-Conakry', 'BF-Ouagadougou', 'TG-Lomé', 'CM-Douala', 'GA-Libreville'];
+export const POPULAR_ORIGIN_IDS = [
+  'FR-Paris', 'FR-Lyon', 'FR-Marseille', 'AE-Dubai',
+  'CN-Shenzhen', 'CN-Guangzhou', 'US-New York', 'CA-Montréal',
+  'SN-Dakar', 'CI-Abidjan',
+];
+export const POPULAR_DEST_IDS = [
+  'SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'GN-Conakry',
+  'BF-Ouagadougou', 'TG-Lomé', 'CM-Douala', 'GA-Libreville',
+  'FR-Paris', 'CA-Montréal',
+];
 
 export function findCity(list: CityOption[], id: string | null): CityOption | null {
   if (!id) return null;
