@@ -123,6 +123,7 @@ export default function AdminPage() {
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
           {section === 'overview'   && <OverviewTab onJump={setSection} />}
           {section === 'requests'   && <RequestsTab />}
+          {section === 'shipments'  && <ShipmentsWorkflowTab />}
           {section === 'orders'     && <OrdersTab />}
           {section === 'hubs'       && <HubsTab />}
           {section === 'transport'  && <KonnektMonitorTab />}
