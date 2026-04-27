@@ -13,6 +13,7 @@ import { QuoteEstimate } from './QuoteEstimate';
 import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
+import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
 import type { WarehouseCountry } from '@/lib/types';
@@ -72,6 +73,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [chosen, setChosen]   = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed]   = useState<{ reference: string; price: number; eta: string } | null>(null);
+
+  // ── Persist work-in-progress so the user keeps everything after a login round-trip
+  const DRAFT_KEY = 'send-flow';
+  const draftSnapshot = {
+    type, originCityId, destCityId, weight, declaredValue,
+    senderName, senderPhone, pickupAddress,
+    recipientName, recipientPhone, deliveryAddress,
+    chosenId: chosen?.id ?? null,
+  };
+  useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.type) setType(d.type);
+    if (d.originCityId) setOriginCity(d.originCityId);
+    if (d.destCityId) setDestCity(d.destCityId);
+    if (typeof d.weight === 'number') setWeight(d.weight);
+    if (d.declaredValue) setDeclared(d.declaredValue);
+    if (d.senderName) setSenderName(d.senderName);
+    if (d.senderPhone) setSenderPhone(d.senderPhone);
+    if (d.pickupAddress) setPickup(d.pickupAddress);
+    if (d.recipientName) setRecipientName(d.recipientName);
+    if (d.recipientPhone) setRecipientPhone(d.recipientPhone);
+    if (d.deliveryAddress) setDelivery(d.deliveryAddress);
+  });
 
   const originCity = findCity(ORIGIN_CITIES, originCityId);
   const destCity   = findCity(DESTINATION_CITIES, destCityId);
@@ -143,7 +166,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Connectez-vous pour valider');
+        // Save snapshot so the user comes back with everything intact.
+        saveDraft(DRAFT_KEY, draftSnapshot);
+        toast.message('Connectez-vous pour finaliser — votre dossier reste enregistré.');
         navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer')}`);
         return;
       }
@@ -182,6 +207,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         price: finalPrice ?? Math.round(chosen.price_eur),
         eta: chosen.eta_days,
       });
+      clearDraft(DRAFT_KEY);
       toast.success('Expédition confirmée 🚀');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');

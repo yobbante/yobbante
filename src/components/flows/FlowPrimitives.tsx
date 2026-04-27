@@ -217,15 +217,21 @@ export function FlowSection({
   const theme = useFlowTheme();
   const t = T[theme];
   const ref = useRef<HTMLElement>(null);
-  const scrolled = useRef(false);
+  const wasRevealed = useRef(false);
 
   useEffect(() => {
-    if (revealed && !scrolled.current && ref.current) {
-      scrolled.current = true;
-      setTimeout(() => {
-        ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 250);
-    }
+    if (!revealed) { wasRevealed.current = false; return; }
+    if (wasRevealed.current) return;
+    wasRevealed.current = true;
+    // Wait for mount + reveal animation to settle, then snap with header offset.
+    const id = window.setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const targetTop = window.scrollY + rect.top - 80;
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }, 320);
+    return () => window.clearTimeout(id);
   }, [revealed]);
 
   const showProgress = step != null && total != null;
@@ -646,10 +652,32 @@ export function LiveSummaryBar({
   const theme = useFlowTheme();
   const t = T[theme];
   const [expanded, setExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-collapse when the user taps anywhere outside the summary bar
+  // (incl. scrolling the page or hitting Esc).
+  useEffect(() => {
+    if (!expanded) return;
+    const handlePointer = (e: MouseEvent | TouchEvent) => {
+      const el = containerRef.current;
+      if (el && !el.contains(e.target as Node)) setExpanded(false);
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer, { passive: true });
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [expanded]);
+
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
+          ref={containerRef}
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}

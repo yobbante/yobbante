@@ -13,6 +13,7 @@ import {
 import { useMatchOptions } from './useMatchOptions';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
+import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { supabase } from '@/integrations/supabase/client';
 import type { WarehouseCountry } from '@/lib/types';
 
@@ -81,6 +82,19 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
 
+  // Persist work-in-progress so a /auth round-trip never loses input
+  const DRAFT_KEY = 'sourcing-flow';
+  const draftSnapshot = { productInput, quantity, budget, quality, urgency, origin, destination };
+  useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.productInput) setProductInput(d.productInput);
+    if (typeof d.quantity === 'number') setQuantity(d.quantity);
+    if (d.budget) setBudget(d.budget);
+    if (d.quality) setQuality(d.quality);
+    if (d.urgency) setUrgency(d.urgency);
+    if (d.origin) setOrigin(d.origin);
+    if (d.destination) setDestination(d.destination);
+  });
+
   async function runParse() {
     const v = productInput.trim();
     if (v.length < 4) return;
@@ -140,7 +154,8 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Connectez-vous pour valider');
+        saveDraft(DRAFT_KEY, draftSnapshot);
+        toast.message('Connectez-vous pour finaliser — votre brief reste enregistré.');
         navigate(`/auth?redirect=${encodeURIComponent('/acheter')}`);
         return;
       }
@@ -172,6 +187,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       }
 
       setReference(dossier.reference);
+      clearDraft(DRAFT_KEY);
       toast.success('Sourcing lancé 🏭');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
