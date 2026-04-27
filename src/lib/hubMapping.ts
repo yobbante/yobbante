@@ -94,7 +94,7 @@ export const HUB_ROUTES: Partial<Record<WarehouseCountry, HubRoute>> = {
   },
 };
 
-export function getHubRoute(origin: WarehouseCountry): HubRoute {
+export function getHubRoute(origin: WarehouseCountry): HubRoute | undefined {
   return HUB_ROUTES[origin];
 }
 
