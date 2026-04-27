@@ -337,7 +337,7 @@ export function HubsWorldMap({
       </div>
 
       {/* Detail panel */}
-      <div className={cn('relative border-t px-4 sm:px-5 py-3 sm:py-3.5 min-h-[78px]', border, isDark ? 'bg-zinc-950/60' : 'bg-card/60')}>
+      <div className={cn('relative border-t px-4 sm:px-5 py-3 sm:py-3.5 min-h-[110px] sm:min-h-[96px]', border, isDark ? 'bg-zinc-950/60' : 'bg-card/60')}>
         <AnimatePresence mode="wait">
           {activeHub ? (
             <motion.div
