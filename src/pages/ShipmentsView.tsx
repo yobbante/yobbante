@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
@@ -13,12 +13,17 @@ import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Package, Truck, Send, X, Radar, Activity } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { Package, Truck, Send, X, Radar, Activity, Zap, Sparkles, ChevronDown } from 'lucide-react';
 import { COUNTRY_FLAGS, type Shipment, type Package as PackageType, type WarehouseCountry } from '@/lib/types';
+import { getHubRoute } from '@/lib/hubMapping';
 
 type StatusFilter = 'all' | 'active' | 'transit' | 'delivered';
 
 export function ShipmentsView() {
+  const navigate = useNavigate();
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
   const [shipOpen, setShipOpen] = useState(false);
@@ -33,6 +38,24 @@ export function ShipmentsView() {
   const openShipForPackage = (pkg: PackageType) => {
     setShipPreset(pkg.warehouse_country);
     setShipOpen(true);
+  };
+
+  /** Send the user to the guided SendFlow with everything pre-filled
+   *  from the deterministic hub mapping. */
+  const openSendFlowForPackage = (pkg: PackageType) => {
+    const route = getHubRoute(pkg.warehouse_country);
+    navigate('/expedier/envoyer', {
+      state: {
+        preset: {
+          type: 'package',
+          origin: route.origin_country,
+          destination: route.destination_country,
+          weight: pkg.weight ?? 5,
+          packageId: pkg.id,
+          packageDescription: pkg.description ?? undefined,
+        },
+      },
+    });
   };
 
   const followOrigin = searchParams.get('origin')?.toUpperCase() || '';
@@ -247,15 +270,35 @@ export function ShipmentsView() {
                         <span className="hidden sm:inline">Suivre</span>
                       </Button>
                       {canShipNow && (
-                        <Button
-                          size="sm"
-                          onClick={() => openShipForPackage(pkg)}
-                          className="h-8 px-2.5 text-[11px] gap-1"
-                          aria-label="Expédier ce colis maintenant"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Expédier</span>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              className="h-8 px-2.5 text-[11px] gap-1"
+                              aria-label="Expédier ce colis maintenant"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Expédier</span>
+                              <ChevronDown className="w-3 h-3 opacity-70" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => openShipForPackage(pkg)} className="gap-2">
+                              <Zap className="w-4 h-4 text-primary" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">Expédition rapide</span>
+                                <span className="text-[10px] text-muted-foreground">Choisir un départ Konnekt</span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openSendFlowForPackage(pkg)} className="gap-2">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">Flow guidé</span>
+                                <span className="text-[10px] text-muted-foreground">Pré-rempli depuis le hub</span>
+                              </div>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>

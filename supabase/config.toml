@@ -2,3 +2,6 @@ project_id = "tlvuextleczdsqxoguyq"
 
 [functions.list-departures]
 verify_jwt = false
+
+[functions.konnekt-webhook]
+verify_jwt = false
