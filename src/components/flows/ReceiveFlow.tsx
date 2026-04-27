@@ -296,6 +296,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     if (landingHub) clearLandingHub();
   }, [landingHub]);
 
+  /* Cross-component bridge: header button can request "Mes commandes" view. */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { step?: Step } | undefined;
+      if (detail?.step) setStep(detail.step);
+    };
+    window.addEventListener('yobbante:receive-flow:goto', handler);
+    return () => window.removeEventListener('yobbante:receive-flow:goto', handler);
+  }, []);
+
   /* ── Handlers — ASK step ── */
   function chooseOrdered(value: 'yes' | 'no') {
     saveSession({ ordered: value });
