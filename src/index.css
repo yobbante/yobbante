@@ -96,6 +96,12 @@
     background: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));
   }
+
+  /* Mobile: no blue tap flash, no double-tap zoom on interactive elements */
+  button, a, [role="button"], input, select, textarea, label {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
 }
 
 @layer components {
