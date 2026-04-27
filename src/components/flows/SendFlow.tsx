@@ -311,6 +311,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           placeholder="Ex. Dakar, Abidjan, Bamako…"
           popularIds={POPULAR_DEST_IDS}
         />
+        {originCity && destCity && !dakarRouteOk && (
+          <p className="mt-3 text-xs text-amber-600">
+            Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée. Choisissez Dakar pour l'une des deux villes.
+          </p>
+        )}
         {destCity && (
           <motion.fieldset
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
