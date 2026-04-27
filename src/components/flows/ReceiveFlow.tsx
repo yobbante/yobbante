@@ -1256,6 +1256,7 @@ function OrdersOverview({
             createdAt: r.created_at,
           });
         }
+        out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
         if (alive) setRows(out);
       } finally {
         if (alive) setLoading(false);
