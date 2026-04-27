@@ -138,3 +138,16 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
     </div>
   );
 }
+
+function DepartureBar({ label, value, total, tone }: { label: string; value: number; total: number; tone: string }) {
+  const pct = Math.round((value / total) * 100);
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <span className="w-16 text-muted-foreground">{label}</span>
+      <span className="w-6 tabular-nums font-semibold">{value}</span>
+      <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div className={cn('h-full', tone)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
