@@ -139,7 +139,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
-  const finalPrice = quote ? Math.round(quote.price) : chosen ? Math.round(chosen.price_eur) : null;
+  const finalPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : null;
+  const finalPriceXof = quote ? Math.round(quote.price_xof) : null;
 
   // Recap section appears once a transport option is chosen.
   const recapRevealed = !!chosen;
@@ -148,8 +149,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     senderName.trim() && senderPhone.trim() && pickupAddress.trim() &&
     recipientName.trim() && recipientPhone.trim() && deliveryAddress.trim();
 
+  const priceLabel = finalPriceXof != null
+    ? `${new Intl.NumberFormat('fr-FR').format(finalPriceXof)} XOF${finalPriceEur != null ? ` (≈ ${fmtEur(finalPriceEur)})` : ''}`
+    : finalPriceEur != null ? fmtEur(finalPriceEur) : '';
   const summary = chosen && originCity && destCity
-    ? `${originCity.city} → ${destCity.city} · ${chosen.label} · livraison ${chosen.eta_days}${finalPrice != null ? ` · ${fmtEur(finalPrice)}` : ''}`
+    ? `${originCity.city} → ${destCity.city} · ${chosen.label}${priceLabel ? ` · ${priceLabel}` : ''}`
     : '';
 
   async function submit() {
@@ -204,7 +208,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       setConfirmed({
         reference: dossier.reference,
-        price: finalPrice ?? Math.round(chosen.price_eur),
+        price: finalPriceEur ?? Math.round(chosen.price_eur),
         eta: chosen.eta_days,
       });
       clearDraft(DRAFT_KEY);
@@ -384,7 +388,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <RecapRow label="Poids" value={`${weight} kg`} />
           {declaredValue && <RecapRow label="Valeur déclarée" value={`${declaredValue} €`} />}
           {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
-          {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+          {finalPriceEur != null && <RecapRow label="Prix total" value={fmtEur(finalPriceEur)} strong />}
           <div className="grid sm:grid-cols-2 gap-4 pt-3 border-t border-border">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
@@ -418,7 +422,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <RecapRow label="Poids" value={`${weight} kg`} />
             {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
-            {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+            {finalPriceEur != null && <RecapRow label="Prix total" value={fmtEur(finalPriceEur)} strong />}
             {contactsComplete && (
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border text-xs">
                 <div>

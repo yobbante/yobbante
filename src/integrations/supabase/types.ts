@@ -468,6 +468,36 @@ export type Database = {
           },
         ]
       }
+      pricing_adjustments: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          key: string
+          multiplier: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          multiplier?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          multiplier?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -489,54 +519,6 @@ export type Database = {
           full_name?: string | null
           id?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      routes_pricing: {
-        Row: {
-          active: boolean
-          base_price_eur: number
-          created_at: string
-          destination_city: string | null
-          destination_country: string
-          eta_max_days: number
-          eta_min_days: number
-          id: string
-          origin_city: string | null
-          origin_country: string
-          price_per_kg_eur: number
-          transport_type: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          base_price_eur?: number
-          created_at?: string
-          destination_city?: string | null
-          destination_country: string
-          eta_max_days?: number
-          eta_min_days?: number
-          id?: string
-          origin_city?: string | null
-          origin_country: string
-          price_per_kg_eur?: number
-          transport_type?: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          base_price_eur?: number
-          created_at?: string
-          destination_city?: string | null
-          destination_country?: string
-          eta_max_days?: number
-          eta_min_days?: number
-          id?: string
-          origin_city?: string | null
-          origin_country?: string
-          price_per_kg_eur?: number
-          transport_type?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -681,6 +663,86 @@ export type Database = {
         }
         Relationships: []
       }
+      zone_pricing: {
+        Row: {
+          active: boolean
+          base_price_xof: number
+          created_at: string
+          currency: string
+          delivery_days_max: number
+          delivery_days_min: number
+          id: string
+          min_taxable: number
+          mode: string
+          price_per_unit: number
+          updated_at: string
+          zone_id: string
+        }
+        Insert: {
+          active?: boolean
+          base_price_xof: number
+          created_at?: string
+          currency?: string
+          delivery_days_max?: number
+          delivery_days_min?: number
+          id?: string
+          min_taxable?: number
+          mode: string
+          price_per_unit: number
+          updated_at?: string
+          zone_id: string
+        }
+        Update: {
+          active?: boolean
+          base_price_xof?: number
+          created_at?: string
+          currency?: string
+          delivery_days_max?: number
+          delivery_days_min?: number
+          id?: string
+          min_taxable?: number
+          mode?: string
+          price_per_unit?: number
+          updated_at?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zone_pricing_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["zone_id"]
+          },
+        ]
+      }
+      zones: {
+        Row: {
+          countries: string[]
+          created_at: string
+          modes: string[]
+          updated_at: string
+          zone_id: string
+          zone_name: string
+        }
+        Insert: {
+          countries?: string[]
+          created_at?: string
+          modes?: string[]
+          updated_at?: string
+          zone_id: string
+          zone_name: string
+        }
+        Update: {
+          countries?: string[]
+          created_at?: string
+          modes?: string[]
+          updated_at?: string
+          zone_id?: string
+          zone_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -711,6 +773,41 @@ export type Database = {
           weight_cost_eur: number
         }[]
       }
+      calculate_quote_v2: {
+        Args: {
+          p_destination_country: string
+          p_goods_type?: string
+          p_height_cm?: number
+          p_length_cm?: number
+          p_priority?: string
+          p_real_weight_kg: number
+          p_transport_mode?: string
+          p_width_cm?: number
+        }
+        Returns: {
+          base_price_xof: number
+          confidence: string
+          delivery_days_max: number
+          delivery_days_min: number
+          fallback_mode: boolean
+          goods_mult: number
+          insurance_required: boolean
+          margin_mult: number
+          price_eur: number
+          price_xof: number
+          raw_price_xof: number
+          requires_manual_quote: boolean
+          supply_mult: number
+          taxable_weight_kg: number
+          transport_mode: string
+          urgency_mult: number
+          volumetric_weight_kg: number
+          weight_bracket_mult: number
+          weight_cost_xof: number
+          zone_id: string
+          zone_name: string
+        }[]
+      }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
@@ -725,6 +822,7 @@ export type Database = {
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       rematch_waiting_shipments: { Args: never; Returns: number }
+      resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
       score_departure: {
         Args: {
           d_departure_date: string
