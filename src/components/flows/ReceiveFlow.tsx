@@ -640,6 +640,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           goBack={() => setStep(initialSession.ordered === 'no' ? 'pre-order' : 'ask')}
         />
       )}
+
+      {/* ── STEP E: ORDERS — track existing orders ───────────────────── */}
+      {step === 'orders' && (
+        <OrdersOverview
+          isAuthenticated={!!user}
+          goBack={() => setStep('ask')}
+          goAddOrder={() => setStep('tracking')}
+          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
+        />
+      )}
     </FlowShell>
   );
 }
