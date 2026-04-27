@@ -14,7 +14,7 @@ import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { supabase } from '@/integrations/supabase/client';
-import { ORIGIN_CITIES, DESTINATION_CITIES, findCity } from '@/lib/worldCities';
+import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
 import type { WarehouseCountry } from '@/lib/types';
 
 const TYPES = [
