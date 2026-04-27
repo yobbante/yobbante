@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Link2, Loader2, Copy, Check, Inbox, ShieldCheck, X, Plus,
   ShoppingBag, ExternalLink, Bell, Sparkles, Hash, FileText, Package,
-  ArrowRight, RotateCcw, MapPin, Truck,
+  ArrowRight, RotateCcw, MapPin, Truck, ListChecks, Clock, CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
