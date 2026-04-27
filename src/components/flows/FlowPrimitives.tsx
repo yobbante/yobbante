@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, RefreshCw, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useRef, useState, createContext, useContext, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
 
 /* =========================================================================
