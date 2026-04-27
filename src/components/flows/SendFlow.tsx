@@ -418,31 +418,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
 
-      {/* Step 6 visible after a transport option is picked: contacts + addresses */}
-      <FlowSection
-        revealed={recapRevealed}
-        title="Coordonnées et adresses"
-        hint="Indiquez qui envoie, qui reçoit et où récupérer / livrer."
-      >
-        <div className="grid sm:grid-cols-2 gap-5">
-          <fieldset className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
-              <User className="w-3 h-3" /> Expéditeur
-            </legend>
-            <TextField label="Nom complet"   value={senderName}   onChange={setSenderName}   placeholder="Ex. Awa Diop" />
-            <TextField label="Téléphone"     value={senderPhone}  onChange={setSenderPhone}  placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
-            <AddressField label="Adresse de retrait" value={pickupAddress} onChange={setPickup} placeholder="N°, rue, quartier, ville, code postal" />
-          </fieldset>
-          <fieldset className="space-y-3 rounded-2xl border border-border bg-card p-4">
-            <legend className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground inline-flex items-center gap-1.5 px-1">
-              <MapPin className="w-3 h-3" /> Destinataire
-            </legend>
-            <TextField label="Nom complet"   value={recipientName}  onChange={setRecipientName}  placeholder="Ex. Mamadou Sall" />
-            <TextField label="Téléphone"     value={recipientPhone} onChange={setRecipientPhone} placeholder="+221 77 000 00 00" type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
-            <AddressField label="Adresse de livraison" value={deliveryAddress} onChange={setDelivery} placeholder="N°, rue, quartier, ville, code postal" />
-          </fieldset>
-        </div>
-      </FlowSection>
 
       {/* Recap step, before confirmation */}
       <FlowSection
