@@ -18,11 +18,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Package, Truck, Send, X, Radar, Activity, Zap, Sparkles, ChevronDown } from 'lucide-react';
 import { COUNTRY_FLAGS, type Shipment, type Package as PackageType, type WarehouseCountry } from '@/lib/types';
-import { getHubRoute, transportToKeyword } from '@/lib/hubMapping';
+import { getHubRoute } from '@/lib/hubMapping';
 
 type StatusFilter = 'all' | 'active' | 'transit' | 'delivered';
 
 export function ShipmentsView() {
+  const navigate = useNavigate();
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages, isLoading: packagesLoading } = usePackages();
   const [shipOpen, setShipOpen] = useState(false);
@@ -37,6 +38,24 @@ export function ShipmentsView() {
   const openShipForPackage = (pkg: PackageType) => {
     setShipPreset(pkg.warehouse_country);
     setShipOpen(true);
+  };
+
+  /** Send the user to the guided SendFlow with everything pre-filled
+   *  from the deterministic hub mapping. */
+  const openSendFlowForPackage = (pkg: PackageType) => {
+    const route = getHubRoute(pkg.warehouse_country);
+    navigate('/expedier/envoyer', {
+      state: {
+        preset: {
+          type: 'package',
+          origin: route.origin_country,
+          destination: route.destination_country,
+          weight: pkg.weight ?? 5,
+          packageId: pkg.id,
+          packageDescription: pkg.description ?? undefined,
+        },
+      },
+    });
   };
 
   const followOrigin = searchParams.get('origin')?.toUpperCase() || '';
