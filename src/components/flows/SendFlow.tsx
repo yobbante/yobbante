@@ -166,7 +166,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Connectez-vous pour valider');
+        // Save snapshot so the user comes back with everything intact.
+        saveDraft(DRAFT_KEY, draftSnapshot);
+        toast.message('Connectez-vous pour finaliser — votre dossier reste enregistré.');
         navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer')}`);
         return;
       }
