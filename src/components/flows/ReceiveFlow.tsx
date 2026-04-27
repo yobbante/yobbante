@@ -535,7 +535,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
             transition={{ duration: 0.35 }}
           >
             <FlowSection revealed title="Avez-vous déjà passé votre commande ?" hint="On adapte la suite selon votre situation.">
-              <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+              <div className="grid sm:grid-cols-3 gap-3 max-w-3xl">
                 <ChoicePill
                   icon={<ShoppingBag className="w-5 h-5" />}
                   title="Non, pas encore"
@@ -548,6 +548,12 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
                   desc="J'ai un lien de commande ou un numéro de suivi."
                   onClick={() => chooseOrdered('yes')}
                   accent
+                />
+                <ChoicePill
+                  icon={<ListChecks className="w-5 h-5" />}
+                  title="Suivre mes commandes"
+                  desc="Voir mes commandes en cours, déjà réceptionnées ou en route."
+                  onClick={() => setStep('orders')}
                 />
               </div>
             </FlowSection>
