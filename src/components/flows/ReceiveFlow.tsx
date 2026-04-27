@@ -12,6 +12,7 @@ import {
 } from './FlowPrimitives';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useAddresses } from '@/hooks/useAddresses';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
@@ -72,6 +73,18 @@ const EXTERNAL_PORTAL: Record<string, { label: string; url: string }[]> = {
     { label: 'Amazon.ae', url: 'https://www.amazon.ae' },
     { label: 'Noon',      url: 'https://www.noon.com' },
   ],
+};
+
+/** Public template addresses for each hub — used as fallback when the
+ *  visitor isn't authenticated yet. The personal `identifier_code` is
+ *  generated only after sign-up (see `handle_new_user` trigger). */
+const FALLBACK_HUB_ADDRESS: Record<string, string> = {
+  CN: 'Room 501, Building 3, Nanshan District, Shenzhen 518000, China',
+  FR: '12 Rue de la Logistique, 93200 Saint-Denis, France',
+  US: '1200 NW 78th Ave, Suite 200, Miami, FL 33126, USA',
+  AE: 'Warehouse 14, Jebel Ali Free Zone, Dubai, UAE',
+  TR: 'Atatürk Havalimanı Cargo Terminal, 34149 Istanbul, Türkiye',
+  SN: "Zone de fret Aéroport Blaise Diagne, Diass, Sénégal",
 };
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -197,6 +210,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { addresses } = useAddresses();
+  const { user } = useAuth();
 
   /* ── Session restoration: detect returning users ── */
   const initialSession = useMemo(loadSession, []);
@@ -229,11 +243,28 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
    */
   const [recommendedHub, setRecommendedHub] = useState<HubId | null>(initialSession.recommendedHub);
 
-  /* ── Derived ── */
-  const hubAddress = useMemo(
-    () => hub ? addresses.find(a => a.country === hub) : null,
-    [hub, addresses]
-  );
+  /* ── Derived ──
+   * Real per-user address requires sign-up (RLS-protected). For unauthenticated
+   * visitors we synthesize a public template so the flow keeps progressing
+   * after they pick a hub — the personal `identifier_code` is filled in once
+   * they sign in (a banner prompts them).
+   */
+  const hubAddress = useMemo(() => {
+    if (!hub) return null;
+    const real = addresses.find(a => a.country === hub);
+    if (real) return real;
+    const template = FALLBACK_HUB_ADDRESS[hub];
+    if (!template) return null;
+    return {
+      id: `fallback-${hub}`,
+      country: hub as any,
+      address_line: template,
+      identifier_code: '',
+      user_id: '',
+      created_at: new Date().toISOString(),
+    } as ReturnType<typeof useAddresses>['addresses'][number];
+  }, [hub, addresses]);
+  const isFallbackAddress = !!hubAddress && !hubAddress.identifier_code;
   const portals = hub ? EXTERNAL_PORTAL[hub] ?? [] : [];
 
   /** Wraps setHub: any *manual* hub change clears the recommendation. */
@@ -274,10 +305,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   /* ── Handlers — PRE-ORDER step ── */
   function copyAddress() {
     if (!hubAddress) return;
-    const text = `${hubAddress.address_line}\nRéf: ${hubAddress.identifier_code}`;
+    const text = hubAddress.identifier_code
+      ? `${hubAddress.address_line}\nRéf: ${hubAddress.identifier_code}`
+      : hubAddress.address_line;
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success('Adresse copiée — collez-la dans le formulaire de livraison');
+    toast.success(
+      isFallbackAddress
+        ? 'Adresse copiée. Connectez-vous pour obtenir votre code destinataire personnel.'
+        : 'Adresse copiée — collez-la dans le formulaire de livraison',
+    );
     setTimeout(() => setCopied(false), 1800);
   }
 
@@ -554,6 +591,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           hub={hub} setHub={setHub}
           recommendedHub={recommendedHub}
           hubAddress={hubAddress}
+          isFallbackAddress={isFallbackAddress}
+          isAuthenticated={!!user}
           portals={portals}
           copied={copied}
           copyAddress={copyAddress}
@@ -564,6 +603,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           saveReminder={saveReminder}
           goTracking={() => setStep('tracking')}
           goBack={() => setStep('ask')}
+          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
         />
       )}
 
@@ -628,19 +668,23 @@ function ChoicePill({
    ────────────────────────────────────────────────────────────────────── */
 
 function PreOrderFlow({
-  hub, setHub, recommendedHub, hubAddress, portals, copied, copyAddress, openExternal,
+  hub, setHub, recommendedHub, hubAddress, isFallbackAddress, isAuthenticated,
+  portals, copied, copyAddress, openExternal,
   reminderEmail, setReminderEmail, reminderSaved, saveReminder,
-  goTracking, goBack,
+  goTracking, goBack, goSignIn,
 }: {
   hub: string | null; setHub: (v: string) => void;
   recommendedHub: HubId | null;
   hubAddress: ReturnType<typeof useAddresses>['addresses'][number] | null | undefined;
+  isFallbackAddress: boolean;
+  isAuthenticated: boolean;
   portals: { label: string; url: string }[];
   copied: boolean; copyAddress: () => void;
   openExternal: (url: string) => void;
   reminderEmail: string; setReminderEmail: (v: string) => void;
   reminderSaved: boolean; saveReminder: () => void;
   goTracking: () => void; goBack: () => void;
+  goSignIn: () => void;
 }) {
   const TOTAL = 4;
   return (
@@ -683,10 +727,26 @@ function PreOrderFlow({
                 <p className="mt-2 text-sm text-white whitespace-pre-line leading-relaxed">
                   {hubAddress.address_line}
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-xs">
-                  <span className="text-white/50">Référence destinataire:</span>
-                  <code className="font-mono font-semibold text-yellow-400">{hubAddress.identifier_code}</code>
-                </div>
+                {isFallbackAddress ? (
+                  <div className="mt-3 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2.5">
+                    <p className="text-[11px] text-yellow-100 leading-snug">
+                      <span className="font-semibold text-yellow-300">Connectez-vous</span> pour obtenir
+                      votre <span className="font-semibold">code destinataire personnel</span> (indispensable
+                      pour qu'on identifie votre colis à l'arrivée au hub).
+                    </p>
+                    <button
+                      onClick={goSignIn}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-950 bg-yellow-400 hover:bg-yellow-300 rounded-md px-2.5 py-1.5 transition-colors"
+                    >
+                      Se connecter <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex items-center gap-2 text-xs">
+                    <span className="text-white/50">Référence destinataire:</span>
+                    <code className="font-mono font-semibold text-yellow-400">{hubAddress.identifier_code}</code>
+                  </div>
+                )}
               </div>
             </div>
             <button
