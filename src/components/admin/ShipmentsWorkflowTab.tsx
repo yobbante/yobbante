@@ -315,11 +315,12 @@ function ShipmentsList({
               <th className="text-left px-3 py-2">Paiement</th>
               <th className="text-left px-3 py-2">Statut</th>
               <th className="text-left px-3 py-2">MAJ</th>
+              <th className="text-left px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {shipments.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Aucun envoi</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Aucun envoi</td></tr>
             ) : shipments.map((s) => (
               <tr key={s.id} className="border-t border-border hover:bg-secondary/20">
                 <td className="px-3 py-2 font-mono text-xs">{s.tracking_number ?? '—'}</td>
@@ -349,6 +350,18 @@ function ShipmentsList({
                   </select>
                 </td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{timeSince(s.updated_at ?? s.created_at)}</td>
+                <td className="px-3 py-2">
+                  {s.status !== 'CANCELLED' && s.status !== 'DELIVERED' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCancel(s.id, s.tracking_number)}
+                      className="h-6 px-2 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      Annuler
+                    </Button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
