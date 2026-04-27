@@ -208,7 +208,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       setConfirmed({
         reference: dossier.reference,
-        price: finalPrice ?? Math.round(chosen.price_eur),
+        price: finalPriceEur ?? Math.round(chosen.price_eur),
         eta: chosen.eta_days,
       });
       clearDraft(DRAFT_KEY);
@@ -388,7 +388,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <RecapRow label="Poids" value={`${weight} kg`} />
           {declaredValue && <RecapRow label="Valeur déclarée" value={`${declaredValue} €`} />}
           {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
-          {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+          {finalPriceEur != null && <RecapRow label="Prix total" value={fmtEur(finalPriceEur)} strong />}
           <div className="grid sm:grid-cols-2 gap-4 pt-3 border-t border-border">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
@@ -422,7 +422,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <RecapRow label="Poids" value={`${weight} kg`} />
             {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
-            {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+            {finalPriceEur != null && <RecapRow label="Prix total" value={fmtEur(finalPriceEur)} strong />}
             {contactsComplete && (
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border text-xs">
                 <div>
