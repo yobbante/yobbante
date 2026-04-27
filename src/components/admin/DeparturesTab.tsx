@@ -1,0 +1,208 @@
+import { useMemo, useState } from 'react';
+import { Plus, Search, Pencil, Trash2, PauseCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useManualDepartures, type ManualDeparture, type DepartureStatus } from '@/hooks/useManualDepartures';
+import { ManualDepartureForm } from './ManualDepartureForm';
+import { cn } from '@/lib/utils';
+
+const MODE_LABEL: Record<string, string> = { air: '✈️ Air', sea_lcl: '🚢 Mer (LCL)', road: '🚛 Route' };
+
+const STATUS_BADGE: Record<DepartureStatus, { label: string; className: string }> = {
+  active:    { label: '🟢 Actif',     className: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  full:      { label: '🔴 Complet',   className: 'bg-rose-500/15 text-rose-700 border-rose-500/30' },
+  cancelled: { label: '⚫ Annulé',    className: 'bg-muted text-muted-foreground border-border' },
+  draft:     { label: '🟡 Brouillon', className: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+};
+
+export function DeparturesTab() {
+  const { list, update, remove } = useManualDepartures();
+  const [search, setSearch] = useState('');
+  const [modeFilter, setModeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [editing, setEditing] = useState<ManualDeparture | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ManualDeparture | null>(null);
+
+  const rows = useMemo(() => {
+    const all = list.data ?? [];
+    return all.filter(d => {
+      if (modeFilter !== 'all' && d.transport_mode !== modeFilter) return false;
+      if (statusFilter !== 'all' && d.status !== statusFilter) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        if (!d.origin_city.toLowerCase().includes(s) && !d.destination_city.toLowerCase().includes(s)) return false;
+      }
+      return true;
+    });
+  }, [list.data, search, modeFilter, statusFilter]);
+
+  async function toggleStatus(d: ManualDeparture) {
+    const next: DepartureStatus = d.status === 'active' ? 'cancelled' : 'active';
+    try {
+      await update.mutateAsync({ id: d.id, patch: { status: next } });
+      toast.success(next === 'active' ? 'Départ réactivé' : 'Départ désactivé');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Erreur');
+    }
+  }
+
+  async function doDelete() {
+    if (!confirmDelete) return;
+    try {
+      await remove.mutateAsync(confirmDelete.id);
+      toast.success('Départ supprimé');
+      setConfirmDelete(null);
+    } catch (e: any) {
+      toast.error(e.message ?? 'Suppression impossible');
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Départs manuels</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gérez les navettes non connectées à Konnekt.</p>
+        </div>
+        <Button onClick={() => setCreating(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> Ajouter un départ
+        </Button>
+      </header>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher origine ou destination" className="pl-9" />
+        </div>
+        <Select value={modeFilter} onValueChange={setModeFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous modes</SelectItem>
+            <SelectItem value="air">Air</SelectItem>
+            <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
+            <SelectItem value="road">Route</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous statuts</SelectItem>
+            <SelectItem value="active">Actif</SelectItem>
+            <SelectItem value="full">Complet</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
+            <SelectItem value="draft">Brouillon</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {list.isLoading ? (
+        <div className="text-sm text-muted-foreground">Chargement…</div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-16 border border-dashed border-border rounded-xl">
+          <p className="text-sm text-muted-foreground">Aucun départ ne correspond aux filtres.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-3 font-semibold">Trajet</th>
+                <th className="text-left px-4 py-3 font-semibold">Mode</th>
+                <th className="text-left px-4 py-3 font-semibold">Date</th>
+                <th className="text-left px-4 py-3 font-semibold w-44">Capacité</th>
+                <th className="text-left px-4 py-3 font-semibold">Prix fixe</th>
+                <th className="text-left px-4 py-3 font-semibold">Statut</th>
+                <th className="text-right px-4 py-3 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(d => {
+                const fillPct = d.total_capacity_kg > 0
+                  ? Math.round(((d.total_capacity_kg - d.available_capacity_kg) / d.total_capacity_kg) * 100)
+                  : 0;
+                return (
+                  <tr key={d.id} className="border-t border-border hover:bg-secondary/20">
+                    <td className="px-4 py-3 font-medium">{d.origin_city} → {d.destination_city}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{MODE_LABEL[d.transport_mode] ?? d.transport_mode}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{format(new Date(d.departure_date), 'dd MMM yyyy')}</td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-1">
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className={cn('h-full', fillPct >= 80 ? 'bg-rose-500' : fillPct >= 50 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: `${fillPct}%` }} />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{fillPct}% rempli · {d.available_capacity_kg}/{d.total_capacity_kg} kg dispo</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs">
+                      {d.price_override_xof != null
+                        ? `${new Intl.NumberFormat('fr-FR').format(d.price_override_xof)} XOF`
+                        : <span className="text-muted-foreground">Engine</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className={cn('text-[11px] font-semibold', STATUS_BADGE[d.status].className)}>
+                        {STATUS_BADGE[d.status].label}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => setEditing(d)} title="Modifier">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => toggleStatus(d)} title={d.status === 'active' ? 'Désactiver' : 'Réactiver'}>
+                          {d.status === 'active' ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(d)} title="Supprimer">
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ManualDepartureForm
+        open={creating || !!editing}
+        departure={editing}
+        onClose={() => { setCreating(false); setEditing(null); }}
+      />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" /> Supprimer ce départ ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · ${format(new Date(confirmDelete.departure_date), 'dd MMM yyyy')}`}
+              <br />
+              Cette action est définitive. Si des envois sont déjà confirmés sur ce départ, annulez-les d'abord.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

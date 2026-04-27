@@ -12,6 +12,7 @@ import { OrdersTab } from '@/components/admin/OrdersTab';
 import { HubsTab } from '@/components/admin/HubsTab';
 import { SourcingTab } from '@/components/admin/SourcingTab';
 import { KonnektMonitorTab } from '@/components/admin/KonnektMonitorTab';
+import { DeparturesTab } from '@/components/admin/DeparturesTab';
 import { TrackingTab } from '@/components/admin/TrackingTab';
 import { ClientsTab } from '@/components/admin/ClientsTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
@@ -119,15 +120,16 @@ export default function AdminPage() {
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
-          {section === 'overview'  && <OverviewTab onJump={setSection} />}
-          {section === 'requests'  && <RequestsTab />}
-          {section === 'orders'    && <OrdersTab />}
-          {section === 'hubs'      && <HubsTab />}
-          {section === 'transport' && <KonnektMonitorTab />}
-          {section === 'sourcing'  && <SourcingTab />}
-          {section === 'tracking'  && <TrackingTab />}
-          {section === 'clients'   && <ClientsTab />}
-          {section === 'settings'  && <SettingsTab />}
+          {section === 'overview'   && <OverviewTab onJump={setSection} />}
+          {section === 'requests'   && <RequestsTab />}
+          {section === 'orders'     && <OrdersTab />}
+          {section === 'hubs'       && <HubsTab />}
+          {section === 'transport'  && <KonnektMonitorTab />}
+          {section === 'departures' && <DeparturesTab />}
+          {section === 'sourcing'   && <SourcingTab />}
+          {section === 'tracking'   && <TrackingTab />}
+          {section === 'clients'    && <ClientsTab />}
+          {section === 'settings'   && <SettingsTab />}
         </main>
       </div>
     </div>

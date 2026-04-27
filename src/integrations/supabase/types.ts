@@ -363,6 +363,72 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_departures: {
+        Row: {
+          arrival_estimate: string | null
+          available_capacity_kg: number
+          carrier_contact: string | null
+          carrier_name: string | null
+          created_at: string
+          created_by: string | null
+          departure_date: string
+          destination_city: string
+          destination_country: string | null
+          id: string
+          notes: string | null
+          origin_city: string
+          origin_country: string | null
+          price_override_xof: number | null
+          source: string
+          status: string
+          total_capacity_kg: number
+          transport_mode: string
+          updated_at: string
+        }
+        Insert: {
+          arrival_estimate?: string | null
+          available_capacity_kg: number
+          carrier_contact?: string | null
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          departure_date: string
+          destination_city: string
+          destination_country?: string | null
+          id?: string
+          notes?: string | null
+          origin_city: string
+          origin_country?: string | null
+          price_override_xof?: number | null
+          source?: string
+          status?: string
+          total_capacity_kg: number
+          transport_mode: string
+          updated_at?: string
+        }
+        Update: {
+          arrival_estimate?: string | null
+          available_capacity_kg?: number
+          carrier_contact?: string | null
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          departure_date?: string
+          destination_city?: string
+          destination_country?: string | null
+          id?: string
+          notes?: string | null
+          origin_city?: string
+          origin_country?: string | null
+          price_override_xof?: number | null
+          source?: string
+          status?: string
+          total_capacity_kg?: number
+          transport_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       manual_quote_requests: {
         Row: {
           client_name: string
@@ -802,7 +868,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      all_active_departures: {
+        Row: {
+          arrival_estimate: string | null
+          available_capacity_kg: number | null
+          carrier_name: string | null
+          created_at: string | null
+          departure_date: string | null
+          destination_city: string | null
+          destination_country: string | null
+          external_id: string | null
+          id: string | null
+          origin_city: string | null
+          origin_country: string | null
+          price_override_xof: number | null
+          source: string | null
+          status: string | null
+          total_capacity_kg: number | null
+          transport_mode: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }

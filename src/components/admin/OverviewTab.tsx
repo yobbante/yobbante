@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Inbox, Truck, Warehouse, ShoppingCart, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Inbox, Truck, Warehouse, ShoppingCart, CheckCircle2, ArrowUpRight, Plane, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, type Dossier } from '@/lib/types';
+import { useDeparturesSummary } from '@/hooks/useManualDepartures';
 import type { AdminSection } from './AdminSidebar';
 
 type Kpi = { label: string; value: number; icon: typeof Inbox; tone: string; jump: AdminSection };
 
 export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
+  const { data: depSummary } = useDeparturesSummary();
   const { data, isLoading } = useQuery({
     queryKey: ['admin-overview'],
     queryFn: async () => {
@@ -74,6 +76,40 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
         ))}
       </div>
 
+      {/* Departures widget */}
+      {depSummary && (
+        <section className="bg-card border border-border rounded-xl p-5">
+          <header className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Plane className="w-4 h-4 text-foreground" />
+              <h2 className="text-sm font-semibold">Départs actifs</h2>
+              <span className="text-xs text-muted-foreground">· {depSummary.total} départs · {(depSummary.konnekt > 0 ? 1 : 0) + (depSummary.manual > 0 ? 1 : 0)} sources</span>
+            </div>
+            <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+              Gérer les départs <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </header>
+          <div className="space-y-2.5">
+            <DepartureBar label="Konnekt" value={depSummary.konnekt} total={Math.max(depSummary.total, 1)} tone="bg-blue-500" />
+            <DepartureBar label="Manuel"  value={depSummary.manual}  total={Math.max(depSummary.total, 1)} tone="bg-emerald-500" />
+          </div>
+          {(depSummary.nearlyFull > 0 || depSummary.noCapacity > 0) && (
+            <div className="mt-4 pt-3 border-t border-border space-y-1.5 text-xs">
+              {depSummary.nearlyFull > 0 && (
+                <p className="flex items-center gap-1.5 text-amber-600">
+                  <AlertTriangle className="w-3.5 h-3.5" /> {depSummary.nearlyFull} départ{depSummary.nearlyFull > 1 ? 's' : ''} bientôt complet{depSummary.nearlyFull > 1 ? 's' : ''}
+                </p>
+              )}
+              {depSummary.noCapacity > 0 && (
+                <p className="flex items-center gap-1.5 text-muted-foreground">
+                  <AlertTriangle className="w-3.5 h-3.5" /> {depSummary.noCapacity} départ{depSummary.noCapacity > 1 ? 's' : ''} sans capacité saisie
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="bg-card border border-border rounded-xl">
         <header className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Activité récente</h2>
@@ -99,6 +135,19 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function DepartureBar({ label, value, total, tone }: { label: string; value: number; total: number; tone: string }) {
+  const pct = Math.round((value / total) * 100);
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <span className="w-16 text-muted-foreground">{label}</span>
+      <span className="w-6 tabular-nums font-semibold">{value}</span>
+      <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div className={cn('h-full', tone)} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
