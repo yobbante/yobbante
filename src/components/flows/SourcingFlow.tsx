@@ -187,6 +187,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       }
 
       setReference(dossier.reference);
+      clearDraft(DRAFT_KEY);
       toast.success('Sourcing lancé 🏭');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
