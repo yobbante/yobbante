@@ -6,6 +6,8 @@ interface MatchInput {
   origin_city: string;
   destination_city: string;
   weight_kg: number;
+  origin_country?: string;
+  destination_country?: string;
   urgency?: 'normal' | 'fast' | 'flexible';
 }
 
@@ -55,7 +57,7 @@ export function useMatchOptions(input: MatchInput | null): MatchResult {
     }, 350);
 
     return () => clearTimeout(t);
-  }, [input?.origin_city, input?.destination_city, input?.weight_kg, input?.urgency]);
+  }, [input?.origin_city, input?.destination_city, input?.weight_kg, input?.urgency, input?.origin_country, input?.destination_country]);
 
   return state;
 }

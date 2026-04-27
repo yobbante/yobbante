@@ -60,6 +60,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [originCityId, setOriginCity] = useState<string | null>(presetOriginCityId);
   const [destCityId, setDestCity]     = useState<string | null>(presetDestCityId);
   const [weight, setWeight]           = useState(preset?.weight ?? 5);
+  const [weightTouched, setWeightTouched] = useState<boolean>(!!preset?.weight);
   const [declaredValue, setDeclared]  = useState('');
 
   // Contact / addresses
@@ -86,7 +87,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     if (d.type) setType(d.type);
     if (d.originCityId) setOriginCity(d.originCityId);
     if (d.destCityId) setDestCity(d.destCityId);
-    if (typeof d.weight === 'number') setWeight(d.weight);
+    if (typeof d.weight === 'number') { setWeight(d.weight); setWeightTouched(true); }
     if (d.declaredValue) setDeclared(d.declaredValue);
     if (d.senderName) setSenderName(d.senderName);
     if (d.senderPhone) setSenderPhone(d.senderPhone);
@@ -102,15 +103,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Origin country must belong to warehouse enum, otherwise we can't insert a shipment.
   const originCountrySupported = !!originCity && (SUPPORTED_ORIGIN_COUNTRIES as readonly string[]).includes(originCity.country);
 
+  // Step 5 only fetches options once the user has actually confirmed a weight
+  // (otherwise the default value of 5 kg would auto-reveal step 5 and skip step 4).
   const matchInput = useMemo(() => {
-    if (!originCity || !destCity || !weight) return null;
+    if (!originCity || !destCity || !weight || !weightTouched) return null;
     return {
       origin_city: originCity.city,
       destination_city: destCity.city,
+      origin_country: originCity.country,
+      destination_country: destCity.country,
       weight_kg: weight,
       urgency: 'normal' as const,
     };
-  }, [originCity, destCity, weight]);
+  }, [originCity, destCity, weight, weightTouched]);
 
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
@@ -294,14 +299,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         />
       </FlowSection>
 
-      <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard — le prix se met à jour automatiquement.">
+      <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Indiquez le poids — c'est obligatoire pour calculer le prix.">
         <div className="space-y-5 max-w-md">
-          <NumberSlider label="Poids estimé" value={weight} onChange={setWeight} min={1} max={500} unit=" kg" />
+          <NumberSlider
+            label="Poids estimé"
+            value={weight}
+            onChange={(v) => { setWeight(v); setWeightTouched(true); }}
+            min={1} max={500} unit=" kg"
+          />
           <TextField
             label="Valeur déclarée (optionnel)"
             value={declaredValue} onChange={setDeclared}
             placeholder="ex. 250" suffix="€" type="number"
           />
+          {!weightTouched && (
+            <button
+              type="button"
+              onClick={() => setWeightTouched(true)}
+              className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition"
+            >
+              Valider le poids ({weight} kg)
+            </button>
+          )}
         </div>
       </FlowSection>
 
@@ -309,7 +328,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         revealed={!!matchInput}
         step={5} total={5}
         title="Options disponibles"
-        hint={matching ? 'Recherche des meilleures options en cours…' : "Choisissez l'offre qui vous convient."}
+        hint={matching ? 'Recherche des meilleures options en cours…' : options.length > 0 ? "Choisissez l'offre qui vous convient." : "Aucun départ instantané — demandez un devis manuel."}
       >
         {matching && (
           <div className="grid sm:grid-cols-3 gap-3">
@@ -345,7 +364,36 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           </>
         )}
+        {!matching && options.length === 0 && (
+          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4">
+            <div>
+              <p className="text-sm font-semibold">Aucun départ direct trouvé pour ce trajet.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Notre équipe peut vous proposer une option sur-mesure sous 24 h. Le prix indicatif ci-dessous est calculé à partir de votre poids et de la zone de destination.
+              </p>
+            </div>
+            <QuoteEstimate quote={quote} loading={quoting} error={quoteError} />
+            <button
+              type="button"
+              onClick={() => {
+                // Synthesize a "manual" option so the rest of the flow (contacts, recap) unlocks.
+                setChosen({
+                  id: 'economy',
+                  label: 'Sur devis',
+                  eta_days: '7–14 jours',
+                  price_eur: quote?.price_eur ?? 0,
+                  highlight: 'Devis manuel sous 24h',
+                  transport_type: 'ROAD',
+                } as MatchOptionView);
+              }}
+              className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition"
+            >
+              Demander un devis manuel
+            </button>
+          </div>
+        )}
       </FlowSection>
+
 
       {/* Step 6 visible after a transport option is picked: contacts + addresses */}
       <FlowSection
