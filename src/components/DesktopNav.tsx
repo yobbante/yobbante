@@ -1,4 +1,4 @@
-import { Home, FolderOpen, Truck, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Home, Package2, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -9,8 +9,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
   const { isStaff } = useUserRole();
   const links = [
     { id: 'home' as TabId, icon: Home, label: 'Accueil' },
-    { id: 'dossiers' as TabId, icon: FolderOpen, label: 'Dossiers' },
-    { id: 'shipments' as TabId, icon: Truck, label: 'Envois' },
+    { id: 'orders' as TabId, icon: Package2, label: 'Mes envois' },
     { id: 'profile' as TabId, icon: User, label: 'Profil' },
   ];
 
