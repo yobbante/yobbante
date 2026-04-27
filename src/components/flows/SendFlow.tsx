@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Package, FileText, Boxes, Zap, Clock, Sparkles, ShieldCheck, MapPin, Phone, User } from 'lucide-react';
+import { Package, FileText, Boxes, Zap, Clock, Sparkles, ShieldCheck, MapPin, Phone, User, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   FlowShell, FlowHero, FlowSection, ChipGroup, CitySelector, NumberSlider,
@@ -9,7 +9,7 @@ import {
   type MatchOptionView,
 } from './FlowPrimitives';
 import { useMatchOptions } from './useMatchOptions';
-import { QuoteEstimate } from './QuoteEstimate';
+import { ManualQuoteDialog } from './ManualQuoteDialog';
 import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
@@ -74,6 +74,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [chosen, setChosen]   = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed]   = useState<{ reference: string; price: number; eta: string } | null>(null);
+  const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
 
   // ── Persist work-in-progress so the user keeps everything after a login round-trip
   const DRAFT_KEY = 'send-flow';
@@ -393,31 +394,25 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             )}
           </>
         )}
-        {!matching && options.length === 0 && (
-          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4">
-            <div>
-              <p className="text-sm font-semibold">Aucun départ direct trouvé pour ce trajet.</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Notre équipe peut vous proposer une option sur-mesure sous 24 h. Le prix indicatif ci-dessous est calculé à partir de votre poids et de la zone de destination.
-              </p>
+        {!matching && options.length === 0 && originCity && destCity && (
+          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-4 max-w-md">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-secondary grid place-items-center">
+                <Search className="w-4 h-4 text-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold tracking-tight">Aucun départ disponible pour cette option</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Nous recherchons la meilleure navette pour votre envoi. Recevez un devis personnalisé sous <strong>2 h ouvrées</strong>.
+                </p>
+              </div>
             </div>
-            <QuoteEstimate quote={quote} loading={quoting} error={quoteError} />
             <button
               type="button"
-              onClick={() => {
-                // Synthesize a "manual" option so the rest of the flow (contacts, recap) unlocks.
-                setChosen({
-                  id: 'economy',
-                  label: 'Sur devis',
-                  eta_days: '7–14 jours',
-                  price_eur: quote?.price_eur ?? 0,
-                  highlight: 'Devis manuel sous 24h',
-                  transport_type: 'ROAD',
-                } as MatchOptionView);
-              }}
-              className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition"
+              onClick={() => setManualQuoteOpen(true)}
+              className="w-full inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition"
             >
-              Demander un devis manuel
+              Demander un devis
             </button>
           </div>
         )}
