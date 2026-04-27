@@ -32,8 +32,8 @@ type RelayAddress = {
   notes: string | null;
 };
 
-const COUNTRY_FLAG: Record<string, string> = {
-  US: '🇺🇸', FR: '🇫🇷', CN: '🇨🇳', GB: '🇬🇧', AE: '🇦🇪',
+const COUNTRY_LABEL: Record<string, string> = {
+  US: 'USA', FR: 'France', CN: 'Chine', GB: 'UK', AE: 'Dubai',
 };
 
 const MERCHANT_PRESETS: { name: string; suggestedRelay: string }[] = [
@@ -59,7 +59,7 @@ const GOODS_TYPES = [
   { id: 'high_value', label: 'Forte valeur',      desc: 'Assurance recommandée' },
 ] as const;
 
-const HAZARDOUS_HINT = "⚠️ Batteries lithium, aérosols ou liquides : transport aérien interdit, choisissez maritime.";
+const HAZARDOUS_HINT = "Batteries lithium, aérosols ou liquides : transport aérien interdit, choisissez maritime.";
 
 type Step = 'merchant' | 'details' | 'relay' | 'review' | 'success';
 
@@ -67,6 +67,7 @@ type FormState = {
   merchant_name: string;
   merchant_url: string;
   order_reference: string;
+  tracking_number: string;
   order_description: string;
   estimated_value_eur: string;
   estimated_weight_kg: string;
@@ -81,6 +82,7 @@ const EMPTY_FORM: FormState = {
   merchant_name: '',
   merchant_url: '',
   order_reference: '',
+  tracking_number: '',
   order_description: '',
   estimated_value_eur: '',
   estimated_weight_kg: '',
