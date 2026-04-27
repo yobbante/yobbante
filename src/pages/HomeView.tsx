@@ -78,9 +78,9 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
         {/* KPI rail — cliquable, navigue vers la vue dédiée */}
         <div className="mt-5 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
           {[
-            { value: activeDossiers.length, label: 'Dossiers', onClick: onNavigateDossiers },
-            { value: waitingPackages.length, label: 'En attente', onClick: onNavigateShipments },
-            { value: activeShipments.length, label: 'Expéditions', onClick: onNavigateShipments },
+            { value: activeDossiers.length, label: 'Sourcing', onClick: () => goOrders('sourcing') },
+            { value: waitingPackages.length, label: 'Réceptions', onClick: () => goOrders('receive') },
+            { value: activeShipments.length, label: 'Envois', onClick: () => goOrders('send') },
             { value: addresses.length, label: 'Hubs', onClick: undefined as (() => void) | undefined },
           ].map((kpi) => (
             <button
