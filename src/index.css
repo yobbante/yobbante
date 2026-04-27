@@ -2,89 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   YOBBANTÉ × KONNEKT — Premium Green Design System
+   Primary: #33CCAD  ·  Hover: #2BB89C  ·  Active: #249E88
+   Background: #061A17  ·  Cards: #0F332C
+   ============================================================ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 11%;
+    /* Backgrounds — premium dark green infrastructure */
+    --background: 168 64% 6%;          /* #061A17 */
+    --foreground: 0 0% 100%;           /* white */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 11%;
+    --card: 168 55% 13%;               /* #0F332C */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 11%;
+    --popover: 168 55% 13%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 211 100% 45%;
-    --primary-foreground: 0 0% 100%;
+    /* Brand green — #33CCAD */
+    --primary: 168 60% 50%;            /* #33CCAD */
+    --primary-foreground: 168 80% 6%;  /* near-black on green for premium contrast */
+    --primary-hover: 168 62% 45%;      /* #2BB89C */
+    --primary-active: 168 63% 38%;     /* #249E88 */
+    --primary-soft: 168 70% 95%;       /* #E6FAF6 — soft surface */
+    --primary-glow: 168 60% 50%;       /* alias for shadows */
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 0 0% 11%;
+    /* Surfaces */
+    --secondary: 168 50% 9%;           /* #0B2621 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 0 0% 53%;
+    --muted: 168 50% 11%;
+    --muted-foreground: 168 25% 73%;   /* #A8CFC6 */
 
-    --accent: 240 5% 96%;
-    --accent-foreground: 0 0% 11%;
+    --accent: 168 60% 50%;
+    --accent-foreground: 168 80% 6%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 211 100% 45%;
+    --border: 168 40% 18%;
+    --input: 168 40% 18%;
+    --ring: 168 60% 50%;
 
-    /* Conversion CTA accent — Konnekt-inspired emerald green */
-    --cta: 165 52% 38%;
-    --cta-foreground: 0 0% 100%;
-    --cta-glow: 165 60% 50%;
+    /* CTA tokens — kept as aliases of primary for back-compat */
+    --cta: 168 60% 50%;
+    --cta-foreground: 0 0% 0%;
+    --cta-glow: 168 62% 45%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;                /* 14px — premium feel */
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 11%;
-    --sidebar-primary: 211 100% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 0 0% 11%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 211 100% 45%;
+    /* Sidebar — deepest surface */
+    --sidebar-background: 168 64% 5%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 168 60% 50%;
+    --sidebar-primary-foreground: 168 80% 6%;
+    --sidebar-accent: 168 50% 11%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 168 40% 16%;
+    --sidebar-ring: 168 60% 50%;
+
+    /* Premium gradients & shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(168 60% 50%), hsl(168 62% 45%));
+    --gradient-surface: linear-gradient(180deg, hsl(168 55% 13%), hsl(168 58% 10%));
+    --shadow-cta: 0 10px 30px hsl(168 60% 50% / 0.25);
+    --shadow-cta-hover: 0 16px 40px hsl(168 60% 50% / 0.40);
+    --shadow-card: 0 4px 24px hsl(168 80% 4% / 0.4);
   }
+
+  /* Force dark scheme — the brand IS dark */
+  .dark { color-scheme: dark; }
+  :root { color-scheme: dark; }
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  * { @apply border-border; }
+
+  html, body {
+    @apply bg-background text-foreground antialiased;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  /* Typography refinement */
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  /* Selection — branded */
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
   }
 }
 
 @layer components {
-  /* Premium conversion CTA — vibrant teal, soft shadow, hover lift */
+  /* ─── PRIMARY CTA — premium conversion button ─────────────── */
   .btn-cta {
-    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-2xl
+    @apply inline-flex items-center justify-center gap-2 font-semibold
            px-6 py-3.5 text-sm tracking-tight
            transition-all duration-200 ease-out
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-    background-color: hsl(var(--cta));
-    color: hsl(var(--cta-foreground));
-    box-shadow:
-      0 1px 0 hsl(var(--cta) / 0.4) inset,
-      0 8px 20px -8px hsl(var(--cta) / 0.55),
-      0 2px 6px -2px hsl(var(--cta) / 0.3);
-    --tw-ring-color: hsl(var(--cta) / 0.5);
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 14px;
+    box-shadow: var(--shadow-cta);
+    --tw-ring-color: hsl(var(--primary) / 0.5);
   }
   .btn-cta:hover {
+    background-color: hsl(var(--primary-hover));
     transform: translateY(-1px) scale(1.02);
-    box-shadow:
-      0 1px 0 hsl(var(--cta-glow) / 0.5) inset,
-      0 14px 28px -10px hsl(var(--cta) / 0.7),
-      0 4px 10px -2px hsl(var(--cta) / 0.4);
+    box-shadow: var(--shadow-cta-hover);
   }
   .btn-cta:active {
+    background-color: hsl(var(--primary-active));
     transform: translateY(0) scale(0.99);
   }
   .btn-cta:disabled {
@@ -92,34 +127,44 @@
     transform: none;
   }
 
-  /* Hero CTA — Konnekt-style emerald with subtle warm highlight */
-  .btn-cta-yellow {
-    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-2xl
-           px-6 py-3.5 text-sm tracking-tight
-           transition-all duration-200 ease-out
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-    background-color: hsl(var(--cta));
-    color: hsl(var(--cta-foreground));
-    box-shadow:
-      0 1px 0 hsl(var(--cta-glow) / 0.45) inset,
-      0 10px 24px -8px hsl(var(--cta) / 0.55),
-      0 2px 6px -2px hsl(var(--cta) / 0.35);
-    --tw-ring-color: hsl(var(--cta) / 0.55);
-  }
-  .btn-cta-yellow:hover {
-    transform: translateY(-1px) scale(1.05);
-    background-color: hsl(var(--cta-glow));
-    box-shadow:
-      0 1px 0 hsl(var(--cta-glow) / 0.6) inset,
-      0 18px 32px -10px hsl(var(--cta) / 0.7),
-      0 4px 12px -2px hsl(var(--cta) / 0.45);
-  }
-  .btn-cta-yellow:active { transform: translateY(0) scale(0.99); }
-  .btn-cta-yellow:disabled { @apply opacity-50 cursor-not-allowed; transform: none; }
+  /* Legacy alias kept for back-compat with existing markup */
+  .btn-cta-yellow { @apply btn-cta; }
 
-  /* Subtle focus glow on inputs inside wizards */
+  /* ─── Surfaces ────────────────────────────────────────────── */
+  .surface-card {
+    background: var(--gradient-surface);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* ─── Glow utilities ──────────────────────────────────────── */
+  .glow-primary {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4),
+                0 8px 32px hsl(var(--primary) / 0.25);
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* ─── Inputs — soft focus glow ────────────────────────────── */
   .input-glow:focus-visible {
-    box-shadow: 0 0 0 4px hsl(var(--cta) / 0.18);
-    border-color: hsl(var(--cta) / 0.5);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.18);
+    border-color: hsl(var(--primary) / 0.6);
+  }
+
+  /* ─── Hover lift used on cards (e.g. Prochains départs) ───── */
+  .hover-glow {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .hover-glow:hover {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 8px 24px hsl(var(--primary) / 0.18);
+    transform: translateY(-2px);
   }
 }

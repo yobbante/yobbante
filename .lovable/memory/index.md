@@ -4,7 +4,8 @@ Updated: today
 # Project Memory
 
 ## Core
-Dark navy theme (#0A0E1A). Primary: electric blue (217 91% 60%). 14px radius.
+Premium green dark theme. Brand: #33CCAD (HSL 168 60% 50%). Background #061A17, cards #0F332C. Radius 14px.
+Green = ACTION only (CTA, active, highlights). Never decorative. Always green-on-dark, strong contrast.
 YOBBANTÉ — logistics orchestration platform. Timeline-first UI, no dashboards.
 Public site exposes ONLY 2 entries: /expedier and /acheter. /services & /simulateur redirect into flows.
 Supabase with RLS. All tables scoped to auth.uid(). Enums for status/country.

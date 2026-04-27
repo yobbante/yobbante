@@ -1,33 +1,52 @@
 ---
-name: Light Apple HIG Design Tokens
-description: Anti-template light theme with solid colors, no gradients, typography-first
+name: Design tokens
+description: Premium green design system (#33CCAD) — dark infrastructure aesthetic, semantic tokens, CTA classes
 type: design
 ---
 
-## Theme
-- Background: `0 0% 100%` (white)
-- Foreground: `0 0% 11%` (#1D1D1F)
-- Primary: `211 100% 45%` (#0071E3 Apple blue)
-- Secondary/Muted: `240 5% 96%` (#F5F5F7)
-- Muted-foreground: `0 0% 53%` (#86868B)
-- Border: `0 0% 82%` (#D2D2D7)
-- Radius: 0.75rem (12px)
+# Yobbanté × Konnekt — Premium Green Design System
 
-## Anti-Template Rules
-- NO gradients anywhere
-- NO generic rounded-icon-in-box grids
-- NO `bg-secondary/50` alternation — use solid white / solid secondary / solid foreground(black)
-- Typography-first: font size + weight = hierarchy, not borders/shadows
-- Each landing page section must have a distinct visual treatment
-- French copy for all UI
+## Brand color: #33CCAD (HSL 168 60% 50%)
 
-## Font Stack
-`-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif`
+| Token | Hex | HSL | Usage |
+|---|---|---|---|
+| `--primary` | #33CCAD | 168 60% 50% | CTA, active states, highlights |
+| `--primary-hover` | #2BB89C | 168 62% 45% | hover |
+| `--primary-active` | #249E88 | 168 63% 38% | pressed |
+| `--primary-soft` | #E6FAF6 | 168 70% 95% | badges, soft surfaces |
+| `--primary-foreground` | near-black | 168 80% 6% | text on green CTA |
 
-## Cards
-- White bg, 1px border-border, rounded-xl
-- Hover: shadow-sm or shadow-md, no color change
-- No colored backgrounds on cards
+## Surfaces (dark green infrastructure)
 
-## Warehouses
-6 countries: FR, CN, US, CA, AE, DE
+| Token | Hex |
+|---|---|
+| `--background` | #061A17 |
+| `--secondary` | #0B2621 |
+| `--card` | #0F332C |
+| `--border` | dark green-grey |
+
+## Text
+
+- Primary: white (#FFFFFF)
+- Secondary / muted: #A8CFC6 (168 25% 73%)
+
+## Radius
+- `--radius`: 14px (0.875rem) — premium feel
+
+## Component classes (in src/index.css)
+- `.btn-cta` — primary green CTA, 14px radius, `box-shadow: var(--shadow-cta)`, hover lift + scale 1.02
+- `.btn-cta-yellow` — alias of `.btn-cta` (legacy back-compat)
+- `.surface-card` — gradient surface + shadow
+- `.glow-primary` — green glow ring
+- `.text-gradient` — gradient text fill
+- `.input-glow` — focus ring on inputs
+- `.hover-glow` — card hover lift
+
+## Animations (tailwind.config.ts)
+`fade-in`, `slide-up`, `scale-in`, `glow-pulse`, `marquee`, `accordion-*`
+
+## Rules
+- Green = ACTION ONLY. Never decorative.
+- Strong contrast: green on dark background only.
+- Avoid: full green backgrounds, multiple green nuances, green + other flashy color.
+- Use semantic tokens (`bg-primary`, `text-primary`, `bg-card`) — never raw hex in components.
