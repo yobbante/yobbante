@@ -383,6 +383,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         onSubmit={submit}
         submitting={submitting}
         sideContent={next_departure_in_days != null ? `Prochain départ dans ${next_departure_in_days} j` : undefined}
+        details={
+          <div className="space-y-2.5 text-sm">
+            <RecapRow label="Type" value={TYPES.find(t => t.id === type)?.label ?? '—'} />
+            <RecapRow
+              label="Trajet"
+              value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'}
+            />
+            <RecapRow label="Poids" value={`${weight} kg`} />
+            {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
+            {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+            {contactsComplete && (
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border text-xs">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
+                  <p className="mt-1 font-semibold">{senderName}</p>
+                  <p className="text-muted-foreground">{senderPhone}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Destinataire</p>
+                  <p className="mt-1 font-semibold">{recipientName}</p>
+                  <p className="text-muted-foreground">{recipientPhone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        }
       />
     </FlowShell>
   );
