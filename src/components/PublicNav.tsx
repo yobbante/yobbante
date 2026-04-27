@@ -103,6 +103,12 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   <Package className="w-4 h-4" /> Expédier un colis
                 </button>
                 <button
+                  onClick={goRecevoir}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-zinc-950 text-white font-semibold"
+                >
+                  <Inbox className="w-4 h-4 text-yellow-400" /> Recevoir une commande
+                </button>
+                <button
                   onClick={goAcheter}
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
                 >
