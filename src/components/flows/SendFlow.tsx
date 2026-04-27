@@ -166,11 +166,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   async function submit() {
     if (!chosen || !originCity || !destCity || !type) return;
     if (!dakarRouteOk) {
-      toast.error('Dakar doit être la ville de départ ou d\'arrivée.');
+      // Aligné avec l'avertissement ambre de l'étape 3 — informatif, pas alarmiste.
+      toast('Choisissez Dakar', {
+        description: "Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée.",
+      });
       return;
     }
     if (!contactsComplete) {
-      toast.error('Renseignez les coordonnées d\'expéditeur et de destinataire.');
+      toast('Coordonnées incomplètes', {
+        description: "Renseignez l'expéditeur et le destinataire pour continuer.",
+      });
       return;
     }
     setSubmitting(true);
@@ -205,12 +210,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ].filter(Boolean).join('\n'),
       });
 
+      // Enrich the chosen option with the TRUE travel direction so the
+      // shipment record (and any Konnekt payload) reflects reality even when
+      // the stored origin_country enum is a placeholder hub code.
+      const enrichedOption = {
+        ...chosen,
+        meta: {
+          ...(chosen.meta ?? {}),
+          true_direction: {
+            origin_city: originCity.city,
+            origin_country: originCity.country,
+            destination_city: destCity.city,
+            destination_country: destCity.country,
+          },
+        },
+      };
+
       await createShipment.mutateAsync({
         origin_country: originCity.country as 'FR' | 'CN' | 'US',
         destination_country: destCity.country,
         origin_city: originCity.city,
         destination_city: destCity.city,
-        match_option: chosen,
+        match_option: enrichedOption,
       });
 
       setConfirmed({
@@ -313,9 +334,24 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           popularIds={POPULAR_DEST_IDS}
         />
         {originCity && destCity && !dakarRouteOk && (
-          <p className="mt-3 text-xs text-amber-600">
-            Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée. Choisissez Dakar pour l'une des deux villes.
-          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-amber-600">
+              Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée.
+            </p>
+            {(() => {
+              const dakarDest = DESTINATION_CITIES.find(c => c.city.toLowerCase().includes('dakar'));
+              if (!dakarDest) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => setDestCity(dakarDest.id)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition"
+                >
+                  <MapPin className="w-3 h-3" /> Choisir Dakar comme destination
+                </button>
+              );
+            })()}
+          </div>
         )}
         {destCity && (
           <motion.fieldset
