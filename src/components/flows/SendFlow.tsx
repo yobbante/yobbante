@@ -139,7 +139,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
-  const finalPrice = quote ? Math.round(quote.price) : chosen ? Math.round(chosen.price_eur) : null;
+  const finalPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : null;
+  const finalPriceXof = quote ? Math.round(quote.price_xof) : null;
 
   // Recap section appears once a transport option is chosen.
   const recapRevealed = !!chosen;
@@ -148,8 +149,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     senderName.trim() && senderPhone.trim() && pickupAddress.trim() &&
     recipientName.trim() && recipientPhone.trim() && deliveryAddress.trim();
 
+  const priceLabel = finalPriceXof != null
+    ? `${new Intl.NumberFormat('fr-FR').format(finalPriceXof)} XOF${finalPriceEur != null ? ` (≈ ${fmtEur(finalPriceEur)})` : ''}`
+    : finalPriceEur != null ? fmtEur(finalPriceEur) : '';
   const summary = chosen && originCity && destCity
-    ? `${originCity.city} → ${destCity.city} · ${chosen.label} · livraison ${chosen.eta_days}${finalPrice != null ? ` · ${fmtEur(finalPrice)}` : ''}`
+    ? `${originCity.city} → ${destCity.city} · ${chosen.label}${priceLabel ? ` · ${priceLabel}` : ''}`
     : '';
 
   async function submit() {
