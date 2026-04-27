@@ -17,6 +17,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
 
   const goExpedier = () => { setOpen(false); navigate('/expedier'); };
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
+  const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
 
   return (
     <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
