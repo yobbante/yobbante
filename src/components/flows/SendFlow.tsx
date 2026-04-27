@@ -14,7 +14,7 @@ import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { supabase } from '@/integrations/supabase/client';
-import { ORIGIN_CITIES, DESTINATION_CITIES, findCity } from '@/lib/worldCities';
+import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
 import type { WarehouseCountry } from '@/lib/types';
 
 const TYPES = [
@@ -240,7 +240,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <FlowSection revealed={!!type} step={2} total={5} title="D'où part votre envoi ?" hint="Recherchez la ville de départ.">
-        <CitySelector cities={ORIGIN_CITIES} value={originCityId} onChange={setOriginCity} placeholder="Ex. Shenzhen, Paris, Dubai…" />
+        <CitySelector
+          cities={ORIGIN_CITIES}
+          value={originCityId}
+          onChange={setOriginCity}
+          placeholder="Ex. Shenzhen, Paris, Dubai…"
+          popularIds={POPULAR_ORIGIN_IDS}
+        />
         {originCity && !originCountrySupported && (
           <p className="mt-3 text-xs text-amber-600">
             Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
@@ -249,7 +255,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <FlowSection revealed={!!originCity} step={3} total={5} title="Où doit-il arriver ?" hint="Recherchez la ville d'arrivée.">
-        <CitySelector cities={DESTINATION_CITIES} value={destCityId} onChange={setDestCity} placeholder="Ex. Dakar, Abidjan, Bamako…" />
+        <CitySelector
+          cities={DESTINATION_CITIES}
+          value={destCityId}
+          onChange={setDestCity}
+          placeholder="Ex. Dakar, Abidjan, Bamako…"
+          popularIds={POPULAR_DEST_IDS}
+        />
       </FlowSection>
 
       <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard — le prix se met à jour automatiquement.">
@@ -371,6 +383,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         onSubmit={submit}
         submitting={submitting}
         sideContent={next_departure_in_days != null ? `Prochain départ dans ${next_departure_in_days} j` : undefined}
+        details={
+          <div className="space-y-2.5 text-sm">
+            <RecapRow label="Type" value={TYPES.find(t => t.id === type)?.label ?? '—'} />
+            <RecapRow
+              label="Trajet"
+              value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'}
+            />
+            <RecapRow label="Poids" value={`${weight} kg`} />
+            {chosen && <RecapRow label="Option" value={`${chosen.label} · ${chosen.eta_days}`} />}
+            {finalPrice != null && <RecapRow label="Prix total" value={fmtEur(finalPrice)} strong />}
+            {contactsComplete && (
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border text-xs">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Expéditeur</p>
+                  <p className="mt-1 font-semibold">{senderName}</p>
+                  <p className="text-muted-foreground">{senderPhone}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">Destinataire</p>
+                  <p className="mt-1 font-semibold">{recipientName}</p>
+                  <p className="text-muted-foreground">{recipientPhone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        }
       />
     </FlowShell>
   );

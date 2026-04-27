@@ -351,32 +351,109 @@ export interface CityOption {
 
 export function CitySelector({
   cities, value, onChange, placeholder = 'Rechercher une ville…', emptyHint = 'Aucune ville trouvée.',
+  popularIds,
 }: {
   cities: CityOption[];
   value: string | null;
   onChange: (id: string) => void;
   placeholder?: string;
   emptyHint?: string;
+  /** Optional ordered list of city ids to pin at the top of the grid. */
+  popularIds?: string[];
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
   const [q, setQ] = useState('');
+  const [editing, setEditing] = useState(false);
+
+  const selected = useMemo(() => cities.find(c => c.id === value) ?? null, [cities, value]);
+
+  // Reset edit-mode when selection changes from outside.
+  useEffect(() => { setEditing(false); setQ(''); }, [value]);
+
+  // Order: popular pinned first (in given order), then the rest.
+  const ordered = useMemo(() => {
+    if (!popularIds?.length) return cities;
+    const popularSet = new Set(popularIds);
+    const popular = popularIds
+      .map(id => cities.find(c => c.id === id))
+      .filter((c): c is CityOption => !!c);
+    const rest = cities.filter(c => !popularSet.has(c.id));
+    return [...popular, ...rest];
+  }, [cities, popularIds]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return cities;
-    return cities.filter(c =>
+    if (!needle) return ordered;
+    return ordered.filter(c =>
       c.city.toLowerCase().includes(needle) ||
       c.countryLabel.toLowerCase().includes(needle) ||
       c.country.toLowerCase().includes(needle)
     );
-  }, [cities, q]);
+  }, [ordered, q]);
+
+  // Once a city is picked, collapse to a compact card (with a "Modifier" affordance)
+  // — keeps the flow uncluttered and lets the user move on to the next step.
+  if (selected && !editing) {
+    return (
+      <div className={cn(
+        'flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5',
+        t.cardActive
+      )}>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-2xl leading-none">{selected.flag}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{selected.city}</p>
+            <p className={cn('text-[11px] truncate', t.muted)}>{selected.countryLabel}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className={cn(
+            'shrink-0 text-[11px] font-semibold rounded-lg px-3 py-1.5 border transition-all',
+            theme === 'dark'
+              ? 'border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+              : 'border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Modifier
+        </button>
+      </div>
+    );
+  }
+
+  const showPopularLabel = !q.trim() && !!popularIds?.length;
+  const popularCount = popularIds?.length ?? 0;
+
+  const renderCard = (c: CityOption) => {
+    const active = value === c.id;
+    return (
+      <button
+        key={c.id}
+        onClick={() => onChange(c.id)}
+        className={cn(
+          'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
+          active ? t.cardActive : t.cardIdle
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-lg leading-none">{c.flag}</span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold truncate">{c.city}</div>
+            <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
+          </div>
+          {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-3">
       <div className="relative">
         <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4', t.muted)} />
         <input
+          autoFocus={editing}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={placeholder}
@@ -390,29 +467,25 @@ export function CitySelector({
       {filtered.length === 0 ? (
         <p className={cn('text-xs py-6 text-center', t.muted)}>{emptyHint}</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-          {filtered.map(c => {
-            const active = value === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => onChange(c.id)}
-                className={cn(
-                  'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
-                  active ? t.cardActive : t.cardIdle
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg leading-none">{c.flag}</span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{c.city}</div>
-                    <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
-                  </div>
-                  {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
-                </div>
-              </button>
-            );
-          })}
+        <div className="max-h-72 overflow-y-auto pr-1 space-y-3">
+          {showPopularLabel && (
+            <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.muted)}>
+              Populaires
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map(renderCard)}
+          </div>
+          {showPopularLabel && filtered.length > popularCount && (
+            <>
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium pt-1', t.muted)}>
+                Toutes les villes
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {filtered.slice(popularCount).map(renderCard)}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -559,7 +632,7 @@ export function MatchOptionCard({
 /* ─────────── Live summary sticky bar ─────────── */
 
 export function LiveSummaryBar({
-  visible, summary, ctaLabel, onSubmit, submitting, sideContent,
+  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details,
 }: {
   visible: boolean;
   summary: string;
@@ -567,9 +640,12 @@ export function LiveSummaryBar({
   onSubmit: () => void;
   submitting: boolean;
   sideContent?: ReactNode;
+  /** Optional rich content shown when the user expands the recap. */
+  details?: ReactNode;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
+  const [expanded, setExpanded] = useState(false);
   return (
     <AnimatePresence>
       {visible && (
@@ -580,22 +656,55 @@ export function LiveSummaryBar({
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className={cn('fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg', t.summaryBar)}
         >
-          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-            <div className="min-w-0 flex-1">
-              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>Récapitulatif</p>
-              <p className="mt-1 text-sm font-semibold truncate">{summary}</p>
+          {/* Expandable details panel */}
+          <AnimatePresence initial={false}>
+            {expanded && details && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="overflow-hidden border-b"
+                style={{ borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'hsl(var(--border))' }}
+              >
+                <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 max-h-[55vh] overflow-y-auto">
+                  {details}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center gap-3 sm:gap-5">
+            <button
+              type="button"
+              onClick={() => details && setExpanded(v => !v)}
+              disabled={!details}
+              className={cn(
+                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors',
+                details && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
+              )}
+              aria-expanded={expanded}
+            >
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
+                Récapitulatif
+                {details && (
+                  <span className={cn('text-[9px] font-semibold', t.muted)}>
+                    {expanded ? '▾ Masquer' : '▴ Détails'}
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2 break-words">{summary}</p>
               {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
-            </div>
+            </button>
             <button
               onClick={onSubmit}
               disabled={submitting}
               className={cn(
-                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed',
+                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-5 sm:px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0',
                 t.cta
               )}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {ctaLabel}
+              <span className="whitespace-nowrap">{ctaLabel}</span>
             </button>
           </div>
         </motion.div>
