@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { LayoutGrid, List, AlertTriangle, Clock, MapPin, Weight, User as UserIcon } from 'lucide-react';
+import { LayoutGrid, List, AlertTriangle, Clock, MapPin, Weight, User as UserIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
