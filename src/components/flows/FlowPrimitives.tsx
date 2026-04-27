@@ -713,6 +713,8 @@ export interface MatchOptionView {
   departure_date?: string | null;
   highlight?: string;
   note?: string;
+  /** Free-form metadata persisted on the shipment (e.g. true travel direction). */
+  meta?: Record<string, unknown>;
 }
 
 export function MatchOptionCard({
