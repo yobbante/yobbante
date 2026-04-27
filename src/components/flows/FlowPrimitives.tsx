@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, RefreshCw, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useEffect, useMemo, useRef, useState, createContext, useContext, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
 
 /* =========================================================================
@@ -357,7 +357,7 @@ export interface CityOption {
 
 export function CitySelector({
   cities, value, onChange, placeholder = 'Rechercher une ville…', emptyHint = 'Aucune ville trouvée.',
-  popularIds,
+  popularIds, label = 'Choisir une ville',
 }: {
   cities: CityOption[];
   value: string | null;
@@ -366,16 +366,22 @@ export function CitySelector({
   emptyHint?: string;
   /** Optional ordered list of city ids to pin at the top of the grid. */
   popularIds?: string[];
+  /** Accessible label announced by screen readers for the search input. */
+  label?: string;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState(false);
+  // Roving cursor for keyboard navigation across the city grid.
+  const [activeIdx, setActiveIdx] = useState<number>(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
 
   const selected = useMemo(() => cities.find(c => c.id === value) ?? null, [cities, value]);
 
   // Reset edit-mode when selection changes from outside.
-  useEffect(() => { setEditing(false); setQ(''); }, [value]);
+  useEffect(() => { setEditing(false); setQ(''); setActiveIdx(-1); }, [value]);
 
   // Order: popular pinned first (in given order), then the rest.
   const ordered = useMemo(() => {
@@ -398,28 +404,39 @@ export function CitySelector({
     );
   }, [ordered, q]);
 
+  // Reset cursor when results change.
+  useEffect(() => { setActiveIdx(filtered.length > 0 ? 0 : -1); }, [filtered.length, q]);
+
   // Once a city is picked, collapse to a compact card (with a "Modifier" affordance)
   // — keeps the flow uncluttered and lets the user move on to the next step.
   if (selected && !editing) {
     return (
-      <div className={cn(
-        'flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5',
-        t.cardActive
-      )}>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5',
+          t.cardActive
+        )}
+        aria-live="polite"
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-2xl leading-none">{selected.flag}</span>
+          <span className="text-2xl leading-none" aria-hidden="true">{selected.flag}</span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{selected.city}</p>
+            <p className="text-sm font-semibold truncate">
+              <span className="sr-only">Ville sélectionnée : </span>
+              {selected.city}
+            </p>
             <p className={cn('text-[11px] truncate', t.muted)}>{selected.countryLabel}</p>
           </div>
         </div>
         <button
+          type="button"
           onClick={() => setEditing(true)}
+          aria-label={`Modifier la sélection ${selected.city}, ${selected.countryLabel}`}
           className={cn(
-            'shrink-0 text-[11px] font-semibold rounded-lg px-3 py-1.5 border transition-all',
+            'shrink-0 text-[11px] font-semibold rounded-lg px-3 py-1.5 border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
             theme === 'dark'
-              ? 'border-white/15 hover:border-white/40 text-white/80 hover:text-white'
-              : 'border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+              ? 'border-white/15 hover:border-white/40 text-white/80 hover:text-white focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
+              : 'border-border hover:border-foreground text-muted-foreground hover:text-foreground focus-visible:ring-foreground focus-visible:ring-offset-background'
           )}
         >
           Modifier
@@ -431,24 +448,63 @@ export function CitySelector({
   const showPopularLabel = !q.trim() && !!popularIds?.length;
   const popularCount = popularIds?.length ?? 0;
 
-  const renderCard = (c: CityOption) => {
+  function commitActive() {
+    const c = filtered[activeIdx];
+    if (c) onChange(c.id);
+  }
+
+  function onInputKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (filtered.length === 0) return;
+    const cols = window.matchMedia('(min-width: 640px)').matches ? 3 : 2;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx(i => Math.min(filtered.length - 1, Math.max(0, i) + cols));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx(i => Math.max(0, i - cols));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setActiveIdx(i => Math.min(filtered.length - 1, Math.max(0, i) + 1));
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setActiveIdx(i => Math.max(0, i - 1));
+    } else if (e.key === 'Home') {
+      e.preventDefault(); setActiveIdx(0);
+    } else if (e.key === 'End') {
+      e.preventDefault(); setActiveIdx(filtered.length - 1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); commitActive();
+    }
+  }
+
+  const renderCard = (c: CityOption, idx: number) => {
     const active = value === c.id;
+    const isCursor = idx === activeIdx;
     return (
       <button
         key={c.id}
+        type="button"
+        role="option"
+        aria-selected={active}
+        id={`${listboxId}-opt-${idx}`}
         onClick={() => onChange(c.id)}
+        onMouseEnter={() => setActiveIdx(idx)}
         className={cn(
-          'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
-          active ? t.cardActive : t.cardIdle
+          'rounded-xl border-2 px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          theme === 'dark'
+            ? 'focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
+            : 'focus-visible:ring-foreground focus-visible:ring-offset-background',
+          active ? t.cardActive : t.cardIdle,
+          isCursor && !active && (theme === 'dark' ? 'border-white/30' : 'border-foreground/40'),
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="text-lg leading-none">{c.flag}</span>
+          <span className="text-lg leading-none" aria-hidden="true">{c.flag}</span>
           <div className="min-w-0">
             <div className="text-sm font-semibold truncate">{c.city}</div>
             <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
           </div>
-          {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
+          {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} aria-hidden="true" />}
         </div>
       </button>
     );
@@ -456,39 +512,74 @@ export function CitySelector({
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4', t.muted)} />
-        <input
-          autoFocus={editing}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={placeholder}
-          className={cn(
-            'w-full border-2 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none transition-all',
-            t.inputBg, t.border, t.inputPlaceholder,
-            theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground',
-          )}
-        />
-      </div>
+      <label className="block">
+        <span className="sr-only">{label}</span>
+        <div className="relative">
+          <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none', t.muted)} aria-hidden="true" />
+          <input
+            ref={inputRef}
+            autoFocus={editing}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={onInputKeyDown}
+            placeholder={placeholder}
+            type="search"
+            inputMode="search"
+            autoComplete="off"
+            role="combobox"
+            aria-expanded={filtered.length > 0}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined}
+            aria-label={label}
+            className={cn(
+              'w-full border-2 rounded-xl pl-10 pr-4 py-3 text-base focus:outline-none transition-all',
+              t.inputBg, t.border, t.inputPlaceholder,
+              theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground',
+            )}
+          />
+        </div>
+      </label>
+
+      {/* Live region — announce the result count to screen readers. */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {filtered.length === 0
+          ? emptyHint
+          : `${filtered.length} ville${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}.`}
+      </p>
+
       {filtered.length === 0 ? (
         <p className={cn('text-xs py-6 text-center', t.muted)}>{emptyHint}</p>
       ) : (
-        <div className="max-h-72 overflow-y-auto pr-1 space-y-3">
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label={label}
+          className="max-h-72 overflow-y-auto pr-1 space-y-3"
+        >
           {showPopularLabel && (
-            <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.muted)}>
+            <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.muted)} id={`${listboxId}-popular-label`}>
               Populaires
             </p>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map(renderCard)}
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2"
+            role="group"
+            aria-labelledby={showPopularLabel ? `${listboxId}-popular-label` : undefined}
+          >
+            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map((c, i) => renderCard(c, i))}
           </div>
           {showPopularLabel && filtered.length > popularCount && (
             <>
-              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium pt-1', t.muted)}>
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium pt-1', t.muted)} id={`${listboxId}-all-label`}>
                 Toutes les villes
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {filtered.slice(popularCount).map(renderCard)}
+              <div
+                className="grid grid-cols-2 sm:grid-cols-3 gap-2"
+                role="group"
+                aria-labelledby={`${listboxId}-all-label`}
+              >
+                {filtered.slice(popularCount).map((c, i) => renderCard(c, popularCount + i))}
               </div>
             </>
           )}
@@ -662,7 +753,7 @@ export function LiveSummaryBar({
       const el = containerRef.current;
       if (el && !el.contains(e.target as Node)) setExpanded(false);
     };
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    const handleKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
     document.addEventListener('mousedown', handlePointer);
     document.addEventListener('touchstart', handlePointer, { passive: true });
     document.addEventListener('keydown', handleKey);
@@ -678,6 +769,8 @@ export function LiveSummaryBar({
       {visible && (
         <motion.div
           ref={containerRef}
+          role="region"
+          aria-label="Récapitulatif et confirmation"
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
@@ -688,6 +781,7 @@ export function LiveSummaryBar({
           <AnimatePresence initial={false}>
             {expanded && details && (
               <motion.div
+                id="flow-summary-details"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -707,15 +801,20 @@ export function LiveSummaryBar({
               onClick={() => details && setExpanded(v => !v)}
               disabled={!details}
               className={cn(
-                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors',
+                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                theme === 'dark'
+                  ? 'focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
+                  : 'focus-visible:ring-foreground focus-visible:ring-offset-background',
                 details && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
               )}
               aria-expanded={expanded}
+              aria-controls="flow-summary-details"
+              aria-label={expanded ? 'Masquer le détail du récapitulatif' : 'Afficher le détail du récapitulatif'}
             >
               <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
                 Récapitulatif
                 {details && (
-                  <span className={cn('text-[9px] font-semibold', t.muted)}>
+                  <span className={cn('text-[9px] font-semibold', t.muted)} aria-hidden="true">
                     {expanded ? '▾ Masquer' : '▴ Détails'}
                   </span>
                 )}

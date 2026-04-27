@@ -22,11 +22,11 @@ import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 interface HomeViewProps {
-  onNavigateShipments?: () => void;
-  onNavigateDossiers?: () => void;
+  /** Navigate to the unified Mes envois screen, optionally pre-selecting a tab. */
+  onNavigateOrders?: (kind?: 'sourcing' | 'receive' | 'send') => void;
 }
 
-export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewProps = {}) {
+export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
   const navigate = useNavigate();
   const { events, isLoading: eventsLoading } = useTimeline();
   const { shipments } = useShipments();
@@ -34,6 +34,7 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { profile } = useProfile();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
+  const goOrders = (kind?: 'sourcing' | 'receive' | 'send') => onNavigateOrders?.(kind);
 
   const [shipOpen, setShipOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
@@ -77,9 +78,9 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
         {/* KPI rail — cliquable, navigue vers la vue dédiée */}
         <div className="mt-5 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
           {[
-            { value: activeDossiers.length, label: 'Dossiers', onClick: onNavigateDossiers },
-            { value: waitingPackages.length, label: 'En attente', onClick: onNavigateShipments },
-            { value: activeShipments.length, label: 'Expéditions', onClick: onNavigateShipments },
+            { value: activeDossiers.length, label: 'Sourcing', onClick: () => goOrders('sourcing') },
+            { value: waitingPackages.length, label: 'Réceptions', onClick: () => goOrders('receive') },
+            { value: activeShipments.length, label: 'Envois', onClick: () => goOrders('send') },
             { value: addresses.length, label: 'Hubs', onClick: undefined as (() => void) | undefined },
           ].map((kpi) => (
             <button
@@ -99,7 +100,7 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
       {/* Action Bar — 2-CTA model + secondary trio */}
       <ActionBar
         onEstimate={() => setSmartOpen(true)}
-        onTrack={onNavigateShipments}
+        onTrack={() => goOrders('send')}
       />
 
       {/* Smart prompts — alertes contextuelles uniquement */}
@@ -158,7 +159,7 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
           {activeDossiers.length > 2 && (
             <button
               type="button"
-              onClick={onNavigateDossiers}
+              onClick={() => goOrders('sourcing')}
               className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
             >
               Tout voir <ArrowRight className="w-3 h-3" />
@@ -189,7 +190,7 @@ export function HomeView({ onNavigateShipments, onNavigateDossiers }: HomeViewPr
             <h3 className="text-[15px] font-semibold text-foreground tracking-tight">Expéditions actives</h3>
             <button
               type="button"
-              onClick={onNavigateShipments}
+              onClick={() => goOrders('send')}
               className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
             >
               Tout voir <ArrowRight className="w-3 h-3" />
