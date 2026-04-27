@@ -4,75 +4,75 @@
 
 /* ============================================================
    YOBBANTÉ × KONNEKT — Premium Editorial Design System
-   Palette: Noir profond + blancs cassés + gris doux
+   Palette: Blanc cassé dominant + noir profond ponctuel
    Accent (CTA only): #33CCAD
    ============================================================ */
 
 @layer base {
   :root {
-    /* ─── Neutrals — épuré, premium, intemporel ───────────── */
-    --background: 0 0% 4%;              /* #0A0A0A — noir profond */
-    --foreground: 30 15% 96%;           /* #F7F5F2 — blanc cassé chaud */
+    /* ─── Surfaces — blanc cassé éditorial ───────────────── */
+    --background: 36 25% 97%;           /* #FAF8F4 — blanc cassé chaud */
+    --foreground: 0 0% 8%;              /* #141414 — noir profond pour lecture */
 
-    --card: 0 0% 7%;                    /* #121212 */
-    --card-foreground: 30 15% 96%;
+    --card: 0 0% 100%;                  /* #FFFFFF pur sur fond cassé */
+    --card-foreground: 0 0% 8%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 30 15% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
 
-    --secondary: 0 0% 10%;              /* #1A1A1A */
-    --secondary-foreground: 30 10% 90%;
+    --secondary: 36 18% 94%;            /* #F1ECE3 — beige doux */
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 0 0% 12%;                  /* #1F1F1F */
-    --muted-foreground: 30 6% 64%;      /* #A6A29E — gris doux */
+    --muted: 36 14% 92%;                /* #ECE8DF */
+    --muted-foreground: 30 6% 38%;      /* #635F58 — gris doux lisible */
 
-    /* Accent neutre (PAS le vert) — utilisé pour hovers/highlights subtils */
-    --accent: 0 0% 14%;
-    --accent-foreground: 30 15% 96%;
+    --accent: 0 0% 8%;                  /* noir profond pour highlights */
+    --accent-foreground: 36 25% 97%;
 
-    --border: 0 0% 16%;                 /* #292929 */
-    --input: 0 0% 16%;
+    --border: 36 12% 86%;               /* #DDD7CB */
+    --input: 36 12% 86%;
 
-    --destructive: 0 70% 55%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
     /* ─── BRAND GREEN — CTA & focus ONLY ──────────────────── */
-    --primary: 168 60% 50%;             /* #33CCAD */
-    --primary-foreground: 0 0% 6%;      /* near-black for premium contrast */
-    --primary-hover: 168 62% 45%;       /* #2BB89C */
-    --primary-active: 168 63% 38%;      /* #249E88 */
-    --primary-soft: 168 60% 50%;
+    --primary: 168 60% 42%;             /* #2BB89C — légèrement assombri pour contraste sur fond clair */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 168 63% 36%;       /* #249E88 */
+    --primary-active: 168 65% 30%;      /* #1F8472 */
+    --primary-soft: 168 60% 95%;        /* #E6FAF6 */
     --primary-glow: 168 60% 50%;
 
-    --ring: 168 60% 50%;                /* focus ring = green */
+    --ring: 168 60% 42%;
 
     /* CTA tokens (aliases) */
-    --cta: 168 60% 50%;
-    --cta-foreground: 0 0% 6%;
-    --cta-glow: 168 62% 45%;
+    --cta: 168 60% 42%;
+    --cta-foreground: 0 0% 100%;
+    --cta-glow: 168 63% 36%;
 
     --radius: 0.875rem;                 /* 14px */
 
-    /* ─── Sidebar — surface la plus profonde ──────────────── */
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 30 10% 88%;
-    --sidebar-primary: 168 60% 50%;
-    --sidebar-primary-foreground: 0 0% 6%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 30 15% 96%;
-    --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 168 60% 50%;
+    /* ─── Sidebar — noir profond éditorial ────────────────── */
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 36 14% 88%;
+    --sidebar-primary: 168 60% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 36 25% 97%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 168 60% 42%;
 
     /* Premium gradients & shadows */
-    --gradient-primary: linear-gradient(135deg, hsl(168 60% 50%), hsl(168 62% 45%));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 8%), hsl(0 0% 6%));
-    --shadow-cta: 0 10px 30px hsl(168 60% 50% / 0.25);
-    --shadow-cta-hover: 0 16px 40px hsl(168 60% 50% / 0.40);
-    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.5);
+    --gradient-primary: linear-gradient(135deg, hsl(168 60% 42%), hsl(168 63% 36%));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(36 18% 96%));
+    --shadow-cta: 0 10px 30px hsl(168 60% 42% / 0.20);
+    --shadow-cta-hover: 0 16px 40px hsl(168 60% 42% / 0.32);
+    --shadow-card: 0 1px 2px hsl(30 10% 20% / 0.04), 0 4px 16px hsl(30 10% 20% / 0.06);
   }
 
-  .dark { color-scheme: dark; }
-  :root { color-scheme: dark; }
+  /* Force light editorial scheme */
+  :root { color-scheme: light; }
+  .dark { color-scheme: light; }
 }
 
 @layer base {
@@ -93,7 +93,7 @@
   }
 
   ::selection {
-    background: hsl(var(--primary) / 0.35);
+    background: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));
   }
 }
@@ -127,7 +127,7 @@
 
   .btn-cta-yellow { @apply btn-cta; }
 
-  /* ─── Surfaces neutres ──────────────────────────────────── */
+  /* ─── Surfaces ──────────────────────────────────────────── */
   .surface-card {
     background: var(--gradient-surface);
     border: 1px solid hsl(var(--border));
@@ -137,7 +137,7 @@
 
   .glow-primary {
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4),
-                0 8px 32px hsl(var(--primary) / 0.25);
+                0 8px 32px hsl(var(--primary) / 0.18);
   }
 
   .text-gradient {
@@ -148,20 +148,18 @@
     color: transparent;
   }
 
-  /* Inputs — focus vert subtil */
   .input-glow:focus-visible {
     box-shadow: 0 0 0 4px hsl(var(--primary) / 0.18);
     border-color: hsl(var(--primary) / 0.6);
   }
 
-  /* Hover lift neutre — plus de bordure verte au hover */
+  /* Hover lift — neutre éditorial */
   .hover-glow {
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .hover-glow:hover {
-    border-color: hsl(var(--border));
-    background-color: hsl(var(--accent));
-    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.4);
+    border-color: hsl(var(--foreground) / 0.15);
+    box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
     transform: translateY(-2px);
   }
 }
