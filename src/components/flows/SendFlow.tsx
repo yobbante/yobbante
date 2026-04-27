@@ -164,8 +164,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   async function submit() {
     if (!chosen || !originCity || !destCity || !type) return;
-    if (!originCountrySupported) {
-      toast.error(`Origine ${originCity.countryLabel} indisponible — choisissez une ville en FR / CN / US / AE / DE / CA.`);
+    if (!dakarRouteOk) {
+      toast.error('Dakar doit être la ville de départ ou d\'arrivée.');
       return;
     }
     if (!contactsComplete) {
