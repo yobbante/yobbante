@@ -359,9 +359,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 <ShieldCheck className="w-3.5 h-3.5" /> Suivi & assurance inclus
               </motion.p>
             )}
-            <div className="mt-5">
-              <QuoteEstimate quote={quote} loading={quoting} error={quoteError} />
-            </div>
           </>
         )}
         {!matching && options.length === 0 && (
