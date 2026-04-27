@@ -712,6 +712,7 @@ export interface MatchOptionView {
   price_eur: number;
   departure_date?: string | null;
   highlight?: string;
+  note?: string;
 }
 
 export function MatchOptionCard({
