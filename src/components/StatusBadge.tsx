@@ -9,6 +9,7 @@ const statusColors: Record<string, string> = {
   SHIPPED: 'bg-blue-50 text-blue-600',
   DELIVERED: 'bg-emerald-50 text-emerald-600',
   PENDING: 'bg-muted text-muted-foreground',
+  WAITING_FOR_MATCH: 'bg-amber-50 text-amber-600',
   IN_TRANSIT: 'bg-blue-50 text-blue-600',
   CUSTOMS: 'bg-amber-50 text-amber-600',
 };
