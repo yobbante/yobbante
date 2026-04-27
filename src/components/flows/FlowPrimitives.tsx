@@ -351,32 +351,86 @@ export interface CityOption {
 
 export function CitySelector({
   cities, value, onChange, placeholder = 'Rechercher une ville…', emptyHint = 'Aucune ville trouvée.',
+  popularIds,
 }: {
   cities: CityOption[];
   value: string | null;
   onChange: (id: string) => void;
   placeholder?: string;
   emptyHint?: string;
+  /** Optional ordered list of city ids to pin at the top of the grid. */
+  popularIds?: string[];
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
   const [q, setQ] = useState('');
+  const [editing, setEditing] = useState(false);
+
+  const selected = useMemo(() => cities.find(c => c.id === value) ?? null, [cities, value]);
+
+  // Reset edit-mode when selection changes from outside.
+  useEffect(() => { setEditing(false); setQ(''); }, [value]);
+
+  // Once a city is picked, collapse to a compact card (with a "Modifier" affordance)
+  // — keeps the flow uncluttered and lets the user move on to the next step.
+  if (selected && !editing) {
+    return (
+      <div className={cn(
+        'flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5',
+        t.cardActive
+      )}>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-2xl leading-none">{selected.flag}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{selected.city}</p>
+            <p className={cn('text-[11px] truncate', t.muted)}>{selected.countryLabel}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className={cn(
+            'shrink-0 text-[11px] font-semibold rounded-lg px-3 py-1.5 border transition-all',
+            theme === 'dark'
+              ? 'border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+              : 'border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Modifier
+        </button>
+      </div>
+    );
+  }
+
+  // Order: popular pinned first (in given order), then the rest A→Z.
+  const ordered = useMemo(() => {
+    if (!popularIds?.length) return cities;
+    const popularSet = new Set(popularIds);
+    const popular = popularIds
+      .map(id => cities.find(c => c.id === id))
+      .filter((c): c is CityOption => !!c);
+    const rest = cities.filter(c => !popularSet.has(c.id));
+    return [...popular, ...rest];
+  }, [cities, popularIds]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return cities;
-    return cities.filter(c =>
+    if (!needle) return ordered;
+    return ordered.filter(c =>
       c.city.toLowerCase().includes(needle) ||
       c.countryLabel.toLowerCase().includes(needle) ||
       c.country.toLowerCase().includes(needle)
     );
-  }, [cities, q]);
+  }, [ordered, q]);
+
+  const showPopularLabel = !q.trim() && !!popularIds?.length;
+  const popularCount = popularIds?.length ?? 0;
 
   return (
     <div className="space-y-3">
       <div className="relative">
         <Search className={cn('absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4', t.muted)} />
         <input
+          autoFocus={editing}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={placeholder}
@@ -390,32 +444,53 @@ export function CitySelector({
       {filtered.length === 0 ? (
         <p className={cn('text-xs py-6 text-center', t.muted)}>{emptyHint}</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
-          {filtered.map(c => {
-            const active = value === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => onChange(c.id)}
-                className={cn(
-                  'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
-                  active ? t.cardActive : t.cardIdle
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg leading-none">{c.flag}</span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{c.city}</div>
-                    <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
-                  </div>
-                  {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
-                </div>
-              </button>
-            );
-          })}
+        <div className="max-h-72 overflow-y-auto pr-1 space-y-3">
+          {showPopularLabel && (
+            <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.muted)}>
+              Populaires
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {filtered.slice(0, showPopularLabel ? popularCount : filtered.length).map(c => (
+              <CityCard key={c.id} c={c} active={value === c.id} onClick={() => onChange(c.id)} t={t} />
+            ))}
+          </div>
+          {showPopularLabel && filtered.length > popularCount && (
+            <>
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium pt-1', t.muted)}>
+                Toutes les villes
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {filtered.slice(popularCount).map(c => (
+                  <CityCard key={c.id} c={c} active={value === c.id} onClick={() => onChange(c.id)} t={t} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function CityCard({ c, active, onClick, t }: { c: CityOption; active: boolean; onClick: () => void; t: typeof T['light'] }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'rounded-xl border-2 px-3 py-2.5 text-left transition-all',
+        active ? t.cardActive : t.cardIdle
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-lg leading-none">{c.flag}</span>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold truncate">{c.city}</div>
+          <div className={cn('text-[10px] truncate', t.muted)}>{c.countryLabel}</div>
+        </div>
+        {active && <Check className={cn('w-3.5 h-3.5 ml-auto shrink-0', t.accent)} strokeWidth={3} />}
+      </div>
+    </button>
   );
 }
 
