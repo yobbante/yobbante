@@ -1021,6 +1021,7 @@ export type Database = {
     }
     Functions: {
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
+      auto_progress_departures: { Args: never; Returns: number }
       calculate_quote: {
         Args: {
           p_destination_city?: string
@@ -1080,6 +1081,7 @@ export type Database = {
           zone_name: string
         }[]
       }
+      expire_unpaid_shipments: { Args: never; Returns: number }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
@@ -1102,6 +1104,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      monitor_shipment_etas: { Args: never; Returns: number }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
       score_departure: {
