@@ -415,31 +415,46 @@ export function HubsWorldMap({
       </div>
 
       {/* Timeline preview — connects map ↔ timeline-first experience */}
-      {showTimelinePreview && activeHub && activeHub.id !== destination && (
-        <div className={cn('relative border-t px-4 sm:px-5 py-3', border, isDark ? 'bg-zinc-950/40' : 'bg-secondary/30')}>
+      {showTimelinePreview && (
+        <div
+          className={cn(
+            'relative border-t px-4 sm:px-5 py-3 min-h-[112px] sm:min-h-[78px] transition-opacity duration-200',
+            border,
+            isDark ? 'bg-zinc-950/40' : 'bg-secondary/30',
+            activeHub && activeHub.id !== destination ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+          aria-hidden={!(activeHub && activeHub.id !== destination)}
+        >
           <div className="flex items-center justify-between mb-2">
-            <p className={cn('text-[10px] uppercase tracking-wider font-semibold', subtle)}>
-              Parcours type depuis {activeHub.label}
+            <p className={cn('text-[10px] uppercase tracking-wider font-semibold truncate', subtle)}>
+              Parcours type{activeHub ? ` depuis ${activeHub.label}` : ''}
             </p>
-            <p className={cn('text-[10px]', subtle)}>~ 4 étapes suivies</p>
+            <p className={cn('text-[10px] shrink-0 ml-2', subtle)}>~ 4 étapes</p>
           </div>
-          <ol className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+          {/* Mobile: 4-col grid (no scroll). Desktop: inline row with connectors */}
+          <ol className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2">
             {[
-              { Icon: Inbox,         label: 'Reçu au hub' },
-              { Icon: Warehouse,     label: 'En stockage' },
-              { Icon: Plane,         label: 'Prêt à partir' },
-              { Icon: PackageCheck,  label: `Livré · ${dest.label}` },
+              { Icon: Inbox,         label: 'Reçu' },
+              { Icon: Warehouse,     label: 'Stocké' },
+              { Icon: Plane,         label: 'Départ' },
+              { Icon: PackageCheck,  label: `Livré` },
             ].map((s, i, arr) => (
-              <li key={s.label} className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <span className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] sm:text-[11px] font-medium whitespace-nowrap',
-                  chipBg, fg
-                )}>
-                  <s.Icon className="w-3 h-3 opacity-70 shrink-0" />
-                  <span>{s.label}</span>
+              <li
+                key={s.label}
+                className="flex flex-col sm:flex-row items-center sm:gap-2 min-w-0"
+              >
+                <span
+                  className={cn(
+                    'w-full sm:w-auto inline-flex flex-col sm:flex-row items-center justify-center gap-1 rounded-lg sm:rounded-full px-1.5 sm:px-2 py-1.5 sm:py-1 text-[10px] sm:text-[11px] font-medium leading-tight text-center',
+                    chipBg, fg
+                  )}
+                >
+                  <s.Icon className="w-3.5 h-3.5 sm:w-3 sm:h-3 opacity-70 shrink-0" />
+                  <span className="truncate w-full">{s.label}</span>
                 </span>
                 {i < arr.length - 1 && (
-                  <span className={cn('h-px w-3 sm:w-5 shrink-0', isDark ? 'bg-white/15' : 'bg-foreground/15')} />
+                  <span className={cn('hidden sm:block h-px w-3 sm:w-5 shrink-0', isDark ? 'bg-white/15' : 'bg-foreground/15')} />
                 )}
               </li>
             ))}
