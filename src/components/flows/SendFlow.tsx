@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, FileText, Boxes, Zap, Clock, Crown, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,15 +55,28 @@ const OPTION_ICONS = {
 
 export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
 
-  const [type, setType] = useState<typeof TYPES[number]['id'] | null>(null);
-  const [origin, setOrigin] = useState<string | null>(null);
-  const [destination, setDestination] = useState<string | null>(null);
-  const [weight, setWeight] = useState(5);
+  // Optional preset injected via navigation state (Ship Now from a package).
+  const preset = (location.state as {
+    preset?: {
+      type?: typeof TYPES[number]['id'];
+      origin?: string;
+      destination?: string;
+      weight?: number;
+      packageId?: string;
+      packageDescription?: string;
+    };
+  } | null)?.preset;
+
+  const [type, setType] = useState<typeof TYPES[number]['id'] | null>(preset?.type ?? null);
+  const [origin, setOrigin] = useState<string | null>(preset?.origin ?? null);
+  const [destination, setDestination] = useState<string | null>(preset?.destination ?? null);
+  const [weight, setWeight] = useState(preset?.weight ?? 5);
   const [declaredValue, setDeclaredValue] = useState('');
-  const [priority, setPriority] = useState<typeof PRIORITIES[number]['id'] | null>(null);
+  const [priority, setPriority] = useState<typeof PRIORITIES[number]['id'] | null>(preset ? 'normal' : null);
   const [chosen, setChosen] = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
