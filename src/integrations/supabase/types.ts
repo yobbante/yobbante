@@ -363,6 +363,63 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_quote_requests: {
+        Row: {
+          client_name: string
+          client_phone: string
+          created_at: string
+          destination_city: string
+          destination_country: string | null
+          id: string
+          note: string | null
+          origin_city: string
+          origin_country: string | null
+          priority: string | null
+          source: string
+          status: Database["public"]["Enums"]["manual_quote_status"]
+          transport_mode: string | null
+          updated_at: string
+          user_id: string | null
+          weight_kg: number
+        }
+        Insert: {
+          client_name: string
+          client_phone: string
+          created_at?: string
+          destination_city: string
+          destination_country?: string | null
+          id?: string
+          note?: string | null
+          origin_city: string
+          origin_country?: string | null
+          priority?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["manual_quote_status"]
+          transport_mode?: string | null
+          updated_at?: string
+          user_id?: string | null
+          weight_kg: number
+        }
+        Update: {
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          destination_city?: string
+          destination_country?: string | null
+          id?: string
+          note?: string | null
+          origin_city?: string
+          origin_country?: string | null
+          priority?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["manual_quote_status"]
+          transport_mode?: string | null
+          updated_at?: string
+          user_id?: string | null
+          weight_kg?: number
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -860,6 +917,7 @@ export type Database = {
         | "QUALIFIED"
         | "WON"
         | "LOST"
+      manual_quote_status: "pending" | "quoted" | "confirmed" | "cancelled"
       package_status:
         | "CREATED"
         | "RECEIVED"
@@ -1013,6 +1071,7 @@ export const Constants = {
         "CLOSED",
       ],
       enterprise_quote_status: ["NEW", "CONTACTED", "QUALIFIED", "WON", "LOST"],
+      manual_quote_status: ["pending", "quoted", "confirmed", "cancelled"],
       package_status: [
         "CREATED",
         "RECEIVED",
