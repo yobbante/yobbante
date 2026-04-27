@@ -1096,3 +1096,243 @@ function FormatHint({ icon, label }: { icon: React.ReactNode; label: string }) {
     </div>
   );
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   ORDERS OVERVIEW — track in-progress / received / shipped orders
+   ────────────────────────────────────────────────────────────────────── */
+
+type OrderRow = {
+  id: string;
+  source: 'dossier' | 'shipment' | 'package';
+  reference: string;
+  title: string;
+  subtitle?: string;
+  status: string;
+  statusLabel: string;
+  statusTone: 'info' | 'progress' | 'success' | 'warning';
+  createdAt: string;
+};
+
+const SHIPMENT_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['statusTone'] }> = {
+  PENDING:           { label: 'En attente',          tone: 'info' },
+  CONFIRMED:         { label: 'Confirmé',            tone: 'progress' },
+  WAITING_FOR_MATCH: { label: 'Attente départ',      tone: 'progress' },
+  MATCHED:           { label: 'Départ assigné',      tone: 'progress' },
+  IN_PREPARATION:    { label: 'Préparation',         tone: 'progress' },
+  IN_TRANSIT:        { label: 'En transit',          tone: 'progress' },
+  CUSTOMS:           { label: 'Douane',              tone: 'progress' },
+  ARRIVED:           { label: 'Arrivé',              tone: 'progress' },
+  OUT_FOR_DELIVERY:  { label: 'En livraison',        tone: 'progress' },
+  DELIVERED:         { label: 'Livré',               tone: 'success' },
+  ON_HOLD:           { label: 'En attente',          tone: 'warning' },
+  CANCELLED:         { label: 'Annulé',              tone: 'warning' },
+};
+
+const PACKAGE_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['statusTone'] }> = {
+  CREATED:        { label: 'Attendu',          tone: 'info' },
+  RECEIVED:       { label: 'Reçu au hub',      tone: 'progress' },
+  IN_STORAGE:     { label: 'En stockage',      tone: 'progress' },
+  READY_TO_SHIP:  { label: 'Prêt à partir',    tone: 'progress' },
+  SHIPPED:        { label: 'Expédié',          tone: 'progress' },
+  DELIVERED:      { label: 'Livré',            tone: 'success' },
+};
+
+const DOSSIER_STATUS_LABEL: Record<string, { label: string; tone: OrderRow['statusTone'] }> = {
+  SUBMITTED:    { label: 'Envoyé',          tone: 'info' },
+  IN_REVIEW:    { label: 'En revue',        tone: 'progress' },
+  QUOTED:       { label: 'Devis prêt',      tone: 'progress' },
+  CONFIRMED:    { label: 'Confirmé',        tone: 'progress' },
+  IN_PROGRESS:  { label: 'En cours',        tone: 'progress' },
+  RECEIVED:     { label: 'Réceptionné',     tone: 'progress' },
+  SHIPPED:      { label: 'Expédié',         tone: 'progress' },
+  DELIVERED:    { label: 'Livré',           tone: 'success' },
+  CANCELLED:    { label: 'Annulé',          tone: 'warning' },
+};
+
+function OrdersOverview({
+  isAuthenticated, goBack, goAddOrder, goSignIn,
+}: {
+  isAuthenticated: boolean;
+  goBack: () => void;
+  goAddOrder: () => void;
+  goSignIn: () => void;
+}) {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<OrderRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isAuthenticated) { setLoading(false); return; }
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const [{ data: dossiers }, { data: shipments }, { data: packages }] = await Promise.all([
+          supabase.from('dossiers')
+            .select('id, reference, product_description, status, created_at, origin_country, destination_country')
+            .order('created_at', { ascending: false }).limit(20),
+          supabase.from('shipments')
+            .select('id, tracking_number, status, created_at, origin_country, destination_country, weight_kg')
+            .order('created_at', { ascending: false }).limit(20),
+          supabase.from('packages')
+            .select('id, description, status, created_at, warehouse_country')
+            .order('created_at', { ascending: false }).limit(20),
+        ]);
+
+        const out: OrderRow[] = [];
+        for (const d of dossiers ?? []) {
+          const meta = DOSSIER_STATUS_LABEL[d.status as string] ?? { label: d.status, tone: 'info' as const };
+          out.push({
+            id: d.id, source: 'dossier',
+            reference: d.reference,
+            title: d.product_description?.split('\n')[0]?.slice(0, 80) ?? 'Dossier',
+            subtitle: `${d.origin_country} → ${d.destination_country}`,
+            status: d.status, statusLabel: meta.label, statusTone: meta.tone,
+            createdAt: d.created_at,
+          });
+        }
+        for (const s of shipments ?? []) {
+          const meta = SHIPMENT_STATUS_LABEL[s.status as string] ?? { label: s.status, tone: 'info' as const };
+          out.push({
+            id: s.id, source: 'shipment',
+            reference: s.tracking_number ?? s.id.slice(0, 8),
+            title: `Envoi ${s.tracking_number ?? ''}`.trim(),
+            subtitle: `${s.origin_country} → ${s.destination_country}${s.weight_kg ? ` · ${s.weight_kg} kg` : ''}`,
+            status: s.status, statusLabel: meta.label, statusTone: meta.tone,
+            createdAt: s.created_at,
+          });
+        }
+        for (const p of packages ?? []) {
+          const meta = PACKAGE_STATUS_LABEL[p.status as string] ?? { label: p.status, tone: 'info' as const };
+          out.push({
+            id: p.id, source: 'package',
+            reference: p.id.slice(0, 8).toUpperCase(),
+            title: p.description ?? 'Colis',
+            subtitle: `Hub ${p.warehouse_country}`,
+            status: p.status, statusLabel: meta.label, statusTone: meta.tone,
+            createdAt: p.created_at,
+          });
+        }
+        out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+        if (alive) setRows(out);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [isAuthenticated]);
+
+  const toneClass = (t: OrderRow['statusTone']) =>
+    t === 'success'   ? 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30'
+    : t === 'warning' ? 'bg-amber-400/15  text-amber-300  border-amber-400/30'
+    : t === 'progress'? 'bg-yellow-400/15 text-yellow-300 border-yellow-400/30'
+    :                   'bg-white/8       text-white/70   border-white/15';
+
+  return (
+    <FlowSection
+      revealed
+      title="Mes commandes"
+      hint="Suivi temps réel de vos colis attendus, en stockage et en route."
+    >
+      <div className="pt-1 mb-4">
+        <button
+          onClick={goBack}
+          className="inline-flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white/80 transition-colors"
+        >
+          <RotateCcw className="w-3 h-3" /> Changer de réponse
+        </button>
+      </div>
+
+      {!isAuthenticated ? (
+        <div className="rounded-2xl border-2 border-yellow-400/40 bg-yellow-400/5 p-5 max-w-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-yellow-400 text-zinc-950 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">Connectez-vous pour voir vos commandes</p>
+              <p className="mt-1 text-xs text-white/60 leading-relaxed">
+                Vos colis, dossiers et envois en cours apparaîtront ici en temps réel.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={goSignIn}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold bg-yellow-400 text-zinc-950 rounded-lg px-3 py-2 hover:bg-yellow-300 transition-colors"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" /> Se connecter
+                </button>
+                <button
+                  onClick={goAddOrder}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 hover:text-white border border-white/15 hover:border-white/30 rounded-lg px-3 py-2 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Ajouter une commande
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : loading ? (
+        <div className="flex items-center gap-2 text-sm text-white/55">
+          <Loader2 className="w-4 h-4 animate-spin" /> Chargement de vos commandes…
+        </div>
+      ) : !rows || rows.length === 0 ? (
+        <div className="rounded-2xl border-2 border-white/10 bg-white/[0.03] p-6 max-w-xl text-center">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-white/10 text-white flex items-center justify-center">
+            <Inbox className="w-6 h-6" />
+          </div>
+          <p className="mt-4 text-sm font-semibold text-white">Aucune commande pour l'instant</p>
+          <p className="mt-1 text-xs text-white/55">Ajoutez un suivi pour voir l'activité ici.</p>
+          <button
+            onClick={goAddOrder}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold bg-yellow-400 text-zinc-950 rounded-lg px-3 py-2 hover:bg-yellow-300 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Ajouter une commande
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2 max-w-3xl">
+          {rows.map((r) => (
+            <button
+              key={`${r.source}-${r.id}`}
+              onClick={() => {
+                if (r.source === 'dossier') navigate(`/dossier/${r.id}`);
+                else navigate('/app');
+              }}
+              className="w-full text-left rounded-xl border border-white/10 bg-white/[0.03] hover:border-white/30 hover:bg-white/[0.06] transition-all p-3.5 flex items-center gap-3"
+            >
+              <div className="w-9 h-9 rounded-lg bg-white/10 text-white flex items-center justify-center shrink-0">
+                {r.source === 'dossier' ? <FileText className="w-4 h-4" />
+                  : r.source === 'shipment' ? <Truck className="w-4 h-4" />
+                  : <Package className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-white truncate">{r.title}</p>
+                  <span className={cn(
+                    'inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-full border px-2 py-0.5',
+                    toneClass(r.statusTone),
+                  )}>
+                    {r.statusTone === 'success' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                    {r.statusTone === 'progress' && <Clock className="w-2.5 h-2.5" />}
+                    {r.statusLabel}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-white/55 truncate">
+                  {r.reference}{r.subtitle ? ` · ${r.subtitle}` : ''} · {new Date(r.createdAt).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-white/40 shrink-0" />
+            </button>
+          ))}
+
+          <button
+            onClick={goAddOrder}
+            className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white/70 hover:text-white border border-dashed border-white/15 hover:border-white/30 rounded-xl px-3 py-3 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Ajouter une commande à suivre
+          </button>
+        </div>
+      )}
+    </FlowSection>
+  );
+}
