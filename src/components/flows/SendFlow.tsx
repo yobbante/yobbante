@@ -283,9 +283,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           placeholder="Ex. Shenzhen, Paris, Dubai…"
           popularIds={POPULAR_ORIGIN_IDS}
         />
-        {originCity && !originCountrySupported && (
-          <p className="mt-3 text-xs text-amber-600">
-            Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
+        {originCity && !isDakar(originCity) && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            ✦ Astuce : Yobbanté opère depuis Dakar — pensez à choisir Dakar comme destination si vous expédiez vers le Sénégal.
           </p>
         )}
         {originCity && (
