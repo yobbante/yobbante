@@ -657,6 +657,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
         />
       )}
+
+      {/* ── STEP F: RECEPTION — register an international order ──────── */}
+      {step === 'reception' && (
+        <ReceptionRegisterFlow goBack={() => setStep('ask')} />
+      )}
     </FlowShell>
   );
 }
