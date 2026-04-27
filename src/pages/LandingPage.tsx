@@ -28,6 +28,12 @@ const BUY_STEPS = [
   { n: '03', title: 'Production, contrôle, livraison', desc: 'Inspection qualité puis livraison directe à votre porte.' },
 ];
 
+const RECEIVE_STEPS = [
+  { n: '01', title: 'Vous commandez en ligne', desc: 'Amazon, AliExpress, RockAuto — où vous voulez.' },
+  { n: '02', title: 'On réceptionne au relais', desc: 'Adresse Yobbanté à l\'étranger. Photo + pesée à l\'arrivée.' },
+  { n: '03', title: 'Vous payez puis recevez', desc: 'Prix réel calculé, vous validez, on livre en Afrique.' },
+];
+
 const REASONS = [
   { Icon: Globe2,      title: 'End-to-end',  desc: 'Un seul partenaire, du fournisseur à votre porte.' },
   { Icon: Sparkles,    title: 'Simplicité',  desc: 'Pas de jargon, pas de surprises. Vous décidez, on agit.' },
