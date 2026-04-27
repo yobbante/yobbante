@@ -540,6 +540,59 @@ export type Database = {
           },
         ]
       }
+      notifications_log: {
+        Row: {
+          attempts: number
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          message: string
+          recipient: string
+          sent_at: string | null
+          shipment_id: string | null
+          status: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message: string
+          recipient: string
+          sent_at?: string | null
+          shipment_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message?: string
+          recipient?: string
+          sent_at?: string | null
+          shipment_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_log_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           created_at: string
@@ -645,6 +698,50 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          note: string | null
+          shipment_id: string
+          to_status: string | null
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          note?: string | null
+          shipment_id: string
+          to_status?: string | null
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          note?: string | null
+          shipment_id?: string
+          to_status?: string | null
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipments: {
         Row: {
           client_note: string | null
@@ -659,12 +756,16 @@ export type Database = {
           manual_request: boolean
           origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          payment_status: string
           pending_assignment: boolean
           priority: string
+          quote_id: string | null
           status: Database["public"]["Enums"]["shipment_status"]
           total_cost: number | null
+          tracking_number: string | null
           transport_metadata: Json | null
           transport_type: string | null
+          updated_at: string
           user_id: string
           weight_kg: number | null
         }
@@ -681,12 +782,16 @@ export type Database = {
           manual_request?: boolean
           origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          payment_status?: string
           pending_assignment?: boolean
           priority?: string
+          quote_id?: string | null
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
+          tracking_number?: string | null
           transport_metadata?: Json | null
           transport_type?: string | null
+          updated_at?: string
           user_id: string
           weight_kg?: number | null
         }
@@ -703,12 +808,16 @@ export type Database = {
           manual_request?: boolean
           origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          payment_status?: string
           pending_assignment?: boolean
           priority?: string
+          quote_id?: string | null
           status?: Database["public"]["Enums"]["shipment_status"]
           total_cost?: number | null
+          tracking_number?: string | null
           transport_metadata?: Json | null
           transport_type?: string | null
+          updated_at?: string
           user_id?: string
           weight_kg?: number | null
         }
@@ -956,6 +1065,7 @@ export type Database = {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
         Returns: string
       }
+      generate_shipment_tracking_number: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1017,6 +1127,13 @@ export type Database = {
         | "CUSTOMS"
         | "DELIVERED"
         | "WAITING_FOR_MATCH"
+        | "CONFIRMED"
+        | "MATCHED"
+        | "IN_PREPARATION"
+        | "ARRIVED"
+        | "OUT_FOR_DELIVERY"
+        | "CANCELLED"
+        | "ON_HOLD"
       warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE" | "SN"
     }
     CompositeTypes: {
@@ -1172,6 +1289,13 @@ export const Constants = {
         "CUSTOMS",
         "DELIVERED",
         "WAITING_FOR_MATCH",
+        "CONFIRMED",
+        "MATCHED",
+        "IN_PREPARATION",
+        "ARRIVED",
+        "OUT_FOR_DELIVERY",
+        "CANCELLED",
+        "ON_HOLD",
       ],
       warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE", "SN"],
     },
