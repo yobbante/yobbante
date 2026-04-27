@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { LayoutGrid, List, AlertTriangle, Clock, MapPin, Weight, User as UserIcon } from 'lucide-react';
+import { LayoutGrid, List, AlertTriangle, Clock, MapPin, Weight, User as UserIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,6 +90,31 @@ export function ShipmentsWorkflowTab() {
       });
     },
   });
+
+  const cancelShipment = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await supabase.rpc('cancel_shipment', {
+        p_shipment_id: id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(data?.refund_id ? 'Envoi annulé · Remboursement programmé' : 'Envoi annulé');
+      qc.invalidateQueries({ queryKey: ['admin', 'shipments-workflow'] });
+      qc.invalidateQueries({ queryKey: ['shipments'] });
+    },
+    onError: (e: any) => {
+      toast.error('Annulation impossible', { description: e?.message ?? 'Erreur inconnue' });
+    },
+  });
+
+  const handleCancel = (id: string, tracking: string | null | undefined) => {
+    const reason = window.prompt(`Raison d'annulation pour ${tracking ?? id.slice(0, 8)} ?`, 'Annulation manuelle');
+    if (reason === null) return;
+    cancelShipment.mutate({ id, reason: reason.trim() || 'Annulation manuelle' });
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<ShipmentStatus, ShipmentRow[]>();
@@ -229,9 +254,20 @@ export function ShipmentsWorkflowTab() {
 
                         <footer className="mt-2 pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px]">
                           <span className="font-semibold text-foreground">{formatPrice(s.total_cost)}</span>
-                          <span className="text-muted-foreground inline-flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5" /> {timeSince(s.updated_at ?? s.created_at)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground inline-flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" /> {timeSince(s.updated_at ?? s.created_at)}
+                            </span>
+                            {status !== 'CANCELLED' && status !== 'DELIVERED' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCancel(s.id, s.tracking_number); }}
+                                title="Annuler cet envoi"
+                                className="text-muted-foreground hover:text-rose-600 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </footer>
                       </article>
                     ))}
@@ -242,7 +278,11 @@ export function ShipmentsWorkflowTab() {
           </div>
         </div>
       ) : (
-        <ShipmentsList shipments={shipments} onChangeStatus={(id, to) => updateStatus.mutate({ id, to })} />
+        <ShipmentsList
+          shipments={shipments}
+          onChangeStatus={(id, to) => updateStatus.mutate({ id, to })}
+          onCancel={handleCancel}
+        />
       )}
 
       <p className="text-[11px] text-muted-foreground">
@@ -255,9 +295,11 @@ export function ShipmentsWorkflowTab() {
 function ShipmentsList({
   shipments,
   onChangeStatus,
+  onCancel,
 }: {
   shipments: ShipmentRow[];
   onChangeStatus: (id: string, to: ShipmentStatus) => void;
+  onCancel: (id: string, tracking: string | null | undefined) => void;
 }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -273,11 +315,12 @@ function ShipmentsList({
               <th className="text-left px-3 py-2">Paiement</th>
               <th className="text-left px-3 py-2">Statut</th>
               <th className="text-left px-3 py-2">MAJ</th>
+              <th className="text-left px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {shipments.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Aucun envoi</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Aucun envoi</td></tr>
             ) : shipments.map((s) => (
               <tr key={s.id} className="border-t border-border hover:bg-secondary/20">
                 <td className="px-3 py-2 font-mono text-xs">{s.tracking_number ?? '—'}</td>
@@ -307,6 +350,18 @@ function ShipmentsList({
                   </select>
                 </td>
                 <td className="px-3 py-2 text-muted-foreground text-xs">{timeSince(s.updated_at ?? s.created_at)}</td>
+                <td className="px-3 py-2">
+                  {s.status !== 'CANCELLED' && s.status !== 'DELIVERED' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCancel(s.id, s.tracking_number)}
+                      className="h-6 px-2 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      Annuler
+                    </Button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

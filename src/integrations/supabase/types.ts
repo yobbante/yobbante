@@ -704,6 +704,48 @@ export type Database = {
         }
         Relationships: []
       }
+      refund_requests: {
+        Row: {
+          amount_eur: number | null
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          processed_at: string | null
+          provider_ref: string | null
+          reason: string | null
+          shipment_id: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_eur?: number | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          processed_at?: string | null
+          provider_ref?: string | null
+          reason?: string | null
+          shipment_id: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_eur?: number | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          processed_at?: string | null
+          provider_ref?: string | null
+          reason?: string | null
+          shipment_id?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shipment_events: {
         Row: {
           created_at: string
@@ -1080,6 +1122,10 @@ export type Database = {
           zone_id: string
           zone_name: string
         }[]
+      }
+      cancel_shipment: {
+        Args: { p_reason?: string; p_shipment_id: string }
+        Returns: Json
       }
       expire_unpaid_shipments: { Args: never; Returns: number }
       generate_dossier_reference: { Args: never; Returns: string }
