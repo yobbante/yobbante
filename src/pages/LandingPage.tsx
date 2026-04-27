@@ -142,7 +142,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
+          <div className="grid md:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
             {/* Ship */}
             <div className="bg-background p-8 md:p-10">
               <div className="flex items-center gap-2.5 mb-6">
