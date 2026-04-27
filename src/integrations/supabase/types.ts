@@ -492,6 +492,54 @@ export type Database = {
         }
         Relationships: []
       }
+      routes_pricing: {
+        Row: {
+          active: boolean
+          base_price_eur: number
+          created_at: string
+          destination_city: string | null
+          destination_country: string
+          eta_max_days: number
+          eta_min_days: number
+          id: string
+          origin_city: string | null
+          origin_country: string
+          price_per_kg_eur: number
+          transport_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_price_eur?: number
+          created_at?: string
+          destination_city?: string | null
+          destination_country: string
+          eta_max_days?: number
+          eta_min_days?: number
+          id?: string
+          origin_city?: string | null
+          origin_country: string
+          price_per_kg_eur?: number
+          transport_type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_price_eur?: number
+          created_at?: string
+          destination_city?: string | null
+          destination_country?: string
+          eta_max_days?: number
+          eta_min_days?: number
+          id?: string
+          origin_city?: string | null
+          origin_country?: string
+          price_per_kg_eur?: number
+          transport_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipments: {
         Row: {
           client_note: string | null
@@ -639,6 +687,30 @@ export type Database = {
     }
     Functions: {
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
+      calculate_quote: {
+        Args: {
+          p_destination_city?: string
+          p_destination_country: string
+          p_origin_city?: string
+          p_origin_country: string
+          p_priority?: string
+          p_transport_type?: string
+          p_weight_kg: number
+        }
+        Returns: {
+          base_price_eur: number
+          confidence: string
+          currency: string
+          eta_max_days: number
+          eta_min_days: number
+          margin_multiplier: number
+          price_eur: number
+          supply_adjustment_eur: number
+          transport_type: string
+          urgency_multiplier: number
+          weight_cost_eur: number
+        }[]
+      }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }

@@ -9,6 +9,8 @@ import {
   type MatchOptionView,
 } from './FlowPrimitives';
 import { useMatchOptions } from './useMatchOptions';
+import { QuoteEstimate } from './QuoteEstimate';
+import { useQuote } from '@/hooks/useQuote';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,6 +95,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
+  // Real-time pricing engine: maps the chosen Konnekt option's transport tier to AIR/SEA.
+  const quoteInput = useMemo(() => {
+    if (!origin || !destination || !weight) return null;
+    const transport: 'AIR' | 'SEA' | null =
+      chosen?.id === 'volume' ? 'SEA' : chosen?.id === 'fast' ? 'AIR' : null;
+    return {
+      origin_country: origin,
+      destination_country: destination,
+      weight_kg: weight,
+      transport_type: transport,
+      priority: priority === 'fast' ? 'urgent' as const : 'normal' as const,
+      origin_city: ORIGIN_CITY[origin] ?? null,
+      destination_city: DEST_CITY[destination] ?? null,
+    };
+  }, [origin, destination, weight, chosen?.id, priority]);
+  const { quote, loading: quoting, error: quoteError } = useQuote(quoteInput);
+
   // Auto-pre-select the recommended (economy) option once results arrive
   useEffect(() => {
     if (!chosen && options.length > 0) {
@@ -103,7 +122,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [options.length]);
 
   const summary = chosen
-    ? `${COUNTRY_NAME(origin!)} → ${COUNTRY_NAME(destination!)} · ${chosen.label} · livraison ${chosen.eta_days} · ${chosen.price_eur}€`
+    ? `${COUNTRY_NAME(origin!)} → ${COUNTRY_NAME(destination!)} · ${chosen.label} · livraison ${chosen.eta_days} · ${quote ? Math.round(quote.price) : chosen.price_eur}€`
     : '';
 
   async function submit() {
@@ -229,6 +248,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 <ShieldCheck className="w-3.5 h-3.5" /> Suivi & assurance inclus
               </motion.p>
             )}
+            <div className="mt-5">
+              <QuoteEstimate quote={quote} loading={quoting} error={quoteError} />
+            </div>
           </>
         )}
       </FlowSection>
