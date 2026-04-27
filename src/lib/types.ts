@@ -112,7 +112,16 @@ export interface Shipment {
   konnekt_id: string | null;
   origin_country: WarehouseCountry;
   destination_country: string;
+  tracking_number?: string | null;
+  payment_status?: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
+  weight_kg?: number | null;
+  priority?: string | null;
+  pending_assignment?: boolean | null;
+  manual_request?: boolean | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface TimelineEvent {
