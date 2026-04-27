@@ -60,6 +60,7 @@ export default function LandingPage() {
 
   const goShip = () => navigate('/expedier');
   const goBuy = () => navigate('/acheter');
+  const goReceive = () => navigate('/expedier/recevoir');
 
   const handleHubPick = (id: HubId) => {
     setSelectedHub(id);
