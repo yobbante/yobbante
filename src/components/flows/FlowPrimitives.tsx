@@ -652,10 +652,32 @@ export function LiveSummaryBar({
   const theme = useFlowTheme();
   const t = T[theme];
   const [expanded, setExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-collapse when the user taps anywhere outside the summary bar
+  // (incl. scrolling the page or hitting Esc).
+  useEffect(() => {
+    if (!expanded) return;
+    const handlePointer = (e: MouseEvent | TouchEvent) => {
+      const el = containerRef.current;
+      if (el && !el.contains(e.target as Node)) setExpanded(false);
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer, { passive: true });
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [expanded]);
+
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
+          ref={containerRef}
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
