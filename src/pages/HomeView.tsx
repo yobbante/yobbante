@@ -100,7 +100,7 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
       {/* Action Bar — 2-CTA model + secondary trio */}
       <ActionBar
         onEstimate={() => setSmartOpen(true)}
-        onTrack={onNavigateShipments}
+        onTrack={() => goOrders('send')}
       />
 
       {/* Smart prompts — alertes contextuelles uniquement */}
@@ -159,7 +159,7 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
           {activeDossiers.length > 2 && (
             <button
               type="button"
-              onClick={onNavigateDossiers}
+              onClick={() => goOrders('sourcing')}
               className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
             >
               Tout voir <ArrowRight className="w-3 h-3" />
@@ -190,7 +190,7 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
             <h3 className="text-[15px] font-semibold text-foreground tracking-tight">Expéditions actives</h3>
             <button
               type="button"
-              onClick={onNavigateShipments}
+              onClick={() => goOrders('send')}
               className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
             >
               Tout voir <ArrowRight className="w-3 h-3" />
