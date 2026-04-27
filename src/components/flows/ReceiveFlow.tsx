@@ -668,19 +668,23 @@ function ChoicePill({
    ────────────────────────────────────────────────────────────────────── */
 
 function PreOrderFlow({
-  hub, setHub, recommendedHub, hubAddress, portals, copied, copyAddress, openExternal,
+  hub, setHub, recommendedHub, hubAddress, isFallbackAddress, isAuthenticated,
+  portals, copied, copyAddress, openExternal,
   reminderEmail, setReminderEmail, reminderSaved, saveReminder,
-  goTracking, goBack,
+  goTracking, goBack, goSignIn,
 }: {
   hub: string | null; setHub: (v: string) => void;
   recommendedHub: HubId | null;
   hubAddress: ReturnType<typeof useAddresses>['addresses'][number] | null | undefined;
+  isFallbackAddress: boolean;
+  isAuthenticated: boolean;
   portals: { label: string; url: string }[];
   copied: boolean; copyAddress: () => void;
   openExternal: (url: string) => void;
   reminderEmail: string; setReminderEmail: (v: string) => void;
   reminderSaved: boolean; saveReminder: () => void;
   goTracking: () => void; goBack: () => void;
+  goSignIn: () => void;
 }) {
   const TOTAL = 4;
   return (
@@ -723,10 +727,26 @@ function PreOrderFlow({
                 <p className="mt-2 text-sm text-white whitespace-pre-line leading-relaxed">
                   {hubAddress.address_line}
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-xs">
-                  <span className="text-white/50">Référence destinataire:</span>
-                  <code className="font-mono font-semibold text-yellow-400">{hubAddress.identifier_code}</code>
-                </div>
+                {isFallbackAddress ? (
+                  <div className="mt-3 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2.5">
+                    <p className="text-[11px] text-yellow-100 leading-snug">
+                      <span className="font-semibold text-yellow-300">Connectez-vous</span> pour obtenir
+                      votre <span className="font-semibold">code destinataire personnel</span> (indispensable
+                      pour qu'on identifie votre colis à l'arrivée au hub).
+                    </p>
+                    <button
+                      onClick={goSignIn}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-950 bg-yellow-400 hover:bg-yellow-300 rounded-md px-2.5 py-1.5 transition-colors"
+                    >
+                      Se connecter <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex items-center gap-2 text-xs">
+                    <span className="text-white/50">Référence destinataire:</span>
+                    <code className="font-mono font-semibold text-yellow-400">{hubAddress.identifier_code}</code>
+                  </div>
+                )}
               </div>
             </div>
             <button
