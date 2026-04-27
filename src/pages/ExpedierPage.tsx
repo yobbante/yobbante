@@ -48,6 +48,17 @@ export default function ExpedierPage() {
         onSwap={swapMode}
         swapLabel="Changer"
         theme={mode === 'envoyer' ? 'light' : 'dark'}
+        secondaryAction={
+          mode === 'recevoir'
+            ? {
+                label: 'Mes commandes',
+                icon: <ListChecks className="w-3.5 h-3.5" />,
+                variant: 'accent',
+                onClick: () =>
+                  window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
+              }
+            : undefined
+        }
       />
     );
     return mode === 'envoyer'
