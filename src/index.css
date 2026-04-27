@@ -32,10 +32,10 @@
     --input: 0 0% 90%;
     --ring: 211 100% 45%;
 
-    /* Conversion CTA accent — Yobbanté brand teal */
-    --cta: 167 42% 49%;
+    /* Conversion CTA accent — Konnekt-inspired emerald green */
+    --cta: 165 52% 38%;
     --cta-foreground: 0 0% 100%;
-    --cta-glow: 167 60% 60%;
+    --cta-glow: 165 60% 50%;
 
     --radius: 0.75rem;
 
@@ -92,27 +92,27 @@
     transform: none;
   }
 
-  /* Vibrant yellow CTA — reserved for the hero "Confier mon dossier" trigger */
+  /* Hero CTA — Konnekt-style emerald with subtle warm highlight */
   .btn-cta-yellow {
     @apply inline-flex items-center justify-center gap-2 font-semibold rounded-2xl
            px-6 py-3.5 text-sm tracking-tight
            transition-all duration-200 ease-out
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-    background-color: #FFC300;
-    color: #1a1a1a;
+    background-color: hsl(var(--cta));
+    color: hsl(var(--cta-foreground));
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.45) inset,
-      0 10px 24px -8px rgba(255, 195, 0, 0.55),
-      0 2px 6px -2px rgba(255, 195, 0, 0.35);
-    --tw-ring-color: rgba(255, 195, 0, 0.55);
+      0 1px 0 hsl(var(--cta-glow) / 0.45) inset,
+      0 10px 24px -8px hsl(var(--cta) / 0.55),
+      0 2px 6px -2px hsl(var(--cta) / 0.35);
+    --tw-ring-color: hsl(var(--cta) / 0.55);
   }
   .btn-cta-yellow:hover {
     transform: translateY(-1px) scale(1.05);
-    background-color: #FFCB1F;
+    background-color: hsl(var(--cta-glow));
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 18px 32px -10px rgba(255, 195, 0, 0.7),
-      0 4px 12px -2px rgba(255, 195, 0, 0.45);
+      0 1px 0 hsl(var(--cta-glow) / 0.6) inset,
+      0 18px 32px -10px hsl(var(--cta) / 0.7),
+      0 4px 12px -2px hsl(var(--cta) / 0.45);
   }
   .btn-cta-yellow:active { transform: translateY(0) scale(0.99); }
   .btn-cta-yellow:disabled { @apply opacity-50 cursor-not-allowed; transform: none; }
