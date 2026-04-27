@@ -632,7 +632,7 @@ export function MatchOptionCard({
 /* ─────────── Live summary sticky bar ─────────── */
 
 export function LiveSummaryBar({
-  visible, summary, ctaLabel, onSubmit, submitting, sideContent,
+  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details,
 }: {
   visible: boolean;
   summary: string;
@@ -640,9 +640,12 @@ export function LiveSummaryBar({
   onSubmit: () => void;
   submitting: boolean;
   sideContent?: ReactNode;
+  /** Optional rich content shown when the user expands the recap. */
+  details?: ReactNode;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
+  const [expanded, setExpanded] = useState(false);
   return (
     <AnimatePresence>
       {visible && (
@@ -653,22 +656,55 @@ export function LiveSummaryBar({
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className={cn('fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg', t.summaryBar)}
         >
-          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-            <div className="min-w-0 flex-1">
-              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>Récapitulatif</p>
-              <p className="mt-1 text-sm font-semibold truncate">{summary}</p>
+          {/* Expandable details panel */}
+          <AnimatePresence initial={false}>
+            {expanded && details && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="overflow-hidden border-b"
+                style={{ borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'hsl(var(--border))' }}
+              >
+                <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 max-h-[55vh] overflow-y-auto">
+                  {details}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center gap-3 sm:gap-5">
+            <button
+              type="button"
+              onClick={() => details && setExpanded(v => !v)}
+              disabled={!details}
+              className={cn(
+                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors',
+                details && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
+              )}
+              aria-expanded={expanded}
+            >
+              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
+                Récapitulatif
+                {details && (
+                  <span className={cn('text-[9px] font-semibold', t.muted)}>
+                    {expanded ? '▾ Masquer' : '▴ Détails'}
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-sm font-semibold leading-snug line-clamp-2 break-words">{summary}</p>
               {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
-            </div>
+            </button>
             <button
               onClick={onSubmit}
               disabled={submitting}
               className={cn(
-                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed',
+                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-5 sm:px-6 py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0',
                 t.cta
               )}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {ctaLabel}
+              <span className="whitespace-nowrap">{ctaLabel}</span>
             </button>
           </div>
         </motion.div>
