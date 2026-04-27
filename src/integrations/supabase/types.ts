@@ -704,6 +704,142 @@ export type Database = {
         }
         Relationships: []
       }
+      reception_orders: {
+        Row: {
+          actual_dimensions_cm: Json | null
+          actual_weight_kg: number | null
+          client_note: string | null
+          created_at: string
+          estimated_value_eur: number | null
+          estimated_weight_kg: number | null
+          expected_packages: number
+          final_price_eur: number | null
+          final_price_xof: number | null
+          goods_type: string
+          id: string
+          internal_note: string | null
+          merchant_name: string
+          merchant_url: string | null
+          order_description: string
+          order_reference: string | null
+          payment_status: string
+          priority: string
+          reference: string
+          relay_address_id: string
+          shipment_id: string | null
+          status: string
+          transport_mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_dimensions_cm?: Json | null
+          actual_weight_kg?: number | null
+          client_note?: string | null
+          created_at?: string
+          estimated_value_eur?: number | null
+          estimated_weight_kg?: number | null
+          expected_packages?: number
+          final_price_eur?: number | null
+          final_price_xof?: number | null
+          goods_type?: string
+          id?: string
+          internal_note?: string | null
+          merchant_name: string
+          merchant_url?: string | null
+          order_description: string
+          order_reference?: string | null
+          payment_status?: string
+          priority?: string
+          reference?: string
+          relay_address_id: string
+          shipment_id?: string | null
+          status?: string
+          transport_mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_dimensions_cm?: Json | null
+          actual_weight_kg?: number | null
+          client_note?: string | null
+          created_at?: string
+          estimated_value_eur?: number | null
+          estimated_weight_kg?: number | null
+          expected_packages?: number
+          final_price_eur?: number | null
+          final_price_xof?: number | null
+          goods_type?: string
+          id?: string
+          internal_note?: string | null
+          merchant_name?: string
+          merchant_url?: string | null
+          order_description?: string
+          order_reference?: string | null
+          payment_status?: string
+          priority?: string
+          reference?: string
+          relay_address_id?: string
+          shipment_id?: string | null
+          status?: string
+          transport_mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reception_orders_relay_address_id_fkey"
+            columns: ["relay_address_id"]
+            isOneToOne: false
+            referencedRelation: "relay_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reception_packages: {
+        Row: {
+          created_at: string
+          dimensions_cm: Json | null
+          id: string
+          notes: string | null
+          order_id: string
+          package_number: number
+          photo_url: string | null
+          received_at: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          created_at?: string
+          dimensions_cm?: Json | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          package_number?: number
+          photo_url?: string | null
+          received_at?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          created_at?: string
+          dimensions_cm?: Json | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          package_number?: number
+          photo_url?: string | null
+          received_at?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reception_packages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "reception_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refund_requests: {
         Row: {
           amount_eur: number | null
@@ -753,6 +889,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      relay_addresses: {
+        Row: {
+          active: boolean
+          address_line1: string
+          address_line2: string | null
+          city: string
+          contact_name: string | null
+          country: string
+          country_code: string
+          created_at: string
+          id: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address_line1: string
+          address_line2?: string | null
+          city: string
+          contact_name?: string | null
+          country: string
+          country_code: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address_line1?: string
+          address_line2?: string | null
+          city?: string
+          contact_name?: string | null
+          country?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       shipment_events: {
         Row: {
@@ -1141,6 +1325,7 @@ export type Database = {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
         Returns: string
       }
+      generate_reception_reference: { Args: never; Returns: string }
       generate_shipment_tracking_number: { Args: never; Returns: string }
       get_user_contact: {
         Args: { _user_id: string }
