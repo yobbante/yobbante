@@ -46,39 +46,26 @@ const BUCKETS: Array<{ id: OptionId; label: string; transport: 'AIR' | 'ROAD' | 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
+  try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const { data: userData, error: userErr } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = (await req.json()) as MatchRequest;
     if (!body.origin_city || !body.destination_city || !body.weight_kg) {
-      return new Response(
-        JSON.stringify({ error: "origin_city, destination_city et weight_kg sont requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json(400, { error: "origin_city, destination_city et weight_kg sont requis" });
     }
 
-    // Resolve country codes if missing (best effort via routes_pricing or fallback)
     const origin_country = (body.origin_country ?? "FR").toUpperCase();
     const destination_country = (body.destination_country ?? "SN").toUpperCase();
 
-    // For each bucket, call calculate_quote (single source of truth).
     const today = new Date();
     const options: MatchOption[] = [];
 
@@ -99,7 +86,6 @@ serve(async (req) => {
       const row = Array.isArray(data) ? data[0] : data;
       if (!row) continue;
 
-      // Find earliest matching departure for this transport+route
       const { data: dep } = await supabase
         .from("konnekt_departures")
         .select("departure_date")
@@ -125,7 +111,6 @@ serve(async (req) => {
       });
     }
 
-    // Compute next_departure_in_days from any open departure
     const { data: nextDep } = await supabase
       .from("konnekt_departures")
       .select("departure_date")
@@ -141,15 +126,10 @@ serve(async (req) => {
       ? Math.max(0, Math.ceil((new Date(nextDep.departure_date).getTime() - today.getTime()) / 86400000))
       : null;
 
-    return new Response(
-      JSON.stringify({ options, next_departure_in_days }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json(200, { options, next_departure_in_days, fallback: options.length === 0 });
   } catch (e) {
     console.error("external-match-shipment error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    // Never 5xx — return empty options so UI can fall back gracefully.
+    return json(200, { options: [], next_departure_in_days: null, fallback: true });
   }
 });

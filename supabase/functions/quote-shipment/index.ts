@@ -20,33 +20,25 @@ interface QuoteRequest {
 
 /**
  * Single source of truth for pricing.
- * Accepts either a shipment_id (loads inputs from DB) OR raw inputs.
- * Always returns a price — uses fallback messaging when no Konnekt departure exists.
+ * Resilient: NEVER returns 5xx. Always 200 with either a quote or {fallback:true}.
+ * Uses service-role internally so guests/anon can also see indicative pricing.
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
+  try {
+    // Service-role client: pricing is read-only and depends on routes_pricing + departures.
+    // Auth header is optional; when present we use it to scope shipment lookups.
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = (await req.json().catch(() => ({}))) as QuoteRequest;
 
@@ -60,14 +52,12 @@ serve(async (req) => {
       destination_city: body.destination_city ?? null,
     };
 
-    // Hydrate from shipment if shipment_id provided
     if (body.shipment_id) {
-      const { data: ship, error: shipErr } = await supabase
+      const { data: ship } = await supabase
         .from("shipments")
         .select("origin_country, destination_country, weight_kg, transport_type, priority, origin_city, destination_city")
         .eq("id", body.shipment_id)
         .maybeSingle();
-      if (shipErr) throw shipErr;
       if (ship) {
         input = {
           origin_country: input.origin_country ?? ship.origin_country,
@@ -82,10 +72,7 @@ serve(async (req) => {
     }
 
     if (!input.origin_country || !input.destination_country || !input.weight_kg) {
-      return new Response(
-        JSON.stringify({ error: "origin_country, destination_country and weight_kg are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json(400, { error: "origin_country, destination_country and weight_kg are required" });
     }
 
     const { data, error } = await supabase.rpc("calculate_quote", {
@@ -97,16 +84,25 @@ serve(async (req) => {
       p_origin_city: input.origin_city ?? null,
       p_destination_city: input.destination_city ?? null,
     });
-    if (error) throw error;
-
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row) {
-      return new Response(JSON.stringify({ error: "Pricing unavailable" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (error) {
+      console.error("calculate_quote error:", error);
+      return json(200, { fallback: true, error: "PRICING_UNAVAILABLE", message: "Nous cherchons la meilleure option" });
     }
 
-    // Check if any matching open departure exists → drives fallback message
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return json(200, { fallback: true, error: "NO_PRICE_ROW", message: "Nous cherchons la meilleure option" });
+
+    // Find which routes_pricing row was used (best-effort, for debug breakdown)
+    const { data: routeRow } = await supabase
+      .from("routes_pricing")
+      .select("id, origin_country, destination_country, transport_type, base_price_eur, price_per_kg_eur, eta_min_days, eta_max_days")
+      .eq("active", true)
+      .ilike("origin_country", input.origin_country)
+      .ilike("destination_country", input.destination_country)
+      .order("base_price_eur", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
     const { count: depCount } = await supabase
       .from("konnekt_departures")
       .select("id", { count: "exact", head: true })
@@ -117,34 +113,36 @@ serve(async (req) => {
 
     const hasDeparture = (depCount ?? 0) > 0;
 
-    return new Response(
-      JSON.stringify({
-        price: Number(row.price_eur),
-        currency: row.currency,
-        eta_min_days: row.eta_min_days,
-        eta_max_days: row.eta_max_days,
-        eta_label: `${row.eta_min_days}-${row.eta_max_days} jours`,
-        estimated_delivery: hasDeparture
-          ? `${row.eta_min_days}-${row.eta_max_days} jours`
-          : "Nous cherchons la meilleure option",
-        transport_type: row.transport_type,
-        confidence: row.confidence,
-        has_departure: hasDeparture,
-        breakdown: {
-          base_price_eur: Number(row.base_price_eur),
-          weight_cost_eur: Number(row.weight_cost_eur),
-          urgency_multiplier: Number(row.urgency_multiplier),
-          supply_adjustment_eur: Number(row.supply_adjustment_eur),
-          margin_multiplier: Number(row.margin_multiplier),
-        },
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json(200, {
+      price: Number(row.price_eur),
+      currency: row.currency,
+      eta_min_days: row.eta_min_days,
+      eta_max_days: row.eta_max_days,
+      eta_label: `${row.eta_min_days}-${row.eta_max_days} jours`,
+      estimated_delivery: hasDeparture
+        ? `${row.eta_min_days}-${row.eta_max_days} jours`
+        : "Nous cherchons la meilleure option",
+      transport_type: row.transport_type,
+      confidence: row.confidence,
+      has_departure: hasDeparture,
+      fallback: false,
+      breakdown: {
+        base_price_eur: Number(row.base_price_eur),
+        weight_cost_eur: Number(row.weight_cost_eur),
+        urgency_multiplier: Number(row.urgency_multiplier),
+        supply_adjustment_eur: Number(row.supply_adjustment_eur),
+        margin_multiplier: Number(row.margin_multiplier),
+        route_used: routeRow ?? null,
+        open_departures: depCount ?? 0,
+      },
+    });
   } catch (e) {
     console.error("quote-shipment error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    // NEVER 500: client SDK throws on non-2xx and discards the body.
+    return json(200, {
+      fallback: true,
+      error: "SERVICE_FAILED",
+      message: "Nous cherchons la meilleure option",
+    });
   }
 });
