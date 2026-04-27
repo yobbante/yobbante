@@ -240,7 +240,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <FlowSection revealed={!!type} step={2} total={5} title="D'où part votre envoi ?" hint="Recherchez la ville de départ.">
-        <CitySelector cities={ORIGIN_CITIES} value={originCityId} onChange={setOriginCity} placeholder="Ex. Shenzhen, Paris, Dubai…" />
+        <CitySelector
+          cities={ORIGIN_CITIES}
+          value={originCityId}
+          onChange={setOriginCity}
+          placeholder="Ex. Shenzhen, Paris, Dubai…"
+          popularIds={POPULAR_ORIGIN_IDS}
+        />
         {originCity && !originCountrySupported && (
           <p className="mt-3 text-xs text-amber-600">
             Cette origine n'est pas encore couverte par notre réseau d'entrepôts. Choisissez une ville en France, Chine, USA, Émirats, Allemagne ou Canada pour valider.
@@ -249,7 +255,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <FlowSection revealed={!!originCity} step={3} total={5} title="Où doit-il arriver ?" hint="Recherchez la ville d'arrivée.">
-        <CitySelector cities={DESTINATION_CITIES} value={destCityId} onChange={setDestCity} placeholder="Ex. Dakar, Abidjan, Bamako…" />
+        <CitySelector
+          cities={DESTINATION_CITIES}
+          value={destCityId}
+          onChange={setDestCity}
+          placeholder="Ex. Dakar, Abidjan, Bamako…"
+          popularIds={POPULAR_DEST_IDS}
+        />
       </FlowSection>
 
       <FlowSection revealed={!!destCity} step={4} total={5} title="Combien pèse votre envoi ?" hint="Vous pourrez l'ajuster plus tard — le prix se met à jour automatiquement.">
