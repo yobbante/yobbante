@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, ShoppingCart, MapPin, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, MapPin, Users, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type AdminSection =
@@ -7,21 +7,23 @@ export type AdminSection =
   | 'orders'
   | 'hubs'
   | 'transport'
+  | 'departures'
   | 'sourcing'
   | 'tracking'
   | 'clients'
   | 'settings';
 
 export const ADMIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean }[] = [
-  { id: 'overview',  label: 'Dashboard',         icon: LayoutDashboard, live: true },
-  { id: 'requests',  label: 'Demandes clients',  icon: Inbox,           live: true },
-  { id: 'orders',    label: 'Commandes & Colis', icon: Package,         live: true },
-  { id: 'hubs',      label: 'Hubs',              icon: Globe2,          live: true },
-  { id: 'transport', label: 'Transport',         icon: Truck,           live: true },
-  { id: 'sourcing',  label: 'Sourcing',          icon: ShoppingCart,    live: true },
-  { id: 'tracking',  label: 'Tracking global',   icon: MapPin,          live: true },
-  { id: 'clients',   label: 'Clients',           icon: Users,           live: true },
-  { id: 'settings',  label: 'Paramètres',        icon: Settings,        live: true },
+  { id: 'overview',   label: 'Dashboard',         icon: LayoutDashboard, live: true },
+  { id: 'requests',   label: 'Demandes clients',  icon: Inbox,           live: true },
+  { id: 'orders',     label: 'Commandes & Colis', icon: Package,         live: true },
+  { id: 'hubs',       label: 'Hubs',              icon: Globe2,          live: true },
+  { id: 'transport',  label: 'Transport',         icon: Truck,           live: true },
+  { id: 'departures', label: 'Départs manuels',   icon: Plane,           live: true },
+  { id: 'sourcing',   label: 'Sourcing',          icon: ShoppingCart,    live: true },
+  { id: 'tracking',   label: 'Tracking global',   icon: MapPin,          live: true },
+  { id: 'clients',    label: 'Clients',           icon: Users,           live: true },
+  { id: 'settings',   label: 'Paramètres',        icon: Settings,        live: true },
 ];
 
 export function AdminSidebar({ active, onChange, isAdmin }: {
