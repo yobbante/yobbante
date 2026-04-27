@@ -74,6 +74,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed]   = useState<{ reference: string; price: number; eta: string } | null>(null);
 
+  // ── Persist work-in-progress so the user keeps everything after a login round-trip
+  const DRAFT_KEY = 'send-flow';
+  const draftSnapshot = {
+    type, originCityId, destCityId, weight, declaredValue,
+    senderName, senderPhone, pickupAddress,
+    recipientName, recipientPhone, deliveryAddress,
+    chosenId: chosen?.id ?? null,
+  };
+  useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.type) setType(d.type);
+    if (d.originCityId) setOriginCity(d.originCityId);
+    if (d.destCityId) setDestCity(d.destCityId);
+    if (typeof d.weight === 'number') setWeight(d.weight);
+    if (d.declaredValue) setDeclared(d.declaredValue);
+    if (d.senderName) setSenderName(d.senderName);
+    if (d.senderPhone) setSenderPhone(d.senderPhone);
+    if (d.pickupAddress) setPickup(d.pickupAddress);
+    if (d.recipientName) setRecipientName(d.recipientName);
+    if (d.recipientPhone) setRecipientPhone(d.recipientPhone);
+    if (d.deliveryAddress) setDelivery(d.deliveryAddress);
+  });
+
   const originCity = findCity(ORIGIN_CITIES, originCityId);
   const destCity   = findCity(DESTINATION_CITIES, destCityId);
 
