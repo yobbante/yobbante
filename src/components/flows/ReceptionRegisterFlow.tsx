@@ -19,19 +19,7 @@ import { RelayPicker, type RelayAddress } from './RelayPicker';
    Types & static data
    ────────────────────────────────────────────────────────────────────── */
 
-type RelayAddress = {
-  id: string;
-  country: string;
-  country_code: string;
-  city: string;
-  address_line1: string;
-  address_line2: string | null;
-  postal_code: string | null;
-  phone: string | null;
-  contact_name: string | null;
-  active: boolean;
-  notes: string | null;
-};
+// RelayAddress type imported from RelayPicker (single source of truth).
 
 const COUNTRY_LABEL: Record<string, string> = {
   US: 'USA', FR: 'France', CN: 'Chine', GB: 'UK', AE: 'Dubai',
