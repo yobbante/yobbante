@@ -117,11 +117,11 @@ export default function LandingPage() {
               className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold border-2 border-foreground text-foreground px-7 py-4 rounded-2xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
             >
               <Factory className="w-5 h-5" />
-              Lancer un sourcing produit
+              Acheter un produit
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </motion.div>
-          <p className="mt-3 text-[11px] text-muted-foreground">Pour les entreprises et projets · achats fournisseurs en gros</p>
+          <p className="mt-3 text-[11px] text-muted-foreground">Sourcing fournisseur ou réception d'une commande en ligne</p>
 
           <motion.p
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}
@@ -202,7 +202,7 @@ export default function LandingPage() {
                 onClick={goBuy}
                 className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
               >
-                Lancer un sourcing <ArrowRight className="w-4 h-4" />
+                Acheter un produit <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
@@ -384,7 +384,7 @@ export default function LandingPage() {
               onClick={goBuy}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 border-foreground text-foreground px-6 py-3.5 rounded-xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
             >
-              <Factory className="w-4 h-4" /> Lancer un sourcing produit
+              <Factory className="w-4 h-4" /> Acheter un produit
             </button>
           </div>
           <p className="mt-6 text-xs text-muted-foreground">
