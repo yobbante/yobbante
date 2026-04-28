@@ -443,29 +443,15 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
             title="Choisissez votre adresse de relais"
             hint="C'est l'adresse à utiliser sur le site marchand."
           >
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-4xl">
-              {relays.map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => update('relay_address_id', r.id)}
-                  className={cn(
-                    "text-left rounded-xl border-2 p-4 transition-all hover:-translate-y-0.5",
-                    form.relay_address_id === r.id
-                      ? "border-yellow-400 bg-yellow-400/10"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/30"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-yellow-400 shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-white">{r.country}</p>
-                      <p className="text-xs text-white/55">{r.city}</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-[11px] text-white/45 line-clamp-2">{r.address_line1}</p>
-                </button>
-              ))}
-            </div>
+            <RelayPicker
+              value={form.relay_address_id}
+              suggestedCountryCode={suggestedCountryCode}
+              theme="dark"
+              onChange={(id, relay) => {
+                update('relay_address_id', id);
+                setSelectedRelay(relay);
+              }}
+            />
 
             <div className="flex justify-end gap-2 pt-4">
               <button
