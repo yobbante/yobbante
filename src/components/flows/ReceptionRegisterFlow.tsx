@@ -91,51 +91,22 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('merchant');
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [relays, setRelays] = useState<RelayAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedRelay, setSelectedRelay] = useState<RelayAddress | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdReference, setCreatedReference] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Load relays
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from('relay_addresses')
-        .select('*')
-        .eq('active', true)
-        .order('country');
-      if (cancelled) return;
-      if (error) {
-        toast.error("Impossible de charger les adresses de relais");
-      } else {
-        setRelays(data as RelayAddress[]);
-      }
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
-
-  const selectedRelay = useMemo(
-    () => relays.find(r => r.id === form.relay_address_id) ?? null,
-    [relays, form.relay_address_id]
-  );
 
   const isHazardous = /batteri|aérosol|aerosol|liquide|parfum|essence/i.test(form.order_description);
   const isHighValue = Number(form.estimated_value_eur) >= 500;
 
-  // Auto-pick relay when merchant suggests one
-  useEffect(() => {
-    if (form.relay_address_id || !relays.length || !form.merchant_name) return;
+  /** Country code suggested by the chosen merchant — passed to RelayPicker. */
+  const suggestedCountryCode = useMemo(() => {
     const preset = MERCHANT_PRESETS.find(m => m.name === form.merchant_name);
-    if (!preset) return;
-    const match = relays.find(r => r.country_code === preset.suggestedRelay);
-    if (match) update('relay_address_id', match.id);
-  }, [form.merchant_name, form.relay_address_id, relays]);
+    return preset?.suggestedRelay ?? null;
+  }, [form.merchant_name]);
 
   // Block air for hazardous
   useEffect(() => {
