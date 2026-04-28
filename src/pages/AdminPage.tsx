@@ -126,6 +126,7 @@ export default function AdminPage() {
           {section === 'requests'   && <RequestsTab />}
           {section === 'shipments'  && <ShipmentsWorkflowTab />}
           {section === 'orders'     && <OrdersTab />}
+          {section === 'reception'  && <ReceptionKanbanTab />}
           {section === 'hubs'       && <HubsTab />}
           {section === 'transport'  && <KonnektMonitorTab />}
           {section === 'departures' && <DeparturesTab />}
