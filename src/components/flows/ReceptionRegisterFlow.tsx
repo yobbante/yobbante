@@ -175,14 +175,6 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-white/60" />
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="pt-2">
