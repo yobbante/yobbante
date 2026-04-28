@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { RelayPicker, type RelayAddress } from './RelayPicker';
 
 /* ──────────────────────────────────────────────────────────────────────
    Types & static data
