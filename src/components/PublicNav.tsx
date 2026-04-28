@@ -112,7 +112,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   onClick={goAcheter}
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
                 >
-                  <Factory className="w-4 h-4" /> Lancer un sourcing produit
+                  <Factory className="w-4 h-4" /> Acheter un produit
                 </button>
                 <div className="border-t border-border mt-3 pt-3 space-y-1">
                   <Link

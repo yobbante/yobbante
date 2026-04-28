@@ -13,24 +13,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { RelayPicker, type RelayAddress } from './RelayPicker';
 
 /* ──────────────────────────────────────────────────────────────────────
    Types & static data
    ────────────────────────────────────────────────────────────────────── */
 
-type RelayAddress = {
-  id: string;
-  country: string;
-  country_code: string;
-  city: string;
-  address_line1: string;
-  address_line2: string | null;
-  postal_code: string | null;
-  phone: string | null;
-  contact_name: string | null;
-  active: boolean;
-  notes: string | null;
-};
+// RelayAddress type imported from RelayPicker (single source of truth).
 
 const COUNTRY_LABEL: Record<string, string> = {
   US: 'USA', FR: 'France', CN: 'Chine', GB: 'UK', AE: 'Dubai',
@@ -102,51 +91,22 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('merchant');
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [relays, setRelays] = useState<RelayAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedRelay, setSelectedRelay] = useState<RelayAddress | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdReference, setCreatedReference] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Load relays
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from('relay_addresses')
-        .select('*')
-        .eq('active', true)
-        .order('country');
-      if (cancelled) return;
-      if (error) {
-        toast.error("Impossible de charger les adresses de relais");
-      } else {
-        setRelays(data as RelayAddress[]);
-      }
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
-
-  const selectedRelay = useMemo(
-    () => relays.find(r => r.id === form.relay_address_id) ?? null,
-    [relays, form.relay_address_id]
-  );
 
   const isHazardous = /batteri|aérosol|aerosol|liquide|parfum|essence/i.test(form.order_description);
   const isHighValue = Number(form.estimated_value_eur) >= 500;
 
-  // Auto-pick relay when merchant suggests one
-  useEffect(() => {
-    if (form.relay_address_id || !relays.length || !form.merchant_name) return;
+  /** Country code suggested by the chosen merchant — passed to RelayPicker. */
+  const suggestedCountryCode = useMemo(() => {
     const preset = MERCHANT_PRESETS.find(m => m.name === form.merchant_name);
-    if (!preset) return;
-    const match = relays.find(r => r.country_code === preset.suggestedRelay);
-    if (match) update('relay_address_id', match.id);
-  }, [form.merchant_name, form.relay_address_id, relays]);
+    return preset?.suggestedRelay ?? null;
+  }, [form.merchant_name]);
 
   // Block air for hazardous
   useEffect(() => {
@@ -214,14 +174,6 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
       toast.error("Impossible de copier");
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-white/60" />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -491,29 +443,15 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
             title="Choisissez votre adresse de relais"
             hint="C'est l'adresse à utiliser sur le site marchand."
           >
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-4xl">
-              {relays.map(r => (
-                <button
-                  key={r.id}
-                  onClick={() => update('relay_address_id', r.id)}
-                  className={cn(
-                    "text-left rounded-xl border-2 p-4 transition-all hover:-translate-y-0.5",
-                    form.relay_address_id === r.id
-                      ? "border-yellow-400 bg-yellow-400/10"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/30"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-yellow-400 shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-white">{r.country}</p>
-                      <p className="text-xs text-white/55">{r.city}</p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-[11px] text-white/45 line-clamp-2">{r.address_line1}</p>
-                </button>
-              ))}
-            </div>
+            <RelayPicker
+              value={form.relay_address_id}
+              suggestedCountryCode={suggestedCountryCode}
+              theme="dark"
+              onChange={(id, relay) => {
+                update('relay_address_id', id);
+                setSelectedRelay(relay);
+              }}
+            />
 
             <div className="flex justify-end gap-2 pt-4">
               <button
