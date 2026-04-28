@@ -17,6 +17,7 @@ import { TrackingTab } from '@/components/admin/TrackingTab';
 import { ClientsTab } from '@/components/admin/ClientsTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { ShipmentsWorkflowTab } from '@/components/admin/ShipmentsWorkflowTab';
+import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
