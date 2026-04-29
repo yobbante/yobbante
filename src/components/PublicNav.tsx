@@ -110,6 +110,15 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 </button>
               </div>
               <div className="flex flex-col px-3 py-4 gap-1">
+                {!isHome && (
+                  <Link
+                    to="/"
+                    onClick={() => setOpen(false)}
+                    className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border border-border text-foreground hover:bg-secondary font-medium mb-2"
+                  >
+                    <Home className="w-4 h-4" /> Accueil
+                  </Link>
+                )}
                 <button
                   onClick={goExpedier}
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-foreground text-background font-semibold"
