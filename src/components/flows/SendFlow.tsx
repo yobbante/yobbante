@@ -420,6 +420,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         destination_country: destCity.country,
         origin_city: originCity.city,
         destination_city: destCity.city,
+        // Persist the exact Konnekt departure date when available — the hook
+        // also reads it from match_option.departure_date but we pass it
+        // explicitly so it's never dropped if the option is synthesized.
+        departure_date: matchOption.departure_date ?? next_departure_date ?? null,
         match_option: {
           ...matchOption,
           meta: {
