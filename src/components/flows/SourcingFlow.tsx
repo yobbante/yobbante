@@ -238,7 +238,34 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
         />
       )}
-      <FlowSection revealed step={1} total={7} title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
+      {/* ─── Step 1 — Profil sourcing (bifurcation initiale, mémorisée) ─── */}
+      <FlowSection revealed step={1} total={8} title="Vous sourcez pour ?" hint="Ce choix conditionne quantités, marges et documents générés. Mémorisé pour la prochaine fois.">
+        <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+          {([
+            { id: 'individual', icon: User,  label: 'Usage personnel',     desc: 'Quantité unitaire · prix final livré' },
+            { id: 'business',   icon: Store, label: 'Revente / Commerce',  desc: 'Lots · prix dégressif · marge intégrée' },
+          ] as const).map(opt => {
+            const Icon = opt.icon;
+            const active = sourcingProfile === opt.id;
+            return (
+              <button
+                key={opt.id} type="button" onClick={() => chooseProfile(opt.id)}
+                className={`text-left rounded-2xl border-2 p-4 transition-all flex items-start gap-3 ${active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'}`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${active ? 'bg-background/10' : 'bg-secondary'}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{opt.label}</p>
+                  <p className={`text-xs mt-0.5 ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </FlowSection>
+
+      <FlowSection revealed={!!sourcingProfile} step={2} total={8} title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit, ou collez une URL (Alibaba, Amazon, AliExpress, Shein…) — l'IA extrait nom, prix et image.">
         <div className="space-y-3 max-w-xl">
           <TextField
             value={productInput} onChange={setProductInput}
