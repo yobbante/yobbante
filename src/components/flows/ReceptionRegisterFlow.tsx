@@ -214,7 +214,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
   const submit = async () => {
     if (!user) {
       toast.info("Connectez-vous pour enregistrer votre commande");
-      navigate('/auth?redirect=/expedier/recevoir');
+      navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
     if (!form.relay_address_id || !form.merchant_name || !form.order_description) {
