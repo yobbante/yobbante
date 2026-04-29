@@ -724,7 +724,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Zap className="w-4 h-4" />,
               eta: `${expressEtaMin}-${expressEtaMax} jours`,
               price: expressPrice,
-              perks: ['Traitement prioritaire', 'Suivi temps réel', 'Aérien privilégié'],
+              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Traitement prioritaire', 'Suivi temps réel'],
             },
             {
               id: 'normal' as const,
@@ -733,13 +733,17 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Clock className="w-4 h-4" />,
               eta: `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
-              perks: ['Suivi inclus', 'Mode optimisé selon poids', 'Économique'],
+              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Suivi inclus', 'Économique'],
               recommended: true,
             },
           ];
 
           return (
             <div className="space-y-4">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span><strong>Tarif tout compris porte-à-porte</strong> — enlèvement chez vous et livraison au domicile du destinataire inclus, sans frais cachés.</span>
+              </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 {cards.map(c => {
                   const active = priority === c.id;
