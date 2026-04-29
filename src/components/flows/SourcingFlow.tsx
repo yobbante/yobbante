@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Factory, Search, Handshake, BadgeCheck, Truck, Sparkles, Loader2,
-  Boxes, Crown, Zap, Clock, ShieldCheck,
+  Boxes, Crown, Zap, Clock, ShieldCheck, User, Store,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -13,6 +13,7 @@ import {
 import { useMatchOptions } from './useMatchOptions';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
+import { useProfile } from '@/hooks/useProfile';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { supabase } from '@/integrations/supabase/client';
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
