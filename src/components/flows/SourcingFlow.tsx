@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Factory, Search, Handshake, BadgeCheck, Truck, Sparkles, Loader2,
-  Boxes, Crown, Zap, Clock, ShieldCheck,
+  Boxes, Crown, Zap, Clock, ShieldCheck, User, Store,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -13,6 +13,7 @@ import {
 import { useMatchOptions } from './useMatchOptions';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
+import { useProfile } from '@/hooks/useProfile';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { supabase } from '@/integrations/supabase/client';
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
@@ -66,6 +67,23 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
+  const { profile, updateProfile } = useProfile();
+
+  // Step 0 — Profil sourcing (mémorisé sur la table profiles)
+  const [sourcingProfile, setSourcingProfile] = useState<'individual' | 'business' | null>(null);
+  useEffect(() => {
+    if (!sourcingProfile && profile?.sourcing_profile) {
+      setSourcingProfile(profile.sourcing_profile as 'individual' | 'business');
+    }
+  }, [profile?.sourcing_profile, sourcingProfile]);
+
+  function chooseProfile(p: 'individual' | 'business') {
+    setSourcingProfile(p);
+    // Persiste silencieusement — l'utilisateur n'a plus à choisir au prochain sourcing.
+    if (profile && profile.sourcing_profile !== p) {
+      updateProfile.mutate({ sourcing_profile: p } as any);
+    }
+  }
 
   const [productInput, setProductInput] = useState('');
   const [parsing, setParsing] = useState(false);
@@ -86,8 +104,9 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
 
   // Persist work-in-progress so a /auth round-trip never loses input
   const DRAFT_KEY = 'sourcing-flow';
-  const draftSnapshot = { productInput, quantity, budget, quality, urgency, origin, destination };
+  const draftSnapshot = { sourcingProfile, productInput, quantity, budget, quality, urgency, origin, destination };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.sourcingProfile) setSourcingProfile(d.sourcingProfile);
     if (d.productInput) setProductInput(d.productInput);
     if (typeof d.quantity === 'number') setQuantity(d.quantity);
     if (d.budget) setBudget(d.budget);
@@ -151,7 +170,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       : '';
 
   async function submit() {
-    if (!quantity || !origin || !destination || !quality || !urgency) return;
+    if (!sourcingProfile || !quantity || !origin || !destination || !quality || !urgency) return;
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -170,6 +189,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         budget_eur: budget ? Number(budget) : null,
         needs_sourcing: true,
         notes: [
+          `Profil sourcing: ${sourcingProfile === 'business' ? 'Revente / Commerce' : 'Usage personnel'}`,
           `Brief: ${productInput}`,
           `Quantité: ${quantity}`,
           budget ? `Budget: ${budget}€` : '',
@@ -220,7 +240,34 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           info={<><strong className="text-foreground">Ce service est destiné aux achats auprès de fournisseurs (grossistes, fabricants).</strong> Pour recevoir une commande Amazon, Shein ou similaire, utilisez plutôt « Expédier · Recevoir ».</>}
         />
       )}
-      <FlowSection revealed step={1} total={7} title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit ou collez un lien Alibaba, 1688, Made-in-China…">
+      {/* ─── Step 1 — Profil sourcing (bifurcation initiale, mémorisée) ─── */}
+      <FlowSection revealed step={1} total={8} title="Vous sourcez pour ?" hint="Ce choix conditionne quantités, marges et documents générés. Mémorisé pour la prochaine fois.">
+        <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+          {([
+            { id: 'individual', icon: User,  label: 'Usage personnel',     desc: 'Quantité unitaire · prix final livré' },
+            { id: 'business',   icon: Store, label: 'Revente / Commerce',  desc: 'Lots · prix dégressif · marge intégrée' },
+          ] as const).map(opt => {
+            const Icon = opt.icon;
+            const active = sourcingProfile === opt.id;
+            return (
+              <button
+                key={opt.id} type="button" onClick={() => chooseProfile(opt.id)}
+                className={`text-left rounded-2xl border-2 p-4 transition-all flex items-start gap-3 ${active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'}`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${active ? 'bg-background/10' : 'bg-secondary'}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{opt.label}</p>
+                  <p className={`text-xs mt-0.5 ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </FlowSection>
+
+      <FlowSection revealed={!!sourcingProfile} step={2} total={8} title="Que souhaitez-vous sourcer ?" hint="Décrivez le produit, ou collez une URL (Alibaba, Amazon, AliExpress, Shein…) — l'IA extrait nom, prix et image.">
         <div className="space-y-3 max-w-xl">
           <TextField
             value={productInput} onChange={setProductInput}
@@ -262,7 +309,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         )}
       </FlowSection>
 
-      <FlowSection revealed={productInput.trim().length >= 4} step={2} total={7} title="Combien d'unités ?" hint="La quantité est essentielle pour obtenir le meilleur prix fournisseur.">
+      <FlowSection revealed={productInput.trim().length >= 4} step={3} total={8} title="Combien d'unités ?" hint="La quantité est essentielle pour obtenir le meilleur prix fournisseur.">
         <div className="space-y-5 max-w-md">
           <NumberSlider label="Quantité" value={quantity} onChange={setQuantity} min={10} max={5000} step={10} unit=" u." />
           <TextField
@@ -278,15 +325,15 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         )}
       </FlowSection>
 
-      <FlowSection revealed={!!parsed || productInput.trim().length >= 4} step={3} total={7} title="Niveau de qualité">
+      <FlowSection revealed={!!parsed || productInput.trim().length >= 4} step={4} total={8} title="Niveau de qualité">
         <ChipGroup options={QUALITIES} value={quality} onChange={(v) => setQuality(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!quality} step={4} total={7} title="Urgence du projet">
+      <FlowSection revealed={!!quality} step={5} total={8} title="Urgence du projet">
         <ChipGroup options={URGENCIES} value={urgency} onChange={(v) => setUrgency(v)} />
       </FlowSection>
 
-      <FlowSection revealed={!!urgency} step={5} total={7} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
+      <FlowSection revealed={!!urgency} step={6} total={8} title="Le rôle de Yobbanté" hint="On gère ces 4 missions, de bout en bout.">
         <div className="grid sm:grid-cols-2 gap-2.5">
           {ROLES.map((r, i) => (
             <motion.div
@@ -307,11 +354,11 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         </div>
       </FlowSection>
 
-      <FlowSection revealed={!!urgency} step={6} total={7} title="Origine du sourcing">
+      <FlowSection revealed={!!urgency} step={7} total={8} title="Origine du sourcing">
         <CountryGrid countries={ORIGINS} value={origin} onChange={setOrigin} />
       </FlowSection>
 
-      <FlowSection revealed={!!origin} step={7} total={7} title="Destination de livraison">
+      <FlowSection revealed={!!origin} step={8} total={8} title="Destination de livraison">
         <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
       </FlowSection>
 

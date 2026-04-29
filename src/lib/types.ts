@@ -73,11 +73,14 @@ export const COUNTRY_NAMES: Record<WarehouseCountry, string> = {
   SN: 'Sénégal',
 };
 
+export type SourcingProfile = 'individual' | 'business';
+
 export interface Profile {
   id: string;
   user_id: string;
   full_name: string | null;
   default_delivery_country: string | null;
+  sourcing_profile: SourcingProfile | null;
   created_at: string;
 }
 

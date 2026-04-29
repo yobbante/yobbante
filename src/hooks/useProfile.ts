@@ -18,7 +18,11 @@ export function useProfile() {
   });
 
   const updateProfile = useMutation({
-    mutationFn: async (updates: Partial<Pick<Profile, 'full_name' | 'default_delivery_country'>>) => {
+    mutationFn: async (
+      updates: Partial<Pick<Profile, 'full_name' | 'default_delivery_country'>> & {
+        sourcing_profile?: 'individual' | 'business' | null;
+      },
+    ) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
