@@ -297,10 +297,17 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     saveSession({ hub, destination, recommendedHub });
   }, [hub, destination, recommendedHub, step]);
 
-  /* Once we've consumed the landing hand-off, clear it so it doesn't leak. */
+  /* Once we've consumed the landing/sourcing hand-offs, clear them. */
   useEffect(() => {
     if (landingHub) clearLandingHub();
-  }, [landingHub]);
+    if (handoff) {
+      clearSourcingHandoff();
+      toast.success(
+        `Brief sourcing récupéré · ${handoff.merchantHint ?? 'Marchand'} → ${handoff.destination}`,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Cross-component bridge: header button can request "Mes commandes" view. */
   useEffect(() => {
