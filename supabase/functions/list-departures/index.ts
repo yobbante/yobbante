@@ -97,6 +97,40 @@ function pickCity(v: unknown): string {
   return pickStr(v, 'city', 'name', 'label', 'value');
 }
 
+// Map well-known cities to their real ISO country code, so we can fix
+// inconsistent partner data (e.g. "Abidjan" tagged as FR).
+const CITY_TO_COUNTRY: Record<string, string> = {
+  dakar: 'SN', thies: 'SN', 'saint-louis': 'SN',
+  abidjan: 'CI', bouake: 'CI', 'yamoussoukro': 'CI',
+  bamako: 'ML',
+  conakry: 'GN',
+  cotonou: 'BJ',
+  lome: 'TG',
+  ouagadougou: 'BF',
+  douala: 'CM', yaounde: 'CM',
+  libreville: 'GA',
+  brazzaville: 'CG',
+  paris: 'FR', marseille: 'FR', lyon: 'FR', bordeaux: 'FR',
+  shenzhen: 'CN', guangzhou: 'CN', shanghai: 'CN', yiwu: 'CN', beijing: 'CN',
+  dubai: 'AE', dubaï: 'AE',
+  miami: 'US', 'new york': 'US',
+  montreal: 'CA', 'montréal': 'CA',
+  hamburg: 'DE', hambourg: 'DE', berlin: 'DE',
+};
+
+function normalizeCityKey(city: string): string {
+  return city
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function countryFromCity(city: string): string | null {
+  const k = normalizeCityKey(city);
+  return CITY_TO_COUNTRY[k] || null;
+}
+
 function normalizeKonnekt(raw: unknown): Departure[] {
   if (!Array.isArray(raw)) return [];
   return raw
