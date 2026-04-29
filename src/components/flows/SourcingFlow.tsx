@@ -189,6 +189,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         budget_eur: budget ? Number(budget) : null,
         needs_sourcing: true,
         notes: [
+          `Profil sourcing: ${sourcingProfile === 'business' ? 'Revente / Commerce' : 'Usage personnel'}`,
           `Brief: ${productInput}`,
           `Quantité: ${quantity}`,
           budget ? `Budget: ${budget}€` : '',
