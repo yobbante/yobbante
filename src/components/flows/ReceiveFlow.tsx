@@ -655,7 +655,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           isAuthenticated={!!user}
           goBack={() => setStep('ask')}
           goAddOrder={() => setStep('tracking')}
-          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
+          goSignIn={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
         />
       )}
 
