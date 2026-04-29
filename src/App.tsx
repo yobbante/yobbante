@@ -18,6 +18,7 @@ import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
+import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 
 const queryClient = new QueryClient();
 
