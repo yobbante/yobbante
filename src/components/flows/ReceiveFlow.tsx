@@ -477,7 +477,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.message('Connectez-vous pour finaliser — vos colis restent enregistrés.');
-        navigate(`/auth?redirect=${encodeURIComponent('/expedier/recevoir')}`);
+        const here = window.location.pathname + window.location.search;
+        navigate(`/auth?redirect=${encodeURIComponent(here)}`);
         return;
       }
       const totalWeight = items.reduce((s, it) => s + (it.estimatedWeightKg || 0.5), 0);
@@ -626,7 +627,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           saveReminder={saveReminder}
           goTracking={() => setStep('tracking')}
           goBack={() => setStep('ask')}
-          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
+          goSignIn={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
         />
       )}
 
@@ -654,7 +655,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           isAuthenticated={!!user}
           goBack={() => setStep('ask')}
           goAddOrder={() => setStep('tracking')}
-          goSignIn={() => navigate('/auth?redirect=/expedier/recevoir')}
+          goSignIn={() => navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
         />
       )}
 
