@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
 import { ReceptionRegisterFlow } from './ReceptionRegisterFlow';
+import { readSourcingHandoff, clearSourcingHandoff } from '@/lib/sourcingHandoff';
 
 /** Detect a recommended hub from a free-text input (URL or paste). */
 function detectHubFromInput(text: string): HubId | null {
