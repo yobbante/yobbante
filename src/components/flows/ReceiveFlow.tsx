@@ -477,7 +477,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.message('Connectez-vous pour finaliser — vos colis restent enregistrés.');
-        navigate(`/auth?redirect=${encodeURIComponent('/expedier/recevoir')}`);
+        const here = window.location.pathname + window.location.search;
+        navigate(`/auth?redirect=${encodeURIComponent(here)}`);
         return;
       }
       const totalWeight = items.reduce((s, it) => s + (it.estimatedWeightKg || 0.5), 0);
