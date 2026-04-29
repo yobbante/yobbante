@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Menu, X } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,10 +86,18 @@ export default function AdminPage() {
         <div className="flex-1 overflow-y-auto">
           <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
         </div>
-        <div className="px-4 py-3 border-t border-border">
+        <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/8 px-2 py-1 rounded">
             <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : 'Staff'}
           </span>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-colors"
+            aria-label="Se déconnecter"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Déconnexion
+          </button>
         </div>
       </aside>
 
@@ -116,9 +124,18 @@ export default function AdminPage() {
             <Menu className="w-5 h-5" />
           </button>
           <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
-          <button onClick={() => navigate('/app')} className="p-2 -mr-2 rounded text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
+              aria-label="Se déconnecter"
+              className="p-2 rounded text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+            <button onClick={() => navigate('/app')} className="p-2 -mr-2 rounded text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
