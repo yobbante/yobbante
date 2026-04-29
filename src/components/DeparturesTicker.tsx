@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plane, Ship, Truck, Radio, Database, FlaskConical } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useDepartures } from '@/hooks/useDepartures';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -141,14 +140,18 @@ export function DeparturesTicker() {
   const source: 'konnekt' | 'cache' | 'mock' = data?.source || 'mock';
   const items = [...departures, ...departures];
 
-  const handleFollow = async (d: Departure) => {
-    const qs = `view=shipments&destination=${d.destination_country}&origin=${d.origin_country}`;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      navigate(`/app?${qs}`);
-    } else {
-      navigate(`/auth?next=${encodeURIComponent(`/app?${qs}`)}`);
-    }
+  const handleFollow = (d: Departure) => {
+    // Pre-fill the SendFlow with this departure's origin & destination so the
+    // user doesn't need to re-enter them. SendFlow reads `location.state.preset`.
+    navigate('/expedier/envoyer', {
+      state: {
+        preset: {
+          type: 'package',
+          origin: d.origin_country,
+          destination: d.destination_country,
+        },
+      },
+    });
   };
 
   return (
