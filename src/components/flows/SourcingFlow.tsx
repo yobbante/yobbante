@@ -392,6 +392,57 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         )}
       </FlowSection>
 
+      {/* ─── Bifurcation finale : confier le sourcing OU commander soi-même ─── */}
+      {!!matchInput && !matching && (
+        <FlowSection
+          revealed
+          title="Comment souhaitez-vous procéder ?"
+          hint="Yobbanté gère le brief de A à Z, ou pré-remplit l'écran « Recevoir » si vous commandez vous-même."
+        >
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="rounded-2xl border-2 border-foreground bg-foreground/[0.03] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Handshake className="w-4 h-4" /> Yobbanté s'occupe de tout
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                Sourcing, négociation, contrôle qualité et livraison. Vous validez la short-list sous 48h.
+              </p>
+              <p className="mt-3 text-xs text-foreground/70">→ Utilisez le bouton « Lancer le sourcing » ci-dessous.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!origin || !destination) return;
+                writeSourcingHandoff({
+                  hub: origin,
+                  destination,
+                  merchantHint: parsed?.platform,
+                  productTitle: parsed?.title,
+                  productUrl: /^https?:\/\//i.test(productInput) ? productInput.trim() : undefined,
+                  estimatedPriceEur: parsed?.estimatedPriceEur,
+                  estimatedWeightKg: parsed?.estimatedWeightKg,
+                  quantity,
+                });
+                toast.message('Brief transféré vers « Recevoir »');
+                navigate('/recevoir');
+              }}
+              disabled={!origin || !destination}
+              className="text-left rounded-2xl border-2 border-border bg-card p-4 hover:border-foreground/40 transition-all disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <ShoppingBag className="w-4 h-4" /> Je commande moi-même
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                Pré-remplit l'écran « Recevoir » avec hub {COUNTRY_NAME(origin ?? 'CN')} → {destination ? COUNTRY_NAME(destination) : '…'} et le marchand détecté.
+              </p>
+              <p className="mt-3 text-xs text-foreground font-semibold inline-flex items-center gap-1">
+                Continuer vers Recevoir <span aria-hidden>→</span>
+              </p>
+            </button>
+          </div>
+        </FlowSection>
+      )}
+
       <LiveSummaryBar
         visible={!!destination && !!quality && !!urgency}
         summary={summary}
