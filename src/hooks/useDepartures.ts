@@ -29,7 +29,14 @@ export function useDepartures() {
       if (error) throw error;
       return data as DeparturesResponse;
     },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    // Real-time-ish polling: refetch every 60s, on focus, and on reconnect.
+    // Stale immediately so background refetches actually fire.
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 }

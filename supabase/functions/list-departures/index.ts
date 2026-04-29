@@ -274,7 +274,9 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         'Cache-Control': forceRefresh
           ? 'no-store'
-          : 'public, max-age=300, s-maxage=600, stale-while-revalidate=120',
+          // Short edge cache so the 60s client poll actually reflects new data;
+          // SWR keeps responses snappy if Konnekt becomes momentarily slow.
+          : 'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
       },
     });
   } catch (e) {
