@@ -55,6 +55,12 @@ export default function AcheterPage() {
             onSwap={swapMode}
             swapLabel="Changer"
             theme="light"
+            secondaryAction={{
+              label: 'Accueil',
+              icon: <Home className="w-3.5 h-3.5" />,
+              variant: 'ghost',
+              onClick: () => navigate('/'),
+            }}
           />
         }
       />
@@ -71,11 +77,10 @@ export default function AcheterPage() {
             swapLabel="Changer"
             theme="dark"
             secondaryAction={{
-              label: 'Mes commandes',
-              icon: <ListChecks className="w-3.5 h-3.5" />,
-              variant: 'accent',
-              onClick: () =>
-                window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
+              label: 'Accueil',
+              icon: <Home className="w-3.5 h-3.5" />,
+              variant: 'ghost',
+              onClick: () => navigate('/'),
             }}
           />
         }
