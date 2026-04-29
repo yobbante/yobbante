@@ -35,37 +35,37 @@ export default function ExpedierPage() {
     window.history.replaceState({}, '', `/expedier/${m}`);
   }
   function swapMode() {
-    setMode(null);
-    window.history.replaceState({}, '', '/expedier');
+    const next: Mode = mode === 'envoyer' ? 'recevoir' : 'envoyer';
+    setMode(next);
+    window.history.replaceState({}, '', `/expedier/${next}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ─────────── FLOW MODE: render dedicated flow with compact header ───────────
-  if (mode) {
-    const header = (
-      <FlowCompactHeader
-        eyebrow={mode === 'envoyer' ? 'Expédier · Envoyer' : 'Expédier · Recevoir'}
-        title={mode === 'envoyer' ? 'Envoyer un colis' : 'Recevoir une commande'}
-        onSwap={swapMode}
-        swapLabel="Changer"
-        theme={mode === 'envoyer' ? 'light' : 'dark'}
-        secondaryAction={
-          mode === 'recevoir'
-            ? {
-                label: 'Mes commandes',
-                icon: <ListChecks className="w-3.5 h-3.5" />,
-                variant: 'accent',
-                onClick: () =>
-                  window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
-              }
-            : undefined
-        }
-      />
-    );
-    return mode === 'envoyer'
-      ? <SendFlow compactHeader={header} />
-      : <ReceiveFlow compactHeader={header} />;
-  }
+  const header = (
+    <FlowCompactHeader
+      eyebrow={mode === 'envoyer' ? 'Expédier · Envoyer' : 'Expédier · Recevoir'}
+      title={mode === 'envoyer' ? 'Envoyer un colis' : 'Recevoir une commande'}
+      onSwap={swapMode}
+      swapLabel={mode === 'envoyer' ? 'Recevoir plutôt' : 'Envoyer plutôt'}
+      theme={mode === 'envoyer' ? 'light' : 'dark'}
+      secondaryAction={
+        mode === 'recevoir'
+          ? {
+              label: 'Mes commandes',
+              icon: <ListChecks className="w-3.5 h-3.5" />,
+              variant: 'accent',
+              onClick: () =>
+                window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
+            }
+          : undefined
+      }
+    />
+  );
+  return mode === 'envoyer'
+    ? <SendFlow compactHeader={header} />
+    : <ReceiveFlow compactHeader={header} />;
+}
 
   // ─────────── SELECTION MODE ───────────
   return (
