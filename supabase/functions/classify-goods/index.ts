@@ -70,7 +70,10 @@ Réponds UNIQUEMENT en appelant l'outil classify.`;
         }],
         tool_choice: { type: "function", function: { name: "classify" } },
       }),
-    });
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!resp.ok) {
       if (resp.status === 429) return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
