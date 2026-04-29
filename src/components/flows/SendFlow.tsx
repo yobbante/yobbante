@@ -930,7 +930,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
-        sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}${countdown && !countdown.isPast ? ` · ${countdown.label}` : ''}` : undefined}
+        sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
             <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
