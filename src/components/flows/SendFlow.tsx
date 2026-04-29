@@ -655,31 +655,40 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 6 — Goods type ─── */}
-      <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {GOODS_TYPES.map(g => (
-            <button key={g.id} type="button" onClick={() => setGoodsType(g.id)}
-              className={`text-left rounded-xl border-2 px-4 py-3.5 transition-all ${
-                goodsType === g.id
-                  ? 'border-foreground bg-foreground text-background shadow-sm'
-                  : 'border-border bg-card hover:border-foreground/40'
-              }`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold">{g.label}</p>
-                {g.risk === 'high' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-              </div>
-              <p className={`mt-0.5 text-[11px] ${goodsType === g.id ? 'text-background/70' : 'text-muted-foreground'}`}>{g.desc}</p>
-            </button>
-          ))}
-        </div>
-        {corridorWarning && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+      {/* ─── Step 6 — Goods type (skipped when AI is confident) ─── */}
+      {!skipGoodsStep ? (
+        <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {GOODS_TYPES.map(g => (
+              <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
+                className={`text-left rounded-xl border-2 px-4 py-3.5 transition-all ${
+                  goodsType === g.id
+                    ? 'border-foreground bg-foreground text-background shadow-sm'
+                    : 'border-border bg-card hover:border-foreground/40'
+                }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{g.label}</p>
+                  {g.risk === 'high' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                </div>
+                <p className={`mt-0.5 text-[11px] ${goodsType === g.id ? 'text-background/70' : 'text-muted-foreground'}`}>{g.desc}</p>
+              </button>
+            ))}
+          </div>
+          {corridorWarning && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{corridorWarning}</span>
+            </div>
+          )}
+        </FlowSection>
+      ) : corridorWarning ? (
+        <div className="mx-auto max-w-2xl px-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{corridorWarning}</span>
           </div>
-        )}
-      </FlowSection>
+        </div>
+      ) : null}
 
       {/* ─── Step 7 — Transport & priority ─── */}
       <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
