@@ -154,6 +154,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [parcelCount, setParcelCount]     = useState(1);
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
+  const [goodsAutoDetected, setGoodsAutoDetected] = useState<{ id: GoodsId; confidence: 'high'|'medium'|'low'; rationale: string } | null>(null);
+  const [goodsManualOverride, setGoodsManualOverride] = useState(false);
+  const [goodsDetecting, setGoodsDetecting] = useState(false);
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
@@ -271,12 +274,43 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     }
   }, [weight, weightTouched, transportMode, goodsType]);
 
+  // ── AI: classify goods type from description (debounced)
+  useEffect(() => {
+    const desc = description.trim();
+    if (desc.length < 4 || goodsManualOverride) return;
+    const handle = setTimeout(async () => {
+      try {
+        setGoodsDetecting(true);
+        const { data, error } = await supabase.functions.invoke('classify-goods', {
+          body: { description: desc, declared_value_eur: declaredEur || null },
+        });
+        if (error) throw error;
+        const id = data?.goods_type as GoodsId | null;
+        const conf = data?.confidence as 'high'|'medium'|'low' | undefined;
+        if (id && GOODS_TYPES.some(g => g.id === id) && conf) {
+          setGoodsAutoDetected({ id, confidence: conf, rationale: data?.rationale ?? '' });
+          // Auto-select only when confidence is high or medium
+          if ((conf === 'high' || conf === 'medium') && !goodsManualOverride) {
+            setGoodsType(id);
+          }
+        }
+      } catch (e) {
+        console.warn('classify-goods failed', e);
+      } finally {
+        setGoodsDetecting(false);
+      }
+    }, 700);
+    return () => clearTimeout(handle);
+  }, [description, declaredEur, goodsManualOverride]);
+
   // ── Reveal logic per step
   const step1Ok = !!senderKind && !!originCountry;
   const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
   const step3Ok = step2Ok && !!destCity;
   const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
   const step5Ok = step4Ok && !!description.trim() && !!declaredLocal && weightTouched;
+  const goodsAutoConfident = !!goodsAutoDetected && (goodsAutoDetected.confidence === 'high' || goodsAutoDetected.confidence === 'medium') && !goodsManualOverride;
+  const skipGoodsStep = goodsAutoConfident && !!goodsType;
   const step6Ok = step5Ok && !!goodsType;
   const step7Ok = step6Ok;
   const step8Ok = step7Ok && (!showInsuranceStep || true);
@@ -556,6 +590,30 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
 
+          {/* AI auto-detection chip */}
+          {description.trim().length >= 4 && (
+            <div className="flex items-center gap-2 text-[11px]">
+              {goodsDetecting ? (
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <Sparkles className="w-3 h-3 animate-pulse" />
+                  Analyse de la description en cours…
+                </span>
+              ) : goodsAutoDetected ? (
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border ${
+                  goodsAutoConfident
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                    : 'border-amber-300 bg-amber-50 text-amber-900'
+                }`}>
+                  <Sparkles className="w-3 h-3" />
+                  Type détecté&nbsp;: <strong>{GOODS_TYPES.find(g => g.id === goodsAutoDetected.id)?.label}</strong>
+                  {!goodsAutoConfident && <span> · à confirmer</span>}
+                  <button type="button" onClick={() => { setGoodsManualOverride(true); setGoodsAutoDetected(null); }}
+                    className="ml-1 underline underline-offset-2 hover:opacity-80">Modifier</button>
+                </span>
+              ) : null}
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-3">
             <TextField
               label={`Valeur déclarée * (${originProfile.currencySymbol})`}
@@ -597,31 +655,40 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 6 — Goods type ─── */}
-      <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {GOODS_TYPES.map(g => (
-            <button key={g.id} type="button" onClick={() => setGoodsType(g.id)}
-              className={`text-left rounded-xl border-2 px-4 py-3.5 transition-all ${
-                goodsType === g.id
-                  ? 'border-foreground bg-foreground text-background shadow-sm'
-                  : 'border-border bg-card hover:border-foreground/40'
-              }`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold">{g.label}</p>
-                {g.risk === 'high' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-              </div>
-              <p className={`mt-0.5 text-[11px] ${goodsType === g.id ? 'text-background/70' : 'text-muted-foreground'}`}>{g.desc}</p>
-            </button>
-          ))}
-        </div>
-        {corridorWarning && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+      {/* ─── Step 6 — Goods type (skipped when AI is confident) ─── */}
+      {!skipGoodsStep ? (
+        <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {GOODS_TYPES.map(g => (
+              <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
+                className={`text-left rounded-xl border-2 px-4 py-3.5 transition-all ${
+                  goodsType === g.id
+                    ? 'border-foreground bg-foreground text-background shadow-sm'
+                    : 'border-border bg-card hover:border-foreground/40'
+                }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{g.label}</p>
+                  {g.risk === 'high' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                </div>
+                <p className={`mt-0.5 text-[11px] ${goodsType === g.id ? 'text-background/70' : 'text-muted-foreground'}`}>{g.desc}</p>
+              </button>
+            ))}
+          </div>
+          {corridorWarning && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{corridorWarning}</span>
+            </div>
+          )}
+        </FlowSection>
+      ) : corridorWarning ? (
+        <div className="mx-auto max-w-2xl px-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{corridorWarning}</span>
           </div>
-        )}
-      </FlowSection>
+        </div>
+      ) : null}
 
       {/* ─── Step 7 — Transport & priority ─── */}
       <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
