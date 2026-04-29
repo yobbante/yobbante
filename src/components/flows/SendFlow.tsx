@@ -735,7 +735,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Zap className="w-4 h-4" />,
               eta: `${expressEtaMin}-${expressEtaMax} jours`,
               price: expressPrice,
-              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Traitement prioritaire', 'Suivi temps réel'],
+              perks: [...INCLUDED_PERKS, 'Traitement prioritaire'],
             },
             {
               id: 'normal' as const,
@@ -744,7 +744,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Clock className="w-4 h-4" />,
               eta: `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
-              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Suivi inclus', 'Économique'],
+              perks: [...INCLUDED_PERKS, 'Économique'],
               recommended: true,
             },
           ];
