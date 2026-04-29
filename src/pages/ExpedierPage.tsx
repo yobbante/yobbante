@@ -17,9 +17,10 @@ type Mode = 'envoyer' | 'recevoir';
 export default function ExpedierPage() {
   const navigate = useNavigate();
   const { mode: urlMode } = useParams<{ mode?: Mode }>();
-  const [mode, setMode] = useState<Mode | null>(urlMode ?? null);
+  // No more selection screen: /expedier defaults directly to "envoyer".
+  const [mode, setMode] = useState<Mode>((urlMode as Mode) ?? 'envoyer');
 
-  useEffect(() => { setMode(urlMode ?? null); }, [urlMode]);
+  useEffect(() => { setMode((urlMode as Mode) ?? 'envoyer'); }, [urlMode]);
 
   useEffect(() => {
     document.title =
