@@ -692,71 +692,125 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 7 — Transport & priority ─── */}
       <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
-        <div className="space-y-5">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Mode de transport</p>
-            <div className="grid sm:grid-cols-3 gap-3">
-              {TRANSPORT_MODES.map(m => {
-                const hidden = (m.id === 'SEA' && (weight < 0.5 || goodsType === 'documents'));
-                if (hidden) return null;
-                return (
-                  <button key={m.id} type="button" onClick={() => setTransportMode(m.id)}
-                    className={`text-left rounded-xl border-2 p-4 transition-all ${
-                      transportMode === m.id
-                        ? 'border-foreground bg-foreground text-background shadow-sm'
-                        : 'border-border bg-card hover:border-foreground/40'
-                    }`}>
-                    <div className="flex items-center gap-2">{m.icon}<p className="font-semibold">{m.label}</p></div>
-                    <p className={`mt-1 text-xs ${transportMode === m.id ? 'text-background/70' : 'text-muted-foreground'}`}>{m.eta}</p>
-                  </button>
-                );
-              })}
-            </div>
-            {weight >= 30 && transportMode === 'AIR' && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                💡 Pour {weight} kg, le maritime peut diviser le coût par 2 (délai 3× plus long).
-              </p>
-            )}
-          </div>
+        {(() => {
+          // Base price (EUR) from quote or chosen Konnekt option, fallback to a rough estimate.
+          const baseEur = quote ? Math.round(quote.price_eur)
+            : chosen ? Math.round(chosen.price_eur)
+            : Math.max(15, Math.round(weight * 4));
+          const baseEtaMin = quote?.eta_min_days ?? 5;
+          const baseEtaMax = quote?.eta_max_days ?? 9;
 
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Priorité</p>
-            <ChipGroup options={PRIORITIES} value={priority} onChange={(v) => setPriority(v)} />
-          </div>
+          // Standard = base. Express = +30% price, ~40% faster (min 1-2 days quicker).
+          const standardPrice = baseEur;
+          const expressPrice  = Math.round(baseEur * 1.30);
+          const expressEtaMin = Math.max(1, Math.ceil(baseEtaMin * 0.6));
+          const expressEtaMax = Math.max(expressEtaMin + 1, Math.ceil(baseEtaMax * 0.6));
+          const standardEtaMin = Math.max(expressEtaMax + 1, baseEtaMin);
+          const standardEtaMax = Math.max(standardEtaMin + 2, baseEtaMax);
 
-          {matching && (
-            <p className="text-xs text-muted-foreground">Recherche des meilleures options en cours…</p>
-          )}
-          {!matching && options.length > 0 && (
-            <div className="grid sm:grid-cols-3 gap-3">
-              {options.map(o => (
-                <MatchOptionCard key={o.id} opt={{ ...o, price_eur: Math.round(o.price_eur) }}
-                  active={chosen?.id === o.id} onClick={() => setChosen(o)} icon={OPTION_ICONS[o.id]} />
-              ))}
-            </div>
-          )}
-          {!matching && options.length === 0 && originCity && destCity && weightTouched && (
-            <div className="rounded-2xl border border-border bg-card p-5 space-y-3 max-w-md">
-              <div className="flex items-start gap-3">
-                <div className="shrink-0 w-10 h-10 rounded-full bg-secondary grid place-items-center"><Search className="w-4 h-4" /></div>
-                <div>
-                  <p className="text-sm font-semibold">Aucun départ instantané — devis sur mesure</p>
-                  <p className="text-xs text-muted-foreground">Réponse personnalisée sous 2 h ouvrées.</p>
-                </div>
+          const cards = [
+            {
+              id: 'express' as const,
+              label: 'Express',
+              tagline: 'Le plus rapide',
+              icon: <Zap className="w-4 h-4" />,
+              eta: `${expressEtaMin}-${expressEtaMax} jours`,
+              price: expressPrice,
+              perks: ['Traitement prioritaire', 'Suivi temps réel', 'Aérien privilégié'],
+            },
+            {
+              id: 'normal' as const,
+              label: 'Standard',
+              tagline: 'Le meilleur rapport qualité/prix',
+              icon: <Clock className="w-4 h-4" />,
+              eta: `${standardEtaMin}-${standardEtaMax} jours`,
+              price: standardPrice,
+              perks: ['Suivi inclus', 'Mode optimisé selon poids', 'Économique'],
+              recommended: true,
+            },
+          ];
+
+          return (
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {cards.map(c => {
+                  const active = priority === c.id;
+                  return (
+                    <button key={c.id} type="button"
+                      onClick={() => {
+                        setPriority(c.id);
+                        // Auto-pick transport: Express -> AIR, Standard -> keep (or AIR by default).
+                        if (c.id === 'express') setTransportMode('AIR');
+                      }}
+                      className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
+                        active
+                          ? 'border-foreground bg-foreground text-background shadow-md'
+                          : 'border-border bg-card hover:border-foreground/40'
+                      }`}>
+                      {c.recommended && !active && (
+                        <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
+                          Recommandé
+                        </span>
+                      )}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {c.icon}
+                          <p className="text-base font-bold">{c.label}</p>
+                        </div>
+                        {active && <CheckCircle2 className="w-4 h-4" />}
+                      </div>
+                      <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
+
+                      <div className="mt-4 flex items-baseline gap-1.5">
+                        <span className="text-2xl font-bold tabular-nums">{formatLocalAmount(c.price, originProfile)}</span>
+                      </div>
+                      <p className={`text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+                        Livraison estimée · {c.eta}
+                      </p>
+
+                      <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
+                        {c.perks.map(p => (
+                          <li key={p} className="flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </button>
+                  );
+                })}
               </div>
-              <button type="button" onClick={() => setManualQuoteOpen(true)}
-                className="w-full inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
-                Demander un devis
-              </button>
+
+              {weight >= 30 && priority === 'express' && (
+                <p className="text-[11px] text-muted-foreground">
+                  💡 Pour {weight} kg, le mode Standard peut diviser le coût par 2.
+                </p>
+              )}
+
+              {!matching && options.length === 0 && originCity && destCity && weightTouched && (
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3 max-w-md">
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-secondary grid place-items-center"><Search className="w-4 h-4" /></div>
+                    <div>
+                      <p className="text-sm font-semibold">Aucun départ instantané — devis sur mesure</p>
+                      <p className="text-xs text-muted-foreground">Réponse personnalisée sous 2 h ouvrées.</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setManualQuoteOpen(true)}
+                    className="w-full inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
+                    Demander un devis
+                  </button>
+                </div>
+              )}
+
+              {next_departure_in_days != null && (
+                <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <Sparkles className="w-3.5 h-3.5" /> Prochain départ dans {next_departure_in_days} j ·
+                  <ShieldCheck className="w-3.5 h-3.5" /> Suivi inclus
+                </p>
+              )}
             </div>
-          )}
-          {next_departure_in_days != null && (
-            <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="w-3.5 h-3.5" /> Prochain départ dans {next_departure_in_days} j ·
-              <ShieldCheck className="w-3.5 h-3.5" /> Suivi inclus
-            </p>
-          )}
-        </div>
+          );
+        })()}
       </FlowSection>
 
       {/* ─── Step 8 — Insurance (conditional) ─── */}
