@@ -180,6 +180,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const destProfile   = useMemo<CountryProfile>(() => getProfile(destCity?.country), [destCity?.country]);
 
   const coverage = useCoverageZone({ country: originCountry, city: originCity?.city });
+  const destCoverage = useCoverageZone({ country: destCity?.country, city: destCity?.city });
+  const originCoverageCheck = useMemo(
+    () => checkDoorToDoor(coverage.level, coverage.loading, originCity?.city),
+    [coverage.level, coverage.loading, originCity?.city],
+  );
+  const destCoverageCheck = useMemo(
+    () => checkDoorToDoor(destCoverage.level, destCoverage.loading, destCity?.city),
+    [destCoverage.level, destCoverage.loading, destCity?.city],
+  );
 
   const localCalendarMin = useMemo(() => {
     const d = new Date();
