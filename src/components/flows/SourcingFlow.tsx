@@ -340,11 +340,25 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
               ))}
             </div>
             {next_departure_date && (
-              <p className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
-                Prochain départ : {new Date(next_departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                {next_departure_in_days != null && next_departure_in_days <= 30 && ` (dans ${next_departure_in_days} j)`} · contrôle qualité inclus
-              </p>
+              <div className="mt-5 space-y-2">
+                <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
+                  Prochain départ : {formatDepartureDate(next_departure_date)}
+                  {countdown && !countdown.isPast && ` · ${countdown.label}`} · contrôle qualité inclus
+                </p>
+                {countdown?.under24h && (
+                  <p role="status" className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                    <Clock className="w-3.5 h-3.5" />
+                    Départ dans moins de 24 h — confirmez vite.
+                  </p>
+                )}
+                {countdown?.under48h && (
+                  <p role="status" className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    Départ dans moins de 48 h — places limitées.
+                  </p>
+                )}
+              </div>
             )}
           </>
         )}
