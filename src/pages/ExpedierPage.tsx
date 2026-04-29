@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { ListChecks } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ListChecks, Home } from 'lucide-react';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
 import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
