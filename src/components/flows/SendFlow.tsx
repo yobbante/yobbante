@@ -412,6 +412,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         label: TRANSPORT_MODES.find(t => t.id === transportMode)?.label ?? 'Standard',
         eta_days: TRANSPORT_MODES.find(t => t.id === transportMode)?.eta ?? '3-7 jours',
         price_eur: totalEur,
+        departure_date: next_departure_date ?? null,
       };
 
       await createShipment.mutateAsync({
