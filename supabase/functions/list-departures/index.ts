@@ -274,59 +274,102 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const forceRefresh = url.searchParams.get('refresh') === '1';
 
+async function fetchManualDepartures(): Promise<Departure[]> {
   try {
-    const result = await fetchKonnektDepartures();
+    const sb = getServiceClient();
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data, error } = await sb
+      .from('manual_departures')
+      .select('id, origin_country, origin_city, destination_country, destination_city, transport_mode, departure_date, status, available_capacity_kg')
+      .eq('status', 'active')
+      .gte('departure_date', todayIso)
+      .order('departure_date', { ascending: true });
+    if (error) {
+      console.error('manual_departures read failed', error);
+      return [];
+    }
+    return (data || []).map((r): Departure => ({
+      id: `m-${r.id}`,
+      origin_country: String(r.origin_country || '').toUpperCase().slice(0, 2),
+      origin_city: String(r.origin_city || ''),
+      destination_country: String(r.destination_country || '').toUpperCase().slice(0, 2),
+      destination_city: String(r.destination_city || ''),
+      transport: normalizeTransport(r.transport_mode),
+      departure_date: String(r.departure_date).slice(0, 10),
+    })).filter(d => d.origin_city && d.destination_city);
+  } catch (e) {
+    console.error('fetchManualDepartures error', e);
+    return [];
+  }
+}
 
-    let departures: Departure[] = [];
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  const url = new URL(req.url);
+  const forceRefresh = url.searchParams.get('refresh') === '1';
+
+  try {
+    const [konnektResult, manualDepartures] = await Promise.all([
+      fetchKonnektDepartures(),
+      fetchManualDepartures(),
+    ]);
+
+    let konnektDepartures: Departure[] = [];
     let source: 'konnekt' | 'cache' | 'mock' = 'mock';
     let partner_authenticated = false;
     let lkg_updated_at: string | null = null;
     let error_message: string | undefined;
 
-    if ('departures' in result && result.departures.length > 0) {
-      departures = dedupDepartures(result.departures);
+    if ('departures' in konnektResult && konnektResult.departures.length > 0) {
+      konnektDepartures = konnektResult.departures;
       source = 'konnekt';
-      partner_authenticated = result.authed;
-      // Persist LKG asynchronously
-      await writeLKG(departures);
+      partner_authenticated = konnektResult.authed;
+      await writeLKG(konnektDepartures);
       await logSync({
         source: 'konnekt',
         status: 'ok',
-        count: departures.length,
+        count: konnektDepartures.length,
         partner_authenticated,
-        raw_payload: result.raw,
+        raw_payload: konnektResult.raw,
       });
     } else {
-      error_message = 'error' in result ? result.error : 'Konnekt returned 0 departures';
+      error_message = 'error' in konnektResult ? konnektResult.error : 'Konnekt returned 0 departures';
       const lkg = await readLKG();
       if (lkg && lkg.departures.length) {
-        departures = dedupDepartures(lkg.departures);
+        konnektDepartures = lkg.departures;
         source = 'cache';
         lkg_updated_at = lkg.updated_at;
-      } else {
-        departures = getMockDepartures();
-        source = 'mock';
       }
       await logSync({
         source,
         status: 'error',
-        count: departures.length,
-        partner_authenticated: 'authed' in result ? result.authed : false,
-        raw_payload: 'raw' in result ? result.raw : null,
+        count: konnektDepartures.length,
+        partner_authenticated: 'authed' in konnektResult ? konnektResult.authed : false,
+        raw_payload: 'raw' in konnektResult ? konnektResult.raw : null,
         error_message,
       });
     }
 
-    departures.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
+    // Merge manual + konnekt and dedup. If we have manual departures and no
+    // konnekt data, mark source as konnekt (real data) — never mock.
+    const merged = dedupDepartures([...manualDepartures, ...konnektDepartures]);
+    if (merged.length && source === 'mock') {
+      source = manualDepartures.length ? 'konnekt' : 'mock';
+    }
+
+    merged.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
 
     return new Response(JSON.stringify({
       source,
       partner_authenticated,
-      count: departures.length,
+      count: merged.length,
       generated_at: new Date().toISOString(),
       lkg_updated_at,
       error_message,
-      departures,
+      departures: merged,
     }), {
       status: 200,
       headers: {
@@ -334,8 +377,6 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         'Cache-Control': forceRefresh
           ? 'no-store'
-          // Short edge cache so the 60s client poll actually reflects new data;
-          // SWR keeps responses snappy if Konnekt becomes momentarily slow.
           : 'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
       },
     });
