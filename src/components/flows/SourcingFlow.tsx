@@ -170,7 +170,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       : '';
 
   async function submit() {
-    if (!quantity || !origin || !destination || !quality || !urgency) return;
+    if (!sourcingProfile || !quantity || !origin || !destination || !quality || !urgency) return;
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
