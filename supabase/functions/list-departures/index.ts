@@ -56,10 +56,45 @@ function getMockDepartures(): Departure[] {
 }
 
 function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' {
-  const s = String(v || '').toUpperCase();
+  let s = '';
+  if (typeof v === 'string') s = v;
+  else if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    s = String(o.code || o.name || o.value || o.label || '');
+  }
+  s = s.toUpperCase();
   if (s.startsWith('A') || s.includes('AIR') || s.includes('AVION') || s.includes('AÉR')) return 'AIR';
   if (s.startsWith('R') || s.includes('ROAD') || s.includes('ROUT') || s.includes('CAMION')) return 'ROAD';
   return 'SEA';
+}
+
+// Konnekt sometimes returns origin/destination as objects { name, code, country, city }.
+// Pull a usable string out instead of stringifying the object.
+function pickStr(v: unknown, ...keys: string[]): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    for (const k of keys) {
+      const val = o[k];
+      if (typeof val === 'string' && val.trim()) return val.trim();
+    }
+    // Last resort: any first string property
+    for (const val of Object.values(o)) {
+      if (typeof val === 'string' && val.trim()) return val.trim();
+    }
+  }
+  return '';
+}
+
+function pickCountry(v: unknown, fallback = ''): string {
+  const s = pickStr(v, 'code', 'country_code', 'iso', 'iso2', 'country', 'name');
+  return (s || fallback).toUpperCase().slice(0, 2);
+}
+
+function pickCity(v: unknown): string {
+  return pickStr(v, 'city', 'name', 'label', 'value');
 }
 
 function normalizeKonnekt(raw: unknown): Departure[] {
@@ -70,12 +105,37 @@ function normalizeKonnekt(raw: unknown): Departure[] {
         r.departure_date || r.departureDate || r.date || r.eta || r.starts_at || ''
       ).slice(0, 10);
       if (!dep) return null;
+
+      // Origin: try flat fields first, then nested object
+      const originCountry = pickCountry(
+        r.origin_country ?? r.from_country ?? (r.origin as Record<string, unknown> | undefined)?.country ?? r.origin,
+        'CN',
+      );
+      const originCity =
+        pickStr(r.origin_city, 'city', 'name') ||
+        pickStr(r.from_city, 'city', 'name') ||
+        pickCity(r.origin) ||
+        pickCity(r.from);
+
+      const destCountry = pickCountry(
+        r.destination_country ?? r.to_country ?? (r.destination as Record<string, unknown> | undefined)?.country ?? r.destination,
+        'SN',
+      );
+      const destCity =
+        pickStr(r.destination_city, 'city', 'name') ||
+        pickStr(r.to_city, 'city', 'name') ||
+        pickCity(r.destination) ||
+        pickCity(r.to);
+
+      // Drop entries without proper city info — these are not "real" departures.
+      if (!originCity || !destCity) return null;
+
       return {
         id: String(r.id || r.reference || `k-${i}`),
-        origin_country: String(r.origin_country || r.from_country || 'CN').toUpperCase().slice(0, 2),
-        origin_city: String(r.origin_city || r.from_city || r.origin || ''),
-        destination_country: String(r.destination_country || r.to_country || 'SN').toUpperCase().slice(0, 2),
-        destination_city: String(r.destination_city || r.to_city || r.destination || ''),
+        origin_country: originCountry,
+        origin_city: originCity,
+        destination_country: destCountry,
+        destination_city: destCity,
         transport: normalizeTransport(r.transport || r.transport_type || r.mode),
         departure_date: dep,
       };
