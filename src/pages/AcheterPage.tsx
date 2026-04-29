@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Factory, Inbox, ArrowRight, ArrowLeft, ListChecks } from 'lucide-react';
+import { Factory, Inbox, ArrowRight, ArrowLeft, ListChecks, Home } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { SourcingFlow } from '@/components/flows/SourcingFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
