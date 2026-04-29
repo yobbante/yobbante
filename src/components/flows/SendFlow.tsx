@@ -239,17 +239,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
-  const quoteInput = useMemo(() => {
+  // Standard quote (priority=standard) — toujours demandée
+  const quoteInputStandard = useMemo(() => {
     if (!originCity || !destCity || !weight) return null;
     const transport: 'AIR' | 'SEA' | 'ROAD' = transportMode;
     return {
       origin_country: originCity.country, destination_country: destCity.country,
       weight_kg: weight, transport_type: transport,
-      priority: priority === 'express' ? 'urgent' as const : 'normal' as const,
+      priority: 'standard' as const,
       origin_city: originCity.city, destination_city: destCity.city,
     };
-  }, [originCity, destCity, weight, transportMode, priority]);
-  const { quote } = useQuote(quoteInput);
+  }, [originCity, destCity, weight, transportMode]);
+  const { quote: quoteStandard } = useQuote(quoteInputStandard);
+
+  // Express quote (priority=express) — moteur applique urgency_mult=1.35
+  const quoteInputExpress = useMemo(() => {
+    if (!quoteInputStandard) return null;
+    return { ...quoteInputStandard, priority: 'express' as const };
+  }, [quoteInputStandard]);
+  const { quote: quoteExpress } = useQuote(quoteInputExpress);
+
+  // Quote actif selon priorité choisie
+  const quote = priority === 'express' ? quoteExpress : quoteStandard;
 
   useEffect(() => {
     if (!chosen && options.length > 0) {
@@ -260,10 +271,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [options.length]);
 
   // ── Pricing breakdown (in EUR for internal math)
+  // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
   const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
   const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
-  const priorityCostEur  = priority === 'express' ? 6 : 0;
-  const totalEur = transportPriceEur + insuranceCostEur + priorityCostEur;
+  const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
+  const totalEur = transportPriceEur + insuranceCostEur;
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
 
