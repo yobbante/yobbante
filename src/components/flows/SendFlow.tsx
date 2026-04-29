@@ -251,6 +251,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
 
+  // Live countdown ticker — refresh every minute so the UI stays accurate.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const countdown = useMemo(() => getDepartureCountdown(next_departure_date, now), [next_departure_date, now]);
+
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
     if (!originCity || !destCity || !weight) return null;
