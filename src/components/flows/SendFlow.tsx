@@ -225,10 +225,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // Save snapshot so the user comes back with everything intact.
+        // Save snapshot + preset so the user comes back on the same departure
+        // with everything intact — no destination re-asked, no step lost.
         saveDraft(DRAFT_KEY, draftSnapshot);
-        toast.message('Connectez-vous pour finaliser — votre dossier reste enregistré.');
-        navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer')}`);
+        if (preset) {
+          try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {}
+        }
+        toast.message('Connectez-vous pour finaliser', {
+          description: 'On garde votre départ et votre dossier — vous reprendrez exactement ici.',
+        });
+        navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer?resume=1')}`);
         return;
       }
 
