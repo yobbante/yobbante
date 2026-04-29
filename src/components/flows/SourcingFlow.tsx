@@ -133,7 +133,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     };
   }, [origin, destination, quality, urgency, totalWeight]);
 
-  const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
+  const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
 
   useEffect(() => {
     if (!chosen && options.length > 0) {
