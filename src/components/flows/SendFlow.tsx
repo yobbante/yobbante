@@ -289,6 +289,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         eta: chosen.eta_days,
       });
       clearDraft(DRAFT_KEY);
+      try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
