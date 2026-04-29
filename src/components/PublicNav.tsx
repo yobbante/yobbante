@@ -2,6 +2,7 @@ import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Package, Factory, Inbox } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface PublicNavProps {
   /** Hide the inline action chips (Expédier / Acheter) when the page already exposes them prominently. */
@@ -22,7 +23,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   return (
     <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="text-lg font-bold tracking-tight text-foreground">YOBBANTÉ</Link>
+        <BrandLogo size={26} />
 
         {/* Desktop: only the 2 main entry points */}
         {!hideActions && (
@@ -86,7 +87,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
             </SheetTrigger>
             <SheetContent side="right" className="w-72 p-0 bg-background">
               <div className="flex items-center justify-between px-5 h-14 border-b border-border">
-                <span className="text-base font-bold tracking-tight text-foreground">YOBBANTÉ</span>
+                <BrandLogo size={24} asLink={false} />
                 <button
                   aria-label="Fermer le menu"
                   onClick={() => setOpen(false)}
