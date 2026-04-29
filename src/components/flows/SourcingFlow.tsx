@@ -15,6 +15,7 @@ import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { supabase } from '@/integrations/supabase/client';
+import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import type { WarehouseCountry } from '@/lib/types';
 
 const ORIGINS = [
