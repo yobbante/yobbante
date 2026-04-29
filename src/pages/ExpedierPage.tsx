@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Inbox, ArrowRight, ArrowLeft, ListChecks } from 'lucide-react';
-import { PublicNav } from '@/components/PublicNav';
+import { useParams } from 'react-router-dom';
+import { ListChecks } from 'lucide-react';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
 import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
