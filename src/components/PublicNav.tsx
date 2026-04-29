@@ -20,10 +20,23 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
   const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
 
+  const isHome = location.pathname === '/';
+
   return (
     <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between">
-        <BrandLogo size={26} />
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <BrandLogo size={26} />
+          {!isHome && (
+            <Link
+              to="/"
+              aria-label="Retour à l'accueil"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary px-2.5 py-1.5 rounded-lg border border-border/60 transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" /> Accueil
+            </Link>
+          )}
+        </div>
 
         {/* Desktop: only the 2 main entry points */}
         {!hideActions && (
