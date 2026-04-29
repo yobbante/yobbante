@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, Factory, Inbox } from 'lucide-react';
+import { Menu, X, Package, Factory, Inbox, Home } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { BrandLogo } from '@/components/BrandLogo';
 
