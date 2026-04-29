@@ -550,12 +550,6 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
                   onClick={() => setStep('reception')}
                   accent
                 />
-                <ChoicePill
-                  icon={<ListChecks className="w-5 h-5" />}
-                  title="Suivre mes commandes"
-                  desc="Voir mes commandes en cours, réceptionnées ou en route."
-                  onClick={() => setStep('orders')}
-                />
               </div>
             </FlowSection>
           </motion.div>
