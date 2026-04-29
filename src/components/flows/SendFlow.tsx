@@ -206,14 +206,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // ── Persist draft for auth round-trip
   const DRAFT_KEY = 'send-flow';
   const draftSnapshot = {
-    senderKind, originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
+    // ⚠️ senderKind volontairement exclu : à chaque nouvel envoi l'utilisateur
+    // doit refaire ce choix explicitement (peut varier d'un colis à l'autre).
+    originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
     destCityId, recipientName, recipientPhone, recipientEmail, deliveryAddress,
     description, declaredLocal, weight, parcelCount, goodsType,
     transportMode, priority, insurance, paymentMethod,
     senderName, senderPhone, chosenId: chosen?.id ?? null,
   };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
-    if (d.senderKind) setSenderKind(d.senderKind);
     if (d.originCountry) setOriginCountry(d.originCountry);
     if (d.originCityId) setOriginCity(d.originCityId);
     if (d.pickupAddress) setPickup(d.pickupAddress);
