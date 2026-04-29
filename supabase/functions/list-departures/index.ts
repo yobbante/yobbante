@@ -266,14 +266,6 @@ async function logSync(input: {
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  const url = new URL(req.url);
-  const forceRefresh = url.searchParams.get('refresh') === '1';
-
 async function fetchManualDepartures(): Promise<Departure[]> {
   try {
     const sb = getServiceClient();
