@@ -56,10 +56,45 @@ function getMockDepartures(): Departure[] {
 }
 
 function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' {
-  const s = String(v || '').toUpperCase();
+  let s = '';
+  if (typeof v === 'string') s = v;
+  else if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    s = String(o.code || o.name || o.value || o.label || '');
+  }
+  s = s.toUpperCase();
   if (s.startsWith('A') || s.includes('AIR') || s.includes('AVION') || s.includes('AÉR')) return 'AIR';
   if (s.startsWith('R') || s.includes('ROAD') || s.includes('ROUT') || s.includes('CAMION')) return 'ROAD';
   return 'SEA';
+}
+
+// Konnekt sometimes returns origin/destination as objects { name, code, country, city }.
+// Pull a usable string out instead of stringifying the object.
+function pickStr(v: unknown, ...keys: string[]): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    for (const k of keys) {
+      const val = o[k];
+      if (typeof val === 'string' && val.trim()) return val.trim();
+    }
+    // Last resort: any first string property
+    for (const val of Object.values(o)) {
+      if (typeof val === 'string' && val.trim()) return val.trim();
+    }
+  }
+  return '';
+}
+
+function pickCountry(v: unknown, fallback = ''): string {
+  const s = pickStr(v, 'code', 'country_code', 'iso', 'iso2', 'country', 'name');
+  return (s || fallback).toUpperCase().slice(0, 2);
+}
+
+function pickCity(v: unknown): string {
+  return pickStr(v, 'city', 'name', 'label', 'value');
 }
 
 function normalizeKonnekt(raw: unknown): Departure[] {
@@ -70,12 +105,37 @@ function normalizeKonnekt(raw: unknown): Departure[] {
         r.departure_date || r.departureDate || r.date || r.eta || r.starts_at || ''
       ).slice(0, 10);
       if (!dep) return null;
+
+      // Origin: try flat fields first, then nested object
+      const originCountry = pickCountry(
+        r.origin_country ?? r.from_country ?? (r.origin as Record<string, unknown> | undefined)?.country ?? r.origin,
+        'CN',
+      );
+      const originCity =
+        pickStr(r.origin_city, 'city', 'name') ||
+        pickStr(r.from_city, 'city', 'name') ||
+        pickCity(r.origin) ||
+        pickCity(r.from);
+
+      const destCountry = pickCountry(
+        r.destination_country ?? r.to_country ?? (r.destination as Record<string, unknown> | undefined)?.country ?? r.destination,
+        'SN',
+      );
+      const destCity =
+        pickStr(r.destination_city, 'city', 'name') ||
+        pickStr(r.to_city, 'city', 'name') ||
+        pickCity(r.destination) ||
+        pickCity(r.to);
+
+      // Drop entries without proper city info — these are not "real" departures.
+      if (!originCity || !destCity) return null;
+
       return {
         id: String(r.id || r.reference || `k-${i}`),
-        origin_country: String(r.origin_country || r.from_country || 'CN').toUpperCase().slice(0, 2),
-        origin_city: String(r.origin_city || r.from_city || r.origin || ''),
-        destination_country: String(r.destination_country || r.to_country || 'SN').toUpperCase().slice(0, 2),
-        destination_city: String(r.destination_city || r.to_city || r.destination || ''),
+        origin_country: originCountry,
+        origin_city: originCity,
+        destination_country: destCountry,
+        destination_city: destCity,
         transport: normalizeTransport(r.transport || r.transport_type || r.mode),
         departure_date: dep,
       };
@@ -206,6 +266,35 @@ async function logSync(input: {
   }
 }
 
+async function fetchManualDepartures(): Promise<Departure[]> {
+  try {
+    const sb = getServiceClient();
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data, error } = await sb
+      .from('manual_departures')
+      .select('id, origin_country, origin_city, destination_country, destination_city, transport_mode, departure_date, status, available_capacity_kg')
+      .eq('status', 'active')
+      .gte('departure_date', todayIso)
+      .order('departure_date', { ascending: true });
+    if (error) {
+      console.error('manual_departures read failed', error);
+      return [];
+    }
+    return (data || []).map((r): Departure => ({
+      id: `m-${r.id}`,
+      origin_country: String(r.origin_country || '').toUpperCase().slice(0, 2),
+      origin_city: String(r.origin_city || ''),
+      destination_country: String(r.destination_country || '').toUpperCase().slice(0, 2),
+      destination_city: String(r.destination_city || ''),
+      transport: normalizeTransport(r.transport_mode),
+      departure_date: String(r.departure_date).slice(0, 10),
+    })).filter(d => d.origin_city && d.destination_city);
+  } catch (e) {
+    console.error('fetchManualDepartures error', e);
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -215,58 +304,64 @@ Deno.serve(async (req) => {
   const forceRefresh = url.searchParams.get('refresh') === '1';
 
   try {
-    const result = await fetchKonnektDepartures();
+    const [konnektResult, manualDepartures] = await Promise.all([
+      fetchKonnektDepartures(),
+      fetchManualDepartures(),
+    ]);
 
-    let departures: Departure[] = [];
+    let konnektDepartures: Departure[] = [];
     let source: 'konnekt' | 'cache' | 'mock' = 'mock';
     let partner_authenticated = false;
     let lkg_updated_at: string | null = null;
     let error_message: string | undefined;
 
-    if ('departures' in result && result.departures.length > 0) {
-      departures = dedupDepartures(result.departures);
+    if ('departures' in konnektResult && konnektResult.departures.length > 0) {
+      konnektDepartures = konnektResult.departures;
       source = 'konnekt';
-      partner_authenticated = result.authed;
-      // Persist LKG asynchronously
-      await writeLKG(departures);
+      partner_authenticated = konnektResult.authed;
+      await writeLKG(konnektDepartures);
       await logSync({
         source: 'konnekt',
         status: 'ok',
-        count: departures.length,
+        count: konnektDepartures.length,
         partner_authenticated,
-        raw_payload: result.raw,
+        raw_payload: konnektResult.raw,
       });
     } else {
-      error_message = 'error' in result ? result.error : 'Konnekt returned 0 departures';
+      error_message = 'error' in konnektResult ? konnektResult.error : 'Konnekt returned 0 departures';
       const lkg = await readLKG();
       if (lkg && lkg.departures.length) {
-        departures = dedupDepartures(lkg.departures);
+        konnektDepartures = lkg.departures;
         source = 'cache';
         lkg_updated_at = lkg.updated_at;
-      } else {
-        departures = getMockDepartures();
-        source = 'mock';
       }
       await logSync({
         source,
         status: 'error',
-        count: departures.length,
-        partner_authenticated: 'authed' in result ? result.authed : false,
-        raw_payload: 'raw' in result ? result.raw : null,
+        count: konnektDepartures.length,
+        partner_authenticated: 'authed' in konnektResult ? konnektResult.authed : false,
+        raw_payload: 'raw' in konnektResult ? konnektResult.raw : null,
         error_message,
       });
     }
 
-    departures.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
+    // Merge manual + konnekt and dedup. If we have manual departures and no
+    // konnekt data, mark source as konnekt (real data) — never mock.
+    const merged = dedupDepartures([...manualDepartures, ...konnektDepartures]);
+    if (merged.length && source === 'mock') {
+      source = manualDepartures.length ? 'konnekt' : 'mock';
+    }
+
+    merged.sort((a, b) => a.departure_date.localeCompare(b.departure_date));
 
     return new Response(JSON.stringify({
       source,
       partner_authenticated,
-      count: departures.length,
+      count: merged.length,
       generated_at: new Date().toISOString(),
       lkg_updated_at,
       error_message,
-      departures,
+      departures: merged,
     }), {
       status: 200,
       headers: {
@@ -274,8 +369,6 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         'Cache-Control': forceRefresh
           ? 'no-store'
-          // Short edge cache so the 60s client poll actually reflects new data;
-          // SWR keeps responses snappy if Konnekt becomes momentarily slow.
           : 'public, max-age=30, s-maxage=30, stale-while-revalidate=120',
       },
     });
