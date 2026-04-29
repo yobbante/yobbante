@@ -93,9 +93,15 @@ Réponds UNIQUEMENT en appelant l'outil classify.`;
     const args = JSON.parse(call.function.arguments);
     return new Response(JSON.stringify(args), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
+    const isAbort = e instanceof Error && (e.name === "AbortError" || e.message.includes("aborted"));
     console.error("classify-goods error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify(
+        isAbort
+          ? { goods_type: null, confidence: "low", rationale: "ai_timeout" }
+          : { goods_type: null, confidence: "low", rationale: "ai_error", error: e instanceof Error ? e.message : "unknown" }
+      ),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
