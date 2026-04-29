@@ -332,10 +332,11 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
                 />
               ))}
             </div>
-            {next_departure_in_days != null && (
+            {next_departure_date && (
               <p className="mt-5 inline-flex items-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
-                Prochain départ dans {next_departure_in_days} j · contrôle qualité inclus
+                Prochain départ : {new Date(next_departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {next_departure_in_days != null && next_departure_in_days <= 30 && ` (dans ${next_departure_in_days} j)`} · contrôle qualité inclus
               </p>
             )}
           </>
