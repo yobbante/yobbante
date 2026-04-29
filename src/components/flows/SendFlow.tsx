@@ -22,6 +22,7 @@ import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
+import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
 import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
@@ -250,14 +251,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
-
-  // Live countdown ticker — refresh every minute so the UI stays accurate.
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
-  }, []);
-  const countdown = useMemo(() => getDepartureCountdown(next_departure_date, now), [next_departure_date, now]);
 
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
@@ -842,28 +835,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               )}
 
-              {next_departure_date && (
-                <div className="space-y-2">
-                  <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Prochain départ : {formatDepartureDate(next_departure_date)}
-                    {countdown && !countdown.isPast && ` · ${countdown.label}`} ·
-                    <ShieldCheck className="w-3.5 h-3.5" /> Suivi inclus
-                  </p>
-                  {countdown?.under24h && (
-                    <p role="status" className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                      <Clock className="w-3.5 h-3.5" />
-                      Départ dans moins de 24 h — confirmez vite pour réserver une place.
-                    </p>
-                  )}
-                  {countdown?.under48h && (
-                    <p role="status" className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5" />
-                      Départ dans moins de 48 h — places limitées.
-                    </p>
-                  )}
-                </div>
-              )}
+              <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
             </div>
           );
         })()}
@@ -958,7 +930,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
-        sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}${countdown && !countdown.isPast ? ` · ${countdown.label}` : ''}` : undefined}
+        sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
             <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
