@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      coverage_zones: {
+        Row: {
+          active: boolean
+          city: string
+          country: string
+          coverage_level: Database["public"]["Enums"]["coverage_level"]
+          created_at: string
+          currency_code: string
+          id: string
+          min_lead_hours: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city: string
+          country: string
+          coverage_level?: Database["public"]["Enums"]["coverage_level"]
+          created_at?: string
+          currency_code?: string
+          id?: string
+          min_lead_hours?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city?: string
+          country?: string
+          coverage_level?: Database["public"]["Enums"]["coverage_level"]
+          created_at?: string
+          currency_code?: string
+          id?: string
+          min_lead_hours?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dossier_documents: {
         Row: {
           created_at: string
@@ -1372,6 +1411,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "user"
+      coverage_level: "direct" | "partner" | "none"
       dossier_status:
         | "SUBMITTED"
         | "IN_REVIEW"
@@ -1537,6 +1577,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "user"],
+      coverage_level: ["direct", "partner", "none"],
       dossier_status: [
         "SUBMITTED",
         "IN_REVIEW",
