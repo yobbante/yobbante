@@ -36,8 +36,14 @@ Catégories autorisées :
 Règle : si la valeur déclarée dépasse 500 EUR -> high_value (sauf documents).
 Réponds UNIQUEMENT en appelant l'outil classify.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s hard cap
+
+    let resp: Response;
+    try {
+      resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
+      signal: controller.signal,
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
@@ -64,7 +70,10 @@ Réponds UNIQUEMENT en appelant l'outil classify.`;
         }],
         tool_choice: { type: "function", function: { name: "classify" } },
       }),
-    });
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!resp.ok) {
       if (resp.status === 429) return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -84,9 +93,15 @@ Réponds UNIQUEMENT en appelant l'outil classify.`;
     const args = JSON.parse(call.function.arguments);
     return new Response(JSON.stringify(args), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
+    const isAbort = e instanceof Error && (e.name === "AbortError" || e.message.includes("aborted"));
     console.error("classify-goods error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify(
+        isAbort
+          ? { goods_type: null, confidence: "low", rationale: "ai_timeout" }
+          : { goods_type: null, confidence: "low", rationale: "ai_error", error: e instanceof Error ? e.message : "unknown" }
+      ),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
