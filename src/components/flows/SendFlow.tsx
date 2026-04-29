@@ -890,6 +890,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           </div>
 
+          <DoorToDoorBanner
+            origin={originCoverageCheck}
+            destination={destCoverageCheck}
+            detailed
+          />
+
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Mode de paiement</p>
             <div className="grid grid-cols-3 gap-2.5">
