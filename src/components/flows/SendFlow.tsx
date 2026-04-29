@@ -42,7 +42,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
 
-  const preset = (location.state as {
+  // Preset comes either fresh from navigation state OR — after an auth
+  // round-trip — from the persisted draft (we save it in `presetSnapshot`
+  // alongside the form state, see useFlowDraft below).
+  const PRESET_KEY = 'send-flow:preset';
+  const navPreset = (location.state as {
     preset?: {
       type?: typeof TYPES[number]['id'];
       origin?: string;
@@ -55,6 +59,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       source?: string;
     };
   } | null)?.preset;
+
+  // Restore from sessionStorage if no fresh nav state (post-login bounce).
+  const restoredPreset = useMemo(() => {
+    if (navPreset) return navPreset;
+    try {
+      const raw = sessionStorage.getItem(PRESET_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, [navPreset]);
+  const preset = restoredPreset ?? undefined;
+
+  // Persist any fresh nav preset so a redirect-to-auth round-trip can restore it.
+  useEffect(() => {
+    if (navPreset) {
+      try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(navPreset)); } catch {}
+    }
+  }, [navPreset]);
 
   // Prefer exact city match (from departures ticker) → fallback to first city of country.
   const presetOriginCityId = useMemo(() => {
