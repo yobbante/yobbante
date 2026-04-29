@@ -97,6 +97,40 @@ function pickCity(v: unknown): string {
   return pickStr(v, 'city', 'name', 'label', 'value');
 }
 
+// Map well-known cities to their real ISO country code, so we can fix
+// inconsistent partner data (e.g. "Abidjan" tagged as FR).
+const CITY_TO_COUNTRY: Record<string, string> = {
+  dakar: 'SN', thies: 'SN', 'saint-louis': 'SN',
+  abidjan: 'CI', bouake: 'CI', 'yamoussoukro': 'CI',
+  bamako: 'ML',
+  conakry: 'GN',
+  cotonou: 'BJ',
+  lome: 'TG',
+  ouagadougou: 'BF',
+  douala: 'CM', yaounde: 'CM',
+  libreville: 'GA',
+  brazzaville: 'CG',
+  paris: 'FR', marseille: 'FR', lyon: 'FR', bordeaux: 'FR',
+  shenzhen: 'CN', guangzhou: 'CN', shanghai: 'CN', yiwu: 'CN', beijing: 'CN',
+  dubai: 'AE', dubaï: 'AE',
+  miami: 'US', 'new york': 'US',
+  montreal: 'CA', 'montréal': 'CA',
+  hamburg: 'DE', hambourg: 'DE', berlin: 'DE',
+};
+
+function normalizeCityKey(city: string): string {
+  return city
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function countryFromCity(city: string): string | null {
+  const k = normalizeCityKey(city);
+  return CITY_TO_COUNTRY[k] || null;
+}
+
 function normalizeKonnekt(raw: unknown): Departure[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -106,10 +140,17 @@ function normalizeKonnekt(raw: unknown): Departure[] {
       ).slice(0, 10);
       if (!dep) return null;
 
-      // Origin: try flat fields first, then nested object
-      const originCountry = pickCountry(
+      // Drop departures too far in the future (> 120 days) — likely test data.
+      const depTime = new Date(dep + 'T00:00:00Z').getTime();
+      const today = Date.now();
+      if (Number.isNaN(depTime)) return null;
+      if (depTime < today - 24 * 3600 * 1000) return null; // past
+      if (depTime > today + 120 * 24 * 3600 * 1000) return null; // too far
+
+      // Origin
+      const originCountryRaw = pickCountry(
         r.origin_country ?? r.from_country ?? (r.origin as Record<string, unknown> | undefined)?.country ?? r.origin,
-        'CN',
+        '',
       );
       const originCity =
         pickStr(r.origin_city, 'city', 'name') ||
@@ -117,9 +158,9 @@ function normalizeKonnekt(raw: unknown): Departure[] {
         pickCity(r.origin) ||
         pickCity(r.from);
 
-      const destCountry = pickCountry(
+      const destCountryRaw = pickCountry(
         r.destination_country ?? r.to_country ?? (r.destination as Record<string, unknown> | undefined)?.country ?? r.destination,
-        'SN',
+        '',
       );
       const destCity =
         pickStr(r.destination_city, 'city', 'name') ||
@@ -129,6 +170,14 @@ function normalizeKonnekt(raw: unknown): Departure[] {
 
       // Drop entries without proper city info — these are not "real" departures.
       if (!originCity || !destCity) return null;
+
+      // City is the source of truth: if we know the city, override the country.
+      // This fixes partner data like "Abidjan" tagged as FR.
+      const originCountry = countryFromCity(originCity) || originCountryRaw || 'CN';
+      const destCountry = countryFromCity(destCity) || destCountryRaw || 'SN';
+
+      // Drop obviously broken entries: same origin & destination city.
+      if (normalizeCityKey(originCity) === normalizeCityKey(destCity)) return null;
 
       return {
         id: String(r.id || r.reference || `k-${i}`),
