@@ -231,7 +231,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return {
       origin_city: originCity.city, destination_city: destCity.city,
       origin_country: originCity.country, destination_country: destCity.country,
-      weight_kg: weight, urgency: priority === 'express' ? 'express' as const : 'normal' as const,
+      weight_kg: weight, urgency: priority === 'express' ? 'fast' as const : 'normal' as const,
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
