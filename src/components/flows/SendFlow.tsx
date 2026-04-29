@@ -248,7 +248,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       weight_kg: weight, urgency: priority === 'express' ? 'fast' as const : 'normal' as const,
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
-  const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
+  const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
 
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
