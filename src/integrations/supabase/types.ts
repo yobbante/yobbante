@@ -721,6 +721,9 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          sourcing_profile:
+            | Database["public"]["Enums"]["sourcing_profile"]
+            | null
           user_id: string
         }
         Insert: {
@@ -730,6 +733,9 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          sourcing_profile?:
+            | Database["public"]["Enums"]["sourcing_profile"]
+            | null
           user_id: string
         }
         Update: {
@@ -739,6 +745,9 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          sourcing_profile?:
+            | Database["public"]["Enums"]["sourcing_profile"]
+            | null
           user_id?: string
         }
         Relationships: []
@@ -1448,6 +1457,7 @@ export type Database = {
         | "OUT_FOR_DELIVERY"
         | "CANCELLED"
         | "ON_HOLD"
+      sourcing_profile: "individual" | "business"
       warehouse_country: "FR" | "CN" | "US" | "CA" | "AE" | "DE" | "SN"
     }
     CompositeTypes: {
@@ -1612,6 +1622,7 @@ export const Constants = {
         "CANCELLED",
         "ON_HOLD",
       ],
+      sourcing_profile: ["individual", "business"],
       warehouse_country: ["FR", "CN", "US", "CA", "AE", "DE", "SN"],
     },
   },
