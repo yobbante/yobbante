@@ -86,10 +86,18 @@ export default function AdminPage() {
         <div className="flex-1 overflow-y-auto">
           <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
         </div>
-        <div className="px-4 py-3 border-t border-border">
+        <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/8 px-2 py-1 rounded">
             <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : 'Staff'}
           </span>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-colors"
+            aria-label="Se déconnecter"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Déconnexion
+          </button>
         </div>
       </aside>
 
