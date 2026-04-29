@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Factory, Search, Handshake, BadgeCheck, Truck, Sparkles, Loader2,
-  Boxes, Crown, Zap, Clock, ShieldCheck, User, Store,
+  Boxes, Crown, Zap, Clock, ShieldCheck, User, Store, ShoppingBag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
