@@ -309,6 +309,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const step3Ok = step2Ok && !!destCity;
   const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
   const step5Ok = step4Ok && !!description.trim() && !!declaredLocal && weightTouched;
+  const goodsAutoConfident = !!goodsAutoDetected && (goodsAutoDetected.confidence === 'high' || goodsAutoDetected.confidence === 'medium') && !goodsManualOverride;
+  const skipGoodsStep = goodsAutoConfident && !!goodsType;
   const step6Ok = step5Ok && !!goodsType;
   const step7Ok = step6Ok;
   const step8Ok = step7Ok && (!showInsuranceStep || true);
