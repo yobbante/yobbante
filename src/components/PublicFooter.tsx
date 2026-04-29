@@ -100,7 +100,17 @@ export function PublicFooter() {
 
         <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Yobbanté. Tous droits réservés.</p>
-          <p className="text-xs text-muted-foreground">Made with care in West Africa 🌍</p>
+          <p className="text-xs text-muted-foreground">
+            powered by{' '}
+            <a
+              href="https://it-visionary.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:underline"
+            >
+              it-visionary.fr
+            </a>
+          </p>
         </div>
       </div>
     </footer>
