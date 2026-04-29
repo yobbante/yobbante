@@ -10,6 +10,7 @@ import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
 import { CookieBanner } from "@/components/CookieBanner";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <CookieBanner />
+          <InstallAppPrompt />
         </MaintenanceGate>
       </BrowserRouter>
     </TooltipProvider>
