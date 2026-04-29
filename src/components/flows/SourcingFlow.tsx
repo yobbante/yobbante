@@ -176,7 +176,8 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       if (!user) {
         saveDraft(DRAFT_KEY, draftSnapshot);
         toast.message('Connectez-vous pour finaliser — votre brief reste enregistré.');
-        navigate(`/auth?redirect=${encodeURIComponent('/acheter')}`);
+        const here = window.location.pathname + window.location.search;
+        navigate(`/auth?redirect=${encodeURIComponent(here)}`);
         return;
       }
 
