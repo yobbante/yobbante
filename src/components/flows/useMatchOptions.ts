@@ -14,6 +14,7 @@ interface MatchInput {
 interface MatchResult {
   options: MatchOptionView[];
   next_departure_in_days: number | null;
+  next_departure_date: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -24,13 +25,13 @@ interface MatchResult {
  */
 export function useMatchOptions(input: MatchInput | null): MatchResult {
   const [state, setState] = useState<MatchResult>({
-    options: [], next_departure_in_days: null, loading: false, error: null,
+    options: [], next_departure_in_days: null, next_departure_date: null, loading: false, error: null,
   });
   const reqId = useRef(0);
 
   useEffect(() => {
     if (!input || !input.origin_city || !input.destination_city || !input.weight_kg) {
-      setState({ options: [], next_departure_in_days: null, loading: false, error: null });
+      setState({ options: [], next_departure_in_days: null, next_departure_date: null, loading: false, error: null });
       return;
     }
 
@@ -47,12 +48,13 @@ export function useMatchOptions(input: MatchInput | null): MatchResult {
         setState({
           options: data?.options ?? [],
           next_departure_in_days: data?.next_departure_in_days ?? null,
+          next_departure_date: data?.next_departure_date ?? null,
           loading: false,
           error: null,
         });
       } catch (e: any) {
         if (myId !== reqId.current) return;
-        setState({ options: [], next_departure_in_days: null, loading: false, error: e?.message ?? 'Erreur' });
+        setState({ options: [], next_departure_in_days: null, next_departure_date: null, loading: false, error: e?.message ?? 'Erreur' });
       }
     }, 350);
 

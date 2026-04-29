@@ -248,7 +248,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       weight_kg: weight, urgency: priority === 'express' ? 'fast' as const : 'normal' as const,
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
-  const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
+  const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
 
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
@@ -828,9 +828,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               )}
 
-              {next_departure_in_days != null && (
+              {next_departure_date && (
                 <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="w-3.5 h-3.5" /> Prochain départ dans {next_departure_in_days} j ·
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Prochain départ : {new Date(next_departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {next_departure_in_days != null && next_departure_in_days <= 30 && ` (dans ${next_departure_in_days} j)`} ·
                   <ShieldCheck className="w-3.5 h-3.5" /> Suivi inclus
                 </p>
               )}
@@ -928,7 +930,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
-        sideContent={next_departure_in_days != null ? `Prochain départ dans ${next_departure_in_days} j` : undefined}
+        sideContent={next_departure_date ? `Départ ${new Date(next_departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
             <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
