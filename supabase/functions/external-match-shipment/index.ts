@@ -193,11 +193,12 @@ serve(async (req) => {
     const next_departure_in_days = nextDep
       ? Math.max(0, Math.ceil((new Date(nextDep.departure_date).getTime() - today.getTime()) / 86400000))
       : null;
+    const next_departure_date = nextDep?.departure_date ?? null;
 
-    return json(200, { options, next_departure_in_days, fallback: options.length === 0 });
+    return json(200, { options, next_departure_in_days, next_departure_date, fallback: options.length === 0 });
   } catch (e) {
     console.error("external-match-shipment error:", e);
     // Never 5xx — return empty options so UI can fall back gracefully.
-    return json(200, { options: [], next_departure_in_days: null, fallback: true });
+    return json(200, { options: [], next_departure_in_days: null, next_departure_date: null, fallback: true });
   }
 });
