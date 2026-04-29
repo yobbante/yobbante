@@ -43,18 +43,40 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const { createShipment } = useShipments();
 
   const preset = (location.state as {
-    preset?: { type?: typeof TYPES[number]['id']; origin?: string; destination?: string; weight?: number };
+    preset?: {
+      type?: typeof TYPES[number]['id'];
+      origin?: string;
+      destination?: string;
+      origin_city?: string;
+      destination_city?: string;
+      transport?: 'AIR' | 'SEA' | 'ROAD';
+      departure_date?: string;
+      weight?: number;
+      source?: string;
+    };
   } | null)?.preset;
 
-  // Map legacy country preset → city id (default city for that country)
+  // Prefer exact city match (from departures ticker) → fallback to first city of country.
   const presetOriginCityId = useMemo(() => {
     if (!preset?.origin) return null;
+    if (preset.origin_city) {
+      const m = ORIGIN_CITIES.find(
+        c => c.country === preset.origin && c.city.toLowerCase() === preset.origin_city!.toLowerCase(),
+      );
+      if (m) return m.id;
+    }
     return ORIGIN_CITIES.find(c => c.country === preset.origin)?.id ?? null;
-  }, [preset?.origin]);
+  }, [preset?.origin, preset?.origin_city]);
   const presetDestCityId = useMemo(() => {
     if (!preset?.destination) return null;
+    if (preset.destination_city) {
+      const m = DESTINATION_CITIES.find(
+        c => c.country === preset.destination && c.city.toLowerCase() === preset.destination_city!.toLowerCase(),
+      );
+      if (m) return m.id;
+    }
     return DESTINATION_CITIES.find(c => c.country === preset.destination)?.id ?? null;
-  }, [preset?.destination]);
+  }, [preset?.destination, preset?.destination_city]);
 
   const [type, setType]               = useState<typeof TYPES[number]['id'] | null>(preset?.type ?? null);
   const [originCityId, setOriginCity] = useState<string | null>(presetOriginCityId);
@@ -291,6 +313,29 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           title="Envoyez un colis n'importe où dans le monde."
           subtitle="Décrivez votre envoi. Yobbanté trouve la meilleure option et gère transport, douane et livraison."
         />
+      )}
+
+      {preset?.source === 'departures-ticker' && destCity && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-5 sm:mb-6 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 sm:px-5 sm:py-3.5 flex items-start gap-3"
+        >
+          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm sm:text-base font-semibold text-foreground">
+              Envoi vers {destCity.city} sélectionné
+            </p>
+            <p className="mt-0.5 text-xs sm:text-[13px] text-muted-foreground">
+              Basé sur un départ {preset.transport === 'AIR' ? 'aérien' : preset.transport === 'SEA' ? 'maritime' : 'routier'}
+              {preset.departure_date
+                ? ` disponible le ${new Date(preset.departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                : ' disponible prochainement'}
+              {originCity ? ` depuis ${originCity.city}` : ''}.
+            </p>
+          </div>
+        </motion.div>
       )}
 
       <FlowSection revealed step={1} total={5} title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
