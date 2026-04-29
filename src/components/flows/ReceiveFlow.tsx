@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
 import { ReceptionRegisterFlow } from './ReceptionRegisterFlow';
+import { readSourcingHandoff, clearSourcingHandoff } from '@/lib/sourcingHandoff';
 
 /** Detect a recommended hub from a free-text input (URL or paste). */
 function detectHubFromInput(text: string): HubId | null {
@@ -215,7 +216,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   /* ── Session restoration: detect returning users ── */
   const initialSession = useMemo(loadSession, []);
+  const handoff = useMemo(readSourcingHandoff, []);
   const [step, setStep] = useState<Step>(() => {
+    // Sourcing handoff sends the user straight to the pre-order screen
+    // with hub + destination already chosen.
+    if (handoff?.hub) return 'pre-order';
     if (initialSession.exitedAt && initialSession.hub) return 'returning';
     if (initialSession.ordered === 'yes') return 'reception';
     if (initialSession.ordered === 'no' && initialSession.hub) return 'pre-order';
@@ -224,14 +229,14 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   /* ── Pre-order flow state ── */
   const landingHub = useMemo(readLandingHub, []);
-  const [hub, setHubState] = useState<string | null>(initialSession.hub ?? landingHub);
-  const [destination, setDestination] = useState<string | null>(initialSession.destination);
+  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? initialSession.hub ?? landingHub);
+  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? initialSession.destination);
   const [copied, setCopied] = useState(false);
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSaved, setReminderSaved] = useState(false);
 
   /* ── Tracking flow state ── */
-  const [trackingInput, setTrackingInput] = useState('');
+  const [trackingInput, setTrackingInput] = useState(handoff?.productUrl ?? handoff?.productTitle ?? '');
   const [parsing, setParsing] = useState(false);
   const [items, setItems] = useState<ParsedItem[]>([]);
   const [trackingEntries, setTrackingEntries] = useState<ParsedTracking[]>([]);
@@ -292,10 +297,17 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     saveSession({ hub, destination, recommendedHub });
   }, [hub, destination, recommendedHub, step]);
 
-  /* Once we've consumed the landing hand-off, clear it so it doesn't leak. */
+  /* Once we've consumed the landing/sourcing hand-offs, clear them. */
   useEffect(() => {
     if (landingHub) clearLandingHub();
-  }, [landingHub]);
+    if (handoff) {
+      clearSourcingHandoff();
+      toast.success(
+        `Brief sourcing récupéré · ${handoff.merchantHint ?? 'Marchand'} → ${handoff.destination}`,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Cross-component bridge: header button can request "Mes commandes" view. */
   useEffect(() => {
