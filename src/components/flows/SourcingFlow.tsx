@@ -67,6 +67,23 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
+  const { profile, updateProfile } = useProfile();
+
+  // Step 0 — Profil sourcing (mémorisé sur la table profiles)
+  const [sourcingProfile, setSourcingProfile] = useState<'individual' | 'business' | null>(null);
+  useEffect(() => {
+    if (!sourcingProfile && profile?.sourcing_profile) {
+      setSourcingProfile(profile.sourcing_profile as 'individual' | 'business');
+    }
+  }, [profile?.sourcing_profile, sourcingProfile]);
+
+  function chooseProfile(p: 'individual' | 'business') {
+    setSourcingProfile(p);
+    // Persiste silencieusement — l'utilisateur n'a plus à choisir au prochain sourcing.
+    if (profile && profile.sourcing_profile !== p) {
+      updateProfile.mutate({ sourcing_profile: p } as any);
+    }
+  }
 
   const [productInput, setProductInput] = useState('');
   const [parsing, setParsing] = useState(false);
