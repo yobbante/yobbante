@@ -239,17 +239,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, loading: matching } = useMatchOptions(matchInput);
 
-  const quoteInput = useMemo(() => {
+  // Standard quote (priority=standard) — toujours demandée
+  const quoteInputStandard = useMemo(() => {
     if (!originCity || !destCity || !weight) return null;
     const transport: 'AIR' | 'SEA' | 'ROAD' = transportMode;
     return {
       origin_country: originCity.country, destination_country: destCity.country,
       weight_kg: weight, transport_type: transport,
-      priority: priority === 'express' ? 'urgent' as const : 'normal' as const,
+      priority: 'standard' as const,
       origin_city: originCity.city, destination_city: destCity.city,
     };
-  }, [originCity, destCity, weight, transportMode, priority]);
-  const { quote } = useQuote(quoteInput);
+  }, [originCity, destCity, weight, transportMode]);
+  const { quote: quoteStandard } = useQuote(quoteInputStandard);
+
+  // Express quote (priority=express) — moteur applique urgency_mult=1.35
+  const quoteInputExpress = useMemo(() => {
+    if (!quoteInputStandard) return null;
+    return { ...quoteInputStandard, priority: 'express' as const };
+  }, [quoteInputStandard]);
+  const { quote: quoteExpress } = useQuote(quoteInputExpress);
+
+  // Quote actif selon priorité choisie
+  const quote = priority === 'express' ? quoteExpress : quoteStandard;
 
   useEffect(() => {
     if (!chosen && options.length > 0) {
@@ -260,10 +271,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [options.length]);
 
   // ── Pricing breakdown (in EUR for internal math)
+  // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
   const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
   const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
-  const priorityCostEur  = priority === 'express' ? 6 : 0;
-  const totalEur = transportPriceEur + insuranceCostEur + priorityCostEur;
+  const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
+  const totalEur = transportPriceEur + insuranceCostEur;
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
 
@@ -693,20 +705,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       {/* ─── Step 7 — Transport & priority ─── */}
       <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
         {(() => {
-          // Base price (EUR) from quote or chosen Konnekt option, fallback to a rough estimate.
-          const baseEur = quote ? Math.round(quote.price_eur)
-            : chosen ? Math.round(chosen.price_eur)
-            : Math.max(15, Math.round(weight * 4));
-          const baseEtaMin = quote?.eta_min_days ?? 5;
-          const baseEtaMax = quote?.eta_max_days ?? 9;
+          // ── Prix venant directement du moteur (pricing engine v2)
+          // Standard et Express sont calculés côté DB via urgency_mult.
+          const fallbackBase = Math.max(15, Math.round(weight * 4));
+          const standardPrice = quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase;
+          const expressPrice  = quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.35);
 
-          // Standard = base. Express = +30% price, ~40% faster (min 1-2 days quicker).
-          const standardPrice = baseEur;
-          const expressPrice  = Math.round(baseEur * 1.30);
-          const expressEtaMin = Math.max(1, Math.ceil(baseEtaMin * 0.6));
-          const expressEtaMax = Math.max(expressEtaMin + 1, Math.ceil(baseEtaMax * 0.6));
-          const standardEtaMin = Math.max(expressEtaMax + 1, baseEtaMin);
-          const standardEtaMax = Math.max(standardEtaMin + 2, baseEtaMax);
+          const standardEtaMin = quoteStandard?.eta_min_days ?? 5;
+          const standardEtaMax = quoteStandard?.eta_max_days ?? 9;
+          const expressEtaMin  = quoteExpress?.eta_min_days  ?? Math.max(1, Math.ceil(standardEtaMin * 0.6));
+          const expressEtaMax  = quoteExpress?.eta_max_days  ?? Math.max(expressEtaMin + 1, Math.ceil(standardEtaMax * 0.6));
 
           const cards = [
             {
