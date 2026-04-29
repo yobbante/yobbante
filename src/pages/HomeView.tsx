@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Package, Clock, Sparkles, Layers, ArrowRight } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { ActivitySections } from '@/components/home/ActivitySections';
 
 interface HomeViewProps {
   /** Navigate to the unified Mes envois screen, optionally pre-selecting a tab. */
@@ -152,55 +153,8 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
         ))}
       </div>
 
-      {/* Active Dossiers — top 2 + see all */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[15px] font-semibold text-foreground tracking-tight">Vos dossiers</h3>
-          {activeDossiers.length > 2 && (
-            <button
-              type="button"
-              onClick={() => goOrders('sourcing')}
-              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-            >
-              Tout voir <ArrowRight className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-        {dossiersLoading ? (
-          <Skeleton className="h-28 rounded-2xl" />
-        ) : activeDossiers.length === 0 ? (
-          <EmptyState
-            icon={Sparkles}
-            title="Confiez votre premier dossier"
-            description="Un produit en tête ? On trouve le bon fournisseur, on vérifie, on achète et on livre."
-            ctaLabel="Démarrer"
-            onCta={() => navigate('/acheter')}
-          />
-        ) : (
-          <div className="space-y-3">
-            {activeDossiers.slice(0, 2).map(d => <DossierCard key={d.id} dossier={d} />)}
-          </div>
-        )}
-      </section>
-
-      {/* Active Shipments */}
-      {activeShipments.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[15px] font-semibold text-foreground tracking-tight">Expéditions actives</h3>
-            <button
-              type="button"
-              onClick={() => goOrders('send')}
-              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-            >
-              Tout voir <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="space-y-3">
-            {activeShipments.slice(0, 2).map(s => <ShipmentCard key={s.id} shipment={s} />)}
-          </div>
-        </section>
-      )}
+      {/* ── 3 sections différenciées : Envois · Réceptions · Sourcing ── */}
+      <ActivitySections onNavigateOrders={onNavigateOrders} />
 
       {/* Activité — feed récent */}
       <section>
