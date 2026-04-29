@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import { DeparturesTicker } from '@/components/DeparturesTicker';
 import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import {
   Package, Factory, Inbox, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
@@ -72,6 +73,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PublicNav />
+      <DeparturesTicker />
 
       {/* ───── HERO ───── */}
       <section className="relative overflow-hidden">
