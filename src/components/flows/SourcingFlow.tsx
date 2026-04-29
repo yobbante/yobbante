@@ -189,6 +189,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           destination_country: destination,
           origin_city: ORIGIN_CITY[origin],
           destination_city: DEST_CITY[destination],
+          departure_date: chosen.departure_date ?? next_departure_date ?? null,
           match_option: chosen,
         });
       }
