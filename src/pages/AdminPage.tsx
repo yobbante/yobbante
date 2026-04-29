@@ -124,9 +124,18 @@ export default function AdminPage() {
             <Menu className="w-5 h-5" />
           </button>
           <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
-          <button onClick={() => navigate('/app')} className="p-2 -mr-2 rounded text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
+              aria-label="Se déconnecter"
+              className="p-2 rounded text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+            <button onClick={() => navigate('/app')} className="p-2 -mr-2 rounded text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
