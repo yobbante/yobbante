@@ -198,7 +198,7 @@ export function DeparturesTicker() {
         >
           <div
             className={cn(
-              'flex gap-4 sm:gap-6 animate-marquee whitespace-nowrap will-change-transform',
+              'flex w-max gap-4 sm:gap-6 animate-marquee whitespace-nowrap will-change-transform',
               paused && '[animation-play-state:paused]',
             )}
           >
