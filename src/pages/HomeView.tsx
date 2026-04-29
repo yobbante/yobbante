@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Package, Clock, Sparkles, Layers, ArrowRight } from 'lucide-react';
 import { COUNTRY_FLAGS, type WarehouseCountry } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { ActivitySections } from '@/components/home/ActivitySections';
 
 interface HomeViewProps {
   /** Navigate to the unified Mes envois screen, optionally pre-selecting a tab. */
