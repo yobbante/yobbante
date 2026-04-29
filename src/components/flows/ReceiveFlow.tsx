@@ -216,7 +216,11 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   /* ── Session restoration: detect returning users ── */
   const initialSession = useMemo(loadSession, []);
+  const handoff = useMemo(readSourcingHandoff, []);
   const [step, setStep] = useState<Step>(() => {
+    // Sourcing handoff sends the user straight to the pre-order screen
+    // with hub + destination already chosen.
+    if (handoff?.hub) return 'pre-order';
     if (initialSession.exitedAt && initialSession.hub) return 'returning';
     if (initialSession.ordered === 'yes') return 'reception';
     if (initialSession.ordered === 'no' && initialSession.hub) return 'pre-order';
@@ -225,14 +229,14 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   /* ── Pre-order flow state ── */
   const landingHub = useMemo(readLandingHub, []);
-  const [hub, setHubState] = useState<string | null>(initialSession.hub ?? landingHub);
-  const [destination, setDestination] = useState<string | null>(initialSession.destination);
+  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? initialSession.hub ?? landingHub);
+  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? initialSession.destination);
   const [copied, setCopied] = useState(false);
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSaved, setReminderSaved] = useState(false);
 
   /* ── Tracking flow state ── */
-  const [trackingInput, setTrackingInput] = useState('');
+  const [trackingInput, setTrackingInput] = useState(handoff?.productUrl ?? handoff?.productTitle ?? '');
   const [parsing, setParsing] = useState(false);
   const [items, setItems] = useState<ParsedItem[]>([]);
   const [trackingEntries, setTrackingEntries] = useState<ParsedTracking[]>([]);
