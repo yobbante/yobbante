@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Globe2, Sparkles, ShieldCheck, Loader2, ArrowLeft, Mail, Lock, User } from 'lucide-react';
@@ -8,6 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import logoYobbante from '@/assets/logo-yobbante.png';
+
+/**
+ * Resolve the post-login route.
+ * Admins (role=admin in public.user_roles) ALWAYS land on /admin,
+ * regardless of any ?redirect= param. Other users use the requested redirect.
+ */
+async function resolvePostLoginRoute(userId: string, fallback: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+    const isAdmin = (data ?? []).some((r) => r.role === 'admin');
+    return isAdmin ? '/admin' : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,14 +40,30 @@ export default function Auth() {
   const rawRedirect = params.get('redirect') || '/app';
   const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
 
+  // If a session already exists when landing on /auth (e.g. OAuth return),
+  // route admins straight to /admin and others to the intended page.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || cancelled) return;
+      const dest = await resolvePostLoginRoute(session.user.id, redirectTo);
+      navigate(dest, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [navigate, redirectTo]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate(redirectTo, { replace: true });
+        const dest = data.user
+          ? await resolvePostLoginRoute(data.user.id, redirectTo)
+          : redirectTo;
+        navigate(dest, { replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -46,15 +81,18 @@ export default function Auth() {
   };
 
   const handleGoogleLogin = async () => {
+    // Always return to /auth so we can dispatch admins to /admin afterwards.
     const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: `${window.location.origin}${redirectTo}`,
+      redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(redirectTo)}`,
     });
     if (result.error) {
       toast.error(result.error.message || 'Connexion Google échouée');
       return;
     }
     if (result.redirected) return;
-    navigate(redirectTo, { replace: true });
+    const { data: { user } } = await supabase.auth.getUser();
+    const dest = user ? await resolvePostLoginRoute(user.id, redirectTo) : redirectTo;
+    navigate(dest, { replace: true });
   };
 
   return (
