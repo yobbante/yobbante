@@ -753,18 +753,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                         </span>
                       )}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {c.icon}
-                          <p className="text-base font-bold">{c.label}</p>
+                          <p className="text-base font-bold truncate">{c.label}</p>
                         </div>
-                        {active && <CheckCircle2 className="w-4 h-4" />}
+                        {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
                       </div>
                       <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
 
-                      <div className="mt-4 flex items-baseline gap-1.5">
-                        <span className="text-2xl font-bold tabular-nums">{formatLocalAmount(c.price, originProfile)}</span>
+                      <div className="mt-4">
+                        <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
+                          {formatLocalAmount(c.price, originProfile)}
+                        </span>
                       </div>
-                      <p className={`text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+                      <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
                         Livraison estimée · {c.eta}
                       </p>
 
