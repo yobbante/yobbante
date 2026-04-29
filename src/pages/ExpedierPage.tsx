@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { ListChecks } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ListChecks, Home } from 'lucide-react';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
 import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
@@ -14,6 +14,7 @@ type Mode = 'envoyer' | 'recevoir';
  */
 export default function ExpedierPage() {
   const { mode: urlMode } = useParams<{ mode?: Mode }>();
+  const navigate = useNavigate();
   // No more selection screen: /expedier defaults directly to "envoyer".
   const [mode, setMode] = useState<Mode>((urlMode as Mode) ?? 'envoyer');
 
@@ -55,7 +56,12 @@ export default function ExpedierPage() {
               onClick: () =>
                 window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
             }
-          : undefined
+          : {
+              label: 'Accueil',
+              icon: <Home className="w-3.5 h-3.5" />,
+              variant: 'ghost',
+              onClick: () => navigate('/'),
+            }
       }
     />
   );
