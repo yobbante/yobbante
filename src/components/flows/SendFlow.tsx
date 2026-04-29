@@ -43,18 +43,40 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const { createShipment } = useShipments();
 
   const preset = (location.state as {
-    preset?: { type?: typeof TYPES[number]['id']; origin?: string; destination?: string; weight?: number };
+    preset?: {
+      type?: typeof TYPES[number]['id'];
+      origin?: string;
+      destination?: string;
+      origin_city?: string;
+      destination_city?: string;
+      transport?: 'AIR' | 'SEA' | 'ROAD';
+      departure_date?: string;
+      weight?: number;
+      source?: string;
+    };
   } | null)?.preset;
 
-  // Map legacy country preset → city id (default city for that country)
+  // Prefer exact city match (from departures ticker) → fallback to first city of country.
   const presetOriginCityId = useMemo(() => {
     if (!preset?.origin) return null;
+    if (preset.origin_city) {
+      const m = ORIGIN_CITIES.find(
+        c => c.country === preset.origin && c.city.toLowerCase() === preset.origin_city!.toLowerCase(),
+      );
+      if (m) return m.id;
+    }
     return ORIGIN_CITIES.find(c => c.country === preset.origin)?.id ?? null;
-  }, [preset?.origin]);
+  }, [preset?.origin, preset?.origin_city]);
   const presetDestCityId = useMemo(() => {
     if (!preset?.destination) return null;
+    if (preset.destination_city) {
+      const m = DESTINATION_CITIES.find(
+        c => c.country === preset.destination && c.city.toLowerCase() === preset.destination_city!.toLowerCase(),
+      );
+      if (m) return m.id;
+    }
     return DESTINATION_CITIES.find(c => c.country === preset.destination)?.id ?? null;
-  }, [preset?.destination]);
+  }, [preset?.destination, preset?.destination_city]);
 
   const [type, setType]               = useState<typeof TYPES[number]['id'] | null>(preset?.type ?? null);
   const [originCityId, setOriginCity] = useState<string | null>(presetOriginCityId);
