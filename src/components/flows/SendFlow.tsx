@@ -315,6 +315,29 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         />
       )}
 
+      {preset?.source === 'departures-ticker' && destCity && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-5 sm:mb-6 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 sm:px-5 sm:py-3.5 flex items-start gap-3"
+        >
+          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm sm:text-base font-semibold text-foreground">
+              Envoi vers {destCity.city} sélectionné
+            </p>
+            <p className="mt-0.5 text-xs sm:text-[13px] text-muted-foreground">
+              Basé sur un départ {preset.transport === 'AIR' ? 'aérien' : preset.transport === 'SEA' ? 'maritime' : 'routier'}
+              {preset.departure_date
+                ? ` disponible le ${new Date(preset.departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                : ' disponible prochainement'}
+              {originCity ? ` depuis ${originCity.city}` : ''}.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       <FlowSection revealed step={1} total={5} title="Que souhaitez-vous envoyer ?" hint="Sélectionnez la nature de votre envoi.">
         <ChipGroup options={TYPES} value={type} onChange={(v) => setType(v)} />
       </FlowSection>
