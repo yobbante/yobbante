@@ -274,6 +274,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     }
   }, [weight, weightTouched, transportMode, goodsType]);
 
+  // ── AI: classify goods type from description (debounced)
+  useEffect(() => {
+    const desc = description.trim();
+    if (desc.length < 4 || goodsManualOverride) return;
+    const handle = setTimeout(async () => {
+      try {
+        setGoodsDetecting(true);
+        const { data, error } = await supabase.functions.invoke('classify-goods', {
+          body: { description: desc, declared_value_eur: declaredEur || null },
+        });
+        if (error) throw error;
+        const id = data?.goods_type as GoodsId | null;
+        const conf = data?.confidence as 'high'|'medium'|'low' | undefined;
+        if (id && GOODS_TYPES.some(g => g.id === id) && conf) {
+          setGoodsAutoDetected({ id, confidence: conf, rationale: data?.rationale ?? '' });
+          // Auto-select only when confidence is high or medium
+          if ((conf === 'high' || conf === 'medium') && !goodsManualOverride) {
+            setGoodsType(id);
+          }
+        }
+      } catch (e) {
+        console.warn('classify-goods failed', e);
+      } finally {
+        setGoodsDetecting(false);
+      }
+    }, 700);
+    return () => clearTimeout(handle);
+  }, [description, declaredEur, goodsManualOverride]);
+
   // ── Reveal logic per step
   const step1Ok = !!senderKind && !!originCountry;
   const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
