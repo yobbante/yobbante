@@ -751,10 +751,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
           return (
             <div className="space-y-4">
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span><strong>Tarif tout compris porte-à-porte</strong> — enlèvement chez vous et livraison au domicile du destinataire inclus, sans frais cachés.</span>
-              </div>
+              <DoorToDoorBanner
+                origin={originCoverageCheck}
+                destination={destCoverageCheck}
+                variant="subtle"
+              />
               <div className="grid sm:grid-cols-2 gap-3">
                 {cards.map(c => {
                   const active = priority === c.id;
