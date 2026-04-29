@@ -36,6 +36,7 @@ describe('useMatchOptions — next_departure_date propagation', () => {
       await act(() => new Promise(r => setTimeout(r, 50)));
     }
     expect(result.current.next_departure_date).toBe('2026-06-15');
+    expect(result.current.next_departure_in_days).toBe(3);
 
     // And it formats correctly through the shared helper used by both flows.
     const label = formatDepartureDate(result.current.next_departure_date);
