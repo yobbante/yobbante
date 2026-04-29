@@ -104,8 +104,9 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
 
   // Persist work-in-progress so a /auth round-trip never loses input
   const DRAFT_KEY = 'sourcing-flow';
-  const draftSnapshot = { productInput, quantity, budget, quality, urgency, origin, destination };
+  const draftSnapshot = { sourcingProfile, productInput, quantity, budget, quality, urgency, origin, destination };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.sourcingProfile) setSourcingProfile(d.sourcingProfile);
     if (d.productInput) setProductInput(d.productInput);
     if (typeof d.quantity === 'number') setQuantity(d.quantity);
     if (d.budget) setBudget(d.budget);
