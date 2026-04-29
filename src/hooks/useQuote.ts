@@ -84,8 +84,8 @@ interface QuoteState {
   error: string | null;
 }
 
-// 30s in-memory cache shared across hook instances. Keyed by canonical input hash.
-const TTL_MS = 30_000;
+// 5s in-memory cache (très court pour propagation quasi-instantanée des changements de tarifs).
+const TTL_MS = 5_000;
 const cache = new Map<string, { at: number; quote: Quote }>();
 
 function cacheKey(i: QuoteInput): string {
