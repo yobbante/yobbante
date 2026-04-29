@@ -135,6 +135,12 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   }, [origin, destination, quality, urgency, totalWeight]);
 
   const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const countdown = useMemo(() => getDepartureCountdown(next_departure_date, now), [next_departure_date, now]);
 
   useEffect(() => {
     if (!chosen && options.length > 0) {
