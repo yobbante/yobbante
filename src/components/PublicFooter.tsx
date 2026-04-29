@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MapPin, Package, ShoppingCart, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface FooterSection {
   title: string;
@@ -41,7 +42,7 @@ export function PublicFooter() {
         {/* ─────────── DESKTOP / TABLET (md+) ─────────── */}
         <div className="hidden md:grid grid-cols-5 gap-8">
           <div className="col-span-2">
-            <p className="text-base font-bold text-foreground tracking-tight">YOBBANTÉ</p>
+            <BrandLogo size={28} asLink={false} />
             <p className="text-sm text-muted-foreground mt-3 max-w-xs leading-relaxed">
               Expédiez, recevez ou achetez à l'international. On gère tout, de A à Z.
             </p>
@@ -76,7 +77,7 @@ export function PublicFooter() {
         {/* ─────────── MOBILE (collapsible accordion menu) ─────────── */}
         <div className="md:hidden">
           <div>
-            <p className="text-base font-bold text-foreground tracking-tight">YOBBANTÉ</p>
+            <BrandLogo size={26} asLink={false} />
             <p className="text-sm text-muted-foreground mt-2.5 leading-relaxed">
               Expédiez, recevez ou achetez à l'international.
             </p>
