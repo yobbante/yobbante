@@ -56,7 +56,12 @@ export default function ExpedierPage() {
               onClick: () =>
                 window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
             }
-          : undefined
+          : {
+              label: 'Accueil',
+              icon: <Home className="w-3.5 h-3.5" />,
+              variant: 'ghost',
+              onClick: () => navigate('/'),
+            }
       }
     />
   );
