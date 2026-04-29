@@ -19,6 +19,8 @@ import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
+import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
+import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
@@ -180,6 +182,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const destProfile   = useMemo<CountryProfile>(() => getProfile(destCity?.country), [destCity?.country]);
 
   const coverage = useCoverageZone({ country: originCountry, city: originCity?.city });
+  const destCoverage = useCoverageZone({ country: destCity?.country, city: destCity?.city });
+  const originCoverageCheck = useMemo(
+    () => checkDoorToDoor(coverage.level, coverage.loading, originCity?.city),
+    [coverage.level, coverage.loading, originCity?.city],
+  );
+  const destCoverageCheck = useMemo(
+    () => checkDoorToDoor(destCoverage.level, destCoverage.loading, destCity?.city),
+    [destCoverage.level, destCoverage.loading, destCity?.city],
+  );
 
   const localCalendarMin = useMemo(() => {
     const d = new Date();
@@ -724,7 +735,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Zap className="w-4 h-4" />,
               eta: `${expressEtaMin}-${expressEtaMax} jours`,
               price: expressPrice,
-              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Traitement prioritaire', 'Suivi temps réel'],
+              perks: [...INCLUDED_PERKS, 'Traitement prioritaire'],
             },
             {
               id: 'normal' as const,
@@ -733,17 +744,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               icon: <Clock className="w-4 h-4" />,
               eta: `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
-              perks: ['Enlèvement à domicile inclus', 'Livraison à domicile incluse', 'Suivi inclus', 'Économique'],
+              perks: [...INCLUDED_PERKS, 'Économique'],
               recommended: true,
             },
           ];
 
           return (
             <div className="space-y-4">
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span><strong>Tarif tout compris porte-à-porte</strong> — enlèvement chez vous et livraison au domicile du destinataire inclus, sans frais cachés.</span>
-              </div>
+              <DoorToDoorBanner
+                origin={originCoverageCheck}
+                destination={destCoverageCheck}
+                variant="subtle"
+              />
               <div className="grid sm:grid-cols-2 gap-3">
                 {cards.map(c => {
                   const active = priority === c.id;
@@ -877,6 +889,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </p>
             </div>
           </div>
+
+          <DoorToDoorBanner
+            origin={originCoverageCheck}
+            destination={destCoverageCheck}
+            detailed
+          />
 
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Mode de paiement</p>
