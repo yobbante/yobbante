@@ -70,17 +70,14 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   const { createShipment } = useShipments();
   const { profile, updateProfile } = useProfile();
 
-  // Step 0 — Profil sourcing (mémorisé sur la table profiles)
+  // Step 0 — Profil sourcing
+  // ⚠️ Volontairement NON pré-rempli : à chaque nouveau sourcing l'utilisateur
+  // doit refaire le choix (besoin = particulier OU revente peut varier d'un
+  // dossier à l'autre). On persiste néanmoins en DB pour analytics/segmentation.
   const [sourcingProfile, setSourcingProfile] = useState<'individual' | 'business' | null>(null);
-  useEffect(() => {
-    if (!sourcingProfile && profile?.sourcing_profile) {
-      setSourcingProfile(profile.sourcing_profile as 'individual' | 'business');
-    }
-  }, [profile?.sourcing_profile, sourcingProfile]);
 
   function chooseProfile(p: 'individual' | 'business') {
     setSourcingProfile(p);
-    // Persiste silencieusement — l'utilisateur n'a plus à choisir au prochain sourcing.
     if (profile && profile.sourcing_profile !== p) {
       updateProfile.mutate({ sourcing_profile: p } as any);
     }
@@ -105,9 +102,10 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
 
   // Persist work-in-progress so a /auth round-trip never loses input
   const DRAFT_KEY = 'sourcing-flow';
-  const draftSnapshot = { sourcingProfile, productInput, quantity, budget, quality, urgency, origin, destination };
+  // Note: on n'inclut PAS sourcingProfile dans le draft — l'utilisateur doit
+  // toujours refaire ce choix explicitement à chaque nouveau sourcing.
+  const draftSnapshot = { productInput, quantity, budget, quality, urgency, origin, destination };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
-    if (d.sourcingProfile) setSourcingProfile(d.sourcingProfile);
     if (d.productInput) setProductInput(d.productInput);
     if (typeof d.quantity === 'number') setQuantity(d.quantity);
     if (d.budget) setBudget(d.budget);
