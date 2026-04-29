@@ -140,10 +140,17 @@ function normalizeKonnekt(raw: unknown): Departure[] {
       ).slice(0, 10);
       if (!dep) return null;
 
-      // Origin: try flat fields first, then nested object
-      const originCountry = pickCountry(
+      // Drop departures too far in the future (> 120 days) — likely test data.
+      const depTime = new Date(dep + 'T00:00:00Z').getTime();
+      const today = Date.now();
+      if (Number.isNaN(depTime)) return null;
+      if (depTime < today - 24 * 3600 * 1000) return null; // past
+      if (depTime > today + 120 * 24 * 3600 * 1000) return null; // too far
+
+      // Origin
+      const originCountryRaw = pickCountry(
         r.origin_country ?? r.from_country ?? (r.origin as Record<string, unknown> | undefined)?.country ?? r.origin,
-        'CN',
+        '',
       );
       const originCity =
         pickStr(r.origin_city, 'city', 'name') ||
@@ -151,9 +158,9 @@ function normalizeKonnekt(raw: unknown): Departure[] {
         pickCity(r.origin) ||
         pickCity(r.from);
 
-      const destCountry = pickCountry(
+      const destCountryRaw = pickCountry(
         r.destination_country ?? r.to_country ?? (r.destination as Record<string, unknown> | undefined)?.country ?? r.destination,
-        'SN',
+        '',
       );
       const destCity =
         pickStr(r.destination_city, 'city', 'name') ||
@@ -163,6 +170,14 @@ function normalizeKonnekt(raw: unknown): Departure[] {
 
       // Drop entries without proper city info — these are not "real" departures.
       if (!originCity || !destCity) return null;
+
+      // City is the source of truth: if we know the city, override the country.
+      // This fixes partner data like "Abidjan" tagged as FR.
+      const originCountry = countryFromCity(originCity) || originCountryRaw || 'CN';
+      const destCountry = countryFromCity(destCity) || destCountryRaw || 'SN';
+
+      // Drop obviously broken entries: same origin & destination city.
+      if (normalizeCityKey(originCity) === normalizeCityKey(destCity)) return null;
 
       return {
         id: String(r.id || r.reference || `k-${i}`),
