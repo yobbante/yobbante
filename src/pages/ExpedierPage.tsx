@@ -13,7 +13,6 @@ type Mode = 'envoyer' | 'recevoir';
  * ouvrent directement le flow correspondant.
  */
 export default function ExpedierPage() {
-  const navigate = useNavigate();
   const { mode: urlMode } = useParams<{ mode?: Mode }>();
   // No more selection screen: /expedier defaults directly to "envoyer".
   const [mode, setMode] = useState<Mode>((urlMode as Mode) ?? 'envoyer');
