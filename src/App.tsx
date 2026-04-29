@@ -36,6 +36,7 @@ const App = () => (
         <ScrollToTop />
         <MaintenanceGate>
           <GlobalNotifiers />
+          <AdminOnlyGuard />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             {/* New 2-CTAs entry points */}
