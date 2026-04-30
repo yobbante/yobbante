@@ -220,13 +220,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const draftSnapshot = {
     // ⚠️ senderKind volontairement exclu : à chaque nouvel envoi l'utilisateur
     // doit refaire ce choix explicitement (peut varier d'un colis à l'autre).
-    originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
+    direction, originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
     destCityId, recipientName, recipientPhone, recipientEmail, deliveryAddress,
     description, declaredLocal, weight, parcelCount, goodsType,
     transportMode, priority, insurance, paymentMethod,
     senderName, senderPhone, chosenId: chosen?.id ?? null,
   };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.direction === 'from_dakar' || d.direction === 'to_dakar') setDirection(d.direction);
     if (d.originCountry) setOriginCountry(d.originCountry);
     if (d.originCityId) setOriginCity(d.originCityId);
     if (d.pickupAddress) setPickup(d.pickupAddress);
