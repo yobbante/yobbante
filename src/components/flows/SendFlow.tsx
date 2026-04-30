@@ -24,7 +24,8 @@ import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime'
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
 import { supabase } from '@/integrations/supabase/client';
-import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
+import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
+import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
 import type { WarehouseCountry } from '@/lib/types';
 
