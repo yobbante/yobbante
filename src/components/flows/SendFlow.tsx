@@ -341,7 +341,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [description, declaredEur, goodsManualOverride]);
 
   // ── Reveal logic per step
-  const step1Ok = !!senderKind && !!originCountry;
+  const step1Ok = !!senderKind && !!direction;
   const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
   const step3Ok = step2Ok && !!destCity;
   const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
