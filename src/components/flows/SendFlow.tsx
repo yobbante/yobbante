@@ -184,9 +184,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
 
   // ── Derived ──────────────────────────────────────────────────────
-  const originProfile = useMemo<CountryProfile>(() => getProfile(originCountry), [originCountry]);
-  const originCity    = findCity(ORIGIN_CITIES, originCityId);
-  const destCity      = findCity(DESTINATION_CITIES, destCityId);
+  // Direction enforces Dakar as the locked endpoint:
+  //  - from_dakar → origin = Dakar (locked), destination = chosen city
+  //  - to_dakar   → origin = chosen city, destination = Dakar (locked)
+  const foreignCity = direction === 'from_dakar'
+    ? findCity(DESTINATION_CITIES, destCityId)
+    : findCity(ORIGIN_CITIES, originCityId);
+  const originCity = direction === 'from_dakar' ? HUB_DAKAR : foreignCity;
+  const destCity   = direction === 'from_dakar' ? foreignCity : HUB_DAKAR;
+  const originProfile = useMemo<CountryProfile>(() => getProfile(originCity?.country ?? 'SN'), [originCity?.country]);
   const destProfile   = useMemo<CountryProfile>(() => getProfile(destCity?.country), [destCity?.country]);
 
   const coverage = useCoverageZone({ country: originCountry, city: originCity?.city });
