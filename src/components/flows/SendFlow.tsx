@@ -195,6 +195,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const originProfile = useMemo<CountryProfile>(() => getProfile(originCity?.country ?? 'SN'), [originCity?.country]);
   const destProfile   = useMemo<CountryProfile>(() => getProfile(destCity?.country), [destCity?.country]);
 
+  // Garde originCountry en sync avec la ville sélectionnée (utilisé par certaines mutations / drafts).
+  useEffect(() => {
+    if (originCity?.country && originCity.country !== originCountry) setOriginCountry(originCity.country);
+  }, [originCity?.country]);
+
   const coverage = useCoverageZone({ country: originCity?.country ?? 'SN', city: originCity?.city });
   const destCoverage = useCoverageZone({ country: destCity?.country, city: destCity?.city });
   const originCoverageCheck = useMemo(
