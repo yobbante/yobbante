@@ -126,12 +126,12 @@ function fmtEta(d: string | null | undefined): string | null {
  * Reusable shell
  * ──────────────────────────────────────────────────────────────────── */
 function SectionHeader({
-  icon, title, onSeeAll,
-}: { icon: string; title: string; onSeeAll: () => void }) {
+  title, onSeeAll,
+}: { icon?: string; title: string; onSeeAll: () => void }) {
   return (
     <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
       <h3 className="m-0" style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-        <span style={{ marginRight: 6 }}>{icon}</span>{title}
+        {title}
       </h3>
       <button
         type="button"

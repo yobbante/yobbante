@@ -1,4 +1,4 @@
-import { Home, Package2, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Home, Send, Inbox, Search, User, LogOut, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -8,9 +8,11 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
   const links = [
-    { id: 'home' as TabId, icon: Home, label: 'Accueil' },
-    { id: 'orders' as TabId, icon: Package2, label: 'Mes envois' },
-    { id: 'profile' as TabId, icon: User, label: 'Profil' },
+    { id: 'home' as TabId,       icon: Home,   label: 'Accueil' },
+    { id: 'envois' as TabId,     icon: Send,   label: 'Envois' },
+    { id: 'receptions' as TabId, icon: Inbox,  label: 'Réceptions' },
+    { id: 'sourcing' as TabId,   icon: Search, label: 'Sourcing' },
+    { id: 'profile' as TabId,    icon: User,   label: 'Profil' },
   ];
 
   return (
@@ -30,7 +32,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
               key={link.id}
               onClick={() => onChange(link.id)}
               className={cn(
-                'flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'text-foreground bg-secondary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
@@ -44,7 +46,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
         {isStaff && (
           <button
             onClick={() => navigate('/admin')}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors ml-1"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors ml-1"
           >
             <ShieldCheck className="w-4 h-4" />
             Admin

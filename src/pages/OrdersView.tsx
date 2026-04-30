@@ -67,14 +67,14 @@ function dossierKind(d: Dossier): Kind {
   return 'receive';
 }
 
-export function OrdersView() {
+export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages } = usePackages();
 
-  const initialKind = (searchParams.get('kind') as Kind) || 'sourcing';
+  const initialKind = fixedKind ?? ((searchParams.get('kind') as Kind) || 'sourcing');
   const [kind, setKindState] = useState<Kind>(
     KIND_TABS.some(t => t.id === initialKind) ? initialKind : 'sourcing'
   );
@@ -85,11 +85,15 @@ export function OrdersView() {
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
   const setKind = (next: Kind) => {
+    if (fixedKind) return;
     setKindState(next);
     const sp = new URLSearchParams(searchParams);
     sp.set('kind', next);
     setSearchParams(sp, { replace: true });
   };
+
+  // Sync when parent forces a kind
+  useMemo(() => { if (fixedKind && fixedKind !== kind) setKindState(fixedKind); }, [fixedKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bucket dossiers by kind once.
   const grouped = useMemo(() => {
@@ -136,12 +140,12 @@ export function OrdersView() {
         className="flex items-end justify-between gap-3"
       >
         <div>
-          <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground">Mes envois</p>
+          <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground">{activeTab.label}</p>
           <h2 className="mt-1.5 text-[1.5rem] sm:text-3xl font-bold tracking-tight text-foreground">
-            Tout en un seul endroit
+            {fixedKind ? activeTab.label : 'Tout en un seul endroit'}
           </h2>
           <p className="mt-1.5 text-[13px] sm:text-sm text-muted-foreground max-w-md">
-            Sourcing, réceptions et envois — vos commandes regroupées par type.
+            {activeTab.hint}
           </p>
         </div>
         <Button
@@ -154,47 +158,49 @@ export function OrdersView() {
         </Button>
       </motion.header>
 
-      {/* Segmented tabs — 3 user-facing buckets */}
-      <div
-        role="tablist"
-        aria-label="Type de commande"
-        className="grid grid-cols-3 gap-1.5 p-1 bg-secondary/60 rounded-xl"
-      >
-        {KIND_TABS.map(t => {
-          const isActive = t.id === kind;
-          const count = counts[t.id];
-          const Icon = t.Icon;
-          return (
-            <button
-              key={t.id}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`panel-${t.id}`}
-              id={`tab-${t.id}`}
-              onClick={() => setKind(t.id)}
-              className={cn(
-                'relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-lg text-[12px] sm:text-[13px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                isActive
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={isActive ? 2.4 : 1.8} />
-              <span className="leading-none">{t.short}</span>
-              {count > 0 && (
-                <span
-                  className={cn(
-                    'tabular-nums text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none',
-                    isActive ? 'bg-foreground/10 text-foreground' : 'bg-foreground/5 text-muted-foreground'
-                  )}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Segmented tabs — only when not pinned by parent nav */}
+      {!fixedKind && (
+        <div
+          role="tablist"
+          aria-label="Type de commande"
+          className="grid grid-cols-3 gap-1.5 p-1 bg-secondary/60 rounded-xl"
+        >
+          {KIND_TABS.map(t => {
+            const isActive = t.id === kind;
+            const count = counts[t.id];
+            const Icon = t.Icon;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`panel-${t.id}`}
+                id={`tab-${t.id}`}
+                onClick={() => setKind(t.id)}
+                className={cn(
+                  'relative flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 rounded-lg text-[12px] sm:text-[13px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  isActive
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={isActive ? 2.4 : 1.8} />
+                <span className="leading-none">{t.short}</span>
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      'tabular-nums text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none',
+                      isActive ? 'bg-foreground/10 text-foreground' : 'bg-foreground/5 text-muted-foreground'
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Hint line + search */}
       <div className="space-y-3">
