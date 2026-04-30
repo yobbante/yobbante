@@ -1,128 +1,82 @@
 import type { CityOption } from '@/components/flows/FlowPrimitives';
 
-/** Curated list of major world cities (origin) + West-Africa destinations. */
+/**
+ * STRICT predefined city list (36 cities).
+ *
+ * Yobbanté opère exclusivement entre Dakar (hub central) et l'une des villes
+ * ci-dessous. Tous les sélecteurs de ville n'exposent QUE ces 36 villes.
+ * L'autre extrémité de la route est TOUJOURS forcée à Dakar (voir HUB_DAKAR).
+ */
 const RAW: Array<Omit<CityOption, 'id'>> = [
-  // ── Asia
-  { city: 'Shenzhen',  country: 'CN', countryLabel: 'Chine',     flag: '🇨🇳' },
-  { city: 'Guangzhou', country: 'CN', countryLabel: 'Chine',     flag: '🇨🇳' },
-  { city: 'Shanghai',  country: 'CN', countryLabel: 'Chine',     flag: '🇨🇳' },
-  { city: 'Yiwu',      country: 'CN', countryLabel: 'Chine',     flag: '🇨🇳' },
-  { city: 'Pékin',     country: 'CN', countryLabel: 'Chine',     flag: '🇨🇳' },
-  { city: 'Hong Kong', country: 'HK', countryLabel: 'Hong Kong', flag: '🇭🇰' },
-  { city: 'Tokyo',     country: 'JP', countryLabel: 'Japon',     flag: '🇯🇵' },
-  { city: 'Séoul',     country: 'KR', countryLabel: 'Corée du Sud', flag: '🇰🇷' },
-  { city: 'Singapour', country: 'SG', countryLabel: 'Singapour', flag: '🇸🇬' },
-  { city: 'Bangkok',   country: 'TH', countryLabel: 'Thaïlande', flag: '🇹🇭' },
-  { city: 'Mumbai',    country: 'IN', countryLabel: 'Inde',      flag: '🇮🇳' },
-  { city: 'Delhi',     country: 'IN', countryLabel: 'Inde',      flag: '🇮🇳' },
-  { city: 'Istanbul',  country: 'TR', countryLabel: 'Turquie',   flag: '🇹🇷' },
-
-  // ── Middle East
-  { city: 'Dubai',     country: 'AE', countryLabel: 'Émirats arabes unis', flag: '🇦🇪' },
-  { city: 'Abu Dhabi', country: 'AE', countryLabel: 'Émirats arabes unis', flag: '🇦🇪' },
-  { city: 'Doha',      country: 'QA', countryLabel: 'Qatar',     flag: '🇶🇦' },
-
-  // ── Europe
-  { city: 'Paris',      country: 'FR', countryLabel: 'France',     flag: '🇫🇷' },
-  { city: 'Marseille',  country: 'FR', countryLabel: 'France',     flag: '🇫🇷' },
-  { city: 'Lyon',       country: 'FR', countryLabel: 'France',     flag: '🇫🇷' },
-  { city: 'Bordeaux',   country: 'FR', countryLabel: 'France',     flag: '🇫🇷' },
-  { city: 'Londres',    country: 'GB', countryLabel: 'Royaume-Uni',flag: '🇬🇧' },
-  { city: 'Bruxelles',  country: 'BE', countryLabel: 'Belgique',   flag: '🇧🇪' },
-  { city: 'Amsterdam',  country: 'NL', countryLabel: 'Pays-Bas',   flag: '🇳🇱' },
-  { city: 'Rotterdam',  country: 'NL', countryLabel: 'Pays-Bas',   flag: '🇳🇱' },
-  { city: 'Hambourg',   country: 'DE', countryLabel: 'Allemagne',  flag: '🇩🇪' },
-  { city: 'Berlin',     country: 'DE', countryLabel: 'Allemagne',  flag: '🇩🇪' },
-  { city: 'Francfort',  country: 'DE', countryLabel: 'Allemagne',  flag: '🇩🇪' },
-  { city: 'Madrid',     country: 'ES', countryLabel: 'Espagne',    flag: '🇪🇸' },
-  { city: 'Barcelone',  country: 'ES', countryLabel: 'Espagne',    flag: '🇪🇸' },
-  { city: 'Milan',      country: 'IT', countryLabel: 'Italie',     flag: '🇮🇹' },
-  { city: 'Rome',       country: 'IT', countryLabel: 'Italie',     flag: '🇮🇹' },
-  { city: 'Lisbonne',   country: 'PT', countryLabel: 'Portugal',   flag: '🇵🇹' },
-  { city: 'Genève',     country: 'CH', countryLabel: 'Suisse',     flag: '🇨🇭' },
-
-  // ── Americas
-  { city: 'Miami',      country: 'US', countryLabel: 'États-Unis', flag: '🇺🇸' },
-  { city: 'New York',   country: 'US', countryLabel: 'États-Unis', flag: '🇺🇸' },
-  { city: 'Los Angeles',country: 'US', countryLabel: 'États-Unis', flag: '🇺🇸' },
-  { city: 'Houston',    country: 'US', countryLabel: 'États-Unis', flag: '🇺🇸' },
-  { city: 'Atlanta',    country: 'US', countryLabel: 'États-Unis', flag: '🇺🇸' },
-  { city: 'Montréal',   country: 'CA', countryLabel: 'Canada',     flag: '🇨🇦' },
-  { city: 'Toronto',    country: 'CA', countryLabel: 'Canada',     flag: '🇨🇦' },
-  { city: 'São Paulo',  country: 'BR', countryLabel: 'Brésil',     flag: '🇧🇷' },
-
-  // ── Africa
-  { city: 'Casablanca', country: 'MA', countryLabel: 'Maroc',      flag: '🇲🇦' },
-  { city: 'Le Caire',   country: 'EG', countryLabel: 'Égypte',     flag: '🇪🇬' },
-  { city: 'Tunis',      country: 'TN', countryLabel: 'Tunisie',    flag: '🇹🇳' },
-];
-
-const DEST_RAW: Array<Omit<CityOption, 'id'>> = [
-  // ── West Africa (priority destinations)
-  { city: 'Dakar',       country: 'SN', countryLabel: 'Sénégal',         flag: '🇸🇳' },
-  { city: 'Thiès',       country: 'SN', countryLabel: 'Sénégal',         flag: '🇸🇳' },
-  { city: 'Saint-Louis', country: 'SN', countryLabel: 'Sénégal',         flag: '🇸🇳' },
-  { city: 'Ziguinchor',  country: 'SN', countryLabel: 'Sénégal',         flag: '🇸🇳' },
-  { city: 'Abidjan',     country: 'CI', countryLabel: "Côte d'Ivoire",   flag: '🇨🇮' },
-  { city: 'Yamoussoukro',country: 'CI', countryLabel: "Côte d'Ivoire",   flag: '🇨🇮' },
-  { city: 'Bamako',      country: 'ML', countryLabel: 'Mali',            flag: '🇲🇱' },
-  { city: 'Conakry',     country: 'GN', countryLabel: 'Guinée',          flag: '🇬🇳' },
-  { city: 'Ouagadougou', country: 'BF', countryLabel: 'Burkina Faso',    flag: '🇧🇫' },
-  { city: 'Lomé',        country: 'TG', countryLabel: 'Togo',            flag: '🇹🇬' },
-  { city: 'Cotonou',     country: 'BJ', countryLabel: 'Bénin',           flag: '🇧🇯' },
-  { city: 'Niamey',      country: 'NE', countryLabel: 'Niger',           flag: '🇳🇪' },
-  { city: 'Nouakchott',  country: 'MR', countryLabel: 'Mauritanie',      flag: '🇲🇷' },
-  { city: 'Banjul',      country: 'GM', countryLabel: 'Gambie',          flag: '🇬🇲' },
-  { city: 'Bissau',      country: 'GW', countryLabel: 'Guinée-Bissau',   flag: '🇬🇼' },
-  { city: 'Libreville',  country: 'GA', countryLabel: 'Gabon',           flag: '🇬🇦' },
-  { city: 'Douala',      country: 'CM', countryLabel: 'Cameroun',        flag: '🇨🇲' },
-  { city: 'Yaoundé',     country: 'CM', countryLabel: 'Cameroun',        flag: '🇨🇲' },
-  { city: 'Kinshasa',    country: 'CD', countryLabel: 'RD Congo',        flag: '🇨🇩' },
+  { city: 'Abidjan',         country: 'CI', countryLabel: "Côte d'Ivoire",                flag: '🇨🇮' },
+  { city: 'Alméria',         country: 'ES', countryLabel: 'Espagne',                      flag: '🇪🇸' },
+  { city: 'Bamako',          country: 'ML', countryLabel: 'Mali',                         flag: '🇲🇱' },
+  { city: 'Barcelone',       country: 'ES', countryLabel: 'Espagne',                      flag: '🇪🇸' },
+  { city: 'Berlin',          country: 'DE', countryLabel: 'Allemagne',                    flag: '🇩🇪' },
+  { city: 'Beyrouth',        country: 'LB', countryLabel: 'Liban',                        flag: '🇱🇧' },
+  { city: 'Bordeaux',        country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Brazzaville',     country: 'CG', countryLabel: 'République du Congo',          flag: '🇨🇬' },
+  { city: 'Bruxelles',       country: 'BE', countryLabel: 'Belgique',                     flag: '🇧🇪' },
+  { city: 'Casablanca',      country: 'MA', countryLabel: 'Maroc',                        flag: '🇲🇦' },
+  { city: 'Conakry',         country: 'GN', countryLabel: 'Guinée',                       flag: '🇬🇳' },
+  { city: 'Douala',          country: 'CM', countryLabel: 'Cameroun',                     flag: '🇨🇲' },
+  { city: 'Dubaï',           country: 'AE', countryLabel: 'Émirats Arabes Unis',          flag: '🇦🇪' },
+  { city: 'Düsseldorf',      country: 'DE', countryLabel: 'Allemagne',                    flag: '🇩🇪' },
+  { city: 'Gatineau',        country: 'CA', countryLabel: 'Canada',                       flag: '🇨🇦' },
+  { city: 'Genève',          country: 'CH', countryLabel: 'Suisse',                       flag: '🇨🇭' },
+  { city: 'Istanbul',        country: 'TR', countryLabel: 'Turquie',                      flag: '🇹🇷' },
+  { city: 'Kinshasa',        country: 'CD', countryLabel: 'République Démocratique du Congo', flag: '🇨🇩' },
+  { city: 'Libreville',      country: 'GA', countryLabel: 'Gabon',                        flag: '🇬🇦' },
+  { city: 'Lille',           country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Lyon',            country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Madrid',          country: 'ES', countryLabel: 'Espagne',                      flag: '🇪🇸' },
+  { city: 'Malabo',          country: 'GQ', countryLabel: 'Guinée Équatoriale',           flag: '🇬🇶' },
+  { city: 'Marseille',       country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Milan',           country: 'IT', countryLabel: 'Italie',                       flag: '🇮🇹' },
+  { city: 'Montpellier',     country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Montréal',        country: 'CA', countryLabel: 'Canada',                       flag: '🇨🇦' },
+  { city: "N'Djamena",       country: 'TD', countryLabel: 'Tchad',                        flag: '🇹🇩' },
+  { city: 'New York',        country: 'US', countryLabel: 'États-Unis',                   flag: '🇺🇸' },
+  { city: 'Nîmes',           country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Ottawa',          country: 'CA', countryLabel: 'Canada',                       flag: '🇨🇦' },
+  { city: 'Paris',           country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Providence',      country: 'US', countryLabel: 'États-Unis',                   flag: '🇺🇸' },
+  { city: 'Rennes',          country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Rouen',           country: 'FR', countryLabel: 'France',                       flag: '🇫🇷' },
+  { city: 'Washington',      country: 'US', countryLabel: 'États-Unis',                   flag: '🇺🇸' },
+  { city: 'Yaoundé',         country: 'CM', countryLabel: 'Cameroun',                     flag: '🇨🇲' },
 ];
 
 const withId = (l: Array<Omit<CityOption, 'id'>>): CityOption[] =>
   l.map(c => ({ ...c, id: `${c.country}-${c.city}` }));
 
-// Yobbanté is a worldwide service: both origin and destination selectors expose
-// the FULL world catalog (origin world cities + West-Africa destinations merged
-// & deduplicated by id). The "popular" pins differ by direction so the most
-// likely choice surfaces on top.
-const ALL_RAW = [...RAW, ...DEST_RAW];
-const dedup = (l: typeof ALL_RAW) => {
-  const seen = new Set<string>();
-  return l.filter(c => {
-    const id = `${c.country}-${c.city}`;
-    if (seen.has(id)) return false;
-    seen.add(id); return true;
-  });
+export const ALL_CITIES: CityOption[] = withId(RAW);
+
+/**
+ * Hub central Yobbanté — toujours forcé comme une des deux extrémités de
+ * chaque route (origine OU destination, selon le sens du flow).
+ * N'apparaît PAS dans les listes sélectionnables.
+ */
+export const HUB_DAKAR: CityOption = {
+  id: 'SN-Dakar',
+  city: 'Dakar',
+  country: 'SN',
+  countryLabel: 'Sénégal',
+  flag: '🇸🇳',
 };
 
-export const ALL_CITIES: CityOption[] = withId(dedup(ALL_RAW));
 export const ORIGIN_CITIES: CityOption[] = ALL_CITIES;
 export const DESTINATION_CITIES: CityOption[] = ALL_CITIES;
 
-/**
- * IDs of "popular" cities pinned at the top of the selectors.
- *
- * Yobbanté opère depuis Dakar mais les trajets GP sont **bidirectionnels** :
- * un client peut aussi bien partir de Dakar vers Dubai que de Dubai vers Dakar.
- * On garde donc la même liste de villes phares pour l'origine et la destination,
- * en mettant simplement Dakar en tête côté destination (le cas le plus courant).
- */
-const POPULAR_HUBS = [
-  'SN-Dakar', 'FR-Paris', 'CA-Montréal', 'FR-Lyon',
-  'AE-Dubai', 'CI-Abidjan', 'CN-Guangzhou', 'CN-Shenzhen',
-  'US-New York', 'FR-Marseille', 'ML-Bamako', 'CM-Douala',
+/** Villes mises en avant (pinned) en tête des sélecteurs. */
+const POPULAR = [
+  'FR-Paris', 'CA-Montréal', 'FR-Lyon', 'AE-Dubaï',
+  'CI-Abidjan', 'FR-Marseille', 'ML-Bamako', 'CM-Douala',
+  'US-New York', 'ES-Madrid', 'BE-Bruxelles', 'GA-Libreville',
 ];
 
-export const POPULAR_ORIGIN_IDS = POPULAR_HUBS;
-export const POPULAR_DEST_IDS = [
-  // Dakar pinned first for the typical "vers l'Afrique de l'Ouest" route,
-  // but the rest mirrors the origin list so les retours sont aussi évidents.
-  'SN-Dakar', 'CI-Abidjan', 'ML-Bamako', 'CM-Douala',
-  'FR-Paris', 'CA-Montréal', 'AE-Dubai', 'FR-Lyon',
-  'CN-Guangzhou', 'US-New York', 'FR-Marseille', 'GA-Libreville',
-];
+export const POPULAR_ORIGIN_IDS = POPULAR;
+export const POPULAR_DEST_IDS = POPULAR;
 
 export function findCity(list: CityOption[], id: string | null): CityOption | null {
   if (!id) return null;
