@@ -939,3 +939,41 @@ export function FlowSuccess({
     </motion.section>
   );
 }
+
+/* ─────────── Dakar hub lock — non-overridable ─────────── */
+/**
+ * Affiche Dakar comme extrémité fixe et non modifiable d'une route.
+ * Yobbanté opère exclusivement entre Dakar et l'une des 36 villes du catalogue,
+ * donc l'autre extrémité de chaque route est TOUJOURS Dakar.
+ */
+export function DakarHubLock({ role = 'destination' }: { role?: 'origin' | 'destination' }) {
+  const theme = useFlowTheme();
+  const t = T[theme];
+  const label = role === 'origin' ? 'Départ' : 'Arrivée';
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5',
+        t.cardActive,
+      )}
+      aria-label={`${label} fixé à Dakar (hub Yobbanté)`}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-2xl leading-none" aria-hidden="true">🇸🇳</span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate">Dakar</p>
+          <p className={cn('text-[11px] truncate', t.muted)}>Sénégal · Hub Yobbanté</p>
+        </div>
+      </div>
+      <span
+        className={cn(
+          'shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-1 border',
+          theme === 'dark' ? 'border-yellow-400/40 text-yellow-300 bg-yellow-400/10' : 'border-foreground/20 text-foreground bg-foreground/5',
+        )}
+      >
+        Hub central
+      </span>
+    </div>
+  );
+}
+
