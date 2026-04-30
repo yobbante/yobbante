@@ -250,9 +250,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     if (d.senderPhone) setSenderPhone(d.senderPhone);
   });
 
-  // Yobbanté opère depuis Dakar : Dakar doit être au départ OU à l'arrivée.
-  const isDakar = (c?: { city?: string } | null) => !!c?.city && c.city.toLowerCase().includes('dakar');
-  const dakarRouteOk = !originCity || !destCity ? true : (isDakar(originCity) || isDakar(destCity));
+  // Dakar est toujours une extrémité grâce au verrou de direction.
+  const dakarRouteOk = true;
 
   // Match options reveal once weight is confirmed
   const matchInput = useMemo(() => {
