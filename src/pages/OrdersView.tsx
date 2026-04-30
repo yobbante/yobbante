@@ -67,14 +67,14 @@ function dossierKind(d: Dossier): Kind {
   return 'receive';
 }
 
-export function OrdersView() {
+export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { dossiers, isLoading: dossiersLoading } = useDossiers();
   const { shipments, isLoading: shipmentsLoading } = useShipments();
   const { packages } = usePackages();
 
-  const initialKind = (searchParams.get('kind') as Kind) || 'sourcing';
+  const initialKind = fixedKind ?? ((searchParams.get('kind') as Kind) || 'sourcing');
   const [kind, setKindState] = useState<Kind>(
     KIND_TABS.some(t => t.id === initialKind) ? initialKind : 'sourcing'
   );
@@ -85,11 +85,15 @@ export function OrdersView() {
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
   const setKind = (next: Kind) => {
+    if (fixedKind) return;
     setKindState(next);
     const sp = new URLSearchParams(searchParams);
     sp.set('kind', next);
     setSearchParams(sp, { replace: true });
   };
+
+  // Sync when parent forces a kind
+  useMemo(() => { if (fixedKind && fixedKind !== kind) setKindState(fixedKind); }, [fixedKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bucket dossiers by kind once.
   const grouped = useMemo(() => {
