@@ -15,6 +15,9 @@ const ACCESS_CODE = '784604003';
 const STORAGE_KEY = 'yobbante_maint_pass';
 
 export function MaintenanceGate({ children }: { children: React.ReactNode }) {
+  // Maintenance désactivée — passage direct au contenu.
+  return <>{children}</>;
+  // eslint-disable-next-line no-unreachable
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [code, setCode] = useState('');

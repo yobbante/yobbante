@@ -78,14 +78,6 @@ export default function LandingPage() {
       {/* ───── HERO ───── */}
       <section className="relative overflow-hidden">
         <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-16 pb-20 md:pt-32 md:pb-36 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground mb-7"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Logistique internationale, sans complexité
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
             className="text-[2.75rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.02] text-foreground text-balance"
