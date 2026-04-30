@@ -24,7 +24,8 @@ import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime'
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
 import { supabase } from '@/integrations/supabase/client';
-import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS } from '@/lib/worldCities';
+import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
+import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
 import type { WarehouseCountry } from '@/lib/types';
 
@@ -135,8 +136,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [preset?.destination, preset?.destination_city]);
 
   // ── Form state (10 steps) ────────────────────────────────────────
-  // Step 1 — sender profile
+  // Step 1 — sender profile + direction
   const [senderKind, setSenderKind]       = useState<typeof SENDER_KINDS[number]['id'] | null>(null);
+  // Direction: 'from_dakar' = Dakar → ville étrangère ; 'to_dakar' = ville étrangère → Dakar.
+  // Détection initiale via preset (rétrocompat) : si preset.origin === 'SN' → from_dakar, sinon to_dakar.
+  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
+    preset?.origin === 'SN' ? 'from_dakar' : 'to_dakar'
+  );
   const [originCountry, setOriginCountry] = useState<string>(preset?.origin ?? 'SN');
   // Step 2 — pickup
   const [originCityId, setOriginCity]     = useState<string | null>(presetOriginCityId);
@@ -178,12 +184,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
 
   // ── Derived ──────────────────────────────────────────────────────
-  const originProfile = useMemo<CountryProfile>(() => getProfile(originCountry), [originCountry]);
-  const originCity    = findCity(ORIGIN_CITIES, originCityId);
-  const destCity      = findCity(DESTINATION_CITIES, destCityId);
+  // Direction enforces Dakar as the locked endpoint:
+  //  - from_dakar → origin = Dakar (locked), destination = chosen city
+  //  - to_dakar   → origin = chosen city, destination = Dakar (locked)
+  const foreignCity = direction === 'from_dakar'
+    ? findCity(DESTINATION_CITIES, destCityId)
+    : findCity(ORIGIN_CITIES, originCityId);
+  const originCity = direction === 'from_dakar' ? HUB_DAKAR : foreignCity;
+  const destCity   = direction === 'from_dakar' ? foreignCity : HUB_DAKAR;
+  const originProfile = useMemo<CountryProfile>(() => getProfile(originCity?.country ?? 'SN'), [originCity?.country]);
   const destProfile   = useMemo<CountryProfile>(() => getProfile(destCity?.country), [destCity?.country]);
 
-  const coverage = useCoverageZone({ country: originCountry, city: originCity?.city });
+  // Garde originCountry en sync avec la ville sélectionnée (utilisé par certaines mutations / drafts).
+  useEffect(() => {
+    if (originCity?.country && originCity.country !== originCountry) setOriginCountry(originCity.country);
+  }, [originCity?.country]);
+
+  const coverage = useCoverageZone({ country: originCity?.country ?? 'SN', city: originCity?.city });
   const destCoverage = useCoverageZone({ country: destCity?.country, city: destCity?.city });
   const originCoverageCheck = useMemo(
     () => checkDoorToDoor(coverage.level, coverage.loading, originCity?.city),
@@ -208,13 +225,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const draftSnapshot = {
     // ⚠️ senderKind volontairement exclu : à chaque nouvel envoi l'utilisateur
     // doit refaire ce choix explicitement (peut varier d'un colis à l'autre).
-    originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
+    direction, originCountry, originCityId, pickupAddress, pickupDate, pickupSlot,
     destCityId, recipientName, recipientPhone, recipientEmail, deliveryAddress,
     description, declaredLocal, weight, parcelCount, goodsType,
     transportMode, priority, insurance, paymentMethod,
     senderName, senderPhone, chosenId: chosen?.id ?? null,
   };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
+    if (d.direction === 'from_dakar' || d.direction === 'to_dakar') setDirection(d.direction);
     if (d.originCountry) setOriginCountry(d.originCountry);
     if (d.originCityId) setOriginCity(d.originCityId);
     if (d.pickupAddress) setPickup(d.pickupAddress);
@@ -238,9 +256,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     if (d.senderPhone) setSenderPhone(d.senderPhone);
   });
 
-  // Yobbanté opère depuis Dakar : Dakar doit être au départ OU à l'arrivée.
-  const isDakar = (c?: { city?: string } | null) => !!c?.city && c.city.toLowerCase().includes('dakar');
-  const dakarRouteOk = !originCity || !destCity ? true : (isDakar(originCity) || isDakar(destCity));
+  // Dakar est toujours une extrémité grâce au verrou de direction.
+  const dakarRouteOk = true;
 
   // Match options reveal once weight is confirmed
   const matchInput = useMemo(() => {
@@ -330,7 +347,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   }, [description, declaredEur, goodsManualOverride]);
 
   // ── Reveal logic per step
-  const step1Ok = !!senderKind && !!originCountry;
+  const step1Ok = !!senderKind && !!direction;
   const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
   const step3Ok = step2Ok && !!destCity;
   const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
@@ -499,39 +516,46 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </motion.div>
       )}
 
-      {/* ─── Step 1 — Sender profile ─── */}
+      {/* ─── Step 1 — Sender profile + sens du trajet ─── */}
       <FlowSection revealed step={1} total={10} title="Vous expédiez en tant que ?" hint="Cette étape n'est demandée qu'une seule fois.">
         <ChipGroup options={SENDER_KINDS} value={senderKind} onChange={(v) => setSenderKind(v)} />
         <div className="mt-5 max-w-md">
-          <label className="block">
-            <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-              <Globe2 className="w-3 h-3" /> Votre pays d'origine *
-            </span>
-            <select
-              value={originCountry}
-              onChange={(e) => setOriginCountry(e.target.value)}
-              className="w-full border-2 rounded-xl px-4 py-3.5 text-base bg-card border-border focus:outline-none focus:border-foreground transition-all"
-            >
-              {COUNTRY_OPTIONS.map(p => (
-                <option key={p.code} value={p.code}>{p.flag} {p.name} · {p.currencySymbol}</option>
-              ))}
-            </select>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Définit la devise ({originProfile.currencySymbol}), le format téléphone ({originProfile.phonePrefix}) et les règles douanières applicables.
-            </p>
-          </label>
+          <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
+            <Globe2 className="w-3 h-3" /> Sens du trajet *
+          </span>
+          <ChipGroup
+            options={[
+              { id: 'to_dakar'   as const, label: 'Vers Dakar',    desc: 'Depuis l\'étranger → Dakar' },
+              { id: 'from_dakar' as const, label: 'Depuis Dakar',  desc: 'Dakar → ville étrangère' },
+            ]}
+            value={direction}
+            onChange={(v) => {
+              setDirection(v);
+              // Reset cities lorsque le sens change pour éviter incohérences.
+              setOriginCity(null);
+              setDestCity(null);
+              setOriginCountry(v === 'from_dakar' ? 'SN' : 'FR');
+            }}
+          />
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Yobbanté opère uniquement entre <strong>Dakar</strong> et l'une des 36 villes desservies.
+          </p>
         </div>
       </FlowSection>
 
-      {/* ─── Step 2 — Origin & pickup ─── */}
+      {/* ─── Step 2 — Origine + collecte ─── */}
       <FlowSection revealed={step1Ok} step={2} total={10} title="D'où part le colis ?" hint="Adresse de collecte + créneau souhaité.">
-        <CitySelector
-          cities={ORIGIN_CITIES.filter(c => c.country === originCountry || originCountry === 'SN')}
-          value={originCityId}
-          onChange={setOriginCity}
-          placeholder={`Ex. ${originCountry === 'SN' ? 'Dakar, Thiès…' : 'votre ville'}`}
-          popularIds={POPULAR_ORIGIN_IDS}
-        />
+        {direction === 'from_dakar' ? (
+          <DakarHubLock role="origin" />
+        ) : (
+          <CitySelector
+            cities={ORIGIN_CITIES}
+            value={originCityId}
+            onChange={setOriginCity}
+            placeholder="Ex. Paris, Marseille, Bruxelles…"
+            popularIds={POPULAR_ORIGIN_IDS}
+          />
+        )}
         {originCity && (
           <div className="mt-4 space-y-4 max-w-xl">
             <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
@@ -566,29 +590,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       {/* ─── Step 3 — Destination ─── */}
-      <FlowSection revealed={step2Ok} step={3} total={10} title="Où va le colis ?" hint="Sélectionnez le pays et la ville d'arrivée.">
-        <CitySelector
-          cities={DESTINATION_CITIES}
-          value={destCityId} onChange={setDestCity}
-          placeholder="Ex. Dakar, Paris, Abidjan…"
-          popularIds={POPULAR_DEST_IDS}
-        />
-        {originCity && destCity && !dakarRouteOk && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <p className="text-xs text-amber-600">
-              ⚠️ Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée.
-            </p>
-            {(() => {
-              const dakarDest = DESTINATION_CITIES.find(c => c.city.toLowerCase().includes('dakar'));
-              if (!dakarDest) return null;
-              return (
-                <button type="button" onClick={() => setDestCity(dakarDest.id)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition">
-                  <MapPin className="w-3 h-3" /> Choisir Dakar comme destination
-                </button>
-              );
-            })()}
-          </div>
+      <FlowSection revealed={step2Ok} step={3} total={10} title="Où va le colis ?" hint="Destination de la livraison.">
+        {direction === 'to_dakar' ? (
+          <DakarHubLock role="destination" />
+        ) : (
+          <CitySelector
+            cities={DESTINATION_CITIES}
+            value={destCityId} onChange={setDestCity}
+            placeholder="Ex. Paris, Abidjan, Dubaï…"
+            popularIds={POPULAR_DEST_IDS}
+          />
         )}
         {destCity && originCity && originCity.country === destCity.country && (
           <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs text-blue-900 inline-flex items-center gap-2">
