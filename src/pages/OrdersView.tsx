@@ -119,11 +119,23 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
     );
   }, [grouped, kind, query]);
 
-  // For "Envois" we also surface live shipments + active packages, since they're
-  // the operational counterpart of a "send" dossier (the truck/airplane leg).
-  const activeShipments = useMemo(
-    () => shipments.filter(s => s.status !== 'DELIVERED'),
+  // For "Envois" we ONLY surface shipments created via the SendFlow,
+  // identified by `transport_metadata.meta.send_flow === true`. This avoids
+  // mixing in shipments born from sourcing/reception flows.
+  const sendFlowShipments = useMemo(
+    () => shipments.filter(s => {
+      const meta = (s.transport_metadata ?? {}) as Record<string, any>;
+      return meta?.meta?.send_flow === true;
+    }),
     [shipments]
+  );
+  const activeShipments = useMemo(
+    () => sendFlowShipments.filter(s => s.status !== 'DELIVERED'),
+    [sendFlowShipments]
+  );
+  const pastShipments = useMemo(
+    () => sendFlowShipments.filter(s => s.status === 'DELIVERED'),
+    [sendFlowShipments]
   );
   const inHubPackages = useMemo(
     () => packages.filter(p => !p.shipment_id && p.status !== 'DELIVERED'),
