@@ -531,6 +531,15 @@ export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dia
                           active={urgency === u.id} onClick={() => setUrgency(u.id)} compact />
                       ))}
                     </div>
+                    {urgency !== 'standard' && showUrgentNudge && (
+                      <div className="mt-4">
+                        <UpgradeNudge
+                          id="urgent-buy-nudge"
+                          text="Le traitement prioritaire est inclus dans tous nos plans Business. Votre dossier passe en tête de file."
+                          ctaLabel="Activer la priorité →"
+                        />
+                      </div>
+                    )}
                   </div>
                 </StepBlock>
               )}
