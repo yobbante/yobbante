@@ -84,6 +84,8 @@ const intentLabel = (i: Intent | null) => i === 'ship' ? 'Expédier un colis' : 
 
 export function DossierWizard({ open, onOpenChange, presetIntent, variant = 'dialog', pageTitle }: DossierWizardProps) {
   const { createDossier } = useDossiers();
+  const { account: businessAccount } = useBusinessAccount();
+  const showUrgentNudge = !businessAccount; // only for non-business accounts
   const navigate = useNavigate();
 
   // 0 = intent split. Then 1..N depending on intent.
