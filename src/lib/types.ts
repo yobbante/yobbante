@@ -81,6 +81,8 @@ export interface Profile {
   full_name: string | null;
   default_delivery_country: string | null;
   sourcing_profile: SourcingProfile | null;
+  email: string | null;
+  phone: string | null;
   created_at: string;
 }
 
