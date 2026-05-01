@@ -157,6 +157,13 @@ export function DossierDocuments({ dossierId, canUpload, canDelete }: Props) {
           ))}
         </ul>
       )}
+
+      <UpgradeLimitModal
+        open={limitOpen}
+        onOpenChange={setLimitOpen}
+        title="Limite atteinte ce mois"
+        body="Vous avez utilisé vos 5 documents douaniers inclus dans le plan Starter. Le plan Business les inclut sans limite."
+      />
     </div>
   );
 }
