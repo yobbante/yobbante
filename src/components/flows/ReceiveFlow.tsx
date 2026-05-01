@@ -497,11 +497,17 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         origin_country: (hub ?? 'CN') as WarehouseCountry,
         destination_country: destination ?? 'SN',
         budget_eur: totalValue || null,
+        app_source: 'recevoir',
         notes: [
           'Type: Réception (commande déjà passée)',
           `Hub: ${hub ? COUNTRY_NAME(hub) : 'À définir'}`,
           destination ? `Destination: ${COUNTRY_NAME(destination)}` : null,
-          `Commandes:\n${productSummary}`,
+          `Nombre de commandes: ${items.length}`,
+          `Poids total estimé: ${totalWeight.toFixed(2)} kg`,
+          totalValue ? `Valeur totale: ${totalValue} €` : null,
+          '',
+          '— Commandes —',
+          productSummary,
         ].filter(Boolean).join('\n'),
       });
       setReference(dossier.reference);

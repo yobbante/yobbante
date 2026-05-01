@@ -8,6 +8,8 @@ import { usePackages } from '@/hooks/usePackages';
 import { DossierCard } from '@/components/DossierCard';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
+import { ReceptionCard } from '@/components/ReceptionCard';
+import { ReceptionDetailDrawer } from '@/components/ReceptionDetailDrawer';
 import { EmptyState } from '@/components/EmptyState';
 import { PackageTimelineDialog } from '@/components/PackageTimelineDialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,8 +62,10 @@ const KIND_TABS: ReadonlyArray<{
 
 /** Classify a dossier into one of the 3 user buckets. Mirror of admin/RequestsTab.tsx. */
 function dossierKind(d: Dossier): Kind {
-  if (d.needs_sourcing) return 'sourcing';
+  if (d.app_source === 'recevoir') return 'receive';
   if (d.app_source === 'expedier') return 'send';
+  if (d.needs_sourcing) return 'sourcing';
+  // Legacy fallback for older dossiers without app_source.
   return 'receive';
 }
 
@@ -80,6 +84,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   // Detail drawers
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [selectedReception, setSelectedReception] = useState<Dossier | null>(null);
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
   const setKind = (next: Kind) => {
@@ -300,6 +305,17 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             ctaLabel={activeTab.ctaLabel}
             onCta={() => navigate(activeTab.ctaHref)}
           />
+        ) : kind === 'receive' ? (
+          // ─── Réceptions : carte dédiée + drawer enrichi ───
+          <>
+            {visibleDossiers.map(d => (
+              <ReceptionCard
+                key={d.id}
+                dossier={d}
+                onClick={() => setSelectedReception(d)}
+              />
+            ))}
+          </>
         ) : (
           <>
             {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
@@ -312,6 +328,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         onOpenChange={(o) => { if (!o) setSelectedShipment(null); }}
         shipment={selectedShipment}
         packages={packages}
+      />
+      <ReceptionDetailDrawer
+        open={!!selectedReception}
+        onOpenChange={(o) => { if (!o) setSelectedReception(null); }}
+        dossier={selectedReception}
       />
       <PackageTimelineDialog
         open={!!trackPkg}

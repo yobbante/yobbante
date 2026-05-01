@@ -13,6 +13,7 @@ export interface CreateDossierInput {
   contact_email?: string | null;
   notes?: string | null;
   estimated_cost?: number | null;
+  app_source?: string;
 }
 
 export function useDossiers() {
@@ -49,6 +50,7 @@ export function useDossiers() {
           contact_email: input.contact_email ?? null,
           notes: input.notes ?? null,
           estimated_cost: input.estimated_cost ?? null,
+          ...(input.app_source ? { app_source: input.app_source } : {}),
         })
         .select()
         .single();
