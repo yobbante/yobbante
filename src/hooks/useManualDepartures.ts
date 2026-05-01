@@ -24,6 +24,7 @@ export interface ManualDeparture {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  transporteur_ref?: string | null;
 }
 
 export type ManualDepartureInput = Omit<ManualDeparture, 'id' | 'source' | 'created_at' | 'updated_at' | 'created_by'>;

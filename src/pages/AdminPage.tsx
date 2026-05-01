@@ -18,6 +18,7 @@ import { ClientsTab } from '@/components/admin/ClientsTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { ShipmentsWorkflowTab } from '@/components/admin/ShipmentsWorkflowTab';
 import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
+import { TransporteursTab } from '@/components/admin/TransporteursTab';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -147,6 +148,7 @@ export default function AdminPage() {
           {section === 'hubs'       && <HubsTab />}
           {section === 'transport'  && <KonnektMonitorTab />}
           {section === 'departures' && <DeparturesTab />}
+          {section === 'transporteurs' && isAdmin && <TransporteursTab />}
           {section === 'sourcing'   && <SourcingTab />}
           {section === 'tracking'   && <TrackingTab />}
           {section === 'clients'    && <ClientsTab />}
