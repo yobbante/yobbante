@@ -271,28 +271,33 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
               {visibleDossiers.length > 0 && (
                 <div>
                   <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
-                    Demandes d'envoi ({visibleDossiers.length})
+                    Demandes en préparation ({visibleDossiers.length})
                   </h3>
                   <div className="space-y-3">
-                    {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
+                    {visibleDossiers.map(d => (
+                      <EnvoiCard
+                        key={d.id}
+                        kind="dossier"
+                        dossier={d}
+                        onClick={() => setSelectedSendDossier(d)}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
               {activeShipments.length > 0 && (
-                <div>
+                <div className={visibleDossiers.length > 0 ? 'pt-4' : ''}>
                   <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
                     En cours ({activeShipments.length})
                   </h3>
                   <div className="space-y-3">
                     {activeShipments.map(s => (
-                      <button
+                      <EnvoiCard
                         key={s.id}
-                        type="button"
+                        kind="shipment"
+                        shipment={s}
                         onClick={() => setSelectedShipment(s)}
-                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-                      >
-                        <ShipmentCard shipment={s} />
-                      </button>
+                      />
                     ))}
                   </div>
                 </div>
@@ -304,14 +309,12 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
                   </h3>
                   <div className="space-y-3">
                     {pastShipments.map(s => (
-                      <button
+                      <EnvoiCard
                         key={s.id}
-                        type="button"
+                        kind="shipment"
+                        shipment={s}
                         onClick={() => setSelectedShipment(s)}
-                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl opacity-80 hover:opacity-100 transition-opacity"
-                      >
-                        <ShipmentCard shipment={s} />
-                      </button>
+                      />
                     ))}
                   </div>
                 </div>
