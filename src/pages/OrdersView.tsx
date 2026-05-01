@@ -84,6 +84,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   // Detail drawers
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [selectedReception, setSelectedReception] = useState<Dossier | null>(null);
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
   const setKind = (next: Kind) => {
