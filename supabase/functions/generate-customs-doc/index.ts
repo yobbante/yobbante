@@ -1,6 +1,10 @@
-import { corsHeaders } from '@supabase/supabase-js/cors';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 type Kind = 'proforma_invoice' | 'packing_list' | 'bill_of_lading' | 'customs_declaration' | 'commercial_invoice' | 'certificate_of_origin';
 
