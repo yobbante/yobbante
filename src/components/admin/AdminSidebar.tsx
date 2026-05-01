@@ -39,7 +39,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
 }) {
   return (
     <nav className="flex flex-col gap-0.5 p-2">
-      {ADMIN_NAV.map(({ id, label, icon: Icon, live }) => {
+      {ADMIN_NAV.filter(n => !n.adminOnly || isAdmin).map(({ id, label, icon: Icon, live }) => {
         const disabled = id === 'settings' && !isAdmin;
         const isActive = active === id;
         return (
