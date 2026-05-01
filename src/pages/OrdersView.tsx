@@ -8,6 +8,8 @@ import { usePackages } from '@/hooks/usePackages';
 import { DossierCard } from '@/components/DossierCard';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
+import { ReceptionCard } from '@/components/ReceptionCard';
+import { ReceptionDetailDrawer } from '@/components/ReceptionDetailDrawer';
 import { EmptyState } from '@/components/EmptyState';
 import { PackageTimelineDialog } from '@/components/PackageTimelineDialog';
 import { Skeleton } from '@/components/ui/skeleton';
