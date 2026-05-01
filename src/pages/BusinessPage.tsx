@@ -24,6 +24,11 @@ import { AccountManagerCard } from '@/components/business/AccountManagerCard';
 import { DossiersSection } from '@/components/business/DossiersSection';
 import { isValidNinea, normalizeNinea, formatNinea } from '@/lib/ninea';
 import { cn } from '@/lib/utils';
+import { TrialBanner, PricingDashboardLink, UpgradeNudge } from '@/components/upgrade';
+
+// Yobbanté Business: until billing is wired, every account is treated as a Starter
+// trial (no paying subscribers exist yet). Flip this once subscriptions ship.
+const isPayingSubscriber = (_account: { id: string }) => false;
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
