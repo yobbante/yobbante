@@ -9,12 +9,14 @@ import {
   Search, Handshake, BadgeCheck, MapPin, ImageIcon, Wand2,
 } from 'lucide-react';
 import { useDossiers } from '@/hooks/useDossiers';
+import { useBusinessAccount } from '@/hooks/useBusinessAccount';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 import { estimateTransport, type Transport as TransportMode } from '@/lib/pricing';
+import { UpgradeNudge } from '@/components/upgrade';
 
 interface DossierWizardProps {
   open: boolean;
