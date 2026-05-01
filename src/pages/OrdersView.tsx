@@ -5,7 +5,8 @@ import { Plus, Sparkles, Inbox, Send, Search } from 'lucide-react';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
-import { DossierCard } from '@/components/DossierCard';
+import { SourcingCard } from '@/components/SourcingCard';
+import { SourcingDetailDrawer } from '@/components/SourcingDetailDrawer';
 import { EnvoiCard } from '@/components/EnvoiCard';
 import { EnvoiDetailDrawer } from '@/components/EnvoiDetailDrawer';
 import { ReceptionCard } from '@/components/ReceptionCard';
@@ -96,6 +97,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [selectedSendDossier, setSelectedSendDossier] = useState<Dossier | null>(null);
   const [selectedReception, setSelectedReception] = useState<Dossier | null>(null);
+  const [selectedSourcing, setSelectedSourcing] = useState<Dossier | null>(null);
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
   const setKind = (next: Kind) => {
@@ -342,7 +344,13 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
           </>
         ) : (
           <>
-            {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
+            {visibleDossiers.map(d => (
+              <SourcingCard
+                key={d.id}
+                dossier={d}
+                onClick={() => setSelectedSourcing(d)}
+              />
+            ))}
           </>
         )}
       </section>
@@ -358,6 +366,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         open={!!selectedReception}
         onOpenChange={(o) => { if (!o) setSelectedReception(null); }}
         dossier={selectedReception}
+      />
+      <SourcingDetailDrawer
+        open={!!selectedSourcing}
+        onOpenChange={(o) => { if (!o) setSelectedSourcing(null); }}
+        dossier={selectedSourcing}
       />
       <PackageTimelineDialog
         open={!!trackPkg}
