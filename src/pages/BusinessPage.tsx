@@ -21,6 +21,7 @@ import { useBusinessInvoices } from '@/hooks/useBusinessInvoices';
 import { TeamSection } from '@/components/business/TeamSection';
 import { InvoicesSection } from '@/components/business/InvoicesSection';
 import { AccountManagerCard } from '@/components/business/AccountManagerCard';
+import { DossiersSection } from '@/components/business/DossiersSection';
 import { isValidNinea, normalizeNinea, formatNinea } from '@/lib/ninea';
 import { cn } from '@/lib/utils';
 
@@ -471,8 +472,9 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
       </div>
 
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className="grid grid-cols-4 max-w-2xl">
+        <TabsList className="grid grid-cols-5 max-w-3xl">
           <TabsTrigger value="overview"><LayoutDashboard className="w-4 h-4 mr-2" />Aperçu</TabsTrigger>
+          <TabsTrigger value="dossiers"><FileText className="w-4 h-4 mr-2" />Dossiers</TabsTrigger>
           <TabsTrigger value="team"><Users className="w-4 h-4 mr-2" />Équipe</TabsTrigger>
           <TabsTrigger value="invoices">
             <Receipt className="w-4 h-4 mr-2" />Factures
@@ -518,6 +520,11 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
           {/* Chargé de compte (résumé visible sur l'aperçu aussi) */}
           <AccountManagerCard businessId={account.id} />
+        </TabsContent>
+
+        {/* DOSSIERS */}
+        <TabsContent value="dossiers" className="mt-0">
+          <DossiersSection businessId={account.id} />
         </TabsContent>
 
         {/* ÉQUIPE */}
