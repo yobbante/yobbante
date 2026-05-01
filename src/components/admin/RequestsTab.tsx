@@ -1,12 +1,23 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, ChevronRight, Inbox } from 'lucide-react';
+import {
+  Search, ChevronRight, Inbox, ExternalLink, Mail, Phone,
+  Weight, Wallet, Calendar, MapPin, Building2,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, type Dossier } from '@/lib/types';
+import {
+  COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, DOSSIER_STATUS_ORDER,
+  type Dossier, type DossierStatus,
+} from '@/lib/types';
+import { toast } from 'sonner';
 
 const TYPE_FILTERS = [
   { id: 'all',      label: 'Tous' },
@@ -23,10 +34,30 @@ function getKind(d: Dossier): TypeFilter {
   return 'receive';
 }
 
+const KIND_BADGE: Record<TypeFilter, string> = {
+  all: '',
+  send: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  receive: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  sourcing: 'bg-pink-500/10 text-pink-500 border-pink-500/20',
+};
+
+const STATUS_TONE: Partial<Record<DossierStatus, string>> = {
+  SUBMITTED: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  IN_REVIEW: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  SOURCING: 'bg-pink-500/10 text-pink-500 border-pink-500/20',
+  PROCURED: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
+  IN_TRANSIT: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+  CUSTOMS: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  DELIVERED: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  CLOSED: 'bg-secondary text-muted-foreground border-border',
+};
+
 export function RequestsTab() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: dossiers = [], isLoading } = useQuery({
     queryKey: ['admin-requests'],
@@ -40,6 +71,25 @@ export function RequestsTab() {
       return (data || []) as Dossier[];
     },
   });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: DossierStatus }) => {
+      const { error } = await supabase.from('dossiers').update({ status }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Statut mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      qc.invalidateQueries({ queryKey: ['admin-overview'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
+  });
+
+  const counts = useMemo(() => {
+    const c: Record<TypeFilter, number> = { all: dossiers.length, send: 0, receive: 0, sourcing: 0 };
+    dossiers.forEach(d => { c[getKind(d)]++; });
+    return c;
+  }, [dossiers]);
 
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
@@ -60,32 +110,52 @@ export function RequestsTab() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
-        <p className="text-sm text-muted-foreground">Inbox unifié — expédition, réception, sourcing.</p>
+        <p className="text-sm text-muted-foreground">
+          Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
+        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Réf, produit, email…" className="pl-9 h-9" />
+          <Input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Réf, produit, email…"
+            className="pl-9 h-9"
+          />
         </div>
         <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
-          {TYPE_FILTERS.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setKind(f.id)}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors',
-                kind === f.id ? 'bg-foreground text-background' : 'bg-secondary text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+          {TYPE_FILTERS.map(f => {
+            const active = kind === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setKind(f.id)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1.5',
+                  active
+                    ? 'bg-foreground text-background'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {f.label}
+                <span className={cn(
+                  'tabular-nums text-[10px] px-1 rounded',
+                  active ? 'bg-background/20' : 'bg-background/40',
+                )}>
+                  {counts[f.id]}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <Inbox className="w-7 h-7 text-muted-foreground mx-auto mb-2" />
@@ -96,33 +166,161 @@ export function RequestsTab() {
         <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
           {filtered.map(d => {
             const k = getKind(d);
+            const isOpen = expandedId === d.id;
             return (
               <li key={d.id}>
+                {/* Header — click to toggle */}
                 <button
-                  onClick={() => navigate(`/app/dossier/${d.id}`)}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-secondary/40 transition-colors"
+                  onClick={() => setExpandedId(isOpen ? null : d.id)}
+                  onDoubleClick={() => navigate(`/app/dossier/${d.id}`)}
+                  className={cn(
+                    'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
+                    isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
+                  )}
+                  aria-expanded={isOpen}
                 >
                   <span className="text-lg">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-[11px]">
+                    <div className="flex items-center gap-2 text-[11px] flex-wrap">
                       <span className="font-mono text-foreground font-semibold">{d.reference}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-secondary text-muted-foreground uppercase tracking-wide">
+                      <span className={cn(
+                        'px-1.5 py-0.5 rounded border uppercase tracking-wide text-[10px]',
+                        KIND_BADGE[k],
+                      )}>
                         {k === 'send' ? 'Expédier' : k === 'sourcing' ? 'Sourcing' : 'Recevoir'}
                       </span>
-                      <span className="text-muted-foreground">· {DOSSIER_STATUS_LABELS[d.status]}</span>
+                      <span className={cn(
+                        'px-1.5 py-0.5 rounded border text-[10px]',
+                        STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
+                      )}>
+                        {DOSSIER_STATUS_LABELS[d.status]}
+                      </span>
+                      {d.business_id && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[10px]">
+                          <Building2 className="w-2.5 h-2.5" /> Business
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-foreground truncate mt-0.5">{d.product_description}</p>
                   </div>
                   <span className="text-[11px] text-muted-foreground tabular-nums hidden sm:inline">
                     {new Date(d.created_at).toLocaleDateString('fr-FR')}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  <ChevronRight
+                    className={cn(
+                      'w-4 h-4 text-muted-foreground transition-transform',
+                      isOpen && 'rotate-90',
+                    )}
+                  />
                 </button>
+
+                {/* Expandable details */}
+                {isOpen && (
+                  <div className="px-4 pb-4 pt-1 bg-secondary/20 border-t border-border space-y-3">
+                    {/* Quick info grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <Info icon={MapPin} label="Origine → Dest.">
+                        {d.origin_country} → {d.destination_country}
+                      </Info>
+                      <Info icon={Weight} label="Poids estimé">
+                        {d.estimated_weight ? `${d.estimated_weight} kg` : '—'}
+                      </Info>
+                      <Info icon={Wallet} label="Budget">
+                        {d.budget_eur ? `${d.budget_eur} €` : '—'}
+                      </Info>
+                      <Info icon={Calendar} label="Livraison estimée">
+                        {d.estimated_delivery_date
+                          ? new Date(d.estimated_delivery_date).toLocaleDateString('fr-FR')
+                          : '—'}
+                      </Info>
+                    </div>
+
+                    {/* Contact */}
+                    {(d.contact_email || d.contact_phone) && (
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        {d.contact_email && (
+                          <a
+                            href={`mailto:${d.contact_email}`}
+                            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                          >
+                            <Mail className="w-3.5 h-3.5" /> {d.contact_email}
+                          </a>
+                        )}
+                        {d.contact_phone && (
+                          <a
+                            href={`tel:${d.contact_phone}`}
+                            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                          >
+                            <Phone className="w-3.5 h-3.5" /> {d.contact_phone}
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {d.notes && (
+                      <div className="text-xs">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          Notes client
+                        </p>
+                        <p className="text-foreground bg-background border border-border rounded-md p-2 whitespace-pre-wrap">
+                          {d.notes}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Actions: status + open */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Statut
+                        </span>
+                        <Select
+                          value={d.status}
+                          onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
+                        >
+                          <SelectTrigger className="h-8 w-44 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DOSSIER_STATUS_ORDER.map(s => (
+                              <SelectItem key={s} value={s} className="text-xs">
+                                {DOSSIER_STATUS_LABELS[s]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/app/dossier/${d.id}`)}
+                        className="text-xs h-8"
+                      >
+                        Ouvrir la fiche
+                        <ExternalLink className="w-3 h-3 ml-1.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+function Info({
+  icon: Icon, label, children,
+}: { icon: typeof Inbox; label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+        <Icon className="w-3 h-3" /> {label}
+      </p>
+      <p className="text-foreground font-medium truncate">{children}</p>
     </div>
   );
 }
