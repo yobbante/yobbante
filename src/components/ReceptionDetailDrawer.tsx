@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   type Dossier, COUNTRY_FLAGS, DOSSIER_STATUS_ORDER, DOSSIER_STATUS_LABELS,
 } from '@/lib/types';
+import { AdminInlineEditor } from '@/components/admin/AdminInlineEditor';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -116,6 +117,14 @@ export function ReceptionDetailDrawer({ open, onOpenChange, dossier }: Reception
               <Copy className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Admin-only inline editor */}
+          <AdminInlineEditor
+            kind="dossier"
+            id={dossier.id}
+            status={dossier.status}
+            reference={dossier.reference}
+          />
 
           {/* Route + value */}
           <div className="grid grid-cols-2 gap-3">
