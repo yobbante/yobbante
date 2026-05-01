@@ -45,7 +45,7 @@ export function TeamSection({ businessId, isAdmin }: Props) {
             Gérez les collaborateurs qui accèdent à cet espace business.
           </p>
         </div>
-        {isAdmin && <InviteDialog businessId={businessId} onInvited={refresh} />}
+        {isAdmin && <InviteDialog businessId={businessId} memberCount={members.length} onInvited={refresh} />}
       </div>
 
       {/* Membres */}
