@@ -10,12 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, User, MapPin, Building2, ChevronRight } from 'lucide-react';
+import { LogOut, User, MapPin, Building2, ChevronRight, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function ProfileView() {
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
   const [saving, setSaving] = useState(false);
@@ -141,6 +143,16 @@ export function ProfileView() {
 
       {/* Preferences placeholder — minimal list */}
       <section className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"
+          onClick={() => navigate('/business')}
+        >
+          <Briefcase className="w-4 h-4 text-primary" />
+          <span className="text-sm text-foreground flex-1">Yobbanté Business</span>
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">Pro</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
         <button
           type="button"
           className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"

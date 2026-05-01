@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
+import BusinessPage from "./pages/BusinessPage";
 import NotFound from "./pages/NotFound";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/app" element={<Index />} />
             <Route path="/app/dossier/:id" element={<DossierDetail />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/business" element={<BusinessPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <CookieBanner />

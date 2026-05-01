@@ -1,4 +1,4 @@
-import { Home, Send, Inbox, Search, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Home, Send, Inbox, Search, User, LogOut, ShieldCheck, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -43,6 +43,13 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
             </button>
           );
         })}
+        <button
+          onClick={() => navigate('/business')}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors ml-1"
+        >
+          <Briefcase className="w-4 h-4" />
+          Business
+        </button>
         {isStaff && (
           <button
             onClick={() => navigate('/admin')}

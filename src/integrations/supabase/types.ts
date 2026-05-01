@@ -41,6 +41,63 @@ export type Database = {
         }
         Relationships: []
       }
+      business_accounts: {
+        Row: {
+          activated_at: string | null
+          admin_email: string
+          admin_full_name: string
+          admin_phone: string
+          admin_role: string
+          created_at: string
+          headquarters_address: string
+          id: string
+          legal_form: string
+          legal_name: string
+          ninea: string
+          sector: string
+          status: Database["public"]["Enums"]["business_account_status"]
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          admin_email: string
+          admin_full_name: string
+          admin_phone: string
+          admin_role: string
+          created_at?: string
+          headquarters_address: string
+          id?: string
+          legal_form: string
+          legal_name: string
+          ninea: string
+          sector: string
+          status?: Database["public"]["Enums"]["business_account_status"]
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          admin_email?: string
+          admin_full_name?: string
+          admin_phone?: string
+          admin_role?: string
+          created_at?: string
+          headquarters_address?: string
+          id?: string
+          legal_form?: string
+          legal_name?: string
+          ninea?: string
+          sector?: string
+          status?: Database["public"]["Enums"]["business_account_status"]
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       coverage_zones: {
         Row: {
           active: boolean
@@ -1420,6 +1477,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "user"
+      business_account_status: "pending" | "active" | "suspended"
       coverage_level: "direct" | "partner" | "none"
       dossier_status:
         | "SUBMITTED"
@@ -1587,6 +1645,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "user"],
+      business_account_status: ["pending", "active", "suspended"],
       coverage_level: ["direct", "partner", "none"],
       dossier_status: [
         "SUBMITTED",
