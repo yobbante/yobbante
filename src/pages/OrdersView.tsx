@@ -256,8 +256,8 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
           </div>
         ) : kind === 'send' ? (
-          // ─── Envois : uniquement les expéditions du SendFlow ───
-          sendFlowShipments.length === 0 ? (
+          // ─── Envois : expéditions du SendFlow + dossiers d'envoi (legacy/manuels) ───
+          sendFlowShipments.length === 0 && visibleDossiers.length === 0 ? (
             <EmptyState
               icon={activeTab.Icon}
               title={emptyTitle(kind)}
@@ -267,6 +267,16 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             />
           ) : (
             <>
+              {visibleDossiers.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
+                    Demandes d'envoi ({visibleDossiers.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
+                  </div>
+                </div>
+              )}
               {activeShipments.length > 0 && (
                 <div>
                   <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
