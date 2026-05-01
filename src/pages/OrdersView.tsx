@@ -60,8 +60,10 @@ const KIND_TABS: ReadonlyArray<{
 
 /** Classify a dossier into one of the 3 user buckets. Mirror of admin/RequestsTab.tsx. */
 function dossierKind(d: Dossier): Kind {
-  if (d.needs_sourcing) return 'sourcing';
+  if (d.app_source === 'recevoir') return 'receive';
   if (d.app_source === 'expedier') return 'send';
+  if (d.needs_sourcing) return 'sourcing';
+  // Legacy fallback for older dossiers without app_source.
   return 'receive';
 }
 
