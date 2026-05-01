@@ -305,6 +305,17 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             ctaLabel={activeTab.ctaLabel}
             onCta={() => navigate(activeTab.ctaHref)}
           />
+        ) : kind === 'receive' ? (
+          // ─── Réceptions : carte dédiée + drawer enrichi ───
+          <>
+            {visibleDossiers.map(d => (
+              <ReceptionCard
+                key={d.id}
+                dossier={d}
+                onClick={() => setSelectedReception(d)}
+              />
+            ))}
+          </>
         ) : (
           <>
             {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
@@ -317,6 +328,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         onOpenChange={(o) => { if (!o) setSelectedShipment(null); }}
         shipment={selectedShipment}
         packages={packages}
+      />
+      <ReceptionDetailDrawer
+        open={!!selectedReception}
+        onOpenChange={(o) => { if (!o) setSelectedReception(null); }}
+        dossier={selectedReception}
       />
       <PackageTimelineDialog
         open={!!trackPkg}
