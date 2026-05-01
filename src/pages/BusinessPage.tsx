@@ -499,6 +499,15 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
         {/* APERÇU */}
         <TabsContent value="overview" className="space-y-8 mt-0">
+          {/* Trigger 5 — rapport mensuel (visible à partir du 25, comptes non payants) */}
+          {showMonthlyReport && (
+            <UpgradeNudge
+              id="monthly-report-banner"
+              text="📊 Votre rapport mensuel est disponible. Passez au plan Business pour recevoir une analyse complète : volumes, économies, performance dossiers."
+              ctaLabel="Passer au Business →"
+            />
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard label="Membres" value={Math.max(1, members.length + 1)} icon={Users} />
@@ -526,6 +535,7 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
               <ActionCard label="Sourcing" icon={PackageSearch} to="/acheter" />
               <ActionCard label="Rapports" icon={BarChart3} to="#" disabled />
             </div>
+            <PricingDashboardLink enabled={!paying} />
           </div>
 
           {/* Chargé de compte (résumé visible sur l'aperçu aussi) */}
