@@ -24,6 +24,11 @@ import { AccountManagerCard } from '@/components/business/AccountManagerCard';
 import { DossiersSection } from '@/components/business/DossiersSection';
 import { isValidNinea, normalizeNinea, formatNinea } from '@/lib/ninea';
 import { cn } from '@/lib/utils';
+import { TrialBanner, PricingDashboardLink, UpgradeNudge } from '@/components/upgrade';
+
+// Yobbanté Business: until billing is wired, every account is treated as a Starter
+// trial (no paying subscribers exist yet). Flip this once subscriptions ship.
+const isPayingSubscriber = (_account: { id: string }) => false;
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
@@ -450,6 +455,8 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
   const isAdmin = account.user_id === user?.id ||
     members.some(m => m.user_id === user?.id && m.role === 'admin');
+  const paying = isPayingSubscriber(account);
+  const showMonthlyReport = !paying && new Date().getDate() >= 25;
 
   const overdueCount = invoices.filter(i => i.status === 'overdue').length;
   const unpaidAmount = invoices
@@ -458,6 +465,9 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
   return (
     <div className="space-y-8">
+      {/* Trial banner — sticky, non-dismissible */}
+      <TrialBanner createdAt={account.created_at} enabled={!paying} />
+
       {/* Header */}
       <div>
         <div className="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Mon entreprise</div>
@@ -489,6 +499,15 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
         {/* APERÇU */}
         <TabsContent value="overview" className="space-y-8 mt-0">
+          {/* Trigger 5 — rapport mensuel (visible à partir du 25, comptes non payants) */}
+          {showMonthlyReport && (
+            <UpgradeNudge
+              id="monthly-report-banner"
+              text="📊 Votre rapport mensuel est disponible. Passez au plan Business pour recevoir une analyse complète : volumes, économies, performance dossiers."
+              ctaLabel="Passer au Business →"
+            />
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard label="Membres" value={Math.max(1, members.length + 1)} icon={Users} />
@@ -516,6 +535,7 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
               <ActionCard label="Sourcing" icon={PackageSearch} to="/acheter" />
               <ActionCard label="Rapports" icon={BarChart3} to="#" disabled />
             </div>
+            <PricingDashboardLink enabled={!paying} />
           </div>
 
           {/* Chargé de compte (résumé visible sur l'aperçu aussi) */}

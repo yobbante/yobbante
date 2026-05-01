@@ -5,6 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDossierDocuments, DOC_KIND_LABELS, type DocKind } from '@/hooks/useDossierDocuments';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useBusinessAccount } from '@/hooks/useBusinessAccount';
+import { UpgradeLimitModal } from '@/components/upgrade';
 
 interface Props {
   dossierId: string;
@@ -13,10 +16,13 @@ interface Props {
 }
 
 const MAX_SIZE = 15 * 1024 * 1024; // 15 MB
+const STARTER_CUSTOMS_LIMIT = 5;
 
 export function DossierDocuments({ dossierId, canUpload, canDelete }: Props) {
   const { documents, isLoading, upload, remove, getDownloadUrl } = useDossierDocuments(dossierId);
+  const { account: businessAccount } = useBusinessAccount();
   const [kind, setKind] = useState<DocKind>('invoice');
+  const [limitOpen, setLimitOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
@@ -24,6 +30,31 @@ export function DossierDocuments({ dossierId, canUpload, canDelete }: Props) {
       toast.error('Fichier trop volumineux (max 15 Mo)');
       return;
     }
+
+    // Trigger 3 — limite mensuelle de 5 documents douaniers (plan Starter).
+    if (kind === 'customs' && !businessAccount) {
+      try {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { count } = await supabase
+            .from('dossier_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('uploaded_by', user.id)
+            .eq('kind', 'customs')
+            .gte('created_at', monthStart.toISOString());
+          if ((count ?? 0) >= STARTER_CUSTOMS_LIMIT) {
+            setLimitOpen(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[upgrade-nudge] customs count failed', e);
+      }
+    }
+
     try {
       await upload.mutateAsync({ file, kind });
       toast.success('Document ajouté');
@@ -126,6 +157,13 @@ export function DossierDocuments({ dossierId, canUpload, canDelete }: Props) {
           ))}
         </ul>
       )}
+
+      <UpgradeLimitModal
+        open={limitOpen}
+        onOpenChange={setLimitOpen}
+        title="Limite atteinte ce mois"
+        body="Vous avez utilisé vos 5 documents douaniers inclus dans le plan Starter. Le plan Business les inclut sans limite."
+      />
     </div>
   );
 }

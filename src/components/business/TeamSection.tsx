@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Loader2, Mail, Trash2, Crown, Shield, Eye, Clock, Check, X, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useBusinessMembers, type BusinessMemberRole } from '@/hooks/useBusinessMembers';
 import { cn } from '@/lib/utils';
+import { UPGRADE_COLORS } from '@/components/upgrade';
+
+// Starter plan team limit (cf. /business/pricing).
+const STARTER_TEAM_LIMIT = 2;
 
 const ROLE_META: Record<BusinessMemberRole, { label: string; icon: any; tone: string; desc: string }> = {
   admin:    { label: 'Admin',     icon: Crown,  tone: 'bg-amber-500/15 text-amber-500 border-amber-500/30',     desc: 'Tout gérer' },
@@ -40,7 +45,7 @@ export function TeamSection({ businessId, isAdmin }: Props) {
             Gérez les collaborateurs qui accèdent à cet espace business.
           </p>
         </div>
-        {isAdmin && <InviteDialog businessId={businessId} onInvited={refresh} />}
+        {isAdmin && <InviteDialog businessId={businessId} memberCount={members.length} onInvited={refresh} />}
       </div>
 
       {/* Membres */}
@@ -191,12 +196,14 @@ function InvitationRow({ invitation, isAdmin, onChanged }: any) {
   );
 }
 
-function InviteDialog({ businessId, onInvited }: { businessId: string; onInvited: () => void }) {
+function InviteDialog({ businessId, memberCount, onInvited }: { businessId: string; memberCount: number; onInvited: () => void }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<BusinessMemberRole>('operator');
   const [submitting, setSubmitting] = useState(false);
+
+  const limitReached = memberCount >= STARTER_TEAM_LIMIT;
 
   const submit = async () => {
     if (!user) return;
@@ -243,61 +250,89 @@ function InviteDialog({ businessId, onInvited }: { businessId: string; onInvited
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Inviter un collaborateur</DialogTitle>
+          <DialogTitle>{limitReached ? 'Limite atteinte' : 'Inviter un collaborateur'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <Label htmlFor="inv-email">Email</Label>
-            <Input
-              id="inv-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="collegue@entreprise.sn"
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label>Rôle</Label>
-            <div className="mt-1.5 space-y-2">
-              {(Object.keys(ROLE_META) as BusinessMemberRole[]).map(r => {
-                const meta = ROLE_META[r];
-                const Icon = meta.icon;
-                const selected = role === r;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={cn(
-                      'w-full flex items-center gap-3 p-3 rounded-[var(--radius)] border text-left transition-all',
-                      selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
-                    )}
-                  >
-                    <div className={cn('w-8 h-8 rounded-full flex items-center justify-center', meta.tone)}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm">{meta.label}</div>
-                      <div className="text-xs text-muted-foreground">{meta.desc}</div>
-                    </div>
-                    {selected && <Check className="w-4 h-4 text-primary" />}
-                  </button>
-                );
-              })}
+
+        {limitReached ? (
+          <>
+            <div
+              className="my-2"
+              style={{
+                background: UPGRADE_COLORS.bg,
+                border: `1px solid ${UPGRADE_COLORS.border}`,
+                borderRadius: 10,
+                padding: '14px 16px',
+              }}
+            >
+              <p style={{ color: UPGRADE_COLORS.text, fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+                <span style={{ color: UPGRADE_COLORS.yellow, marginRight: 6 }}>💡</span>
+                Les plans Starter incluent 2 membres. Passez au plan Business pour inviter jusqu'à 10 membres.
+              </p>
             </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Un lien d'invitation sera créé. Partagez-le à votre collaborateur — il pourra rejoindre l'entreprise après connexion.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)} disabled={submitting}>Annuler</Button>
-          <Button onClick={submit} disabled={submitting || !email}>
-            {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            <Mail className="w-4 h-4 mr-2" /> Créer l'invitation
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button asChild>
+                <Link to="/business/pricing#business">Débloquer →</Link>
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="inv-email">Email</Label>
+                <Input
+                  id="inv-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="collegue@entreprise.sn"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Rôle</Label>
+                <div className="mt-1.5 space-y-2">
+                  {(Object.keys(ROLE_META) as BusinessMemberRole[]).map(r => {
+                    const meta = ROLE_META[r];
+                    const Icon = meta.icon;
+                    const selected = role === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRole(r)}
+                        className={cn(
+                          'w-full flex items-center gap-3 p-3 rounded-[var(--radius)] border text-left transition-all',
+                          selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                        )}
+                      >
+                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center', meta.tone)}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">{meta.label}</div>
+                          <div className="text-xs text-muted-foreground">{meta.desc}</div>
+                        </div>
+                        {selected && <Check className="w-4 h-4 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Un lien d'invitation sera créé. Partagez-le à votre collaborateur — il pourra rejoindre l'entreprise après connexion.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setOpen(false)} disabled={submitting}>Annuler</Button>
+              <Button onClick={submit} disabled={submitting || !email}>
+                {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Mail className="w-4 h-4 mr-2" /> Créer l'invitation
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
