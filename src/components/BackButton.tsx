@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface BackButtonProps {
@@ -26,11 +27,12 @@ export function BackButton({
   className,
 }: BackButtonProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   function handle() {
     if (to) navigate(to);
     else if (window.history.length > 1) navigate(-1);
-    else navigate('/');
+    else navigate(user ? '/app' : '/');
   }
 
   if (variant === 'pill') {
