@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Loader2, Mail, Trash2, Crown, Shield, Eye, Clock, Check, X, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useBusinessMembers, type BusinessMemberRole } from '@/hooks/useBusinessMembers';
 import { cn } from '@/lib/utils';
+import { UPGRADE_COLORS } from '@/components/upgrade';
+
+// Starter plan team limit (cf. /business/pricing).
+const STARTER_TEAM_LIMIT = 2;
 
 const ROLE_META: Record<BusinessMemberRole, { label: string; icon: any; tone: string; desc: string }> = {
   admin:    { label: 'Admin',     icon: Crown,  tone: 'bg-amber-500/15 text-amber-500 border-amber-500/30',     desc: 'Tout gérer' },
