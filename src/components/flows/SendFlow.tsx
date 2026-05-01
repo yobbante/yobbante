@@ -518,7 +518,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 1 — Sender profile + sens du trajet ─── */}
       <FlowSection revealed step={1} total={10} title="Vous expédiez en tant que ?" hint="Cette étape n'est demandée qu'une seule fois.">
-        <ChipGroup options={SENDER_KINDS} value={senderKind} onChange={(v) => setSenderKind(v)} />
+        <ChipGroup
+          options={SENDER_KINDS}
+          value={senderKind}
+          onChange={(v) => {
+            if (v === 'business') {
+              toast.info("Redirection vers le parcours Entreprises", { duration: 3000 });
+              navigate('/devis-entreprise');
+              return;
+            }
+            setSenderKind(v);
+          }}
+        />
         <div className="mt-5 max-w-md">
           <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
             <Globe2 className="w-3 h-3" /> Sens du trajet *

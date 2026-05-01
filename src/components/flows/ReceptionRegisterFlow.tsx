@@ -163,7 +163,9 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
   /* ── Live quote: fetch when entering "transport" step ── */
   useEffect(() => {
     if (step !== 'transport' || !selectedRelay) return;
-    const dest = selectedRelay.country_code || 'SN';
+    // Réception = colis qui arrive au relais à l'étranger puis revient à Dakar.
+    // Destination tarifaire = Sénégal (Dakar hub) ; le pays du relais sert d'origine implicite.
+    const dest = 'SN';
     // Use estimated weight (we don't ask user) → fallback heuristic by goods type
     const weight = form.goods_type === 'auto_part' ? 8
                   : form.goods_type === 'electronic' ? 2
