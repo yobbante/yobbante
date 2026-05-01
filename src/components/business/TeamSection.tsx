@@ -196,12 +196,14 @@ function InvitationRow({ invitation, isAdmin, onChanged }: any) {
   );
 }
 
-function InviteDialog({ businessId, onInvited }: { businessId: string; onInvited: () => void }) {
+function InviteDialog({ businessId, memberCount, onInvited }: { businessId: string; memberCount: number; onInvited: () => void }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<BusinessMemberRole>('operator');
   const [submitting, setSubmitting] = useState(false);
+
+  const limitReached = memberCount >= STARTER_TEAM_LIMIT;
 
   const submit = async () => {
     if (!user) return;
