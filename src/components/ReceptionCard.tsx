@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import {
-  ArrowRight, Package, Inbox, ChevronRight, MapPin, Calendar,
+  ArrowRight, Package, Inbox, ChevronRight, Calendar,
 } from 'lucide-react';
 import {
   type Dossier, COUNTRY_FLAGS, DOSSIER_STATUS_LABELS,
