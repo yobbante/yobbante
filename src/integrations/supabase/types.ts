@@ -334,6 +334,50 @@ export type Database = {
         }
         Relationships: []
       }
+      dossier_customs_documents: {
+        Row: {
+          created_at: string
+          dossier_id: string
+          file_name: string
+          file_path: string
+          generated_by: string
+          id: string
+          kind: Database["public"]["Enums"]["customs_document_kind"]
+          metadata: Json
+          reference: string
+        }
+        Insert: {
+          created_at?: string
+          dossier_id: string
+          file_name: string
+          file_path: string
+          generated_by: string
+          id?: string
+          kind: Database["public"]["Enums"]["customs_document_kind"]
+          metadata?: Json
+          reference: string
+        }
+        Update: {
+          created_at?: string
+          dossier_id?: string
+          file_name?: string
+          file_path?: string
+          generated_by?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["customs_document_kind"]
+          metadata?: Json
+          reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_customs_documents_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_documents: {
         Row: {
           created_at: string
@@ -421,23 +465,37 @@ export type Database = {
           admin_notes: string | null
           app_source: string
           budget_eur: number | null
+          business_id: string | null
+          buyer_contact: string | null
+          buyer_country: string | null
+          buyer_name: string | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          currency: string | null
+          declared_value: number | null
           destination_country: string
+          dossier_type: Database["public"]["Enums"]["dossier_type"]
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
           gp_id: string | null
+          hs_code: string | null
           id: string
+          incoterm: string | null
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           product_description: string
+          quantity: number | null
           reference: string
           status: Database["public"]["Enums"]["dossier_status"]
+          supplier_contact: string | null
+          supplier_country: string | null
+          supplier_name: string | null
+          unit: string | null
           updated_at: string
           user_id: string
         }
@@ -445,23 +503,37 @@ export type Database = {
           admin_notes?: string | null
           app_source?: string
           budget_eur?: number | null
+          business_id?: string | null
+          buyer_contact?: string | null
+          buyer_country?: string | null
+          buyer_name?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          currency?: string | null
+          declared_value?: number | null
           destination_country?: string
+          dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           gp_id?: string | null
+          hs_code?: string | null
           id?: string
+          incoterm?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           product_description: string
+          quantity?: number | null
           reference?: string
           status?: Database["public"]["Enums"]["dossier_status"]
+          supplier_contact?: string | null
+          supplier_country?: string | null
+          supplier_name?: string | null
+          unit?: string | null
           updated_at?: string
           user_id: string
         }
@@ -469,27 +541,49 @@ export type Database = {
           admin_notes?: string | null
           app_source?: string
           budget_eur?: number | null
+          business_id?: string | null
+          buyer_contact?: string | null
+          buyer_country?: string | null
+          buyer_name?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          currency?: string | null
+          declared_value?: number | null
           destination_country?: string
+          dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           gp_id?: string | null
+          hs_code?: string | null
           id?: string
+          incoterm?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           product_description?: string
+          quantity?: number | null
           reference?: string
           status?: Database["public"]["Enums"]["dossier_status"]
+          supplier_contact?: string | null
+          supplier_country?: string | null
+          supplier_name?: string | null
+          unit?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dossiers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enterprise_quotes: {
         Row: {
@@ -1694,6 +1788,13 @@ export type Database = {
         | "cancelled"
       business_member_role: "admin" | "operator" | "viewer"
       coverage_level: "direct" | "partner" | "none"
+      customs_document_kind:
+        | "proforma_invoice"
+        | "packing_list"
+        | "bill_of_lading"
+        | "customs_declaration"
+        | "commercial_invoice"
+        | "certificate_of_origin"
       dossier_status:
         | "SUBMITTED"
         | "IN_REVIEW"
@@ -1703,6 +1804,11 @@ export type Database = {
         | "CUSTOMS"
         | "DELIVERED"
         | "CLOSED"
+      dossier_type:
+        | "individual"
+        | "business_import"
+        | "business_export"
+        | "business_sourcing"
       enterprise_quote_status:
         | "NEW"
         | "CONTACTED"
@@ -1871,6 +1977,14 @@ export const Constants = {
       ],
       business_member_role: ["admin", "operator", "viewer"],
       coverage_level: ["direct", "partner", "none"],
+      customs_document_kind: [
+        "proforma_invoice",
+        "packing_list",
+        "bill_of_lading",
+        "customs_declaration",
+        "commercial_invoice",
+        "certificate_of_origin",
+      ],
       dossier_status: [
         "SUBMITTED",
         "IN_REVIEW",
@@ -1880,6 +1994,12 @@ export const Constants = {
         "CUSTOMS",
         "DELIVERED",
         "CLOSED",
+      ],
+      dossier_type: [
+        "individual",
+        "business_import",
+        "business_export",
+        "business_sourcing",
       ],
       enterprise_quote_status: ["NEW", "CONTACTED", "QUALIFIED", "WON", "LOST"],
       manual_quote_status: ["pending", "quoted", "confirmed", "cancelled"],
