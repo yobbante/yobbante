@@ -122,6 +122,31 @@ export function NewBusinessDossierWizard({ businessId, onClose, onCreated }: Pro
       return;
     }
     toast.success('Dossier créé.', { description: 'Notre équipe le prend en charge.' });
+
+    // Trigger 1 — 3ème dossier du mois calendaire courant.
+    try {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('dossiers')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+        .gte('created_at', monthStart.toISOString());
+      if ((count ?? 0) >= 3) {
+        toast('💡 Avec le plan Starter, ce dossier vous aurait coûté 8% de moins en transport. L\'abonnement se rembourse en 1 dossier.', {
+          duration: 9000,
+          action: {
+            label: 'Voir les plans →',
+            onClick: () => { window.location.href = '/business/pricing'; },
+          },
+        });
+      }
+    } catch (e) {
+      // best-effort, ne bloque pas la création
+      console.warn('[upgrade-nudge] dossier count failed', e);
+    }
+
     onCreated();
     onClose();
   };
