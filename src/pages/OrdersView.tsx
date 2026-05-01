@@ -9,13 +9,11 @@ import { DossierCard } from '@/components/DossierCard';
 import { ShipmentCard } from '@/components/ShipmentCard';
 import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
 import { EmptyState } from '@/components/EmptyState';
-import { StatusBadge } from '@/components/StatusBadge';
 import { PackageTimelineDialog } from '@/components/PackageTimelineDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  COUNTRY_FLAGS,
   type Dossier, type Shipment, type Package as PackageType,
 } from '@/lib/types';
 
