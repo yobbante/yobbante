@@ -4,17 +4,23 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Building2, CheckCircle2, Loader2, Phone, Mail,
   AlertTriangle, ShieldCheck, Sparkles, Briefcase, Users, FileText,
-  PackageSearch, Truck, Inbox, BarChart3, Receipt, Bell,
+  PackageSearch, Truck, Inbox, BarChart3, Receipt, Bell, LayoutDashboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useBusinessAccount } from '@/hooks/useBusinessAccount';
+import { useBusinessMembers } from '@/hooks/useBusinessMembers';
+import { useBusinessInvoices } from '@/hooks/useBusinessInvoices';
+import { TeamSection } from '@/components/business/TeamSection';
+import { InvoicesSection } from '@/components/business/InvoicesSection';
+import { AccountManagerCard } from '@/components/business/AccountManagerCard';
 import { isValidNinea, normalizeNinea, formatNinea } from '@/lib/ninea';
 import { cn } from '@/lib/utils';
 
@@ -437,109 +443,145 @@ function ConfirmStep({ legalName, ninea, adminName }: { legalName: string; ninea
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAccount').BusinessAccount }) {
-  const stats = [
-    { label: 'Dossiers',    value: 0, icon: FileText },
-    { label: 'En cours',    value: 0, icon: Loader2 },
-    { label: 'Envois',      value: 0, icon: Truck },
-    { label: 'Sourcings',   value: 0, icon: PackageSearch },
-  ];
+  const { user } = useAuth();
+  const { members } = useBusinessMembers(account.id);
+  const { invoices } = useBusinessInvoices(account.id);
 
-  const actions = [
-    { label: 'Expédier',     icon: Truck,         to: '/expedier',  enabled: true },
-    { label: 'Recevoir',     icon: Inbox,         to: '/acheter',   enabled: true },
-    { label: 'Sourcing',     icon: PackageSearch, to: '/acheter',   enabled: true },
-    { label: 'Rapports',     icon: BarChart3,     to: '#',          enabled: false },
-  ];
+  const isAdmin = account.user_id === user?.id ||
+    members.some(m => m.user_id === user?.id && m.role === 'admin');
+
+  const overdueCount = invoices.filter(i => i.status === 'overdue').length;
+  const unpaidAmount = invoices
+    .filter(i => i.status === 'unpaid' || i.status === 'overdue')
+    .reduce((s, i) => s + Number(i.amount_eur), 0);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* Header */}
       <div>
         <div className="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Mon entreprise</div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Bonjour, {account.legal_name}.</h1>
-        <p className="mt-1 text-muted-foreground">Pilotez vos opérations import, export et sourcing.</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{account.legal_name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {account.legal_form} · {account.sector} · NINEA {formatNinea(account.ninea)}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map(({ label, value, icon: Icon }) => (
-          <Card key={label} className="p-4">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="text-xs uppercase tracking-wider font-semibold">{label}</span>
-              <Icon className="w-4 h-4" />
+      <Tabs defaultValue="overview" className="space-y-8">
+        <TabsList className="grid grid-cols-4 max-w-2xl">
+          <TabsTrigger value="overview"><LayoutDashboard className="w-4 h-4 mr-2" />Aperçu</TabsTrigger>
+          <TabsTrigger value="team"><Users className="w-4 h-4 mr-2" />Équipe</TabsTrigger>
+          <TabsTrigger value="invoices">
+            <Receipt className="w-4 h-4 mr-2" />Factures
+            {overdueCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-[10px] rounded-full bg-red-500/20 text-red-500 font-bold">
+                {overdueCount}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="contact"><Sparkles className="w-4 h-4 mr-2" />Contact</TabsTrigger>
+        </TabsList>
+
+        {/* APERÇU */}
+        <TabsContent value="overview" className="space-y-8 mt-0">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard label="Membres" value={Math.max(1, members.length + 1)} icon={Users} />
+            <StatCard label="Factures" value={invoices.length} icon={Receipt} />
+            <StatCard
+              label="Impayé"
+              value={`${unpaidAmount.toFixed(0)} €`}
+              icon={Bell}
+              tone={unpaidAmount > 0 ? 'amber' : undefined}
+            />
+            <StatCard
+              label="En retard"
+              value={overdueCount}
+              icon={AlertTriangle}
+              tone={overdueCount > 0 ? 'red' : undefined}
+            />
+          </div>
+
+          {/* Actions */}
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Actions rapides</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <ActionCard label="Expédier" icon={Truck} to="/expedier" />
+              <ActionCard label="Recevoir" icon={Inbox} to="/acheter" />
+              <ActionCard label="Sourcing" icon={PackageSearch} to="/acheter" />
+              <ActionCard label="Rapports" icon={BarChart3} to="#" disabled />
             </div>
-            <div className="mt-2 text-3xl font-bold tracking-tight">{value}</div>
+          </div>
+
+          {/* Chargé de compte (résumé visible sur l'aperçu aussi) */}
+          <AccountManagerCard businessId={account.id} />
+        </TabsContent>
+
+        {/* ÉQUIPE */}
+        <TabsContent value="team" className="mt-0">
+          <TeamSection businessId={account.id} isAdmin={isAdmin} />
+        </TabsContent>
+
+        {/* FACTURES */}
+        <TabsContent value="invoices" className="mt-0">
+          <InvoicesSection businessId={account.id} isAdmin={isAdmin} />
+        </TabsContent>
+
+        {/* CONTACT */}
+        <TabsContent value="contact" className="mt-0 space-y-6">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Contact dédié</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Votre interlocuteur direct chez Yobbanté Business.
+            </p>
+          </div>
+          <AccountManagerCard businessId={account.id} />
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-3">Administrateur du compte</h3>
+            <div className="space-y-2 text-sm">
+              <div><span className="text-muted-foreground">Nom · </span>{account.admin_full_name}</div>
+              <div><span className="text-muted-foreground">Poste · </span>{account.admin_role}</div>
+              <div><span className="text-muted-foreground">Email · </span>{account.admin_email}</div>
+              <div><span className="text-muted-foreground">Téléphone · </span>{account.admin_phone}</div>
+            </div>
           </Card>
-        ))}
-      </div>
-
-      {/* Actions */}
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Actions rapides</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {actions.map(({ label, icon: Icon, to, enabled }) => (
-            <a
-              key={label}
-              href={enabled ? to : undefined}
-              className={cn(
-                'flex flex-col items-start gap-3 p-5 rounded-[var(--radius)] border border-border bg-card transition-all',
-                enabled ? 'hover:border-primary/60 hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed'
-              )}
-            >
-              <Icon className="w-6 h-6 text-primary" />
-              <div>
-                <div className="font-semibold">{label}</div>
-                {!enabled && <div className="text-xs text-muted-foreground mt-0.5">Bientôt</div>}
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      {/* Sections vides — placeholders pour Lots suivants */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <EmptySection title="Dossiers récents"     icon={FileText} hint="Vos derniers dossiers apparaîtront ici." />
-        <EmptySection title="Expéditions actives"  icon={Truck}    hint="Les envois en transit s’affichent ici." />
-        <EmptySection title="Factures en attente"  icon={Receipt}  hint="Le module facturation arrive bientôt." />
-        <EmptySection title="Alertes opérateur"    icon={Bell}     hint="Aucune alerte pour le moment." />
-      </div>
-
-      {/* Chargé de compte */}
-      <Card className="p-6 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
-            <Sparkles className="w-7 h-7" />
-          </div>
-          <div className="flex-1">
-            <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Votre chargé de compte</div>
-            <h3 className="text-lg font-bold mt-0.5">L’équipe Yobbanté Business</h3>
-            <p className="text-sm text-muted-foreground mt-1">Disponible lun-ven 8h-18h pour vous accompagner.</p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Button asChild size="sm">
-                <a href="https://wa.me/221786078080" target="_blank" rel="noopener noreferrer">
-                  <Phone className="w-4 h-4 mr-2" /> WhatsApp
-                </a>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <a href="mailto:business@yobbante.com">
-                  <Mail className="w-4 h-4 mr-2" /> Email
-                </a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-function EmptySection({ title, icon: Icon, hint }: { title: string; icon: React.ComponentType<{ className?: string }>; hint: string }) {
+function StatCard({ label, value, icon: Icon, tone }: { label: string; value: string | number; icon: any; tone?: 'amber' | 'red' }) {
+  const toneCls = tone === 'amber' ? 'text-amber-500' : tone === 'red' ? 'text-red-500' : '';
   return (
-    <Card className="p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold mb-2">
-        <Icon className="w-4 h-4 text-muted-foreground" /> {title}
+    <Card className="p-4">
+      <div className="flex items-center justify-between text-muted-foreground">
+        <span className="text-xs uppercase tracking-wider font-semibold">{label}</span>
+        <Icon className={cn('w-4 h-4', toneCls)} />
       </div>
-      <p className="text-xs text-muted-foreground">{hint}</p>
+      <div className={cn('mt-2 text-3xl font-bold tracking-tight', toneCls)}>{value}</div>
     </Card>
+  );
+}
+
+function ActionCard({ label, icon: Icon, to, disabled }: { label: string; icon: any; to: string; disabled?: boolean }) {
+  return (
+    <a
+      href={disabled ? undefined : to}
+      className={cn(
+        'flex flex-col items-start gap-3 p-5 rounded-[var(--radius)] border border-border bg-card transition-all',
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary/60 hover:-translate-y-0.5'
+      )}
+    >
+      <Icon className="w-6 h-6 text-primary" />
+      <div>
+        <div className="font-semibold">{label}</div>
+        {disabled && <div className="text-xs text-muted-foreground mt-0.5">Bientôt</div>}
+      </div>
+    </a>
   );
 }

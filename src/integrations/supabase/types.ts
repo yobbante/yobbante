@@ -41,6 +41,53 @@ export type Database = {
         }
         Relationships: []
       }
+      business_account_managers: {
+        Row: {
+          business_id: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          manager_user_id: string | null
+          phone: string | null
+          photo_url: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          manager_user_id?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          manager_user_id?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_account_managers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_accounts: {
         Row: {
           activated_at: string | null
@@ -97,6 +144,156 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      business_invitations: {
+        Row: {
+          accepted_at: string | null
+          business_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["business_member_role"]
+          status: Database["public"]["Enums"]["business_invitation_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          business_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["business_member_role"]
+          status?: Database["public"]["Enums"]["business_invitation_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          business_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["business_member_role"]
+          status?: Database["public"]["Enums"]["business_invitation_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_invitations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_invoices: {
+        Row: {
+          amount_eur: number
+          amount_xof: number | null
+          business_id: string
+          created_at: string
+          description: string | null
+          dossier_id: string | null
+          due_at: string
+          id: string
+          issued_at: string
+          last_reminder_at: string | null
+          paid_at: string | null
+          reference: string
+          reminder_count: number
+          shipment_id: string | null
+          status: Database["public"]["Enums"]["business_invoice_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_eur?: number
+          amount_xof?: number | null
+          business_id: string
+          created_at?: string
+          description?: string | null
+          dossier_id?: string | null
+          due_at?: string
+          id?: string
+          issued_at?: string
+          last_reminder_at?: string | null
+          paid_at?: string | null
+          reference?: string
+          reminder_count?: number
+          shipment_id?: string | null
+          status?: Database["public"]["Enums"]["business_invoice_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_eur?: number
+          amount_xof?: number | null
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          dossier_id?: string | null
+          due_at?: string
+          id?: string
+          issued_at?: string
+          last_reminder_at?: string | null
+          paid_at?: string | null
+          reference?: string
+          reminder_count?: number
+          shipment_id?: string | null
+          status?: Database["public"]["Enums"]["business_invoice_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_members: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: Database["public"]["Enums"]["business_member_role"]
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["business_member_role"]
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["business_member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_members_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coverage_zones: {
         Row: {
@@ -1425,6 +1622,7 @@ export type Database = {
         Returns: Json
       }
       expire_unpaid_shipments: { Args: never; Returns: number }
+      generate_business_invoice_reference: { Args: never; Returns: string }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
@@ -1447,7 +1645,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_business_admin: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_business_member: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      mark_overdue_invoices: { Args: never; Returns: number }
       monitor_shipment_etas: { Args: never; Returns: number }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
@@ -1478,6 +1685,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "staff" | "user"
       business_account_status: "pending" | "active" | "suspended"
+      business_invitation_status: "pending" | "accepted" | "expired" | "revoked"
+      business_invoice_status:
+        | "draft"
+        | "unpaid"
+        | "paid"
+        | "overdue"
+        | "cancelled"
+      business_member_role: "admin" | "operator" | "viewer"
       coverage_level: "direct" | "partner" | "none"
       dossier_status:
         | "SUBMITTED"
@@ -1646,6 +1861,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "staff", "user"],
       business_account_status: ["pending", "active", "suspended"],
+      business_invitation_status: ["pending", "accepted", "expired", "revoked"],
+      business_invoice_status: [
+        "draft",
+        "unpaid",
+        "paid",
+        "overdue",
+        "cancelled",
+      ],
+      business_member_role: ["admin", "operator", "viewer"],
       coverage_level: ["direct", "partner", "none"],
       dossier_status: [
         "SUBMITTED",
