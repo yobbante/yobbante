@@ -242,7 +242,59 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
           </div>
-        ) : visibleDossiers.length === 0 && (kind !== 'send' || activeShipments.length === 0) ? (
+        ) : kind === 'send' ? (
+          // ─── Envois : uniquement les expéditions du SendFlow ───
+          sendFlowShipments.length === 0 ? (
+            <EmptyState
+              icon={activeTab.Icon}
+              title={emptyTitle(kind)}
+              description={emptyDescription(kind)}
+              ctaLabel={activeTab.ctaLabel}
+              onCta={() => navigate(activeTab.ctaHref)}
+            />
+          ) : (
+            <>
+              {activeShipments.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
+                    En cours ({activeShipments.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {activeShipments.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSelectedShipment(s)}
+                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
+                      >
+                        <ShipmentCard shipment={s} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {pastShipments.length > 0 && (
+                <div className="pt-4">
+                  <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
+                    Livrés ({pastShipments.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {pastShipments.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSelectedShipment(s)}
+                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl opacity-80 hover:opacity-100 transition-opacity"
+                      >
+                        <ShipmentCard shipment={s} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        ) : visibleDossiers.length === 0 ? (
           <EmptyState
             icon={activeTab.Icon}
             title={emptyTitle(kind)}
@@ -253,60 +305,6 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         ) : (
           <>
             {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
-
-            {/* For "Envois" tab, also surface shipments & in-hub packages. */}
-            {kind === 'send' && (
-              <>
-                {activeShipments.length > 0 && (
-                  <div className="pt-3">
-                    <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
-                      Expéditions en cours
-                    </h3>
-                    <div className="space-y-3">
-                      {activeShipments.map(s => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setSelectedShipment(s)}
-                          className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-                        >
-                          <ShipmentCard shipment={s} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {inHubPackages.length > 0 && (
-                  <div className="pt-3">
-                    <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
-                      Colis en hub ({inHubPackages.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {inHubPackages.map(pkg => (
-                        <button
-                          key={pkg.id}
-                          type="button"
-                          onClick={() => setTrackPkg(pkg)}
-                          className="w-full flex items-center gap-3 p-3.5 bg-card border border-border rounded-xl hover:border-foreground/20 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          aria-label={`Suivre colis ${pkg.description ?? pkg.id}`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {COUNTRY_FLAGS[pkg.warehouse_country]} {pkg.description || 'Colis sans description'}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {pkg.weight ? `${pkg.weight} kg` : 'Poids inconnu'}
-                            </p>
-                          </div>
-                          <StatusBadge status={pkg.status} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </>
         )}
       </section>
