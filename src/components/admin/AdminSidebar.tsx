@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, MapPin, Users, Settings, Workflow, PackageOpen, UserCog } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type AdminSection =
@@ -14,6 +14,7 @@ export type AdminSection =
   | 'sourcing'
   | 'tracking'
   | 'clients'
+  | 'enterprise'
   | 'settings';
 
 export const ADMIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean }[] = [
@@ -29,6 +30,7 @@ export const ADMIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDa
   { id: 'sourcing',     label: 'Sourcing',          icon: ShoppingCart,    live: true },
   { id: 'tracking',     label: 'Tracking global',   icon: MapPin,          live: true },
   { id: 'clients',      label: 'Clients',           icon: Users,           live: true },
+  { id: 'enterprise',   label: 'Devis entreprise',  icon: Building2,       live: true },
   { id: 'settings',     label: 'Paramètres',        icon: Settings,        live: true },
 ];
 
