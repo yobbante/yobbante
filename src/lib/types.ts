@@ -165,6 +165,20 @@ export interface Dossier {
   konnekt_synced_at: string | null;
   gp_id: string | null;
   app_source: string;
+  business_id?: string | null;
+  dossier_type?: 'individual' | 'business' | null;
+  incoterm?: string | null;
+  hs_code?: string | null;
+  currency?: string | null;
+  declared_value?: number | null;
+  supplier_name?: string | null;
+  supplier_country?: string | null;
+  supplier_contact?: string | null;
+  buyer_name?: string | null;
+  buyer_country?: string | null;
+  buyer_contact?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
   created_at: string;
   updated_at: string;
 }
