@@ -455,6 +455,8 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
   const isAdmin = account.user_id === user?.id ||
     members.some(m => m.user_id === user?.id && m.role === 'admin');
+  const paying = isPayingSubscriber(account);
+  const showMonthlyReport = !paying && new Date().getDate() >= 25;
 
   const overdueCount = invoices.filter(i => i.status === 'overdue').length;
   const unpaidAmount = invoices
@@ -463,6 +465,9 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
 
   return (
     <div className="space-y-8">
+      {/* Trial banner — sticky, non-dismissible */}
+      <TrialBanner createdAt={account.created_at} enabled={!paying} />
+
       {/* Header */}
       <div>
         <div className="text-xs font-semibold tracking-wider uppercase text-primary mb-2">Mon entreprise</div>
