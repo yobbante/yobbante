@@ -347,10 +347,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         )}
       </section>
 
-      <ShipmentDetailDrawer
-        open={!!selectedShipment}
-        onOpenChange={(o) => { if (!o) setSelectedShipment(null); }}
+      <EnvoiDetailDrawer
+        open={!!selectedShipment || !!selectedSendDossier}
+        onOpenChange={(o) => { if (!o) { setSelectedShipment(null); setSelectedSendDossier(null); } }}
         shipment={selectedShipment}
+        dossier={selectedSendDossier}
         packages={packages}
       />
       <ReceptionDetailDrawer
