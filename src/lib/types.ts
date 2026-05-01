@@ -123,6 +123,9 @@ export interface Shipment {
   priority?: string | null;
   pending_assignment?: boolean | null;
   manual_request?: boolean | null;
+  transport_metadata?: Record<string, unknown> | null;
+  client_note?: string | null;
+  departure_date?: string | null;
   created_at: string;
   updated_at?: string | null;
 }

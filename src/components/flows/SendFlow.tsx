@@ -439,10 +439,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           ...matchOption,
           meta: {
             ...(matchOption.meta ?? {}),
+            send_flow: true,
+            dossier_reference: dossier.reference,
             true_direction: {
               origin_city: originCity.city, origin_country: originCity.country,
               destination_city: destCity.city, destination_country: destCity.country,
             },
+            sender: { name: senderName, phone: senderPhone, address: pickupAddress },
+            recipient: { name: recipientName, phone: recipientPhone, email: recipientEmail, address: deliveryAddress },
+            description, weight_kg: weight, parcel_count: parcelCount,
+            declared_local: declaredLocal, declared_currency: originProfile.currencySymbol,
+            transport_mode: transportMode,
+            pickup_date: pickupDate, pickup_slot: pickupSlot,
             insurance, payment_method: paymentMethod, priority, goods_type: goodsType,
           },
         },
