@@ -770,6 +770,7 @@ export type Database = {
           status: string
           total_capacity_kg: number
           transport_mode: string
+          transporteur_ref: string | null
           updated_at: string
         }
         Insert: {
@@ -791,6 +792,7 @@ export type Database = {
           status?: string
           total_capacity_kg: number
           transport_mode: string
+          transporteur_ref?: string | null
           updated_at?: string
         }
         Update: {
@@ -812,9 +814,18 @@ export type Database = {
           status?: string
           total_capacity_kg?: number
           transport_mode?: string
+          transporteur_ref?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "manual_departures_transporteur_ref_fkey"
+            columns: ["transporteur_ref"]
+            isOneToOne: false
+            referencedRelation: "transporteurs"
+            referencedColumns: ["reference"]
+          },
+        ]
       }
       manual_quote_requests: {
         Row: {
@@ -1523,6 +1534,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transporteurs: {
+        Row: {
+          actif: boolean
+          adresse_1: string
+          adresse_2: string | null
+          created_at: string
+          id: string
+          nom: string
+          notes: string | null
+          reference: string
+          telephone_1: string
+          telephone_2: string | null
+          updated_at: string
+          ville: string
+          zone: string | null
+        }
+        Insert: {
+          actif?: boolean
+          adresse_1: string
+          adresse_2?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          notes?: string | null
+          reference: string
+          telephone_1: string
+          telephone_2?: string | null
+          updated_at?: string
+          ville: string
+          zone?: string | null
+        }
+        Update: {
+          actif?: boolean
+          adresse_1?: string
+          adresse_2?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          notes?: string | null
+          reference?: string
+          telephone_1?: string
+          telephone_2?: string | null
+          updated_at?: string
+          ville?: string
+          zone?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
