@@ -65,7 +65,17 @@ function dossierKind(d: Dossier): Kind {
   if (d.app_source === 'recevoir') return 'receive';
   if (d.app_source === 'expedier') return 'send';
   if (d.needs_sourcing) return 'sourcing';
-  // Legacy fallback for older dossiers without app_source.
+  // Legacy fallback for older dossiers (app_source = 'yobbante' or null).
+  // Heuristic: a "réception" is an international purchase routed to SN via our hubs.
+  // Anything originating from SN, or explicitly described as an expedition, is a send.
+  const desc = (d.product_description || '').toLowerCase();
+  const looksLikeSend =
+    d.origin_country === 'SN' ||
+    d.destination_country !== 'SN' ||
+    desc.startsWith('expédition') ||
+    desc.startsWith('expedition') ||
+    desc.startsWith('envoi');
+  if (looksLikeSend) return 'send';
   return 'receive';
 }
 
