@@ -1,8 +1,9 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, Factory, Inbox, Home } from 'lucide-react';
+import { Menu, X, Package, Factory, Inbox, Home, LayoutDashboard } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { BrandLogo } from '@/components/BrandLogo';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PublicNavProps {
   /** Hide the inline action chips (Expédier / Acheter) when the page already exposes them prominently. */
@@ -13,12 +14,14 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (to: string) => location.pathname === to || location.pathname.startsWith(to + '/');
 
   const goExpedier = () => { setOpen(false); navigate('/expedier'); };
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
   const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
+  const goHome = () => { setOpen(false); navigate(user ? '/app' : '/'); };
 
   const isHome = location.pathname === '/';
 
@@ -28,13 +31,15 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         <div className="flex items-center gap-2">
           <BrandLogo size={26} />
           {!isHome && (
-            <Link
-              to="/"
-              aria-label="Retour à l'accueil"
+            <button
+              type="button"
+              onClick={goHome}
+              aria-label={user ? 'Mon espace' : "Retour à l'accueil"}
               className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary px-2.5 py-1.5 rounded-lg border border-border/60 transition-colors"
             >
-              <Home className="w-3.5 h-3.5" /> Accueil
-            </Link>
+              {user ? <LayoutDashboard className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
+              {user ? 'Mon espace' : 'Accueil'}
+            </button>
           )}
         </div>
 
@@ -111,13 +116,14 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               </div>
               <div className="flex flex-col px-3 py-4 gap-1">
                 {!isHome && (
-                  <Link
-                    to="/"
-                    onClick={() => setOpen(false)}
+                  <button
+                    type="button"
+                    onClick={goHome}
                     className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border border-border text-foreground hover:bg-secondary font-medium mb-2"
                   >
-                    <Home className="w-4 h-4" /> Accueil
-                  </Link>
+                    {user ? <LayoutDashboard className="w-4 h-4" /> : <Home className="w-4 h-4" />}
+                    {user ? 'Mon espace' : 'Accueil'}
+                  </button>
                 )}
                 <button
                   onClick={goExpedier}
