@@ -14,6 +14,7 @@ import {
   COUNTRY_FLAGS, COUNTRY_NAMES,
   SHIPMENT_STATUS_LABELS, DOSSIER_STATUS_LABELS,
 } from '@/lib/types';
+import { AdminInlineEditor } from '@/components/admin/AdminInlineEditor';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -268,6 +269,14 @@ export function EnvoiDetailDrawer({ open, onOpenChange, shipment, dossier, packa
             </div>
             <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
+
+          {/* Admin-only inline editor */}
+          <AdminInlineEditor
+            kind={isShipment ? 'shipment' : 'dossier'}
+            id={(shipment?.id ?? dossier?.id) as string}
+            status={status}
+            reference={reference}
+          />
 
           {/* KPI grid */}
           <div className="grid grid-cols-3 gap-2.5">
