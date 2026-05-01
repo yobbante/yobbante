@@ -6,8 +6,8 @@ import { useDossiers } from '@/hooks/useDossiers';
 import { useShipments } from '@/hooks/useShipments';
 import { usePackages } from '@/hooks/usePackages';
 import { DossierCard } from '@/components/DossierCard';
-import { ShipmentCard } from '@/components/ShipmentCard';
-import { ShipmentDetailDrawer } from '@/components/ShipmentDetailDrawer';
+import { EnvoiCard } from '@/components/EnvoiCard';
+import { EnvoiDetailDrawer } from '@/components/EnvoiDetailDrawer';
 import { ReceptionCard } from '@/components/ReceptionCard';
 import { ReceptionDetailDrawer } from '@/components/ReceptionDetailDrawer';
 import { EmptyState } from '@/components/EmptyState';
@@ -94,6 +94,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   // Detail drawers
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [selectedSendDossier, setSelectedSendDossier] = useState<Dossier | null>(null);
   const [selectedReception, setSelectedReception] = useState<Dossier | null>(null);
   const [trackPkg, setTrackPkg] = useState<PackageType | null>(null);
 
@@ -270,28 +271,33 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
               {visibleDossiers.length > 0 && (
                 <div>
                   <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
-                    Demandes d'envoi ({visibleDossiers.length})
+                    Demandes en préparation ({visibleDossiers.length})
                   </h3>
                   <div className="space-y-3">
-                    {visibleDossiers.map(d => <DossierCard key={d.id} dossier={d} />)}
+                    {visibleDossiers.map(d => (
+                      <EnvoiCard
+                        key={d.id}
+                        kind="dossier"
+                        dossier={d}
+                        onClick={() => setSelectedSendDossier(d)}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
               {activeShipments.length > 0 && (
-                <div>
+                <div className={visibleDossiers.length > 0 ? 'pt-4' : ''}>
                   <h3 className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-3">
                     En cours ({activeShipments.length})
                   </h3>
                   <div className="space-y-3">
                     {activeShipments.map(s => (
-                      <button
+                      <EnvoiCard
                         key={s.id}
-                        type="button"
+                        kind="shipment"
+                        shipment={s}
                         onClick={() => setSelectedShipment(s)}
-                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-                      >
-                        <ShipmentCard shipment={s} />
-                      </button>
+                      />
                     ))}
                   </div>
                 </div>
@@ -303,14 +309,12 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
                   </h3>
                   <div className="space-y-3">
                     {pastShipments.map(s => (
-                      <button
+                      <EnvoiCard
                         key={s.id}
-                        type="button"
+                        kind="shipment"
+                        shipment={s}
                         onClick={() => setSelectedShipment(s)}
-                        className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl opacity-80 hover:opacity-100 transition-opacity"
-                      >
-                        <ShipmentCard shipment={s} />
-                      </button>
+                      />
                     ))}
                   </div>
                 </div>
@@ -343,10 +347,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         )}
       </section>
 
-      <ShipmentDetailDrawer
-        open={!!selectedShipment}
-        onOpenChange={(o) => { if (!o) setSelectedShipment(null); }}
+      <EnvoiDetailDrawer
+        open={!!selectedShipment || !!selectedSendDossier}
+        onOpenChange={(o) => { if (!o) { setSelectedShipment(null); setSelectedSendDossier(null); } }}
         shipment={selectedShipment}
+        dossier={selectedSendDossier}
         packages={packages}
       />
       <ReceptionDetailDrawer
