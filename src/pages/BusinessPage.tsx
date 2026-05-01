@@ -4,17 +4,23 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Building2, CheckCircle2, Loader2, Phone, Mail,
   AlertTriangle, ShieldCheck, Sparkles, Briefcase, Users, FileText,
-  PackageSearch, Truck, Inbox, BarChart3, Receipt, Bell,
+  PackageSearch, Truck, Inbox, BarChart3, Receipt, Bell, LayoutDashboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useBusinessAccount } from '@/hooks/useBusinessAccount';
+import { useBusinessMembers } from '@/hooks/useBusinessMembers';
+import { useBusinessInvoices } from '@/hooks/useBusinessInvoices';
+import { TeamSection } from '@/components/business/TeamSection';
+import { InvoicesSection } from '@/components/business/InvoicesSection';
+import { AccountManagerCard } from '@/components/business/AccountManagerCard';
 import { isValidNinea, normalizeNinea, formatNinea } from '@/lib/ninea';
 import { cn } from '@/lib/utils';
 
