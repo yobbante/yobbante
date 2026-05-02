@@ -37,6 +37,7 @@ export function OrdersTab() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-orders'],
+    staleTime: 30_000,
     queryFn: async () => {
       const [pkgR, shipR] = await Promise.all([
         supabase.from('packages').select('*').order('created_at', { ascending: false }).limit(200),
