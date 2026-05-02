@@ -46,11 +46,13 @@ export function EnterpriseQuotesTab() {
 
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ['admin-enterprise-quotes'],
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('enterprise_quotes')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(300);
       if (error) throw error;
       return (data || []) as Quote[];
     },
