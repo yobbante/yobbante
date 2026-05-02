@@ -169,11 +169,13 @@ function BusinessTable() {
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-business-accounts'],
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, legal_name, ninea, sector, admin_full_name, admin_email, admin_phone, status, created_at, activated_at')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) throw error;
       return (data || []) as BusinessRow[];
     },
