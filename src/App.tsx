@@ -23,7 +23,16 @@ import NotFound from "./pages/NotFound";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,           // 30s : évite les refetch en chaîne
+      gcTime: 5 * 60_000,          // 5 min en cache mémoire
+      refetchOnWindowFocus: false, // pas de refetch au focus (admin = onglets multiples)
+      retry: 1,
+    },
+  },
+});
 
 function GlobalNotifiers() {
   usePackageNotifier();
