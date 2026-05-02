@@ -313,6 +313,19 @@ export function RequestsTab() {
           })}
         </ul>
       )}
+
+      {!isLoading && dossiers.length >= limit && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLimit(l => l + PAGE_SIZE)}
+            className="text-xs h-8"
+          >
+            Charger {PAGE_SIZE} de plus ({dossiers.length} affichés)
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
