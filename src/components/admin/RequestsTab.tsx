@@ -52,21 +52,26 @@ const STATUS_TONE: Partial<Record<DossierStatus, string>> = {
   CLOSED: 'bg-secondary text-muted-foreground border-border',
 };
 
+const PAGE_SIZE = 50;
+
 export function RequestsTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
   const { data: dossiers = [], isLoading } = useQuery({
-    queryKey: ['admin-requests'],
+    queryKey: ['admin-requests', limit],
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('*')
+        .select('id, reference, product_description, status, origin_country, destination_country, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, estimated_delivery_date, notes, created_at')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(limit);
       if (error) throw error;
       return (data || []) as Dossier[];
     },
@@ -307,6 +312,19 @@ export function RequestsTab() {
             );
           })}
         </ul>
+      )}
+
+      {!isLoading && dossiers.length >= limit && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLimit(l => l + PAGE_SIZE)}
+            className="text-xs h-8"
+          >
+            Charger {PAGE_SIZE} de plus ({dossiers.length} affichés)
+          </Button>
+        </div>
       )}
     </div>
   );

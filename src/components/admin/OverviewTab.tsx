@@ -13,11 +13,15 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
   const { data: depSummary } = useDeparturesSummary();
   const { data, isLoading } = useQuery({
     queryKey: ['admin-overview'],
+    staleTime: 60_000,
     queryFn: async () => {
       const [dossiersR, shipmentsR, packagesR] = await Promise.all([
-        supabase.from('dossiers').select('id, status, reference, product_description, origin_country, created_at').order('created_at', { ascending: false }),
-        supabase.from('shipments').select('id, status, eta'),
-        supabase.from('packages').select('id, status'),
+        supabase.from('dossiers')
+          .select('id, status, reference, product_description, origin_country, created_at')
+          .order('created_at', { ascending: false })
+          .limit(500),
+        supabase.from('shipments').select('id, status, eta').limit(1000),
+        supabase.from('packages').select('id, status').limit(1000),
       ]);
       return {
         dossiers: (dossiersR.data || []) as Dossier[],

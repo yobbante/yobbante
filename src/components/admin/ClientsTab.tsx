@@ -84,11 +84,12 @@ function IndividualsTable() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-clients'],
+    staleTime: 60_000,
     queryFn: async () => {
       const [profilesR, pkgR, dosR] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, created_at').order('created_at', { ascending: false }).limit(500),
-        supabase.from('packages').select('user_id'),
-        supabase.from('dossiers').select('user_id'),
+        supabase.from('packages').select('user_id').limit(2000),
+        supabase.from('dossiers').select('user_id').limit(2000),
       ]);
       const pkgCount = new Map<string, number>();
       const dosCount = new Map<string, number>();
@@ -168,11 +169,13 @@ function BusinessTable() {
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-business-accounts'],
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, legal_name, ninea, sector, admin_full_name, admin_email, admin_phone, status, created_at, activated_at')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) throw error;
       return (data || []) as BusinessRow[];
     },
