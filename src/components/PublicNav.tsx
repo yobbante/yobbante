@@ -165,6 +165,18 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 >
                   <Factory className="w-4 h-4" /> Acheter un produit
                 </button>
+                <button
+                  onClick={goTarifs}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
+                >
+                  <Tag className="w-4 h-4" /> Tarifs
+                </button>
+                <button
+                  onClick={goBusiness}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
+                >
+                  <Briefcase className="w-4 h-4" /> Business
+                </button>
                 <div className="border-t border-border mt-3 pt-3 space-y-1">
                   <Link
                     to="/auth"
