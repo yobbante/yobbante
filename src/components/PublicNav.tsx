@@ -78,6 +78,26 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
             >
               <Factory className="w-3.5 h-3.5" /> Sourcing
             </button>
+            <button
+              onClick={goTarifs}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/tarifs')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5" /> Tarifs
+            </button>
+            <button
+              onClick={goBusiness}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/business')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" /> Business
+            </button>
           </div>
         )}
 
