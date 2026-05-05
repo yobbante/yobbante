@@ -21,6 +21,8 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const goExpedier = () => { setOpen(false); navigate('/expedier'); };
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
   const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
+  const goTarifs = () => { setOpen(false); navigate('/tarifs'); };
+  const goBusiness = () => { setOpen(false); navigate('/business'); };
   const goHome = () => { setOpen(false); navigate(user ? '/app' : '/'); };
 
   const isHome = location.pathname === '/';
