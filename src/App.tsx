@@ -9,6 +9,7 @@ import EnterprisesPage from "./pages/EnterprisesPage";
 import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
+import TarifsPage from "./pages/TarifsPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
