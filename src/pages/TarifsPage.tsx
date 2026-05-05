@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import { PricingSimulator } from '@/components/PricingSimulator';
 import {
   Accordion,
   AccordionContent,
