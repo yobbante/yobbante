@@ -1,393 +1,313 @@
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
-import { PublicFooter } from '@/components/PublicFooter';
-import { DeparturesTicker } from '@/components/DeparturesTicker';
-import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
-import {
-  Package, Factory, Inbox, ArrowRight, ShieldCheck, Sparkles, Globe2, Headset, MapPin,
-} from 'lucide-react';
+import { PricingSimulator } from '@/components/PricingSimulator';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.06, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
-  }),
-};
+const YELLOW = '#F5C518';
+const BG = '#0A0A0A';
+const BG_ALT = '#080808';
+const CARD = '#111111';
+const BORDER = '#1E1E1E';
+const MUTED = '#AAAAAA';
+const FAINT = '#555555';
 
-const SHIP_STEPS = [
-  { n: '01', title: 'Vous indiquez votre besoin', desc: 'Origine, destination, ce que vous envoyez. En 1 minute.' },
-  { n: '02', title: 'Yobbanté organise tout', desc: 'Transport, douane, suivi — vous n\'avez rien à gérer.' },
-  { n: '03', title: 'Vous recevez votre colis', desc: 'À domicile, en point relais, ou en entreprise.' },
+const STATS = [
+  { n: '847+', l: 'Colis livrés' },
+  { n: '12+', l: 'Pays desservis' },
+  { n: '48h', l: 'Délai réponse' },
+  { n: '200+', l: 'Transporteurs' },
 ];
 
-const BUY_STEPS = [
-  { n: '01', title: 'Vous décrivez votre besoin', desc: 'Quantité, qualité, budget — un brief suffit.' },
-  { n: '02', title: 'On source et négocie',       desc: '3-5 fournisseurs qualifiés, meilleur prix obtenu.' },
-  { n: '03', title: 'Production, contrôle, livraison', desc: 'Inspection qualité puis livraison directe à votre porte.' },
+const SERVICES = [
+  {
+    icon: '📬', highlight: true,
+    title: 'Recevoir une commande',
+    body: "Vous achetez sur Amazon, AliExpress, SHEIN... Donnez notre adresse relais. On réceptionne, regroupe et vous livre au Sénégal.",
+    to: '/expedier/recevoir',
+  },
+  {
+    icon: '📦',
+    title: 'Expédier un colis',
+    body: "D'un point A à un point B, partout dans le monde. On collecte, on dédouane, on livre. Vous suivez en temps réel.",
+    to: '/expedier',
+  },
+  {
+    icon: '🔍',
+    title: 'Sourcer un produit',
+    body: "Vous cherchez un produit introuvable au Sénégal ? Notre IA trouve le meilleur fournisseur au meilleur prix, on s'occupe du reste.",
+    to: '/acheter',
+  },
 ];
 
-const RECEIVE_STEPS = [
-  { n: '01', title: 'Vous commandez en ligne', desc: 'Amazon, AliExpress, RockAuto — où vous voulez.' },
-  { n: '02', title: 'On réceptionne au relais', desc: 'Adresse Yobbanté à l\'étranger. Photo + pesée à l\'arrivée.' },
-  { n: '03', title: 'Vous payez puis recevez', desc: 'Prix réel calculé, vous validez, on livre en Afrique.' },
+const STEPS = [
+  { n: '01', t: 'Créez votre dossier', b: "Décrivez votre envoi ou votre achat en ligne. Notre système calcule le meilleur itinéraire et le prix estimé." },
+  { n: '02', t: 'On prend en charge', b: "Collecte, transit, dédouanement — Yobbanté gère chaque étape avec nos partenaires locaux et internationaux." },
+  { n: '03', t: 'Vous recevez et suivez', b: "Notifications WhatsApp à chaque étape. Livraison à domicile ou retrait au point relais. Vous choisissez." },
 ];
 
-const REASONS = [
-  { Icon: Globe2,      title: 'End-to-end',  desc: 'Un seul partenaire, du fournisseur à votre porte.' },
-  { Icon: Sparkles,    title: 'Simplicité',  desc: 'Pas de jargon, pas de surprises. Vous décidez, on agit.' },
-  { Icon: ShieldCheck, title: 'Fiabilité',   desc: 'Chaque colis est suivi, vérifié, assuré.' },
-  { Icon: Headset,     title: 'Réseau mondial', desc: 'France, Chine, USA, Dubai, Allemagne, Canada.' },
+const TESTIMONIALS = [
+  { q: "J'ai reçu mon MacBook depuis la France en 5 jours. Tout était géré, je n'ai rien eu à faire.", a: 'Amadou D.', s: 'Dakar · Client particulier' },
+  { q: "On importe du matériel électronique chaque mois. Yobbanté nous a fait économiser 15% sur nos coûts logistiques.", a: 'Mariama S.', s: 'Dakar · Directrice achats' },
+  { q: "Le sourcing IA m'a trouvé un fournisseur en 48h. Impossible à faire seul.", a: 'Cheikh N.', s: 'Thiès · Commerçant' },
 ];
 
-const METRICS = [
-  { value: '+10 000', label: 'colis livrés' },
-  { value: '6',       label: 'pays d\'origine' },
-  { value: '24h',     label: 'réponse garantie' },
-  { value: '98%',     label: 'satisfaction client' },
-];
-
-const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
+const CARRIERS = ['DHL', 'UPS', 'FedEx', 'La Poste', 'CMA CGM', 'Maersk', 'Chronopost'];
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
-
-  useEffect(() => {
-    document.title = 'Yobbanté · Expédiez ou achetez à l\'international, simplement.';
-  }, []);
-
-  const goShip = () => navigate('/expedier');
-  const goBuy = () => navigate('/acheter');
-  const goReceive = () => navigate('/expedier/recevoir');
-
-  const handleHubPick = (id: HubId) => {
-    setSelectedHub(id);
-    try { localStorage.setItem(LANDING_HUB_KEY, id); } catch { /* noop */ }
-  };
-  const goReceiveWithHub = () => navigate('/expedier/recevoir');
-  const selectedHubMeta = selectedHub ? WORLD_HUBS.find(h => h.id === selectedHub) : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <PublicNav />
-      <DeparturesTicker />
+    <div className="min-h-screen text-white" style={{ background: BG }}>
+      <PublicNav hideActions />
 
-      {/* ───── HERO ───── */}
-      <section className="relative overflow-hidden">
-        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 pt-16 pb-20 md:pt-32 md:pb-36 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}
-            className="text-[2.75rem] sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.02] text-foreground text-balance"
-          >
-            Le monde devient<br className="hidden sm:block" /> simple à livrer.
-          </motion.h1>
+      {/* HERO */}
+      <section className="px-5 pt-10 pb-12 max-w-[480px] md:max-w-3xl mx-auto text-center">
+        <div className="font-mono uppercase text-[10px] mb-4" style={{ letterSpacing: '0.2em', color: YELLOW }}>
+          YOBBANTÉ · DAKAR, SÉNÉGAL
+        </div>
+        <h1 className="text-[36px] md:text-[48px] font-extrabold leading-[1.1] text-white"
+          style={{ letterSpacing: '-0.03em' }}>
+          Votre logistique<br />internationale,<br />enfin simple.
+        </h1>
+        <p className="mt-5 text-[14px] leading-[1.6] mx-auto max-w-[320px]" style={{ color: MUTED }}>
+          Réceptionnez, expédiez et sourcez depuis et vers n'importe où dans le monde. On gère tout.
+        </p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
-            className="mt-6 text-base md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed text-pretty"
-          >
-            Expédiez, recevez ou achetez à l'international.
-            Yobbanté gère tout, de A à Z.
-          </motion.p>
+        <div className="mt-7 flex flex-col gap-3 max-w-[340px] mx-auto">
+          <button onClick={() => navigate('/auth')}
+            className="w-full rounded-[10px] py-[14px] text-sm font-bold transition-opacity hover:opacity-90"
+            style={{ background: YELLOW, color: BG }}>
+            Créer mon compte gratuit →
+          </button>
+          <Link to="/tarifs"
+            className="w-full rounded-[10px] py-[14px] text-sm text-white text-center"
+            style={{ background: 'transparent', border: `1px solid #2A2A2A` }}>
+            Voir les tarifs
+          </Link>
+        </div>
 
-          {/* The 2 — and only 2 — entry points */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}
-            className="mt-10 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto sm:max-w-none"
-          >
-            <button
-              onClick={goShip}
-              className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold bg-foreground text-background px-7 py-4 rounded-2xl hover:opacity-90 hover:-translate-y-0.5 transition-all"
-            >
-              <Package className="w-5 h-5" />
-              Expédier un colis
-              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+        <p className="font-mono text-[11px] mt-3" style={{ color: FAINT }}>
+          ✓ Sans engagement · ✓ Réponse sous 24h · ✓ 100% en ligne
+        </p>
+
+        {/* Stats */}
+        <div className="mt-8 flex md:grid md:grid-cols-4 gap-3 overflow-x-auto -mx-5 px-5 snap-x">
+          {STATS.map(s => (
+            <div key={s.l} className="flex-shrink-0 min-w-[120px] snap-start rounded-[10px] p-3 text-left"
+              style={{ background: CARD, border: `0.5px solid ${BORDER}` }}>
+              <div className="font-mono text-[22px] font-extrabold text-white">{s.n}</div>
+              <div className="font-mono text-[10px] uppercase mt-1" style={{ color: FAINT }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SERVICES */}
+      <Section bg={BG_ALT} label="NOS SERVICES" title={<>Tout ce dont vous avez besoin.<br />En un seul endroit.</>}>
+        <div className="space-y-3 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
+          {SERVICES.map(s => (
+            <Link key={s.title} to={s.to}
+              className="block rounded-2xl p-5 transition-colors hover:border-[#2A2A2A]"
+              style={{ background: CARD, border: `0.5px solid ${BORDER}` }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                style={{ background: s.highlight ? YELLOW : '#161616' }}>
+                {s.icon}
+              </div>
+              <div className="text-[16px] font-bold text-white mb-2">{s.title}</div>
+              <p className="text-[13px] leading-[1.6] mb-3" style={{ color: MUTED }}>{s.body}</p>
+              <span className="text-[12px]" style={{ color: YELLOW }}>En savoir plus →</span>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      {/* COMMENT ÇA MARCHE */}
+      <Section bg={BG} label="COMMENT ÇA MARCHE" title="3 étapes. Pas une de plus.">
+        <div className="space-y-2">
+          {STEPS.map((s, i) => (
+            <div key={s.n}>
+              <div className="rounded-2xl p-5" style={{ background: CARD, border: `0.5px solid ${BORDER}` }}>
+                <div className="font-mono text-[32px] font-bold leading-none mb-2" style={{ color: 'rgba(245,197,24,0.2)' }}>{s.n}</div>
+                <div className="text-[15px] font-bold text-white mb-2">{s.t}</div>
+                <p className="text-[13px] leading-[1.6]" style={{ color: MUTED }}>{s.b}</p>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className="mx-auto w-[2px] h-8" style={{ background: BORDER }} />
+              )}
+            </div>
+          ))}
+        </div>
+        <button onClick={() => navigate('/auth')}
+          className="mt-6 w-full rounded-[10px] py-[14px] text-sm font-bold transition-opacity hover:opacity-90"
+          style={{ background: YELLOW, color: BG }}>
+          Créer mon premier dossier →
+        </button>
+      </Section>
+
+      {/* POUR QUI */}
+      <Section bg={BG_ALT} label="POUR QUI" title={<>Particulier ou entreprise,<br />Yobbanté s'adapte.</>}>
+        <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+          <div className="rounded-2xl p-5" style={{ background: CARD, border: `0.5px solid ${BORDER}` }}>
+            <div className="text-2xl mb-3">👤</div>
+            <div className="text-[16px] font-bold text-white mb-3">Particulier</div>
+            <ul className="space-y-2 text-[13px] mb-5" style={{ color: MUTED }}>
+              <li>✓ Achats en ligne depuis l'étranger</li>
+              <li>✓ Envois vers la famille à l'étranger</li>
+              <li>✓ Sourcing de produits introuvables</li>
+              <li>✓ Suivi en temps réel sur WhatsApp</li>
+            </ul>
+            <button onClick={() => navigate('/auth')}
+              className="w-full rounded-[10px] py-3 text-sm font-bold"
+              style={{ background: YELLOW, color: BG }}>
+              Commencer gratuitement →
             </button>
-            <button
-              onClick={goBuy}
-              className="group inline-flex items-center justify-center gap-2.5 text-base font-semibold border-2 border-foreground text-foreground px-7 py-4 rounded-2xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
-            >
-              <Factory className="w-5 h-5" />
-              Acheter un produit
-              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+
+          <div className="rounded-2xl p-5"
+            style={{ background: 'rgba(245,197,24,0.04)', border: `1.5px solid ${YELLOW}` }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-2xl">🏢</div>
+              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded"
+                style={{ background: YELLOW, color: BG }}>Business</span>
+            </div>
+            <div className="text-[16px] font-bold text-white mb-3">Entreprise</div>
+            <ul className="space-y-2 text-[13px] mb-5" style={{ color: MUTED }}>
+              <li>✓ Import/export commercial</li>
+              <li>✓ Gestion d'équipe multi-utilisateurs</li>
+              <li>✓ Tarifs négociés -8% à -15%</li>
+              <li>✓ Chargé de compte dédié</li>
+              <li>✓ Documents douaniers inclus</li>
+            </ul>
+            <button onClick={() => navigate('/business/pricing')}
+              className="w-full rounded-[10px] py-3 text-sm font-medium text-white"
+              style={{ background: 'transparent', border: '1px solid #2A2A2A' }}>
+              Voir les offres Business →
             </button>
-          </motion.div>
-          <p className="mt-3 text-[11px] text-muted-foreground">Sourcing fournisseur ou réception d'une commande en ligne</p>
-
-          <motion.p
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.4 }}
-            className="mt-6 text-xs text-muted-foreground"
-          >
-            Sans engagement · Réponse sous 24h · Données protégées
-          </motion.p>
-        </div>
-      </section>
-
-      {/* ───── HOW IT WORKS ───── */}
-      <section className="border-t border-border bg-secondary/40">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Comment ça marche</p>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-balance">
-              Trois étapes. Aucun jargon.
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden">
-            {/* Ship */}
-            <div className="bg-background p-8 md:p-10">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
-                  <Package className="w-4.5 h-4.5" />
-                </div>
-                <h3 className="text-lg font-bold tracking-tight">Pour expédier</h3>
-              </div>
-              <ol className="space-y-5">
-                {SHIP_STEPS.map((s, i) => (
-                  <motion.li
-                    key={s.n}
-                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                    className="flex gap-4"
-                  >
-                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
-                    </div>
-                  </motion.li>
-                ))}
-              </ol>
-              <button
-                onClick={goShip}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Commencer une expédition <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Buy */}
-            <div className="bg-background p-8 md:p-10">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
-                  <Factory className="w-4.5 h-4.5" />
-                </div>
-                <h3 className="text-lg font-bold tracking-tight">Pour sourcer</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Entreprises & projets</span>
-              </div>
-              <ol className="space-y-5">
-                {BUY_STEPS.map((s, i) => (
-                  <motion.li
-                    key={s.n}
-                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                    className="flex gap-4"
-                  >
-                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
-                    </div>
-                  </motion.li>
-                ))}
-              </ol>
-              <button
-                onClick={goBuy}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Acheter un produit <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Receive */}
-            <div className="bg-background p-8 md:p-10">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center">
-                  <Inbox className="w-4.5 h-4.5" />
-                </div>
-                <h3 className="text-lg font-bold tracking-tight">Pour recevoir</h3>
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Achats en ligne</span>
-              </div>
-              <ol className="space-y-5">
-                {RECEIVE_STEPS.map((s, i) => (
-                  <motion.li
-                    key={s.n}
-                    variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                    className="flex gap-4"
-                  >
-                    <span className="text-xs font-mono text-muted-foreground pt-1 shrink-0 w-7">{s.n}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{s.title}</p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{s.desc}</p>
-                    </div>
-                  </motion.li>
-                ))}
-              </ol>
-              <button
-                onClick={goReceive}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Recevoir une commande <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
-      </section>
+      </Section>
 
-      {/* ───── GLOBAL NETWORK ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
-          <div className="grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-14 items-center">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Réseau global</p>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05] text-balance">
-                Un réseau global,<br className="hidden sm:block" /> proche de vos achats.
-              </h2>
-              <p className="mt-5 text-base text-muted-foreground leading-relaxed text-pretty max-w-md">
-                Yobbanté s'appuie sur un réseau de hubs internationaux pour réceptionner,
-                consolider et expédier vos colis rapidement — sans que vous ayez à comprendre
-                la moindre ligne de logistique.
-              </p>
-              <ul className="mt-6 space-y-2.5 text-sm">
-                {[
-                  'Adresses dédiées dans 6 pays',
-                  'Consolidation multi-colis automatique',
-                  'Départs réguliers vers l\'Afrique de l\'Ouest',
-                ].map(t => (
-                  <li key={t} className="flex items-start gap-2.5 text-foreground/80">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-primary shrink-0" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => navigate('/expedier/recevoir')}
-                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:gap-3 transition-all"
-              >
-                Voir vos hubs disponibles <ArrowRight className="w-4 h-4" />
-              </button>
+      {/* TÉMOIGNAGES */}
+      <Section bg={BG} label="ILS NOUS FONT CONFIANCE" title="Ce que disent nos clients.">
+        <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto -mx-5 px-5 snap-x pb-2">
+          {TESTIMONIALS.map(t => (
+            <div key={t.a} className="flex-shrink-0 min-w-[280px] snap-start rounded-[14px] p-5"
+              style={{ background: CARD, border: `0.5px solid ${BORDER}` }}>
+              <div className="text-[14px] mb-3" style={{ color: YELLOW }}>★★★★★</div>
+              <p className="text-[13px] italic leading-[1.6] mb-4" style={{ color: MUTED }}>"{t.q}"</p>
+              <div className="text-[12px] font-semibold text-white">{t.a}</div>
+              <div className="font-mono text-[10px] mt-1" style={{ color: FAINT }}>{t.s}</div>
             </div>
-
-            <div>
-              <HubsWorldMap
-                value={selectedHub}
-                onChange={handleHubPick}
-                variant="dark"
-              />
-              <AnimatePresence>
-                {selectedHubMeta && (
-                  <motion.div
-                    key={selectedHubMeta.id}
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25 }}
-                    className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/[0.06] p-4"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-lg shrink-0">
-                        {selectedHubMeta.flag}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          Hub <span className="text-primary">{selectedHubMeta.label}</span> sélectionné
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          <MapPin className="w-3 h-3 inline -mt-0.5 mr-1" />
-                          {selectedHubMeta.city} · {selectedHubMeta.tagline}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={goReceiveWithHub}
-                      className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-primary text-primary-foreground px-4 py-2.5 rounded-xl hover:opacity-90 hover:-translate-y-0.5 transition-all shrink-0"
-                    >
-                      Continuer avec ce hub <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+          ))}
         </div>
-      </section>
+      </Section>
 
-      {/* ───── WHY YOBBANTÉ ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-20 md:py-28">
-          <div className="grid md:grid-cols-[1fr_2fr] gap-12">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">Pourquoi Yobbanté</p>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.05]">
-                Une seule promesse :<br /> ça marche.
-              </h2>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden">
-              {REASONS.map(({ Icon, title, desc }, i) => (
-                <motion.div
-                  key={title}
-                  variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                  className="bg-background p-6"
-                >
-                  <Icon className="w-5 h-5 text-foreground" />
-                  <p className="text-sm font-semibold text-foreground mt-4">{title}</p>
-                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── TRUST ───── */}
-      <section className="border-t border-border bg-foreground text-background">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 md:py-24">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-            {METRICS.map((m, i) => (
-              <motion.div
-                key={m.label}
-                variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                className="text-center md:text-left"
-              >
-                <p className="text-3xl md:text-5xl font-bold tracking-tight">{m.value}</p>
-                <p className="text-xs md:text-sm text-background/60 mt-1.5">{m.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ───── FINAL CTA ───── */}
-      <section className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-5 sm:px-6 py-20 md:py-28 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-balance">
-            Prêt à simplifier votre prochain envoi ?
-          </h2>
-          <p className="text-base text-muted-foreground mt-4 max-w-md mx-auto text-pretty">
-            Choisissez votre besoin, on s'occupe du reste.
+      {/* SIMULATEUR */}
+      <section className="px-5 py-12" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }}>
+        <div className="max-w-[480px] md:max-w-3xl mx-auto">
+          <h2 className="text-[20px] font-extrabold text-white text-center">Combien coûte votre envoi ?</h2>
+          <p className="font-mono text-[12px] text-center mt-1 mb-5" style={{ color: FAINT }}>
+            Estimation instantanée · Sans inscription
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={goShip}
-              className="inline-flex items-center justify-center gap-2 text-sm font-semibold bg-foreground text-background px-6 py-3.5 rounded-xl hover:opacity-90 hover:-translate-y-0.5 transition-all"
-            >
-              <Package className="w-4 h-4" /> Expédier un colis
-            </button>
-            <button
-              onClick={goBuy}
-              className="inline-flex items-center justify-center gap-2 text-sm font-semibold border-2 border-foreground text-foreground px-6 py-3.5 rounded-xl hover:bg-foreground hover:text-background hover:-translate-y-0.5 transition-all"
-            >
-              <Factory className="w-4 h-4" /> Acheter un produit
-            </button>
-          </div>
-          <p className="mt-6 text-xs text-muted-foreground">
-            Vous êtes une entreprise ? <Link to="/entreprises" className="underline-offset-2 hover:underline">Demandez un devis volume</Link>.
-          </p>
+          <PricingSimulator ctaTo="/auth" />
         </div>
       </section>
 
-      <PublicFooter />
+      {/* PARTENAIRES */}
+      <Section bg={BG} label="NOS PARTENAIRES" title={null}>
+        <div className="flex gap-3 overflow-x-auto -mx-5 px-5 pb-2">
+          {CARRIERS.map(c => (
+            <span key={c} className="flex-shrink-0 font-mono text-[11px] px-4 py-2 rounded-lg"
+              style={{ background: '#161616', border: '0.5px solid #2A2A2A', color: FAINT }}>
+              {c}
+            </span>
+          ))}
+        </div>
+      </Section>
+
+      {/* CTA FINAL */}
+      <section className="px-5 py-20 text-center"
+        style={{ background: `linear-gradient(180deg, ${BG} 0%, ${CARD} 100%)` }}>
+        <h2 className="text-[28px] font-extrabold text-white" style={{ letterSpacing: '-0.03em' }}>
+          Prêt à simplifier<br />votre logistique ?
+        </h2>
+        <p className="text-[13px] mt-4 max-w-[320px] mx-auto" style={{ color: MUTED }}>
+          Créez votre compte en 2 minutes. Sans engagement. Sans carte bancaire.
+        </p>
+        <button onClick={() => navigate('/auth')}
+          className="mt-7 rounded-[10px] px-8 py-4 text-[15px] font-bold transition-opacity hover:opacity-90"
+          style={{ background: YELLOW, color: BG }}>
+          Créer mon compte gratuit →
+        </button>
+        <p className="text-[13px] mt-5" style={{ color: MUTED }}>
+          Déjà un compte ? <Link to="/auth" style={{ color: YELLOW }}>Se connecter →</Link>
+        </p>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="px-5 py-8" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER}` }}>
+        <div className="max-w-[480px] md:max-w-3xl mx-auto">
+          <div className="font-mono text-[11px] mb-1 text-white font-bold">YOBBANTÉ</div>
+          <p className="text-[11px]" style={{ color: FAINT }}>Logistique internationale depuis Dakar.</p>
+
+          <div className="grid grid-cols-3 gap-4 mt-8">
+            <FooterCol title="Produit" links={[
+              { label: 'Recevoir', to: '/expedier/recevoir' },
+              { label: 'Expédier', to: '/expedier' },
+              { label: 'Sourcing', to: '/acheter' },
+              { label: 'Tarifs', to: '/tarifs' },
+            ]} />
+            <FooterCol title="Business" links={[
+              { label: 'Offres entreprise', to: '/business/pricing' },
+              { label: 'Se connecter', to: '/auth' },
+              { label: 'Créer un compte', to: '/auth' },
+            ]} />
+            <FooterCol title="Contact" links={[
+              { label: 'WhatsApp', href: 'https://wa.me/221786078080' },
+              { label: 'Email', href: 'mailto:contact@yobbante.com' },
+            ]} />
+          </div>
+
+          <div className="mt-8 pt-5 text-center font-mono text-[10px] space-y-1" style={{ color: '#333333', borderTop: `1px solid ${BORDER}` }}>
+            <p>© 2026 Yobbanté Sénégal · Tous droits réservés</p>
+            <p>Politique de confidentialité · CGU</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function Section({ bg, label, title, children }: { bg: string; label: string; title: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="px-5 py-[60px]" style={{ background: bg }}>
+      <div className="max-w-[480px] md:max-w-3xl mx-auto">
+        <div className="font-mono text-[10px] uppercase text-center mb-2" style={{ letterSpacing: '0.14em', color: YELLOW }}>
+          {label}
+        </div>
+        {title && (
+          <h2 className="text-[22px] font-extrabold text-white text-center mb-8">{title}</h2>
+        )}
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function FooterCol({ title, links }: { title: string; links: { label: string; to?: string; href?: string }[] }) {
+  return (
+    <div>
+      <div className="font-mono text-[10px] uppercase mb-3" style={{ color: YELLOW, letterSpacing: '0.14em' }}>{title}</div>
+      <ul className="space-y-2">
+        {links.map(l => (
+          <li key={l.label}>
+            {l.to ? (
+              <Link to={l.to} className="text-[11px] hover:text-white transition-colors" style={{ color: MUTED }}>{l.label}</Link>
+            ) : (
+              <a href={l.href} target="_blank" rel="noopener noreferrer" className="text-[11px] hover:text-white transition-colors" style={{ color: MUTED }}>{l.label}</a>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
