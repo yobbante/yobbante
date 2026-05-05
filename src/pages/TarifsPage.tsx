@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
+import { PricingSimulator } from '@/components/PricingSimulator';
 import {
   Accordion,
   AccordionContent,
@@ -62,45 +63,7 @@ function pickCorridor(origin: Corridor, destination: Corridor): Corridor {
 
 export default function TarifsPage() {
   const navigate = useNavigate();
-  const [origin, setOrigin] = useState<Corridor>('FR_SN');
-  const [destination, setDestination] = useState<Corridor>('SN_FR');
-  const [weight, setWeight] = useState<string>('2.5');
-  const [merch, setMerch] = useState<Merch>('standard');
-  const [mode, setMode] = useState<Mode>('air');
   const [tableTab, setTableTab] = useState<Mode>('air');
-  const [result, setResult] = useState<null | {
-    transport: number;
-    dossier: number;
-    douane: number;
-    total: number;
-    weight: number;
-    corridor: string;
-  }>(null);
-
-  const calculate = () => {
-    const w = Math.max(0.1, parseFloat(weight) || 0);
-    const c = pickCorridor(origin, destination);
-    const rate = RATES[c][mode];
-    const mult = MERCH.find(m => m.value === merch)?.mult ?? 1;
-    const transport = round500(w * rate * mult);
-    const dossier = 5000;
-    let douaneRate = 0.08;
-    if (transport >= 50000 && transport <= 200000) douaneRate = 0.12;
-    else if (transport > 200000) douaneRate = 0.18;
-    const douane = round500(transport * douaneRate);
-    const total = round500(transport + dossier + douane);
-    setResult({
-      transport,
-      dossier,
-      douane,
-      total,
-      weight: w,
-      corridor: `${CORRIDORS.find(o => o.value === origin)?.label ?? ''} → ${CORRIDORS.find(o => o.value === destination)?.label ?? ''}`,
-    });
-  };
-
-  const eur = useMemo(() => result ? (result.total / 655.957).toFixed(2) : '0', [result]);
-  const usd = useMemo(() => result ? (result.total / 600).toFixed(2) : '0', [result]);
 
   const tableRows = (m: Mode) =>
     (['FR_SN', 'US_SN', 'BE_SN', 'MA_SN', 'SN_FR', 'SN_US'] as Corridor[]).map(c => ({
@@ -135,108 +98,7 @@ export default function TarifsPage() {
 
         <section className="space-y-4">
           <h2 className="text-base font-bold text-white">Estimez votre envoi</h2>
-          <div
-            className="rounded-2xl p-6 space-y-4"
-            style={{ background: '#111111', border: '0.5px solid #1E1E1E' }}
-          >
-            <div className="grid md:grid-cols-2 gap-4">
-              <Field label="Origine *">
-                <select
-                  value={origin}
-                  onChange={e => setOrigin(e.target.value as Corridor)}
-                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white"
-                >
-                  {CORRIDORS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Destination *">
-                <select
-                  value={destination}
-                  onChange={e => setDestination(e.target.value as Corridor)}
-                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white"
-                >
-                  {CORRIDORS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Poids estimé (kg) *">
-                <input
-                  type="number"
-                  step={0.5}
-                  min={0.5}
-                  value={weight}
-                  onChange={e => setWeight(e.target.value)}
-                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white font-mono"
-                />
-              </Field>
-              <Field label="Type de marchandise *">
-                <select
-                  value={merch}
-                  onChange={e => setMerch(e.target.value as Merch)}
-                  className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white"
-                >
-                  {MERCH.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-              </Field>
-            </div>
-
-            <Field label="Mode de transport *">
-              <div className="flex gap-2">
-                <ModeBtn active={mode === 'air'} onClick={() => setMode('air')}>
-                  ✈️ Aérien
-                </ModeBtn>
-                <ModeBtn active={mode === 'sea'} onClick={() => setMode('sea')}>
-                  🚢 Maritime
-                </ModeBtn>
-              </div>
-            </Field>
-
-            <button
-              onClick={calculate}
-              className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ background: '#F5C518', color: '#0A0A0A' }}
-            >
-              Calculer l'estimation →
-            </button>
-
-            {result && (
-              <div
-                className="rounded-xl p-5 mt-4 space-y-3"
-                style={{
-                  background: 'rgba(245,197,24,0.06)',
-                  border: '1.5px solid rgba(245,197,24,0.2)',
-                }}
-              >
-                <div className="text-[12px] font-mono" style={{ color: '#555555' }}>
-                  Estimation pour {result.weight} kg · {result.corridor}
-                </div>
-                <div className="space-y-2">
-                  <Line label={`Transport ${mode === 'air' ? 'aérien' : 'maritime'}`} value={`${fmt(result.transport)} FCFA`} />
-                  <Line label="Frais de dossier" value={`${fmt(result.dossier)} FCFA`} />
-                  <Line label="Douane estimée" value={`${fmt(result.douane)} FCFA`} />
-                  <div className="border-t border-[#1E1E1E] my-2" />
-                  <div className="flex justify-between items-center">
-                    <span className="text-[14px] font-bold text-white">Total estimé</span>
-                    <span className="font-mono text-base font-bold" style={{ color: '#F5C518' }}>
-                      {fmt(result.total)} FCFA
-                    </span>
-                  </div>
-                  <div className="text-right text-[11px] font-mono" style={{ color: '#888' }}>
-                    ≈ {eur} € · ≈ {usd} $
-                  </div>
-                </div>
-                <div className="text-[10px] font-mono text-center" style={{ color: '#555555' }}>
-                  Prix estimatifs · Confirmés à réception du colis · TVA non incluse
-                </div>
-                <button
-                  onClick={() => navigate('/app')}
-                  className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
-                  style={{ background: '#F5C518', color: '#0A0A0A' }}
-                >
-                  Créer un dossier avec cette estimation →
-                </button>
-              </div>
-            )}
-          </div>
+          <PricingSimulator ctaTo="/auth" />
         </section>
 
         <section className="space-y-4">
