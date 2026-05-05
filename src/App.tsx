@@ -57,6 +57,7 @@ const App = () => (
             <Route path="/expedier/:mode" element={<ExpedierPage />} />
             <Route path="/acheter" element={<AcheterPage />} />
             <Route path="/acheter/:mode" element={<AcheterPage />} />
+            <Route path="/tarifs" element={<TarifsPage />} />
             {/* Legacy public URLs → folded into the 2 user-facing flows */}
             <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
             <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
