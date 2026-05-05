@@ -1,6 +1,6 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, Factory, Inbox, Home, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Package, Factory, Inbox, Home, LayoutDashboard, Tag, Briefcase } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { BrandLogo } from '@/components/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +21,8 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const goExpedier = () => { setOpen(false); navigate('/expedier'); };
   const goAcheter = () => { setOpen(false); navigate('/acheter'); };
   const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
+  const goTarifs = () => { setOpen(false); navigate('/tarifs'); };
+  const goBusiness = () => { setOpen(false); navigate('/business'); };
   const goHome = () => { setOpen(false); navigate(user ? '/app' : '/'); };
 
   const isHome = location.pathname === '/';
@@ -75,6 +77,26 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               }`}
             >
               <Factory className="w-3.5 h-3.5" /> Sourcing
+            </button>
+            <button
+              onClick={goTarifs}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/tarifs')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5" /> Tarifs
+            </button>
+            <button
+              onClick={goBusiness}
+              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
+                isActive('/business')
+                  ? 'text-foreground font-semibold bg-secondary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" /> Business
             </button>
           </div>
         )}
@@ -142,6 +164,18 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
                 >
                   <Factory className="w-4 h-4" /> Acheter un produit
+                </button>
+                <button
+                  onClick={goTarifs}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
+                >
+                  <Tag className="w-4 h-4" /> Tarifs
+                </button>
+                <button
+                  onClick={goBusiness}
+                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
+                >
+                  <Briefcase className="w-4 h-4" /> Business
                 </button>
                 <div className="border-t border-border mt-3 pt-3 space-y-1">
                   <Link

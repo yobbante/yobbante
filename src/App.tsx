@@ -9,6 +9,7 @@ import EnterprisesPage from "./pages/EnterprisesPage";
 import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
+import TarifsPage from "./pages/TarifsPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/expedier/:mode" element={<ExpedierPage />} />
             <Route path="/acheter" element={<AcheterPage />} />
             <Route path="/acheter/:mode" element={<AcheterPage />} />
+            <Route path="/tarifs" element={<TarifsPage />} />
             {/* Legacy public URLs → folded into the 2 user-facing flows */}
             <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
             <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
