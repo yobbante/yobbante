@@ -174,5 +174,8 @@
       box-shadow: 0 8px 24px hsl(30 10% 20% / 0.08);
     }
   }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
