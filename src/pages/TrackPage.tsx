@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, RefreshCw, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-
+import { EmptyState } from '@/components/EmptyState';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
