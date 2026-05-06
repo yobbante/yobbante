@@ -21,6 +21,7 @@ import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
 import { TransporteursTab } from '@/components/admin/TransporteursTab';
 import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
+import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -142,6 +143,7 @@ export default function AdminPage() {
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
+          <AdminBreadcrumb section={section} />
           {section === 'overview'   && <OverviewTab onJump={setSection} />}
           {section === 'requests'   && <RequestsTab />}
           {section === 'shipments'  && <ShipmentsWorkflowTab />}
