@@ -115,11 +115,13 @@ export function QuoteForm() {
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
-                background: active ? 'hsl(var(--background-surface))' : 'transparent',
+                background: active ? '#ffffff' : 'transparent',
                 border: active
-                  ? '0.5px solid hsl(var(--foreground))'
+                  ? '1px solid hsl(var(--foreground))'
                   : '0.5px solid hsl(var(--color-border-tertiary))',
+                boxShadow: active ? 'inset 0 0 0 1px rgba(0,0,0,0.08)' : 'none',
                 color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                fontWeight: active ? 600 : 400,
               }}
             >
               <div className="flex items-center gap-1.5">

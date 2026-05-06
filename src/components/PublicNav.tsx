@@ -66,7 +66,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               }`}
             >
-              <Inbox className="w-3.5 h-3.5" /> Recevoir
+              <Inbox className="w-3.5 h-3.5" /> Réception
             </button>
             <button
               onClick={goAcheter}
@@ -157,7 +157,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   onClick={goRecevoir}
                   className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-zinc-950 text-white font-semibold"
                 >
-                  <Inbox className="w-4 h-4 text-yellow-400" /> Recevoir une commande
+                  <Inbox className="w-4 h-4 text-yellow-400" /> Réception de commande
                 </button>
                 <button
                   onClick={goAcheter}
