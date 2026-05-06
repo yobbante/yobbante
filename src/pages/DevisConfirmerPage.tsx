@@ -62,7 +62,7 @@ export default function DevisConfirmerPage() {
           goods_type: input.type,
           selected_option: opt.key,
           total_eur: opt.priceEur,
-          departure_date: opt.departure,
+          departure_date: opt.departureIso,
           sender: { name: senderName, phone: senderPhone, email: senderEmail },
           receiver: { name: recName, address: recAddr, city: recCity, zip: recZip, country: recCountry },
           description: desc,

@@ -97,6 +97,9 @@ Deno.serve(async (req) => {
 
     const totalCost = body.total_eur && body.total_eur > 0 ? Math.round(body.total_eur) : null;
 
+    // departure_date must be ISO YYYY-MM-DD or null — never accept a French label.
+    const isoDate = (s?: string | null) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) ? s : null;
+
     const insertPayload = {
       user_id: user.id,
       origin_country: originCountry as 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE' | 'SN',
@@ -105,12 +108,11 @@ Deno.serve(async (req) => {
       destination_city: pickCity(body.receiver?.city || body.destination),
       weight_kg: weight,
       transport_type: transportType,
-      priority: body.selected_option === 'express' ? 'express'
-              : body.selected_option === 'volume' ? 'economy' : 'normal',
+      priority: body.selected_option === 'express' ? 'express' : 'normal',
       total_cost: totalCost,
       status: 'CONFIRMED' as const,
       payment_status: 'unpaid',
-      departure_date: body.departure_date || null,
+      departure_date: isoDate(body.departure_date),
       client_note: body.description || null,
       transport_metadata: {
         sender: body.sender || null,

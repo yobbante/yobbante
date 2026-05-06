@@ -83,15 +83,18 @@ export function QuoteForm() {
       };
     } else {
       if (!estimatedValue) return;
-      input = {
-        service,
-        origin: merchantCountry,
-        destination: 'Dakar, Sénégal',
-        weightKg: 1.5,
+      // Reception flow has its own dedicated registration page that
+      // inserts into reception_orders + relay_addresses. Hand off there
+      // with prefilled query params instead of the quote/devis pipeline.
+      const params = new URLSearchParams({
+        merchant: merchant || '',
+        country: merchantCountry || '',
+        value: estimatedValue || '',
         mode: recMode,
         type: recType,
-        merchant, merchantCountry, estimatedValueEur: Number(estimatedValue) || 0,
-      };
+      });
+      navigate(`/expedier/recevoir?${params.toString()}`);
+      return;
     }
     saveDraft(input);
     navigate('/devis');
