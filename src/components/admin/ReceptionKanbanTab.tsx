@@ -105,13 +105,20 @@ export function ReceptionKanbanTab() {
               const Icon = col.icon;
               const items = grouped[col.id] || [];
               return (
-                <div key={col.id} className="flex flex-col rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-secondary/30">
+                <div
+                  key={col.id}
+                  className="flex flex-col rounded-[12px] overflow-hidden bg-card"
+                  style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+                >
+                  <div
+                    className="flex items-center justify-between px-3 py-2.5 bg-secondary"
+                    style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}
+                  >
                     <div className="flex items-center gap-2">
                       <span className={cn('inline-flex items-center justify-center w-6 h-6 rounded', col.tone)}>
                         <Icon className="w-3.5 h-3.5" />
                       </span>
-                      <p className="text-xs font-bold uppercase tracking-wide text-foreground">{col.label}</p>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-foreground">{col.label}</p>
                     </div>
                     <span className="text-[11px] font-mono text-muted-foreground">{items.length}</span>
                   </div>
@@ -124,14 +131,15 @@ export function ReceptionKanbanTab() {
                         key={o.id}
                         onClick={() => setSelected(o)}
                         className={cn(
-                          'w-full text-left rounded-lg border border-border bg-background hover:border-primary/40 hover:bg-secondary/30 transition-colors p-2.5 space-y-1.5',
-                          selected?.id === o.id && 'border-primary/60 bg-primary/5'
+                          'w-full text-left rounded-[12px] bg-card transition-colors p-3 space-y-1.5',
+                          selected?.id === o.id ? 'card-featured' : ''
                         )}
+                        style={selected?.id === o.id ? undefined : { border: '0.5px solid hsl(var(--color-border-tertiary))' }}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-[11px] font-mono text-muted-foreground truncate">{o.reference}</p>
                           {o.final_price_eur != null && (
-                            <span className="text-[10px] font-bold text-emerald-600 tabular-nums">{o.final_price_eur.toFixed(2)} €</span>
+                            <span className="text-[11px] font-medium text-success tabular-nums">{Math.round(o.final_price_eur)} €</span>
                           )}
                         </div>
                         <p className="text-sm font-semibold text-foreground truncate">{o.merchant_name}</p>
