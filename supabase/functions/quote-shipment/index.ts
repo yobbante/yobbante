@@ -129,15 +129,22 @@ serve(async (req) => {
       errorsArr.push("La livraison express le jour même n'est disponible que pour la zone Afrique de l'Ouest.");
     }
 
-    // Departure availability count for the destination country
-    const { count: depCount } = await supabase
-      .from("konnekt_departures")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "OPEN")
-      .gte("departure_date", new Date().toISOString().slice(0, 10))
-      .ilike("destination_country", input.destination_country);
-
-    const hasDeparture = (depCount ?? 0) > 0 && !row.fallback_mode;
+    // Departure availability — UNION across konnekt + manual sources
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ count: kCount }, { count: mCount }] = await Promise.all([
+      supabase.from('konnekt_departures')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'OPEN')
+        .gte('departure_date', today)
+        .ilike('destination_country', input.destination_country),
+      supabase.from('manual_departures')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .gte('departure_date', today)
+        .ilike('destination_country', input.destination_country),
+    ]);
+    const depCount = (kCount ?? 0) + (mCount ?? 0);
+    const hasDeparture = depCount > 0 && !row.fallback_mode;
     const priceXof = Number(row.price_xof);
     const priceEur = Number(row.price_eur);
 
