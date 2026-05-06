@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-import { supabase } from '@/integrations/supabase/client';
+
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
