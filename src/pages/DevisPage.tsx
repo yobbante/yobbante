@@ -107,21 +107,29 @@ export default function DevisPage() {
         </p>
       </main>
 
-      {/* Sticky bar */}
+      {/* Sticky bar — 64px · bg background-primary */}
       <div
-        className="sticky bottom-0 z-40 flex items-center justify-between gap-3 px-6 py-3.5"
+        className="sticky bottom-0 z-40 flex items-center justify-between gap-3 px-6"
         style={{
-          background: 'hsl(var(--secondary))',
+          height: 64,
+          background: 'hsl(var(--background-primary))',
           borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
         }}
       >
-        <div className="text-[13px] truncate" style={{ color: 'hsl(var(--muted-foreground))' }}>
-          <span className="hidden sm:inline">{routeLabel} · </span>
-          <span className="font-medium" style={{ color: 'hsl(var(--foreground))' }}>
-            {selectedOption.label} · {fmtEur(selectedOption.priceEur)}
-          </span>
+        <div className="text-[13px] font-medium truncate" style={{ color: 'hsl(var(--foreground))' }}>
+          {selectedOption.label}
         </div>
-        <button onClick={onConfirm} className="btn-cta shrink-0">Confirmer et payer →</button>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <div className="text-[15px] font-medium leading-tight" style={{ color: 'hsl(var(--foreground))' }}>
+              {fmtEur(selectedOption.priceEur)}
+            </div>
+            <div className="text-[11px] leading-tight" style={{ color: 'hsl(var(--text-tertiary))' }}>
+              {fmtXof(selectedOption.priceXof)}
+            </div>
+          </div>
+          <button onClick={onConfirm} className="btn-cta">Continuer →</button>
+        </div>
       </div>
 
       <PublicFooter />
