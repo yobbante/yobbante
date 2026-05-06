@@ -110,7 +110,7 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <HubsWorldMap value={selectedHub} onChange={handleHubPick} />
+              <HubsWorldMap value={selectedHub} onChange={handleHubPick} variant="light" />
               <AnimatePresence>
                 {selectedHubMeta && (
                   <motion.div
