@@ -40,7 +40,14 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   isAdmin: boolean;
 }) {
   return (
-    <nav className="flex flex-col gap-0.5 p-2">
+    <nav
+      className="flex flex-col gap-0.5 p-2"
+      style={{
+        background: 'hsl(var(--background-primary))',
+        borderRight: '0.5px solid hsl(var(--color-border-tertiary))',
+        minWidth: 220,
+      }}
+    >
       {ADMIN_NAV.filter(n => !n.adminOnly || isAdmin).map(({ id, label, icon: Icon, live }) => {
         const disabled = id === 'settings' && !isAdmin;
         const isActive = active === id;
@@ -50,20 +57,36 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
             onClick={() => !disabled && onChange(id)}
             disabled={disabled}
             className={cn(
-              'group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-left transition-colors',
-              isActive
-                ? 'bg-foreground text-background font-semibold'
-                : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-              disabled && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground',
+              'group flex items-center gap-3 px-3 py-2.5 text-[14px] text-left transition-colors',
+              isActive ? 'font-medium' : '',
+              disabled && 'opacity-40 cursor-not-allowed',
             )}
+            style={{
+              borderRadius: isActive ? 0 : 8,
+              borderLeft: isActive ? '2px solid #1D9E75' : '2px solid transparent',
+              background: isActive ? 'hsl(var(--secondary))' : 'transparent',
+              color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+            }}
+            onMouseEnter={e => {
+              if (!isActive && !disabled) {
+                e.currentTarget.style.background = 'hsl(var(--secondary))';
+                e.currentTarget.style.color = 'hsl(var(--foreground))';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive && !disabled) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+              }
+            }}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 truncate">{label}</span>
             {!live && (
-              <span className={cn(
-                'text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded',
-                isActive ? 'bg-background/20 text-background' : 'bg-secondary text-muted-foreground'
-              )}>
+              <span
+                className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--text-tertiary))' }}
+              >
                 Soon
               </span>
             )}
