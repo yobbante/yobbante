@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, RefreshCw, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-
+import { EmptyState } from '@/components/EmptyState';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
@@ -49,6 +50,16 @@ export default function TrackPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const copyTracking = (tn: string) => {
+    navigator.clipboard?.writeText(tn).then(() => {
+      setCopied(true);
+      toast.success('Copié ✓');
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast.error('Impossible de copier'));
+  };
+
 
   useEffect(() => {
     document.title = id ? `Yobbanté · Suivi ${id}` : 'Yobbanté · Suivre mon colis';
@@ -120,20 +131,15 @@ export default function TrackPage() {
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…
           </div>
         ) : error && !data ? (
-          <div className="surface-card max-w-[480px] mx-auto text-center">
-            <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: '#BA7517' }} />
-            <h2 className="mb-2">Suivi indisponible</h2>
-            <p className="text-[13px] text-muted-foreground mb-4">{error}</p>
-            <button className="btn-cta" onClick={() => setRetries(r => r + 1)}>
-              <RefreshCw className="w-4 h-4" /> Réessayer
-            </button>
-            <button
-              className="block mx-auto mt-3 text-[12px] underline text-muted-foreground"
-              onClick={() => navigate('/track')}
-            >
-              Saisir un autre numéro
-            </button>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="Numéro introuvable"
+            description={`Vérifiez votre référence YOB-XXXX-XXXXX. ${error}`}
+            ctaLabel="Réessayer"
+            onCta={() => setRetries(r => r + 1)}
+            secondaryLabel="Saisir un autre numéro"
+            onSecondary={() => navigate('/track')}
+          />
         ) : data ? (
           <>
             <div
@@ -141,7 +147,15 @@ export default function TrackPage() {
               style={{ background: 'hsl(var(--secondary))' }}
             >
               <div>
-                <div className="text-label">{data.tracking_number}</div>
+                <button
+                  type="button"
+                  onClick={() => copyTracking(data.tracking_number)}
+                  className="text-label font-mono cursor-pointer"
+                  style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                  title="Copier le numéro"
+                >
+                  {copied ? 'Copié ✓' : data.tracking_number}
+                </button>
                 <h2 className="mt-1">
                   {data.origin_city || '—'} → {data.destination_city || '—'}
                 </h2>
