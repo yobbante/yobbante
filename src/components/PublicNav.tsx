@@ -1,13 +1,28 @@
 import { forwardRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Package, Factory, Inbox, Home, LayoutDashboard, Tag, Briefcase } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { BrandLogo } from '@/components/BrandLogo';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PublicNavProps {
-  /** Hide the inline action chips (Expédier / Acheter) when the page already exposes them prominently. */
+  /** Hide the inline action chips when the page already exposes them prominently. */
   hideActions?: boolean;
+}
+
+const LINKS: { label: string; to: string; match: (p: string) => boolean }[] = [
+  { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Sourcing', to: '/acheter',            match: p => p.startsWith('/acheter') },
+  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
+  { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
+  { label: 'Tarifs',   to: '/tarifs',             match: p => p.startsWith('/tarifs') },
+];
+
+function initials(name?: string | null, email?: string | null): string {
+  const src = (name || email || '').trim();
+  if (!src) return '·';
+  const parts = src.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
 }
 
 export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ hideActions = false }, ref) {
@@ -16,183 +31,168 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const location = useLocation();
   const { user } = useAuth();
 
-  const isActive = (to: string) => location.pathname === to || location.pathname.startsWith(to + '/');
-
-  const goExpedier = () => { setOpen(false); navigate('/expedier'); };
-  const goAcheter = () => { setOpen(false); navigate('/acheter'); };
-  const goRecevoir = () => { setOpen(false); navigate('/expedier/recevoir'); };
-  const goTarifs = () => { setOpen(false); navigate('/tarifs'); };
-  const goBusiness = () => { setOpen(false); navigate('/business'); };
-  const goHome = () => { setOpen(false); navigate(user ? '/app' : '/'); };
-
-  const isHome = location.pathname === '/';
-
   return (
-    <nav ref={ref} className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 h-14 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <BrandLogo size={26} />
-          {!isHome && (
-            <button
-              type="button"
-              onClick={goHome}
-              aria-label={user ? 'Mon espace' : "Retour à l'accueil"}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary px-2.5 py-1.5 rounded-lg border border-border/60 transition-colors"
-            >
-              {user ? <LayoutDashboard className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
-              {user ? 'Mon espace' : 'Accueil'}
-            </button>
-          )}
-        </div>
+    <nav
+      ref={ref}
+      className="sticky top-0 z-50"
+      style={{
+        height: 52,
+        background: 'hsl(var(--background-primary))',
+        borderBottom: '0.5px solid hsl(var(--color-border-tertiary))',
+      }}
+    >
+      <div className="max-w-6xl mx-auto h-full px-6 flex items-center justify-between gap-4">
+        {/* Brand */}
+        <Link
+          to="/"
+          aria-label="Yobbanté — Accueil"
+          className="text-foreground"
+          style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}
+        >
+          YOBBANTÉ
+        </Link>
 
-        {/* Desktop: only the 2 main entry points */}
+        {/* Center links — desktop */}
         {!hideActions && (
-          <div className="hidden md:flex items-center gap-1">
-            <button
-              onClick={goExpedier}
-              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
-                isActive('/expedier')
-                  ? 'text-foreground font-semibold bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" /> Expédier
-            </button>
-            <button
-              onClick={goRecevoir}
-              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
-                isActive('/expedier/recevoir')
-                  ? 'text-foreground font-semibold bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <Inbox className="w-3.5 h-3.5" /> Réception
-            </button>
-            <button
-              onClick={goAcheter}
-              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
-                isActive('/acheter')
-                  ? 'text-foreground font-semibold bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <Factory className="w-3.5 h-3.5" /> Sourcing
-            </button>
-            <button
-              onClick={goTarifs}
-              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
-                isActive('/tarifs')
-                  ? 'text-foreground font-semibold bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <Tag className="w-3.5 h-3.5" /> Tarifs
-            </button>
-            <button
-              onClick={goBusiness}
-              className={`text-sm px-3 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors ${
-                isActive('/business')
-                  ? 'text-foreground font-semibold bg-secondary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5" /> Business
-            </button>
+          <div className="hidden md:flex items-center gap-1 h-full">
+            {LINKS.map(l => {
+              const active = l.match(location.pathname);
+              return (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className="relative inline-flex items-center px-3 h-full text-[14px] transition-colors"
+                  style={{
+                    color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                    fontWeight: active ? 500 : 400,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
+                >
+                  {l.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute left-3 right-3 bottom-0"
+                      style={{ height: 2, background: '#1a1a1a' }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            to="/auth"
-            className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Connexion
-          </Link>
-          <Link
-            to="/auth"
-            className="text-sm font-semibold bg-foreground text-background px-3.5 sm:px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Mon espace
-          </Link>
+        {/* Right */}
+        <div className="flex items-center gap-2">
+          {user ? (
+            <Link
+              to="/app"
+              aria-label="Mon espace"
+              className="hidden sm:inline-flex items-center justify-center rounded-full"
+              style={{
+                width: 32,
+                height: 32,
+                background: 'hsl(var(--secondary))',
+                color: 'hsl(var(--foreground))',
+                fontSize: 13,
+                fontWeight: 500,
+                border: '0.5px solid hsl(var(--color-border-tertiary))',
+              }}
+            >
+              {initials((user as any).user_metadata?.full_name, user.email)}
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/auth"
+                className="hidden sm:inline-flex items-center text-[13px] transition-colors"
+                style={{ color: 'hsl(var(--muted-foreground))', padding: '6px 8px' }}
+              >
+                Connexion
+              </Link>
+              <Link to="/auth" className="hidden sm:inline-flex btn-cta">
+                Mon espace
+              </Link>
+            </>
+          )}
 
           {/* Mobile burger */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button
                 aria-label="Ouvrir le menu"
-                className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border text-foreground hover:bg-secondary transition-colors"
+                className="md:hidden inline-flex items-center justify-center rounded-lg"
+                style={{
+                  width: 36,
+                  height: 36,
+                  border: '0.5px solid hsl(var(--color-border-tertiary))',
+                  color: 'hsl(var(--foreground))',
+                  background: 'transparent',
+                }}
               >
                 <Menu className="w-4 h-4" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 p-0 bg-background">
-              <div className="flex items-center justify-between px-5 h-14 border-b border-border">
-                <BrandLogo size={24} asLink={false} />
+            <SheetContent
+              side="bottom"
+              className="p-0"
+              style={{
+                background: 'hsl(var(--background-primary))',
+                borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
+              }}
+            >
+              <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                <span style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}>YOBBANTÉ</span>
                 <button
                   aria-label="Fermer le menu"
                   onClick={() => setOpen(false)}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg hover:bg-secondary transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg"
+                  style={{ width: 36, height: 36 }}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex flex-col px-3 py-4 gap-1">
-                {!isHome && (
+              <div className="px-6 py-2">
+                {LINKS.map((l, i) => (
                   <button
+                    key={l.to}
                     type="button"
-                    onClick={goHome}
-                    className="w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border border-border text-foreground hover:bg-secondary font-medium mb-2"
+                    onClick={() => { setOpen(false); navigate(l.to); }}
+                    className="w-full text-left flex items-center"
+                    style={{
+                      fontSize: 16,
+                      color: 'hsl(var(--foreground))',
+                      padding: '14px 0',
+                      borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                    }}
                   >
-                    {user ? <LayoutDashboard className="w-4 h-4" /> : <Home className="w-4 h-4" />}
-                    {user ? 'Mon espace' : 'Accueil'}
+                    {l.label}
                   </button>
+                ))}
+              </div>
+              <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                {user ? (
+                  <Link to="/app" onClick={() => setOpen(false)} className="btn-cta w-full">Mon espace</Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth"
+                      onClick={() => setOpen(false)}
+                      className="flex-1 inline-flex items-center justify-center rounded-lg text-[13px]"
+                      style={{
+                        height: 40,
+                        border: '0.5px solid hsl(var(--color-border-tertiary))',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    >
+                      Connexion
+                    </Link>
+                    <Link to="/auth" onClick={() => setOpen(false)} className="btn-cta flex-1">
+                      Mon espace
+                    </Link>
+                  </>
                 )}
-                <button
-                  onClick={goExpedier}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-foreground text-background font-semibold"
-                >
-                  <Package className="w-4 h-4" /> Expédier un colis
-                </button>
-                <button
-                  onClick={goRecevoir}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-zinc-950 text-white font-semibold"
-                >
-                  <Inbox className="w-4 h-4 text-yellow-400" /> Réception de commande
-                </button>
-                <button
-                  onClick={goAcheter}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
-                >
-                  <Factory className="w-4 h-4" /> Acheter un produit
-                </button>
-                <button
-                  onClick={goTarifs}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
-                >
-                  <Tag className="w-4 h-4" /> Tarifs
-                </button>
-                <button
-                  onClick={goBusiness}
-                  className="w-full text-left flex items-center gap-3 px-3 py-3.5 rounded-lg bg-secondary text-foreground font-semibold"
-                >
-                  <Briefcase className="w-4 h-4" /> Business
-                </button>
-                <div className="border-t border-border mt-3 pt-3 space-y-1">
-                  <Link
-                    to="/auth"
-                    onClick={() => setOpen(false)}
-                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                  >
-                    Connexion
-                  </Link>
-                  <Link
-                    to="/entreprises"
-                    onClick={() => setOpen(false)}
-                    className="block px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                  >
-                    Entreprises
-                  </Link>
-                </div>
               </div>
             </SheetContent>
           </Sheet>
