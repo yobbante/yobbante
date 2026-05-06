@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { computeQuote, fmtEur, loadDraft } from '@/lib/quote';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const STEPS = ['Devis', 'Coordonnées', 'Paiement', 'Confirmation'];
 
 export default function DevisConfirmerPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [draft] = useState(() => loadDraft());
   const [step] = useState(1); // active = Coordonnées
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = 'Yobbanté · Confirmation';
@@ -34,10 +39,46 @@ export default function DevisConfirmerPage() {
   if (!draft || !result || !opt) return null;
   const { input } = draft;
 
-  const onPay = () => {
-    // Mock payment — go to fake confirmation by generating an id.
-    const id = `YOB-2026-${String(Math.floor(10000 + Math.random() * 90000))}`;
-    navigate(`/track/${id}`);
+  const onPay = async () => {
+    if (!senderName.trim() || !senderPhone.trim() || !senderEmail.trim() || !recName.trim() || !recAddr.trim()) {
+      toast.error('Veuillez remplir les champs obligatoires (expéditeur et destinataire).');
+      return;
+    }
+    if (authLoading) return;
+    if (!user) {
+      // Force login — keep the draft so it can resume
+      toast.message('Connexion requise pour confirmer votre envoi.');
+      navigate(`/auth?next=${encodeURIComponent('/devis/confirmer')}`);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-shipment-from-quote', {
+        body: {
+          origin: input.origin,
+          destination: input.destination,
+          weight_kg: input.weightKg,
+          transport_mode: input.mode,
+          goods_type: input.type,
+          selected_option: opt.key,
+          total_eur: opt.priceEur,
+          departure_date: opt.departure,
+          sender: { name: senderName, phone: senderPhone, email: senderEmail },
+          receiver: { name: recName, address: recAddr, city: recCity, zip: recZip, country: recCountry },
+          description: desc,
+          declared_value_eur: declared ? Number(declared) : undefined,
+        },
+      });
+      if (error) throw new Error(error.message || 'Erreur serveur');
+      const tn = (data as any)?.tracking_number || (data as any)?.id;
+      if (!tn) throw new Error('Numéro de suivi manquant');
+      toast.success('Envoi confirmé · paiement à venir');
+      navigate(`/track/${tn}`);
+    } catch (e) {
+      toast.error((e as Error).message || 'Échec de la création de l\'envoi');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -160,9 +201,9 @@ export default function DevisConfirmerPage() {
             <span>{fmtEur(opt.priceEur)}</span>
           </div>
 
-          <button onClick={onPay} className="btn-cta w-full mb-2"
+          <button onClick={onPay} disabled={submitting} className="btn-cta w-full mb-2"
             style={{ padding: '12px 20px', fontSize: 14 }}>
-            Payer {fmtEur(opt.priceEur)} →
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Payer {fmtEur(opt.priceEur)} →</>}
           </button>
           <p className="text-[11px] text-center" style={{ color: 'hsl(var(--text-tertiary))' }}>
             Paiement sécurisé · SSL

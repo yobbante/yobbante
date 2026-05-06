@@ -1,31 +1,97 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 
-interface Event {
+
+interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
   label: string;
-  date: string;
+  date: string | null;
+  note?: string | null;
 }
 
-const MOCK_EVENTS: Event[] = [
-  { status: 'done', label: 'Envoi confirmé', date: '27 avr. 2026 · 14h32' },
-  { status: 'done', label: 'Colis assigné au départ du 1 mai', date: '27 avr. 2026 · 14h33' },
-  { status: 'done', label: 'En cours de préparation', date: '30 avr. 2026 · 09h15' },
-  { status: 'current', label: 'En transit — Dakar → Paris', date: '1 mai 2026 · 06h50' },
-  { status: 'pending', label: 'Arrivée à Paris', date: 'Estimé : 4–6 mai 2026' },
-  { status: 'pending', label: 'Livraison au destinataire', date: 'Estimé : 5–7 mai 2026' },
-];
+interface TrackResponse {
+  tracking_number: string;
+  status: string;
+  status_label: string;
+  origin_city: string | null;
+  destination_city: string | null;
+  weight_kg: number | null;
+  departure_date: string | null;
+  eta: string | null;
+  transport_type: string | null;
+  priority: string | null;
+  total_cost: number | null;
+  timeline: TimelineEvent[];
+  source: 'db' | 'db+konnekt';
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  CONFIRMED: 'badge-success',
+  MATCHED: 'badge-success',
+  IN_PREPARATION: 'badge-warning',
+  IN_TRANSIT: 'badge-success',
+  CUSTOMS: 'badge-warning',
+  ARRIVED: 'badge-success',
+  OUT_FOR_DELIVERY: 'badge-success',
+  DELIVERED: 'badge-success',
+  ON_HOLD: 'badge-warning',
+  CANCELLED: 'badge-danger',
+};
 
 export default function TrackPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [input, setInput] = useState('');
+  const [data, setData] = useState<TrackResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retries, setRetries] = useState(0);
 
   useEffect(() => {
     document.title = id ? `Yobbanté · Suivi ${id}` : 'Yobbanté · Suivre mon colis';
   }, [id]);
+
+  useEffect(() => {
+    if (!id) { setData(null); return; }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const load = async (attempt = 0) => {
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-shipment?tracking_number=${encodeURIComponent(id)}`;
+        const r = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        });
+        const json = await r.json();
+        if (cancelled) return;
+        if (!r.ok) {
+          if (attempt < 2) {
+            setTimeout(() => load(attempt + 1), 800 * (attempt + 1));
+            return;
+          }
+          throw new Error(json?.error || `HTTP ${r.status}`);
+        }
+        setData(json as TrackResponse);
+        setError(null);
+      } catch (e) {
+        if (cancelled) return;
+        setError((e as Error).message || 'Suivi indisponible');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, retries]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -49,27 +115,63 @@ export default function TrackPage() {
               Suivre →
             </button>
           </div>
-        ) : (
+        ) : loading && !data ? (
+          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…
+          </div>
+        ) : error && !data ? (
+          <div className="surface-card max-w-[480px] mx-auto text-center">
+            <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: '#BA7517' }} />
+            <h2 className="mb-2">Suivi indisponible</h2>
+            <p className="text-[13px] text-muted-foreground mb-4">{error}</p>
+            <button className="btn-cta" onClick={() => setRetries(r => r + 1)}>
+              <RefreshCw className="w-4 h-4" /> Réessayer
+            </button>
+            <button
+              className="block mx-auto mt-3 text-[12px] underline text-muted-foreground"
+              onClick={() => navigate('/track')}
+            >
+              Saisir un autre numéro
+            </button>
+          </div>
+        ) : data ? (
           <>
-            {/* Hero */}
             <div
               className="rounded-[12px] p-5 mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start sm:justify-between"
               style={{ background: 'hsl(var(--secondary))' }}
             >
               <div>
-                <div className="text-label">{id}</div>
-                <h2 className="mt-1">Dakar → Paris</h2>
+                <div className="text-label">{data.tracking_number}</div>
+                <h2 className="mt-1">
+                  {data.origin_city || '—'} → {data.destination_city || '—'}
+                </h2>
                 <p className="text-[13px] mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                  12 kg · Économique · Départ 1 mai
+                  {data.weight_kg ? `${data.weight_kg} kg · ` : ''}
+                  {data.transport_type || ''}
+                  {data.departure_date ? ` · Départ ${new Date(data.departure_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}
                 </p>
+                {data.source === 'db+konnekt' && (
+                  <p className="text-[10px] mt-1" style={{ color: '#1D9E75' }}>● Suivi en temps réel · Konnekt</p>
+                )}
               </div>
-              <span className="badge-success self-start" style={{ fontSize: 12, padding: '4px 14px' }}>En transit</span>
+              <div className="flex items-start gap-2">
+                <span className={STATUS_BADGE[data.status] || 'badge-success'} style={{ fontSize: 12, padding: '4px 14px' }}>
+                  {data.status_label}
+                </span>
+                <button
+                  onClick={() => setRetries(r => r + 1)}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Rafraîchir"
+                  style={{ padding: 6 }}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
 
-            {/* Timeline */}
             <ol>
-              {MOCK_EVENTS.map((e, i) => {
-                const isLast = i === MOCK_EVENTS.length - 1;
+              {data.timeline.map((e, i) => {
+                const isLast = i === data.timeline.length - 1;
                 const dotStyle =
                   e.status === 'done'
                     ? { background: '#1D9E75' }
@@ -95,15 +197,18 @@ export default function TrackPage() {
                         {e.label}
                       </div>
                       <div className="mt-0.5" style={{ fontSize: 12, color: 'hsl(var(--text-tertiary))' }}>
-                        {e.date}
+                        {e.date || (e.status === 'pending' ? 'À venir' : '—')}
                       </div>
+                      {e.note && (
+                        <div className="mt-1 text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>{e.note}</div>
+                      )}
                     </div>
                   </li>
                 );
               })}
             </ol>
           </>
-        )}
+        ) : null}
       </main>
 
       <PublicFooter />
