@@ -240,13 +240,21 @@ export function ShipmentsWorkflowTab() {
                   key={status}
                   onDragOver={onDragOver}
                   onDrop={(e) => onDrop(e, status)}
-                  className="w-[260px] flex-shrink-0 rounded-lg border border-border bg-secondary/40 flex flex-col"
+                  className="w-[260px] flex-shrink-0 rounded-[12px] flex flex-col"
+                  style={{ background: 'hsl(var(--secondary))' }}
                 >
-                  <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       {SHIPMENT_STATUS_LABELS[status]}
                     </span>
-                    <span className="text-[11px] font-semibold text-muted-foreground bg-card px-1.5 py-0.5 rounded">
+                    <span
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      style={{
+                        background: 'hsl(var(--background-primary))',
+                        border: '0.5px solid hsl(var(--color-border-tertiary))',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    >
                       {items.length}
                     </span>
                   </div>
@@ -262,10 +270,14 @@ export function ShipmentsWorkflowTab() {
                         draggable
                         onDragStart={(e) => onDragStart(e, s.id)}
                         className={cn(
-                          'group rounded-md border p-2.5 cursor-grab active:cursor-grabbing',
-                          'hover:border-foreground/30 hover:shadow-sm transition-all',
+                          'group rounded-[12px] p-3 cursor-grab active:cursor-grabbing transition-colors',
                           STATUS_TONE[status],
                         )}
+                        style={
+                          STATUS_TONE[status] === 'card-featured'
+                            ? { background: 'hsl(var(--background-primary))' }
+                            : { background: 'hsl(var(--background-primary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }
+                        }
                       >
                         <header className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[11px] font-bold tracking-tight text-foreground truncate">
