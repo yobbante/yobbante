@@ -201,9 +201,9 @@ export default function DevisConfirmerPage() {
             <span>{fmtEur(opt.priceEur)}</span>
           </div>
 
-          <button onClick={onPay} className="btn-cta w-full mb-2"
+          <button onClick={onPay} disabled={submitting} className="btn-cta w-full mb-2"
             style={{ padding: '12px 20px', fontSize: 14 }}>
-            Payer {fmtEur(opt.priceEur)} →
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Payer {fmtEur(opt.priceEur)} →</>}
           </button>
           <p className="text-[11px] text-center" style={{ color: 'hsl(var(--text-tertiary))' }}>
             Paiement sécurisé · SSL
