@@ -147,7 +147,15 @@ export default function TrackPage() {
               style={{ background: 'hsl(var(--secondary))' }}
             >
               <div>
-                <div className="text-label">{data.tracking_number}</div>
+                <button
+                  type="button"
+                  onClick={() => copyTracking(data.tracking_number)}
+                  className="text-label font-mono cursor-pointer"
+                  style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                  title="Copier le numéro"
+                >
+                  {copied ? 'Copié ✓' : data.tracking_number}
+                </button>
                 <h2 className="mt-1">
                   {data.origin_city || '—'} → {data.destination_city || '—'}
                 </h2>
