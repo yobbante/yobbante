@@ -18,11 +18,11 @@ import { cn } from '@/lib/utils';
 
 const MODE_LABEL: Record<string, string> = { air: '✈️ Air', sea_lcl: '🚢 Mer (LCL)', road: '🚛 Route' };
 
-const STATUS_BADGE: Record<DepartureStatus, { label: string; className: string }> = {
-  active:    { label: '🟢 Actif',     className: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
-  full:      { label: '🔴 Complet',   className: 'bg-rose-500/15 text-rose-700 border-rose-500/30' },
-  cancelled: { label: '⚫ Annulé',    className: 'bg-muted text-muted-foreground border-border' },
-  draft:     { label: '🟡 Brouillon', className: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+const STATUS_BADGE: Record<DepartureStatus, { label: string; variant: 'success' | 'danger' | 'secondary' | 'warning' }> = {
+  active:    { label: 'Actif',     variant: 'success' },
+  full:      { label: 'Complet',   variant: 'danger' },
+  cancelled: { label: 'Annulé',    variant: 'secondary' },
+  draft:     { label: 'Brouillon', variant: 'warning' },
 };
 
 export function DeparturesTab() {
@@ -140,8 +140,14 @@ export function DeparturesTab() {
                     <td className="px-4 py-3 whitespace-nowrap">{format(new Date(d.departure_date), 'dd MMM yyyy')}</td>
                     <td className="px-4 py-3">
                       <div className="space-y-1">
-                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div className={cn('h-full', fillPct >= 80 ? 'bg-rose-500' : fillPct >= 50 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: `${fillPct}%` }} />
+                        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'hsl(var(--color-border-tertiary))' }}>
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${fillPct}%`,
+                              background: fillPct >= 70 ? '#A32D2D' : fillPct >= 30 ? '#BA7517' : '#1D9E75',
+                            }}
+                          />
                         </div>
                         <p className="text-[11px] text-muted-foreground">{fillPct}% rempli · {d.available_capacity_kg}/{d.total_capacity_kg} kg dispo</p>
                       </div>
@@ -152,9 +158,7 @@ export function DeparturesTab() {
                         : <span className="text-muted-foreground">Engine</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline" className={cn('text-[11px] font-semibold', STATUS_BADGE[d.status].className)}>
-                        {STATUS_BADGE[d.status].label}
-                      </Badge>
+                      <Badge variant={STATUS_BADGE[d.status].variant}>{STATUS_BADGE[d.status].label}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

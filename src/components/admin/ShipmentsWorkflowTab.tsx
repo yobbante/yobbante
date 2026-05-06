@@ -23,18 +23,18 @@ type ShipmentRow = Shipment & {
 };
 
 const STATUS_TONE: Record<ShipmentStatus, string> = {
-  PENDING:           'bg-card border-border',
-  WAITING_FOR_MATCH: 'bg-amber-50/60 border-amber-200',
-  CONFIRMED:         'bg-card border-border',
-  MATCHED:           'bg-card border-border',
-  IN_PREPARATION:    'bg-card border-border',
-  IN_TRANSIT:        'bg-card border-border',
-  CUSTOMS:           'bg-amber-50/60 border-amber-200',
-  ARRIVED:           'bg-card border-border',
-  OUT_FOR_DELIVERY:  'bg-card border-border',
-  DELIVERED:         'bg-primary/5 border-primary/30',
-  ON_HOLD:           'bg-rose-50/60 border-rose-200',
-  CANCELLED:         'bg-muted/40 border-border',
+  PENDING:           '',
+  WAITING_FOR_MATCH: '',
+  CONFIRMED:         '',
+  MATCHED:           '',
+  IN_PREPARATION:    '',
+  IN_TRANSIT:        '',
+  CUSTOMS:           '',
+  ARRIVED:           '',
+  OUT_FOR_DELIVERY:  '',
+  DELIVERED:         'card-featured',
+  ON_HOLD:           '',
+  CANCELLED:         'opacity-70',
 };
 
 const ATTENTION_STATUSES = new Set<ShipmentStatus>(['ON_HOLD', 'WAITING_FOR_MATCH', 'CUSTOMS']);
@@ -58,19 +58,24 @@ function formatPrice(eur: number | null | undefined): string {
 function refundBadgeStyle(status: RefundStatus | null | undefined) {
   if (!status) return null;
   if (status === 'sent' || status === 'processed') {
-    return { tone: 'bg-primary/10 text-primary border-primary/30', label: 'Remb. OK' };
+    return { variant: 'success' as const, label: 'Remb. OK' };
   }
   if (status === 'failed') {
-    return { tone: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Remb. KO' };
+    return { variant: 'danger' as const, label: 'Remb. KO' };
   }
-  return { tone: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Remb. en cours' };
+  return { variant: 'warning' as const, label: 'Remb. en cours' };
 }
 
 function RefundBadge({ status }: { status: RefundStatus | null | undefined }) {
   const s = refundBadgeStyle(status);
   if (!s) return null;
+  const bg = s.variant === 'success' ? '#E1F5EE' : s.variant === 'danger' ? '#FCEBEB' : '#FAEEDA';
+  const fg = s.variant === 'success' ? '#085041' : s.variant === 'danger' ? '#791F1F' : '#633806';
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border', s.tone)}>
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+      style={{ background: bg, color: fg }}
+    >
       <RefreshCw className="w-2.5 h-2.5" />
       {s.label}
     </span>
@@ -235,13 +240,21 @@ export function ShipmentsWorkflowTab() {
                   key={status}
                   onDragOver={onDragOver}
                   onDrop={(e) => onDrop(e, status)}
-                  className="w-[260px] flex-shrink-0 rounded-lg border border-border bg-secondary/40 flex flex-col"
+                  className="w-[260px] flex-shrink-0 rounded-[12px] flex flex-col"
+                  style={{ background: 'hsl(var(--secondary))' }}
                 >
-                  <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-foreground">
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       {SHIPMENT_STATUS_LABELS[status]}
                     </span>
-                    <span className="text-[11px] font-semibold text-muted-foreground bg-card px-1.5 py-0.5 rounded">
+                    <span
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      style={{
+                        background: 'hsl(var(--background-primary))',
+                        border: '0.5px solid hsl(var(--color-border-tertiary))',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    >
                       {items.length}
                     </span>
                   </div>
@@ -257,10 +270,14 @@ export function ShipmentsWorkflowTab() {
                         draggable
                         onDragStart={(e) => onDragStart(e, s.id)}
                         className={cn(
-                          'group rounded-md border p-2.5 cursor-grab active:cursor-grabbing',
-                          'hover:border-foreground/30 hover:shadow-sm transition-all',
+                          'group rounded-[12px] p-3 cursor-grab active:cursor-grabbing transition-colors',
                           STATUS_TONE[status],
                         )}
+                        style={
+                          STATUS_TONE[status] === 'card-featured'
+                            ? { background: 'hsl(var(--background-primary))' }
+                            : { background: 'hsl(var(--background-primary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }
+                        }
                       >
                         <header className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[11px] font-bold tracking-tight text-foreground truncate">

@@ -23,73 +23,95 @@ export default function TarifsPage() {
     }));
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={{ background: '#0A0A0A' }}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
 
-      <main className="max-w-[480px] md:max-w-3xl mx-auto px-5 py-8 pb-32 md:pb-12 space-y-10">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-8 pb-32 md:pb-12 space-y-10">
         <header className="space-y-3">
-          <div className="text-[10px] uppercase font-mono" style={{ letterSpacing: '0.14em', color: '#F5C518' }}>
-            TARIFS
-          </div>
-          <h1 className="text-[28px] font-extrabold text-white leading-tight" style={{ letterSpacing: '-0.03em' }}>
-            Des prix clairs. Pas de surprise.
-          </h1>
-          <p className="text-[13px] max-w-[340px]" style={{ color: '#AAAAAA' }}>
+          <div className="text-label">TARIFS</div>
+          <h1 className="max-w-[460px]">Des prix clairs. Pas de surprise.</h1>
+          <p className="text-[14px] max-w-[420px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Tous nos tarifs sont estimatifs et confirmés à réception du colis. Aucun frais caché.
           </p>
         </header>
 
         <section className="space-y-4">
-          <h2 className="text-base font-bold text-white">Estimez votre envoi</h2>
+          <h2>Estimez votre envoi</h2>
           <PricingSimulator />
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-base font-bold text-white">Grille de référence</h2>
+          <h2>Grille de référence</h2>
           <div className="flex gap-2">
             <TabBtn active={tableTab === 'air'} onClick={() => setTableTab('air')}>✈️ Aérien</TabBtn>
             <TabBtn active={tableTab === 'sea'} onClick={() => setTableTab('sea')}>🚢 Maritime</TabBtn>
           </div>
-          <div className="rounded-2xl overflow-hidden" style={{ background: '#111111' }}>
-            <div className="grid grid-cols-[1.4fr_0.7fr_1fr_0.8fr] px-4 py-3 text-[11px] font-mono uppercase"
-              style={{ background: '#161616', color: '#888', letterSpacing: '0.08em' }}>
+          <div
+            className="rounded-[12px] overflow-hidden"
+            style={{ background: 'hsl(var(--background-surface))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+          >
+            <div
+              className="grid grid-cols-[1.4fr_0.7fr_1fr_0.8fr] px-4 py-2.5 text-label"
+              style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}
+            >
               <span>Corridor</span><span>Délai</span><span>Prix / kg</span><span>Min.</span>
             </div>
             {tableRows(tableTab).map((r, i) => (
-              <div key={r.corridor}
-                className="grid grid-cols-[1.4fr_0.7fr_1fr_0.8fr] px-4 py-3 text-[13px] font-mono items-center"
-                style={{ background: i % 2 === 0 ? '#111111' : '#0F0F0F', color: '#AAAAAA' }}>
-                <span>{r.corridor}</span>
+              <div
+                key={r.corridor}
+                className="grid grid-cols-[1.4fr_0.7fr_1fr_0.8fr] px-4 py-3 text-[13px] items-center"
+                style={{
+                  background: i % 2 === 0 ? 'transparent' : 'hsl(var(--secondary))',
+                  borderTop: i === 0 ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))',
+                  color: 'hsl(var(--muted-foreground))',
+                }}
+              >
+                <span className="text-foreground">{r.corridor}</span>
                 <span>{r.delay}</span>
-                <span className="font-semibold text-white">{fmt(r.price)} FCFA</span>
+                <span className="font-medium text-foreground">{fmt(r.price)} FCFA</span>
                 <span>{r.min} kg</span>
               </div>
             ))}
           </div>
-          <p className="text-[11px] font-mono" style={{ color: '#555555' }}>
+          <p className="text-[11px]" style={{ color: 'hsl(var(--text-tertiary))' }}>
             Ces tarifs s'appliquent aux colis standard. Des majorations s'appliquent selon le type de marchandise.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-base font-bold text-white">Frais additionnels</h2>
+          <h2>Frais additionnels</h2>
           <div className="grid md:grid-cols-3 gap-3">
-            <FeeCard icon="📋" title="Frais de dossier" value="5 000 FCFA" sub="Par envoi · Inclut le suivi et les documents de base" />
-            <FeeCard icon="🧾" title="Dédouanement" value="Sur devis" sub="Calculé selon la valeur déclarée et le type de produit" />
-            <FeeCard icon="🛡️" title="Assurance colis" value="À partir de 1 500 FCFA" sub="Optionnelle · Calculée selon la valeur déclarée" />
+            <FeeCard title="Frais de dossier" value="5 000 FCFA" sub="Par envoi · Inclut le suivi et les documents de base" />
+            <FeeCard title="Dédouanement" value="Sur devis" sub="Calculé selon la valeur déclarée et le type de produit" />
+            <FeeCard title="Assurance colis" value="À partir de 1 500 FCFA" sub="Optionnelle · Calculée selon la valeur déclarée" />
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-base font-bold text-white">Questions fréquentes</h2>
-          <Accordion type="single" collapsible className="rounded-2xl overflow-hidden" style={{ background: '#111111' }}>
+          <h2>Questions fréquentes</h2>
+          <Accordion
+            type="single"
+            collapsible
+            className="rounded-[12px] overflow-hidden"
+            style={{ background: 'hsl(var(--background-surface))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+          >
             {FAQ.map((f, idx) => (
-              <AccordionItem key={idx} value={`q-${idx}`}
-                className="border-b border-[#1E1E1E] last:border-b-0 px-4">
-                <AccordionTrigger className="text-[13px] font-semibold text-white hover:no-underline py-4 [&[data-state=open]>svg]:text-[#F5C518]">
+              <AccordionItem
+                key={idx}
+                value={`q-${idx}`}
+                className="px-4"
+                style={{ borderBottom: idx === FAQ.length - 1 ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))' }}
+              >
+                <AccordionTrigger className="text-[14px] font-medium hover:no-underline py-4">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-[13px] pt-3 pb-4 border-t border-[#1E1E1E]" style={{ color: '#AAAAAA' }}>
+                <AccordionContent
+                  className="text-[13px] pt-3 pb-4"
+                  style={{
+                    color: 'hsl(var(--muted-foreground))',
+                    borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
+                  }}
+                >
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -98,11 +120,11 @@ export default function TarifsPage() {
         </section>
       </main>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-5 py-3"
-        style={{ background: '#111111', borderTop: '1px solid #1E1E1E' }}>
-        <button onClick={() => navigate('/expedier')}
-          className="w-full rounded-lg py-3 text-sm font-semibold"
-          style={{ background: '#F5C518', color: '#0A0A0A' }}>
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-5 py-3"
+        style={{ background: 'hsl(var(--background-primary))', borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}
+      >
+        <button onClick={() => navigate('/expedier')} className="btn-cta w-full">
           Créer un envoi →
         </button>
       </div>
@@ -116,20 +138,27 @@ export default function TarifsPage() {
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="rounded-full px-4 py-2 text-sm font-medium transition-all"
-      style={active ? { background: '#F5C518', color: '#0A0A0A' } : { background: '#161616', color: '#888', border: '1px solid #2A2A2A' }}>
+    <button
+      onClick={onClick}
+      className="rounded-full px-3.5 text-[12px] font-medium transition-colors"
+      style={{
+        height: 32,
+        background: active ? 'hsl(var(--background-primary))' : 'transparent',
+        color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+        border: active ? '0.5px solid hsl(var(--foreground))' : '0.5px solid hsl(var(--color-border-tertiary))',
+      }}
+    >
       {children}
     </button>
   );
 }
 
-function FeeCard({ icon, title, value, sub }: { icon: string; title: string; value: string; sub: string }) {
+function FeeCard({ title, value, sub }: { title: string; value: string; sub: string }) {
   return (
-    <div className="rounded-xl p-4 space-y-2" style={{ background: '#111111', border: '0.5px solid #1E1E1E' }}>
-      <div className="text-2xl">{icon}</div>
-      <div className="text-[13px] font-semibold text-white">{title}</div>
-      <div className="font-mono text-[15px]" style={{ color: '#F5C518' }}>{value}</div>
-      <div className="text-[12px]" style={{ color: '#888' }}>{sub}</div>
+    <div className="surface-card space-y-1.5">
+      <div className="text-[14px] font-medium text-foreground">{title}</div>
+      <div className="text-[15px] font-medium text-foreground">{value}</div>
+      <div className="text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>{sub}</div>
     </div>
   );
 }
