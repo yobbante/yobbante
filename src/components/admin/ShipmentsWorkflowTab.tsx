@@ -23,18 +23,18 @@ type ShipmentRow = Shipment & {
 };
 
 const STATUS_TONE: Record<ShipmentStatus, string> = {
-  PENDING:           'bg-card border-border',
-  WAITING_FOR_MATCH: 'bg-amber-50/60 border-amber-200',
-  CONFIRMED:         'bg-card border-border',
-  MATCHED:           'bg-card border-border',
-  IN_PREPARATION:    'bg-card border-border',
-  IN_TRANSIT:        'bg-card border-border',
-  CUSTOMS:           'bg-amber-50/60 border-amber-200',
-  ARRIVED:           'bg-card border-border',
-  OUT_FOR_DELIVERY:  'bg-card border-border',
-  DELIVERED:         'bg-primary/5 border-primary/30',
-  ON_HOLD:           'bg-rose-50/60 border-rose-200',
-  CANCELLED:         'bg-muted/40 border-border',
+  PENDING:           '',
+  WAITING_FOR_MATCH: '',
+  CONFIRMED:         '',
+  MATCHED:           '',
+  IN_PREPARATION:    '',
+  IN_TRANSIT:        '',
+  CUSTOMS:           '',
+  ARRIVED:           '',
+  OUT_FOR_DELIVERY:  '',
+  DELIVERED:         'card-featured',
+  ON_HOLD:           '',
+  CANCELLED:         'opacity-70',
 };
 
 const ATTENTION_STATUSES = new Set<ShipmentStatus>(['ON_HOLD', 'WAITING_FOR_MATCH', 'CUSTOMS']);
@@ -58,19 +58,24 @@ function formatPrice(eur: number | null | undefined): string {
 function refundBadgeStyle(status: RefundStatus | null | undefined) {
   if (!status) return null;
   if (status === 'sent' || status === 'processed') {
-    return { tone: 'bg-primary/10 text-primary border-primary/30', label: 'Remb. OK' };
+    return { variant: 'success' as const, label: 'Remb. OK' };
   }
   if (status === 'failed') {
-    return { tone: 'bg-rose-50 text-rose-700 border-rose-200', label: 'Remb. KO' };
+    return { variant: 'danger' as const, label: 'Remb. KO' };
   }
-  return { tone: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Remb. en cours' };
+  return { variant: 'warning' as const, label: 'Remb. en cours' };
 }
 
 function RefundBadge({ status }: { status: RefundStatus | null | undefined }) {
   const s = refundBadgeStyle(status);
   if (!s) return null;
+  const bg = s.variant === 'success' ? '#E1F5EE' : s.variant === 'danger' ? '#FCEBEB' : '#FAEEDA';
+  const fg = s.variant === 'success' ? '#085041' : s.variant === 'danger' ? '#791F1F' : '#633806';
   return (
-    <span className={cn('inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border', s.tone)}>
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+      style={{ background: bg, color: fg }}
+    >
       <RefreshCw className="w-2.5 h-2.5" />
       {s.label}
     </span>
