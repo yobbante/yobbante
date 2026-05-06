@@ -62,13 +62,6 @@ export default function TrackPage() {
 
     const load = async (attempt = 0) => {
       try {
-        const { data: res, error: err } = await supabase.functions.invoke('track-shipment', {
-          body: null,
-          method: 'GET',
-          headers: {},
-        } as any).catch(async () => ({ data: null, error: { message: 'invoke failed' } }));
-
-        // Fallback to direct fetch since invoke doesn't support GET well
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-shipment?tracking_number=${encodeURIComponent(id)}`;
         const r = await fetch(url, {
           headers: {
