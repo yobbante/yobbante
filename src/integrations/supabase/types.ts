@@ -1072,6 +1072,57 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          delivery_days: number | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          origin_country: string
+          price_eur: number
+          price_fcfa: number
+          source_type: string
+          status: string
+          stock_mode: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          delivery_days?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          origin_country?: string
+          price_eur?: number
+          price_fcfa?: number
+          source_type?: string
+          status?: string
+          stock_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          delivery_days?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          origin_country?: string
+          price_eur?: number
+          price_fcfa?: number
+          source_type?: string
+          status?: string
+          stock_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
