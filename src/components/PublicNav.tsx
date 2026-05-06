@@ -183,7 +183,12 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                       borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
                     }}
                   >
-                    {l.label}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      {l.label}
+                      {l.aiBadge && (
+                        <span style={{ fontSize: 9, lineHeight: 1, textTransform: 'uppercase', background: '#1D9E75', color: '#fff', borderRadius: 4, padding: '2px 5px', fontWeight: 600 }}>IA</span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>
