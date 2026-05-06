@@ -50,6 +50,16 @@ export default function TrackPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const copyTracking = (tn: string) => {
+    navigator.clipboard?.writeText(tn).then(() => {
+      setCopied(true);
+      toast.success('Copié ✓');
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast.error('Impossible de copier'));
+  };
+
 
   useEffect(() => {
     document.title = id ? `Yobbanté · Suivi ${id}` : 'Yobbanté · Suivre mon colis';
