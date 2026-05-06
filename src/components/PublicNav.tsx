@@ -85,6 +85,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
                 >
                   {l.label}
+                  {l.aiBadge && <AiBadge />}
                   {active && (
                     <span
                       aria-hidden
