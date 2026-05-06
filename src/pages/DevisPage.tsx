@@ -54,7 +54,7 @@ export default function DevisPage() {
         <h2 className="mt-1">{routeLabel}</h2>
         <p className="text-[13px] mt-1 mb-5" style={{ color: 'hsl(var(--muted-foreground))' }}>{metaLabel}</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 items-stretch">
           {result.options.map(opt => {
             const isSel = selected === opt.key;
             return (
@@ -62,7 +62,7 @@ export default function DevisPage() {
                 key={opt.key}
                 type="button"
                 onClick={() => setSelected(opt.key)}
-                className="text-left transition-colors"
+                className="text-left transition-colors h-full flex flex-col"
                 style={{
                   background: 'hsl(var(--background-surface))',
                   borderRadius: 12,
@@ -74,9 +74,9 @@ export default function DevisPage() {
                       : '0.5px solid hsl(var(--color-border-tertiary))',
                 }}
               >
-                {opt.badge && (
+                {opt.badge ? (
                   <span
-                    className="inline-block mb-2"
+                    className="inline-block mb-2 self-start"
                     style={{
                       fontSize: 9,
                       fontWeight: 500,
@@ -88,6 +88,8 @@ export default function DevisPage() {
                   >
                     {opt.badge}
                   </span>
+                ) : (
+                  <span aria-hidden className="inline-block mb-2" style={{ height: 17 }} />
                 )}
                 <div className="text-[13px] font-medium">{opt.label}</div>
                 <div className="text-[11px] mt-0.5" style={{ color: 'hsl(var(--text-tertiary))' }}>{opt.delay}</div>
