@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.classify-goods]
 verify_jwt = false
+
+[functions.create-shipment-from-quote]
+verify_jwt = false
+
+[functions.track-shipment]
+verify_jwt = false
