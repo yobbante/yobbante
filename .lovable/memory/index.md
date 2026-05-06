@@ -1,21 +1,16 @@
-# Memory: index.md
-Updated: now
-
 # Project Memory
 
 ## Core
-Dark navy theme (#0A0E1A). Primary: electric blue (217 91% 60%). 14px radius.
+Design system v2: Primary CTA #1a1a1a noir. Success #1D9E75. Warning #BA7517. Danger #A32D2D.
+Bg #FAF8F4 / surface #FFF. Borders 0.5px tertiary. Cards radius 12px. Buttons radius 8px.
+ZÉRO gradient, ZÉRO ombre, ZÉRO blur. Prix arrondis (jamais décimales). XOF sous EUR en 11px muted.
 YOBBANTÉ — logistics orchestration platform. Timeline-first UI, no dashboards.
 Supabase with RLS. All tables scoped to auth.uid(). Enums for status/country.
 Konnekt API mocked for now. Dev panel: Ctrl+Shift+D.
-Mobile: bottom nav (Home/Shipments/Profile). Desktop: top nav.
-Auth: Google + Apple OAuth only (Lovable Cloud managed). Email/password is removed/hidden from UI.
-Pricing: `calculate_quote_v2` v_margin = 1.22 (origin spec). Do not lower without owner approval.
-Cities: strict 36-city catalog in `worldCities.ts`. Dakar is the hub — never in selectable list, always locked via `HUB_DAKAR`/`<DakarHubLock>`.
+Mobile: bottom nav (Home/Shipments/Profile). Desktop: top nav. Touch targets ≥ 44px.
 
 ## Memories
 - [DB Schema](mem://features/db-schema) — Tables: profiles, addresses, packages, shipments, timeline_events with enums
 - [Auth](mem://features/auth) — Email+password + Google OAuth via Lovable Cloud. Auto-create profile+addresses on signup
 - [State Machine](mem://features/state-machine) — Package: CREATED→RECEIVED→IN_STORAGE→READY_TO_SHIP→SHIPPED→DELIVERED. No backward transitions.
-- [Design Tokens](mem://design/tokens) — Dark theme, glow utilities, text-gradient, surface colors
-- [City catalog](mem://features/city-catalog) — 36-city list + Dakar hub lock pattern
+- [Design Tokens](mem://design/tokens) — v2: noir CTA, success vert, no shadows/gradients, typography scale
