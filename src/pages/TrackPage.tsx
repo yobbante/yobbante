@@ -121,20 +121,15 @@ export default function TrackPage() {
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…
           </div>
         ) : error && !data ? (
-          <div className="surface-card max-w-[480px] mx-auto text-center">
-            <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: '#BA7517' }} />
-            <h2 className="mb-2">Suivi indisponible</h2>
-            <p className="text-[13px] text-muted-foreground mb-4">{error}</p>
-            <button className="btn-cta" onClick={() => setRetries(r => r + 1)}>
-              <RefreshCw className="w-4 h-4" /> Réessayer
-            </button>
-            <button
-              className="block mx-auto mt-3 text-[12px] underline text-muted-foreground"
-              onClick={() => navigate('/track')}
-            >
-              Saisir un autre numéro
-            </button>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="Numéro introuvable"
+            description={`Vérifiez votre référence YOB-XXXX-XXXXX. ${error}`}
+            ctaLabel="Réessayer"
+            onCta={() => setRetries(r => r + 1)}
+            secondaryLabel="Saisir un autre numéro"
+            onSecondary={() => navigate('/track')}
+          />
         ) : data ? (
           <>
             <div
