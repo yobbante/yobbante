@@ -152,6 +152,7 @@ export default function AdminPage() {
           {section === 'departures' && <DeparturesTab />}
           {section === 'transporteurs' && isAdmin && <TransporteursTab />}
           {section === 'sourcing'   && <SourcingTab />}
+          {section === 'boutique'   && <BoutiqueTab />}
           {section === 'tracking'   && <TrackingTab />}
           {section === 'clients'    && <ClientsTab />}
           {section === 'enterprise' && <EnterpriseQuotesTab />}
