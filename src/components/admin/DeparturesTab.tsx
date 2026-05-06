@@ -18,11 +18,11 @@ import { cn } from '@/lib/utils';
 
 const MODE_LABEL: Record<string, string> = { air: '✈️ Air', sea_lcl: '🚢 Mer (LCL)', road: '🚛 Route' };
 
-const STATUS_BADGE: Record<DepartureStatus, { label: string; className: string }> = {
-  active:    { label: '🟢 Actif',     className: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
-  full:      { label: '🔴 Complet',   className: 'bg-rose-500/15 text-rose-700 border-rose-500/30' },
-  cancelled: { label: '⚫ Annulé',    className: 'bg-muted text-muted-foreground border-border' },
-  draft:     { label: '🟡 Brouillon', className: 'bg-amber-500/15 text-amber-700 border-amber-500/30' },
+const STATUS_BADGE: Record<DepartureStatus, { label: string; variant: 'success' | 'danger' | 'secondary' | 'warning' }> = {
+  active:    { label: 'Actif',     variant: 'success' },
+  full:      { label: 'Complet',   variant: 'danger' },
+  cancelled: { label: 'Annulé',    variant: 'secondary' },
+  draft:     { label: 'Brouillon', variant: 'warning' },
 };
 
 export function DeparturesTab() {
