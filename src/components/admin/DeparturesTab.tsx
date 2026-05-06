@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, PauseCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, PauseCircle, PlayCircle, AlertTriangle, Calendar } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -110,10 +111,20 @@ export function DeparturesTab() {
       {/* Table */}
       {list.isLoading ? (
         <div className="text-sm text-muted-foreground">Chargement…</div>
+      ) : (list.data ?? []).length === 0 ? (
+        <EmptyState
+          icon={Calendar}
+          title="Aucun départ configuré"
+          description="Ajoutez votre premier départ pour qu'il apparaisse dans les devis clients."
+          ctaLabel="Nouveau départ"
+          onCta={() => setCreating(true)}
+        />
       ) : rows.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-border rounded-xl">
-          <p className="text-sm text-muted-foreground">Aucun départ ne correspond aux filtres.</p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title="Aucun résultat"
+          description="Aucun départ ne correspond aux filtres."
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
