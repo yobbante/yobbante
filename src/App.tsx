@@ -67,6 +67,18 @@ const App = () => (
             <Route path="/track" element={<TrackPage />} />
             <Route path="/track/:id" element={<TrackPage />} />
             <Route path="/boutique" element={<BoutiquePage />} />
+            {/* Spec route aliases → existing pages */}
+            <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
+            <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
+            <Route path="/sourcing" element={<Navigate to="/acheter" replace />} />
+            <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
+            <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
+            <Route path="/admin/departures" element={<Navigate to="/admin?section=departures" replace />} />
+            <Route path="/admin/shipments" element={<Navigate to="/admin?section=shipments" replace />} />
+            <Route path="/admin/receptions" element={<Navigate to="/admin?section=reception" replace />} />
+            <Route path="/admin/devis" element={<Navigate to="/admin?section=requests" replace />} />
+            <Route path="/admin/tarifs" element={<Navigate to="/admin?section=settings" replace />} />
+            <Route path="/admin/boutique" element={<Navigate to="/admin?section=boutique" replace />} />
             {/* Legacy public URLs → folded into the 2 user-facing flows */}
             <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
             <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
