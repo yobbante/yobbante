@@ -14,10 +14,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:border-border group-[.toaster]:rounded-[var(--radius)] group-[.toaster]:shadow-[var(--shadow-card)]",
+            "group toast group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:rounded-[12px] group-[.toaster]:border-0 group-[.toaster]:shadow-none group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-foreground group-[.toaster]:[outline:0.5px_solid_hsl(var(--color-border-tertiary))]",
+          success:
+            "group-[.toaster]:!border-l-[3px] group-[.toaster]:!border-l-success",
+          error:
+            "group-[.toaster]:!border-l-[3px] group-[.toaster]:!border-l-danger",
+          warning:
+            "group-[.toaster]:!border-l-[3px] group-[.toaster]:!border-l-warning",
+          info:
+            "group-[.toaster]:!border-l-[3px] group-[.toaster]:!border-l-foreground",
           description: "group-[.toast]:text-muted-foreground",
           actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-md",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:rounded-md",
+          cancelButton: "group-[.toast]:bg-secondary group-[.toast]:text-secondary-foreground group-[.toast]:rounded-md",
         },
       }}
       {...props}
