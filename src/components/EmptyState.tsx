@@ -29,19 +29,31 @@ export function EmptyState({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-dashed border-border bg-card/40 px-5 py-10 text-center"
+      className="rounded-[12px] px-5 py-10 text-center"
+      style={{
+        background: 'hsl(var(--secondary))',
+        border: '0.5px solid hsl(var(--color-border-tertiary))',
+      }}
     >
-      <div className="w-11 h-11 rounded-xl bg-secondary mx-auto mb-4 flex items-center justify-center">
+      <div
+        className="w-11 h-11 rounded-[10px] mx-auto mb-4 flex items-center justify-center"
+        style={{ background: 'hsl(var(--background-surface))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+      >
         <Icon className="w-5 h-5 text-muted-foreground" />
       </div>
-      <p className="text-[15px] font-semibold text-foreground tracking-tight">{title}</p>
+      <p className="text-[15px] font-medium text-foreground tracking-tight">{title}</p>
       <p className="text-[13px] text-muted-foreground mt-1.5 max-w-sm mx-auto leading-relaxed">
         {description}
       </p>
       {(ctaLabel || secondaryLabel) && (
         <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
           {ctaLabel && onCta && (
-            <Button size="sm" onClick={onCta} className="gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onCta}
+              className="gap-1 border-foreground text-foreground hover:bg-foreground hover:text-background"
+            >
               {ctaLabel} <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           )}
