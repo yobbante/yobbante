@@ -13,6 +13,7 @@ import TarifsPage from "./pages/TarifsPage";
 import DevisPage from "./pages/DevisPage";
 import DevisConfirmerPage from "./pages/DevisConfirmerPage";
 import TrackPage from "./pages/TrackPage";
+import BoutiquePage from "./pages/BoutiquePage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
             <Route path="/track" element={<TrackPage />} />
             <Route path="/track/:id" element={<TrackPage />} />
+            <Route path="/boutique" element={<BoutiquePage />} />
             {/* Legacy public URLs → folded into the 2 user-facing flows */}
             <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
             <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />

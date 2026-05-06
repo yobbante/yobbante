@@ -9,13 +9,28 @@ interface PublicNavProps {
   hideActions?: boolean;
 }
 
-const LINKS: { label: string; to: string; match: (p: string) => boolean }[] = [
+const LINKS: { label: string; to: string; match: (p: string) => boolean; aiBadge?: boolean }[] = [
   { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
   { label: 'Sourcing', to: '/acheter',            match: p => p.startsWith('/acheter') },
+  { label: 'Boutique', to: '/boutique',           match: p => p.startsWith('/boutique'), aiBadge: true },
   { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
   { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
   { label: 'Tarifs',   to: '/tarifs',             match: p => p.startsWith('/tarifs') },
 ];
+
+const AiBadge = () => (
+  <span
+    aria-hidden
+    style={{
+      position: 'absolute', top: 6, right: -2,
+      fontSize: 9, lineHeight: 1, textTransform: 'uppercase',
+      background: '#1D9E75', color: '#fff',
+      borderRadius: 4, padding: '2px 5px', fontWeight: 600,
+    }}
+  >
+    IA
+  </span>
+);
 
 function initials(name?: string | null, email?: string | null): string {
   const src = (name || email || '').trim();
@@ -70,6 +85,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
                 >
                   {l.label}
+                  {l.aiBadge && <AiBadge />}
                   {active && (
                     <span
                       aria-hidden
@@ -167,7 +183,12 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                       borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
                     }}
                   >
-                    {l.label}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      {l.label}
+                      {l.aiBadge && (
+                        <span style={{ fontSize: 9, lineHeight: 1, textTransform: 'uppercase', background: '#1D9E75', color: '#fff', borderRadius: 4, padding: '2px 5px', fontWeight: 600 }}>IA</span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>
