@@ -122,14 +122,15 @@ export default function BoutiquePage() {
           </div>
         </header>
 
-        <div className="px-5 sm:px-6 pt-6 pb-10">
+        <div className="px-5 sm:px-6 pt-4 pb-10">
 
         {/* Categories + sort */}
-        <div className="mb-6 flex items-center gap-3 flex-wrap md:flex-nowrap">
+        <div className="mb-5 flex items-center gap-3">
           <div
-            className="flex gap-2 overflow-x-auto w-full md:flex-1"
+            className="dekk-chips flex gap-2 overflow-x-auto flex-nowrap w-full md:flex-1"
             style={{ scrollbarWidth: 'none', minWidth: 0, WebkitOverflowScrolling: 'touch' }}
           >
+            <style>{`.dekk-chips::-webkit-scrollbar{display:none}`}</style>
             {CATEGORIES.map(cat => {
               const active = cat === activeCat;
               return (
@@ -162,9 +163,9 @@ export default function BoutiquePage() {
             onChange={e => setSort(e.target.value)}
             className="hidden md:block"
             style={{
-              flex: '0 0 auto', height: 32, padding: '0 10px', fontSize: 13, borderRadius: 8,
+              flex: '0 0 auto', height: 32, padding: '0 10px', fontSize: 12, borderRadius: 8,
               border: '0.5px solid hsl(var(--color-border-tertiary))',
-              background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
+              background: 'hsl(var(--background-primary))', color: 'hsl(var(--muted-foreground))',
             }}
           >
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -176,12 +177,12 @@ export default function BoutiquePage() {
           <EmptyState />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" style={{ marginTop: 20 }}>
               {beforeFeatured.map(p => <ProductCard key={p.id} p={p} />)}
             </div>
             {afterFeatured.length > 0 && <FeaturedStrip />}
             {afterFeatured.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {afterFeatured.map(p => <ProductCard key={p.id} p={p} />)}
               </div>
             )}
@@ -206,14 +207,14 @@ export default function BoutiquePage() {
 function FeaturedStrip() {
   return (
     <div
-      className="flex items-center justify-between flex-wrap gap-3 my-5"
-      style={{ background: DEKK_ACCENT_LIGHT, borderRadius: 12, padding: 20 }}
+      className="flex items-center justify-between flex-wrap gap-3"
+      style={{ background: DEKK_ACCENT_LIGHT, borderRadius: 12, padding: 20, margin: '4px 0' }}
     >
       <div>
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: DEKK_ACCENT_DARK }}>
           SÉLECTION DU MOMENT
         </div>
-        <div style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a', marginTop: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: '#1a1a1a', marginTop: 4 }}>
           Ce que Dakar commande en ce moment.
         </div>
       </div>
@@ -226,10 +227,10 @@ function FeaturedStrip() {
 
 function EmptyState() {
   return (
-    <div className="py-20 text-center">
+    <div className="text-center" style={{ padding: '48px 24px' }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🛍️</div>
       <p style={{ fontSize: 16, fontWeight: 500, color: 'hsl(var(--foreground))', margin: 0 }}>Dëkk arrive bientôt.</p>
-      <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 6 }}>
+      <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 6, textAlign: 'center' }}>
         Les premiers produits sont en cours de sélection.
       </p>
     </div>
@@ -254,7 +255,7 @@ function ProductCard({ p }: { p: Product }) {
         display: 'flex', flexDirection: 'column',
       }}
     >
-      <div style={{ position: 'relative', height: 200, background: 'hsl(var(--secondary))' }}>
+      <div style={{ position: 'relative', height: 200, background: 'hsl(var(--background-secondary))' }}>
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : null}
@@ -295,7 +296,7 @@ function ProductCard({ p }: { p: Product }) {
           style={{
             fontSize: 14, fontWeight: 500, color: 'hsl(var(--foreground))',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden', lineHeight: 1.3,
+            overflow: 'hidden', lineHeight: 1.4,
           }}
         >
           {p.name}
@@ -319,7 +320,7 @@ function ProductCard({ p }: { p: Product }) {
           onMouseEnter={e => (e.currentTarget.style.background = DEKK_ACCENT_DARK)}
           onMouseLeave={e => (e.currentTarget.style.background = DEKK_ACCENT)}
           style={{
-            marginTop: 10, width: '100%', height: 44, minHeight: 44,
+            marginTop: 10, width: '100%', height: 40, minHeight: 44,
             background: DEKK_ACCENT, color: '#fff',
             fontSize: 13, fontWeight: 500, borderRadius: 8, border: 'none',
             cursor: 'pointer', transition: 'background 150ms',
