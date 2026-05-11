@@ -11,7 +11,7 @@ interface PublicNavProps {
 
 const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
   { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing', to: '/acheter',            match: p => p.startsWith('/acheter') },
+  { label: 'Sourcing', to: '/sourcing',           match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
   { label: 'Dëkk',     to: '/boutique',           match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
   { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
   { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
