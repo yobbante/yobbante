@@ -8,6 +8,7 @@ import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap'
 import { QuoteForm } from '@/components/quote/QuoteForm';
 import { TrustBar } from '@/components/quote/TrustBar';
 import { ArrowRight, MapPin } from 'lucide-react';
+import { useSeo } from '@/hooks/useSeo';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -39,6 +40,11 @@ const METRICS = [
 const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 
 export default function LandingPage() {
+  useSeo({
+    title: 'Yobbanté — Expédition internationale depuis Dakar',
+    description: "Expédiez, recevez ou achetez à l'international. Yobbanté gère tout, de A à Z, depuis Dakar vers le monde entier.",
+    path: '/',
+  });
   const navigate = useNavigate();
   const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
 

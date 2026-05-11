@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { useSeo } from '@/hooks/useSeo';
 
 type Product = {
   id: string;
@@ -59,6 +60,11 @@ const isNew = (d: string) => Date.now() - +new Date(d) < 14 * 24 * 3600 * 1000;
 type CartItem = { product: Product; qty: number };
 
 export default function BoutiquePage() {
+  useSeo({
+    title: 'Boutique Dëkk — Produits importés à Dakar | Yobbanté',
+    description: 'Découvrez Dëkk by Yobbanté : produits sélectionnés et importés à Dakar avec livraison rapide.',
+    path: '/boutique',
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState('all');

@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { SourcingFlow } from '@/components/flows/SourcingFlow';
 import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
+import { useSeo } from '@/hooks/useSeo';
 
 /**
  * /sourcing — URL canonique du parcours sourcing produit.
@@ -12,10 +12,11 @@ import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
  */
 export default function SourcingPage() {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    document.title = 'Sourcing produit · Yobbanté';
-  }, []);
+  useSeo({
+    title: 'Sourcing international — On achète pour vous | Yobbanté',
+    description: "Vous cherchez un produit introuvable au Sénégal ? Yobbanté l'achète pour vous en France, Chine, USA et vous le livre à Dakar.",
+    path: '/sourcing',
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
