@@ -72,7 +72,7 @@ export default function BoutiquePage() {
   }, []);
 
   const filtered = useMemo(() => {
-    let list = activeCat === 'Tout' ? products : products.filter(p => p.category === activeCat);
+    let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q));
