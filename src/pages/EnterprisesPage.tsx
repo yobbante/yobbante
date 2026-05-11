@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, ShieldCheck, Headset, Truck, FileCheck2, Globe2, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { useSeo } from '@/hooks/useSeo';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -115,6 +116,11 @@ const contactSchema = z.object({
 });
 
 export default function EnterprisesPage() {
+  useSeo({
+    title: 'Solutions logistiques B2B pour entreprises | Yobbanté',
+    description: "Yobbanté accompagne les entreprises dans leur logistique internationale : sourcing, douane, transport multimodal et reporting.",
+    path: '/entreprises',
+  });
   const navigate = useNavigate();
   const goDevis = () => navigate('/devis-entreprise');
   const [submitting, setSubmitting] = useState(false);

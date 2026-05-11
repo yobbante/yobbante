@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { EmptyState } from '@/components/EmptyState';
+import { useSeo } from '@/hooks/useSeo';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
@@ -43,6 +44,11 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function TrackPage() {
+  useSeo({
+    title: 'Suivre mon colis | Yobbanté',
+    description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
+    path: '/track',
+  });
   const { id } = useParams();
   const navigate = useNavigate();
   const [input, setInput] = useState('');

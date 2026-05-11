@@ -9,8 +9,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { useSeo } from '@/hooks/useSeo';
 
 export default function TarifsPage() {
+  useSeo({
+    title: "Tarifs d'expédition Dakar ↔ Monde | Yobbanté",
+    description: "Prix d'expédition clairs et transparents. Aérien, maritime, routier depuis Dakar vers le monde entier.",
+    path: '/tarifs',
+  });
   const navigate = useNavigate();
   const [tableTab, setTableTab] = useState<Mode>('air');
 
