@@ -37,6 +37,11 @@ const SOURCE_BADGE: Record<string, { label: string; bg: string; color: string }>
   sourcing:  { label: 'Sourcing',  bg: '#EFF6FF', color: '#1D4ED8' },
 };
 
+const CATEGORY_LABEL: Record<string, string> = {
+  electronique: 'Électronique', mode: 'Mode', maison: 'Maison',
+  auto: 'Auto', tech: 'Tech', beaute: 'Beauté', autre: 'Autre',
+};
+
 const emptyForm = {
   name: '',
   description: '',
