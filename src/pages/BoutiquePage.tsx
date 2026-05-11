@@ -142,12 +142,12 @@ export default function BoutiquePage() {
           >
             <style>{`.dekk-chips::-webkit-scrollbar{display:none}`}</style>
             {CATEGORIES.map(cat => {
-              const active = cat === activeCat;
+              const active = cat.key === activeCat;
               return (
                 <button
-                  key={cat}
+                  key={cat.key}
                   type="button"
-                  onClick={() => setActiveCat(cat)}
+                  onClick={() => setActiveCat(cat.key)}
                   style={{
                     flex: '0 0 auto',
                     height: 32,
@@ -163,7 +163,7 @@ export default function BoutiquePage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {cat}
+                  {cat.label}
                 </button>
               );
             })}
