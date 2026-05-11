@@ -300,7 +300,7 @@ function ProductCard({ p }: { p: Product }) {
             color: 'hsl(var(--muted-foreground))', marginBottom: 4,
           }}
         >
-          {p.category}
+          {CATEGORY_LABEL[p.category] ?? p.category}
         </div>
         <div
           style={{
