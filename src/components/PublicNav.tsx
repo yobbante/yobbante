@@ -9,26 +9,26 @@ interface PublicNavProps {
   hideActions?: boolean;
 }
 
-const LINKS: { label: string; to: string; match: (p: string) => boolean; aiBadge?: boolean }[] = [
+const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
   { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
   { label: 'Sourcing', to: '/acheter',            match: p => p.startsWith('/acheter') },
-  { label: 'Boutique', to: '/boutique',           match: p => p.startsWith('/boutique'), aiBadge: true },
+  { label: 'Dëkk',     to: '/boutique',           match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
   { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
   { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
   { label: 'Tarifs',   to: '/tarifs',             match: p => p.startsWith('/tarifs') },
 ];
 
-const AiBadge = () => (
+const SubBadge = ({ children }: { children: React.ReactNode }) => (
   <span
     aria-hidden
     style={{
-      position: 'absolute', top: 6, right: -2,
-      fontSize: 9, lineHeight: 1, textTransform: 'uppercase',
-      background: '#1D9E75', color: '#fff',
-      borderRadius: 4, padding: '2px 5px', fontWeight: 600,
+      display: 'block', fontSize: 8, lineHeight: 1,
+      fontFamily: 'var(--font-mono, monospace)',
+      letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))',
+      marginTop: 2, fontWeight: 400,
     }}
   >
-    IA
+    {children}
   </span>
 );
 
@@ -76,16 +76,17 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 <Link
                   key={l.to}
                   to={l.to}
-                  className="relative inline-flex items-center px-3 h-full text-[14px] transition-colors"
+                  className="relative inline-flex flex-col items-center justify-center px-3 h-full text-[14px] transition-colors"
                   style={{
                     color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
                     fontWeight: active ? 500 : 400,
+                    lineHeight: 1.1,
                   }}
                   onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
                   onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
                 >
-                  {l.label}
-                  {l.aiBadge && <AiBadge />}
+                  <span>{l.label}</span>
+                  {l.subBadge && <SubBadge>{l.subBadge}</SubBadge>}
                   {active && (
                     <span
                       aria-hidden
@@ -183,10 +184,10 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                       borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      {l.label}
-                      {l.aiBadge && (
-                        <span style={{ fontSize: 9, lineHeight: 1, textTransform: 'uppercase', background: '#1D9E75', color: '#fff', borderRadius: 4, padding: '2px 5px', fontWeight: 600 }}>IA</span>
+                    <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
+                      <span>{l.label}</span>
+                      {l.subBadge && (
+                        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
                       )}
                     </span>
                   </button>

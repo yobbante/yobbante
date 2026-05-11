@@ -31,6 +31,12 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   archived: { label: 'Archivé', bg: '#F5F5F5', color: 'hsl(var(--muted-foreground))' },
 };
 
+const SOURCE_BADGE: Record<string, { label: string; bg: string; color: string }> = {
+  manual:    { label: 'Manuel',    bg: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' },
+  reception: { label: 'Réception', bg: '#E1F5EE', color: '#085041' },
+  sourcing:  { label: 'Sourcing',  bg: '#EFF6FF', color: '#1D4ED8' },
+};
+
 const emptyForm = {
   name: '',
   description: '',
@@ -40,7 +46,8 @@ const emptyForm = {
   stock_mode: 'stock',
   delivery_days: 7,
   image_url: '',
-  source_type: 'reception',
+  source_type: 'manual',
+  verified: false,
   status: 'draft',
 };
 
@@ -86,6 +93,7 @@ export function BoutiqueTab() {
       delivery_days: form.stock_mode === 'commande' ? Number(form.delivery_days) || 7 : null,
       image_url: form.image_url.trim() || null,
       source_type: form.source_type,
+      verified: !!form.verified,
       status: form.status,
     };
     if (!payload.name || !payload.price_eur) {
@@ -116,6 +124,7 @@ export function BoutiqueTab() {
       delivery_days: p.delivery_days || 7,
       image_url: p.image_url || '',
       source_type: p.source_type,
+      verified: !!(p as any).verified,
       status: p.status,
     });
     setShowForm(true);
@@ -181,7 +190,13 @@ export function BoutiqueTab() {
             )}
             <Field label="Source">
               <Select value={form.source_type} onChange={v => setForm({ ...form, source_type: v })}
-                options={[['reception','Réception'],['sourcing','Sourcing']]} />
+                options={[['manual','Manuel'],['reception','Réception'],['sourcing','Sourcing']]} />
+            </Field>
+            <Field label="Vérifié">
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36 }}>
+                <input type="checkbox" checked={!!form.verified} onChange={e => setForm({ ...form, verified: e.target.checked })} />
+                <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Testé par la communauté</span>
+              </label>
             </Field>
             <Field label="Statut">
               <Select value={form.status} onChange={v => setForm({ ...form, status: v })}
@@ -208,7 +223,7 @@ export function BoutiqueTab() {
           <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
             <thead style={{ background: 'hsl(var(--secondary))' }}>
               <tr>
-                {['', 'Nom', 'Catégorie', 'Prix', 'Statut', 'Origine', 'Date', ''].map((h, i) => (
+                {['', 'Nom', 'Catégorie', 'Prix', 'Statut', 'Source', 'Origine', 'Date', ''].map((h, i) => (
                   <th key={i} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'hsl(var(--muted-foreground))' }}>{h}</th>
                 ))}
               </tr>
@@ -228,6 +243,11 @@ export function BoutiqueTab() {
                     <td style={{ padding: '10px 12px' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{ background: b.bg, color: b.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{b.label}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      {(() => { const s = SOURCE_BADGE[p.source_type] || SOURCE_BADGE.manual; return (
+                        <span style={{ background: s.bg, color: s.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{s.label}</span>
+                      ); })()}
                     </td>
                     <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.origin_country}</td>
                     <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>
