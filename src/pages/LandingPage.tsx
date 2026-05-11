@@ -231,16 +231,20 @@ export default function LandingPage() {
 
       {/* ───── FINAL CTA ───── */}
       <section>
-        <div className="max-w-3xl mx-auto px-6 py-14 md:py-20 text-center">
-          <h2 className="text-[24px] md:text-[32px]">Prêt à simplifier votre prochain envoi ?</h2>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-20 text-center">
+          <h2 className="text-[22px] sm:text-[24px] md:text-[32px] leading-tight">Prêt à simplifier votre prochain envoi&nbsp;?</h2>
           <p className="mt-3 max-w-md mx-auto" style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>
             Choisissez votre besoin, on s'occupe du reste.
           </p>
-          <div className="mt-7 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <button onClick={() => navigate('/expedier')} className="btn-cta">Expédier un colis</button>
-            <button onClick={() => navigate('/acheter')} className="btn-cta"
+          <div className="mt-6 sm:mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl mx-auto">
+            <button onClick={() => navigate('/expedier')} className="btn-cta w-full">Expédier un colis</button>
+            <button onClick={() => navigate('/acheter')} className="btn-cta w-full"
               style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
               Acheter un produit
+            </button>
+            <button onClick={() => navigate('/boutique')} className="btn-cta w-full"
+              style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+              Boutique Dëkk
             </button>
           </div>
           <p className="mt-6 text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
