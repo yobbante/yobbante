@@ -227,10 +227,10 @@ function FeaturedStrip() {
 
 function EmptyState() {
   return (
-    <div className="py-20 text-center">
+    <div className="text-center" style={{ padding: '48px 24px' }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🛍️</div>
       <p style={{ fontSize: 16, fontWeight: 500, color: 'hsl(var(--foreground))', margin: 0 }}>Dëkk arrive bientôt.</p>
-      <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 6 }}>
+      <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 6, textAlign: 'center' }}>
         Les premiers produits sont en cours de sélection.
       </p>
     </div>
