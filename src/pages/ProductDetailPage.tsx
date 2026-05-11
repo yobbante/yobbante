@@ -65,10 +65,37 @@ export default function ProductDetailPage() {
       const prod = data as any as Product | null;
       setP(prod);
       if (prod) {
-        const { data: rel } = await supabase
-          .from('products' as any).select('*')
-          .eq('status', 'published').eq('category', prod.category).neq('id', prod.id).limit(4);
-        setRelated((rel as any as Product[]) || []);
+        trackView(prod.id, prod.category);
+        const url = window.location.href;
+        applySeo({
+          title: `${prod.name} · Dëkk by Yobbanté`,
+          description: (prod.description || '').slice(0, 155) || `Découvrez ${prod.name} sur Dëkk. Livraison incluse au Sénégal.`,
+          image: prod.image_url,
+          url,
+          type: 'product',
+          jsonLd: {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: prod.name,
+            description: prod.description,
+            image: prod.image_url ? [prod.image_url] : undefined,
+            sku: prod.id,
+            category: CATEGORY[prod.category] ?? prod.category,
+            brand: { '@type': 'Brand', name: 'Dëkk by Yobbanté' },
+            offers: {
+              '@type': 'Offer',
+              url,
+              priceCurrency: 'EUR',
+              price: prod.price_eur,
+              availability: prod.stock_mode === 'stock'
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/PreOrder',
+              itemCondition: 'https://schema.org/NewCondition',
+            },
+          },
+        });
+        const recs = await recommend({ excludeIds: [prod.id], primaryCategory: prod.category, limit: 4 });
+        setRelated(recs);
       }
       setLoading(false);
       try { setWished(JSON.parse(localStorage.getItem('dekk_wishlist') || '[]').includes(id)); } catch {}
