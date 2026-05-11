@@ -122,14 +122,15 @@ export default function BoutiquePage() {
           </div>
         </header>
 
-        <div className="px-5 sm:px-6 pt-6 pb-10">
+        <div className="px-5 sm:px-6 pt-4 pb-10">
 
         {/* Categories + sort */}
-        <div className="mb-6 flex items-center gap-3 flex-wrap md:flex-nowrap">
+        <div className="mb-5 flex items-center gap-3">
           <div
-            className="flex gap-2 overflow-x-auto w-full md:flex-1"
+            className="dekk-chips flex gap-2 overflow-x-auto flex-nowrap w-full md:flex-1"
             style={{ scrollbarWidth: 'none', minWidth: 0, WebkitOverflowScrolling: 'touch' }}
           >
+            <style>{`.dekk-chips::-webkit-scrollbar{display:none}`}</style>
             {CATEGORIES.map(cat => {
               const active = cat === activeCat;
               return (
@@ -162,9 +163,9 @@ export default function BoutiquePage() {
             onChange={e => setSort(e.target.value)}
             className="hidden md:block"
             style={{
-              flex: '0 0 auto', height: 32, padding: '0 10px', fontSize: 13, borderRadius: 8,
+              flex: '0 0 auto', height: 32, padding: '0 10px', fontSize: 12, borderRadius: 8,
               border: '0.5px solid hsl(var(--color-border-tertiary))',
-              background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
+              background: 'hsl(var(--background-primary))', color: 'hsl(var(--muted-foreground))',
             }}
           >
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
