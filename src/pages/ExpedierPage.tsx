@@ -4,6 +4,7 @@ import { ListChecks, Home } from 'lucide-react';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
 import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
+import { useSeo } from '@/hooks/useSeo';
 
 type Mode = 'envoyer' | 'recevoir';
 
@@ -20,12 +21,19 @@ export default function ExpedierPage() {
 
   useEffect(() => { setMode((urlMode as Mode) ?? 'envoyer'); }, [urlMode]);
 
-  useEffect(() => {
-    document.title =
-      mode === 'envoyer'  ? 'Envoyer un colis · Yobbanté' :
-      mode === 'recevoir' ? 'Recevoir une commande · Yobbanté' :
-                            'Expédier un colis · Yobbanté';
-  }, [mode]);
+  useSeo(
+    mode === 'recevoir'
+      ? {
+          title: 'Réception Amazon, AliExpress, eBay à Dakar | Yobbanté',
+          description: 'Commandez sur Amazon, AliExpress ou eBay avec notre adresse relais. Yobbanté réceptionne et livre à Dakar.',
+          path: '/reception',
+        }
+      : {
+          title: 'Envoyer un colis à l\'international | Yobbanté',
+          description: 'Expédiez vos colis depuis Dakar vers le monde entier. Aérien, maritime, routier — Yobbanté gère tout.',
+          path: '/expedier',
+        }
+  );
 
   function selectMode(m: Mode) {
     setMode(m);
