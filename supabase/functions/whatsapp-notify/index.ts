@@ -11,6 +11,25 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+
+async function validateTwilioSignature(req: Request, rawBody: string): Promise<boolean> {
+  if (!TWILIO_AUTH_TOKEN) return false;
+  const signature = req.headers.get("x-twilio-signature");
+  if (!signature) return false;
+  // Twilio signs: url + sorted concat of param key+value (form-encoded body)
+  const params = Object.fromEntries(new URLSearchParams(rawBody));
+  const sortedKeys = Object.keys(params).sort();
+  const data = req.url + sortedKeys.map(k => k + params[k]).join("");
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(TWILIO_AUTH_TOKEN),
+    { name: "HMAC", hash: "SHA-1" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return expected === signature;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -18,16 +37,27 @@ Deno.serve(async (req) => {
   const ct = req.headers.get("content-type") ?? "";
 
   let payload: Record<string, string> = {};
+  let rawBody = "";
   try {
     if (ct.includes("application/x-www-form-urlencoded")) {
-      const txt = await req.text();
-      payload = Object.fromEntries(new URLSearchParams(txt));
+      rawBody = await req.text();
+      payload = Object.fromEntries(new URLSearchParams(rawBody));
     } else if (ct.includes("application/json")) {
-      payload = await req.json();
+      const j = await req.json();
+      payload = j;
+      rawBody = new URLSearchParams(j as Record<string, string>).toString();
     } else {
       payload = Object.fromEntries(new URL(req.url).searchParams);
     }
   } catch (_) { /* ignore */ }
+
+  // Validate Twilio webhook signature
+  const valid = await validateTwilioSignature(req, rawBody);
+  if (!valid) {
+    return new Response(JSON.stringify({ error: "Invalid signature" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // Twilio sends MessageSid, MessageStatus (delivered, failed, read), From, Body, etc.
   const messageSid = payload.MessageSid ?? payload.SmsSid ?? null;

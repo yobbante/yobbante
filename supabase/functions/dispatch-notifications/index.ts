@@ -49,6 +49,15 @@ async function sendWhatsApp(to: string, body: string): Promise<{ ok: boolean; er
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Worker auth: require service-role bearer token (used by cron / scheduler)
+  const auth = req.headers.get("authorization") ?? "";
+  if (auth !== `Bearer ${SERVICE_KEY}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
   // Pull up to 50 pending notifications

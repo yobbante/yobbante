@@ -49,6 +49,31 @@ Confirmez votre disponibilité en répondant à ce message.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Auth: require staff JWT
+  const authHeader = req.headers.get("authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const authedClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claims, error: claimsErr } = await authedClient.auth.getClaims(token);
+  if (claimsErr || !claims?.claims?.sub) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+  const { data: isStaff } = await adminClient.rpc("is_staff", { _user_id: claims.claims.sub });
+  if (!isStaff) {
+    return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = await req.json();
     const {

@@ -97,7 +97,7 @@ export default function Index() {
         {view === 'profile' && <ProfileView />}
       </main>
       <BottomNav active={view} onChange={setView} />
-      <DevPanel />
+      {import.meta.env.DEV && <DevPanel />}
     </div>
   );
 }
