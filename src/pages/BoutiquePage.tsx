@@ -207,8 +207,8 @@ export default function BoutiquePage() {
 function FeaturedStrip() {
   return (
     <div
-      className="flex items-center justify-between flex-wrap gap-3 my-5"
-      style={{ background: DEKK_ACCENT_LIGHT, borderRadius: 12, padding: 20 }}
+      className="flex items-center justify-between flex-wrap gap-3"
+      style={{ background: DEKK_ACCENT_LIGHT, borderRadius: 12, padding: 20, margin: '4px 0' }}
     >
       <div>
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: DEKK_ACCENT_DARK }}>
