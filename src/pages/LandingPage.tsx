@@ -57,25 +57,34 @@ export default function LandingPage() {
       <PublicNav />
 
       {/* ───── HERO + QUOTE FORM ───── */}
-      <section className="px-6 pt-10 pb-14 md:pt-16 md:pb-20">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_580px] gap-10 md:gap-12 items-start">
-          <div>
+      <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_580px] gap-6 md:gap-12 items-start">
+          <div className="order-2 md:order-1">
             <p
-              className="text-[11px] uppercase mb-3"
+              className="text-[10px] sm:text-[11px] uppercase mb-2 sm:mb-3"
               style={{ letterSpacing: '0.1em', color: 'hsl(var(--text-tertiary))' }}
             >
               Dakar · Paris · New York · Dubai · Abidjan
             </p>
-            <h1 className="max-w-[420px] mb-3">Envoyez partout dans le monde, simplement.</h1>
+            <h1 className="max-w-[420px] mb-3 text-[28px] leading-[1.1] sm:text-[34px] md:text-[44px]">
+              Envoyez partout dans le monde, simplement.
+            </h1>
             <p
-              className="max-w-[380px] mb-7"
+              className="max-w-[380px] mb-5 sm:mb-7"
               style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}
             >
               Prix instantané. Aucun appel. Dédouanement inclus. Paiement en ligne.
             </p>
+            <div className="flex flex-wrap gap-2 md:hidden">
+              <button onClick={() => navigate('/expedier')} className="btn-cta flex-1 min-w-[140px]">Expédier</button>
+              <button onClick={() => navigate('/boutique')} className="btn-cta flex-1 min-w-[140px]"
+                style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                Boutique Dëkk
+              </button>
+            </div>
           </div>
 
-          <div className="w-full">
+          <div className="w-full order-1 md:order-2">
             <QuoteForm />
             <TrustBar />
           </div>
@@ -222,16 +231,20 @@ export default function LandingPage() {
 
       {/* ───── FINAL CTA ───── */}
       <section>
-        <div className="max-w-3xl mx-auto px-6 py-14 md:py-20 text-center">
-          <h2 className="text-[24px] md:text-[32px]">Prêt à simplifier votre prochain envoi ?</h2>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-20 text-center">
+          <h2 className="text-[22px] sm:text-[24px] md:text-[32px] leading-tight">Prêt à simplifier votre prochain envoi&nbsp;?</h2>
           <p className="mt-3 max-w-md mx-auto" style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>
             Choisissez votre besoin, on s'occupe du reste.
           </p>
-          <div className="mt-7 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <button onClick={() => navigate('/expedier')} className="btn-cta">Expédier un colis</button>
-            <button onClick={() => navigate('/acheter')} className="btn-cta"
+          <div className="mt-6 sm:mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl mx-auto">
+            <button onClick={() => navigate('/expedier')} className="btn-cta w-full">Expédier un colis</button>
+            <button onClick={() => navigate('/acheter')} className="btn-cta w-full"
               style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
               Acheter un produit
+            </button>
+            <button onClick={() => navigate('/boutique')} className="btn-cta w-full"
+              style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+              Boutique Dëkk
             </button>
           </div>
           <p className="mt-6 text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
