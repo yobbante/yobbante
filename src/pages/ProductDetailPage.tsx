@@ -48,7 +48,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
   const [p, setP] = useState<Product | null>(null);
-  const [related, setRelated] = useState<Product[]>([]);
+  const [related, setRelated] = useState<RecProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<string | null>(null);
