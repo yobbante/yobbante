@@ -223,7 +223,7 @@ export function QuoteForm() {
                     key={m}
                     type="button"
                     onClick={() => setMerchant(m)}
-                    className="shrink-0 transition-colors"
+                    className="shrink-0 transition-colors whitespace-nowrap"
                     style={{
                       height: 32,
                       padding: '0 12px',
