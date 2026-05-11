@@ -23,7 +23,17 @@ const DEKK_ACCENT = '#C97B3A';
 const DEKK_ACCENT_LIGHT = '#F5E6D8';
 const DEKK_ACCENT_DARK = '#8B5220';
 
-const CATEGORIES = ['Tout', 'Électronique', 'Mode', 'Maison', 'Auto', 'Tech', 'Beauté', 'Autre'];
+const CATEGORIES: { key: string; label: string }[] = [
+  { key: 'all', label: 'Tout' },
+  { key: 'electronique', label: 'Électronique' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'maison', label: 'Maison' },
+  { key: 'auto', label: 'Auto' },
+  { key: 'tech', label: 'Tech' },
+  { key: 'beaute', label: 'Beauté' },
+  { key: 'autre', label: 'Autre' },
+];
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]));
 
 const SORTS = [
   { id: 'trending', label: 'Tendance' },
