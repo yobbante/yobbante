@@ -58,9 +58,28 @@ function extractText(data: any): string {
     .trim();
 }
 
+// Simple in-memory IP rate limiter (10 requests / minute / IP)
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
+const ipBuckets = new Map<string, number[]>();
+function checkRate(ip: string): boolean {
+  const now = Date.now();
+  const arr = (ipBuckets.get(ip) ?? []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) { ipBuckets.set(ip, arr); return false; }
+  arr.push(now); ipBuckets.set(ip, arr); return true;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (!checkRate(ip)) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   if (req.method !== "POST") {
