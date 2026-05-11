@@ -252,9 +252,8 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
     if (!selectedRelay || !createdReference) return;
     const lines = [
       selectedRelay.contact_name ?? 'Yobbanté',
-      `Réf: ${createdReference}`,
+      createdReference,
       selectedRelay.address_line1,
-      selectedRelay.address_line2,
       [selectedRelay.postal_code, selectedRelay.city].filter(Boolean).join(' '),
       selectedRelay.country,
       selectedRelay.phone ? `Tel: ${selectedRelay.phone}` : null,
@@ -761,9 +760,13 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
                 </div>
                 <div className="space-y-0.5 text-sm text-white">
                   <p>{selectedRelay.contact_name ?? 'Yobbanté'}</p>
-                  <p className="font-mono text-yellow-300 font-bold">Réf : {createdReference}</p>
+                  <p
+                    className="font-mono font-medium text-foreground bg-secondary rounded-lg"
+                    style={{ fontSize: '13px', padding: '8px 12px', margin: '8px 0' }}
+                  >
+                    {createdReference}
+                  </p>
                   <p>{selectedRelay.address_line1}</p>
-                  {selectedRelay.address_line2 && <p>{selectedRelay.address_line2}</p>}
                   <p>{[selectedRelay.postal_code, selectedRelay.city].filter(Boolean).join(' ')}</p>
                   <p>{selectedRelay.country}</p>
                   {selectedRelay.phone && <p className="text-white/70">Tel : {selectedRelay.phone}</p>}

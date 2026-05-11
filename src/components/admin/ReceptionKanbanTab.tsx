@@ -500,9 +500,22 @@ function ReceivePanel({ order, onChanged }: { order: ReceptionOrder; onChanged: 
           </Button>
         </div>
         {quote ? (
-          <div className="space-y-0.5">
-            <p className="text-2xl font-bold text-foreground tabular-nums">{quote.price_eur.toFixed(2)} €</p>
-            <p className="text-[11px] text-muted-foreground tabular-nums">{quote.price_xof.toLocaleString()} XOF · frais manutention 2 000 XOF inclus</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Transport</span>
+              <span className="text-foreground font-medium tabular-nums">{(quote.price_xof - 2000).toLocaleString()} XOF</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Frais de manutention</span>
+              <span className="text-foreground font-medium tabular-nums">2 000 XOF</span>
+            </div>
+            <div className="border-t border-border pt-1.5 flex items-end justify-between">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Total</span>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-foreground tabular-nums leading-none">{quote.price_eur.toFixed(2)} €</p>
+                <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{quote.price_xof.toLocaleString()} XOF</p>
+              </div>
+            </div>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Renseignez le poids puis cliquez sur "Recalculer".</p>

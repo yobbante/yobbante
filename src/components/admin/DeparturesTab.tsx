@@ -24,6 +24,7 @@ const STATUS_BADGE: Record<DepartureStatus, { label: string; variant: 'success' 
   full:      { label: 'Complet',   variant: 'danger' },
   cancelled: { label: 'Annulé',    variant: 'secondary' },
   draft:     { label: 'Brouillon', variant: 'warning' },
+  expired:   { label: 'Expiré',    variant: 'secondary' },
 };
 
 export function DeparturesTab() {
