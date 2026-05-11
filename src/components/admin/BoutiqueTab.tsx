@@ -172,7 +172,7 @@ export function BoutiqueTab() {
             <Field label="Nom"><Input value={form.name} onChange={v => setForm({ ...form, name: v })} /></Field>
             <Field label="Catégorie">
               <Select value={form.category} onChange={v => setForm({ ...form, category: v })}
-                options={['Électronique','Mode','Auto','Maison','Tech','Beauté']} />
+                options={[['electronique','Électronique'],['mode','Mode'],['maison','Maison'],['auto','Auto'],['tech','Tech'],['beaute','Beauté'],['autre','Autre']]} />
             </Field>
             <Field label="Description"><Input value={form.description} onChange={v => setForm({ ...form, description: v })} /></Field>
             <Field label="Image URL"><Input value={form.image_url} onChange={v => setForm({ ...form, image_url: v })} /></Field>
