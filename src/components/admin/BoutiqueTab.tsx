@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -15,24 +15,18 @@ type Product = {
   status: string;
   image_url: string | null;
   source_type: string;
+  verified?: boolean;
   created_at: string;
 };
 
-const STATUS_FILTERS: { id: 'all' | 'draft' | 'published' | 'archived'; label: string }[] = [
-  { id: 'all', label: 'Tous' },
-  { id: 'draft', label: 'Draft' },
-  { id: 'published', label: 'Publiés' },
-  { id: 'archived', label: 'Archivés' },
-];
-
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  draft: { label: 'Draft', bg: '#FAEEDA', color: '#633806' },
-  published: { label: 'Publié', bg: '#E1F5EE', color: '#085041' },
-  archived: { label: 'Archivé', bg: '#F5F5F5', color: 'hsl(var(--muted-foreground))' },
+  published: { label: 'Publié',  bg: '#E1F5EE', color: '#085041' },
+  draft:     { label: 'Draft',   bg: '#F5E6D8', color: '#8B5220' },
+  archived:  { label: 'Archivé', bg: 'hsl(var(--background-secondary))', color: 'hsl(var(--muted-foreground))' },
 };
 
 const SOURCE_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  manual:    { label: 'Manuel',    bg: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' },
+  manual:    { label: 'Manuel',    bg: 'hsl(var(--background-secondary))', color: 'hsl(var(--muted-foreground))' },
   reception: { label: 'Réception', bg: '#E1F5EE', color: '#085041' },
   sourcing:  { label: 'Sourcing',  bg: '#EFF6FF', color: '#1D4ED8' },
 };
@@ -41,6 +35,20 @@ const CATEGORY_LABEL: Record<string, string> = {
   electronique: 'Électronique', mode: 'Mode', maison: 'Maison',
   auto: 'Auto', tech: 'Tech', beaute: 'Beauté', autre: 'Autre',
 };
+const CATEGORY_OPTIONS: [string, string][] = [
+  ['electronique','Électronique'],['mode','Mode'],['maison','Maison'],
+  ['auto','Auto'],['tech','Tech'],['beaute','Beauté'],['autre','Autre'],
+];
+
+const ORIGIN_OPTIONS: [string, string][] = [
+  ['CN','🇨🇳 Chine'], ['US','🇺🇸 USA'], ['FR','🇫🇷 France'], ['OTHER','🌍 Autre'],
+];
+
+const fmtFcfa = (eur: number) => `${(Math.round(eur) * 655).toLocaleString('fr-FR')} FCFA`;
+const fmtDate = (s: string) => {
+  const d = new Date(s);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+};
 
 const emptyForm = {
   name: '',
@@ -48,17 +56,16 @@ const emptyForm = {
   category: 'electronique',
   price_eur: 0,
   origin_country: 'CN',
-  stock_mode: 'stock',
+  stock_mode: 'stock' as 'stock' | 'commande',
   delivery_days: 7,
   image_url: '',
-  source_type: 'manual',
   verified: false,
-  status: 'draft',
+  status: 'draft' as 'draft' | 'published',
 };
 
 export function BoutiqueTab() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filter, setFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
+  const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,10 +81,11 @@ export function BoutiqueTab() {
     setProducts((data as any as Product[]) || []);
     setLoading(false);
   };
-
   useEffect(() => { load(); }, []);
 
-  const filtered = filter === 'all' ? products : products.filter(p => p.status === filter);
+  const published = useMemo(() => products.filter(p => p.status === 'published'), [products]);
+  const drafts    = useMemo(() => products.filter(p => p.status === 'draft'),     [products]);
+  const rows = tab === 'published' ? published : drafts;
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('products' as any).update({ status }).eq('id', id);
@@ -86,25 +94,63 @@ export function BoutiqueTab() {
     load();
   };
 
+  const remove = async (id: string) => {
+    if (!confirm('Supprimer définitivement ce produit ?')) return;
+    const { error } = await supabase.from('products' as any).delete().eq('id', id);
+    if (error) return toast.error(error.message);
+    toast.success('Produit supprimé');
+    load();
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm({ ...emptyForm });
+    setShowForm(true);
+  };
+
+  const startEdit = (p: Product) => {
+    setEditingId(p.id);
+    setForm({
+      name: p.name,
+      description: p.description || '',
+      category: p.category,
+      price_eur: p.price_eur,
+      origin_country: p.origin_country,
+      stock_mode: (p.stock_mode === 'commande' ? 'commande' : 'stock'),
+      delivery_days: p.delivery_days || 7,
+      image_url: p.image_url || '',
+      verified: !!p.verified,
+      status: (p.status === 'published' ? 'published' : 'draft'),
+    });
+    setShowForm(true);
+  };
+
   const submit = async () => {
-    const payload = {
-      name: form.name.trim(),
-      description: form.description.trim() || null,
+    const name = form.name.trim();
+    const description = form.description.trim();
+    const image_url = form.image_url.trim();
+    const price = Math.round(Number(form.price_eur) || 0);
+
+    if (!name) return toast.error('Nom requis');
+    if (!description) return toast.error('Description requise');
+    if (!image_url) return toast.error('Image URL requise');
+    if (price <= 0) return toast.error('Prix EUR requis');
+
+    const payload: any = {
+      name,
+      description,
       category: form.category,
-      price_eur: Math.round(Number(form.price_eur) || 0),
-      price_fcfa: Math.round((Number(form.price_eur) || 0) * 655),
+      price_eur: price,
       origin_country: form.origin_country,
       stock_mode: form.stock_mode,
       delivery_days: form.stock_mode === 'commande' ? Number(form.delivery_days) || 7 : null,
-      image_url: form.image_url.trim() || null,
-      source_type: form.source_type,
+      image_url,
+      source_type: editingId ? undefined : 'manual',
       verified: !!form.verified,
       status: form.status,
     };
-    if (!payload.name || !payload.price_eur) {
-      toast.error('Nom et prix requis');
-      return;
-    }
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+
     const q = editingId
       ? supabase.from('products' as any).update(payload).eq('id', editingId)
       : supabase.from('products' as any).insert(payload);
@@ -117,162 +163,285 @@ export function BoutiqueTab() {
     load();
   };
 
-  const startEdit = (p: Product) => {
-    setEditingId(p.id);
-    setForm({
-      name: p.name,
-      description: p.description || '',
-      category: p.category,
-      price_eur: p.price_eur,
-      origin_country: p.origin_country,
-      stock_mode: p.stock_mode,
-      delivery_days: p.delivery_days || 7,
-      image_url: p.image_url || '',
-      source_type: p.source_type,
-      verified: !!(p as any).verified,
-      status: p.status,
-    });
-    setShowForm(true);
-  };
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      {/* Header */}
+      <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.02em' }}>Boutique</h2>
-          <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{products.length} produits</p>
+          <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>
+            DËKK · BOUTIQUE
+          </div>
+          <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>Gestion des produits</h2>
         </div>
         <button
-          onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(true); }}
-          style={{ background: '#1a1a1a', color: '#fff', height: 36, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+          onClick={openCreate}
+          style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
         >
           + Ajouter un produit
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        {STATUS_FILTERS.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            style={{
-              height: 32, padding: '0 12px', borderRadius: 999, fontSize: 12,
-              background: filter === f.id ? '#1a1a1a' : 'transparent',
-              color: filter === f.id ? '#fff' : 'hsl(var(--muted-foreground))',
-              border: filter === f.id ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))',
-              cursor: 'pointer',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+        <TabBtn active={tab === 'published'} onClick={() => setTab('published')}>Produits publiés</TabBtn>
+        <TabBtn active={tab === 'draft'}     onClick={() => setTab('draft')}>Drafts ({drafts.length})</TabBtn>
       </div>
 
-      {showForm && (
-        <div style={{ border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}>
-            {editingId ? 'Modifier le produit' : 'Nouveau produit'}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field label="Nom"><Input value={form.name} onChange={v => setForm({ ...form, name: v })} /></Field>
-            <Field label="Catégorie">
-              <Select value={form.category} onChange={v => setForm({ ...form, category: v })}
-                options={[['electronique','Électronique'],['mode','Mode'],['maison','Maison'],['auto','Auto'],['tech','Tech'],['beaute','Beauté'],['autre','Autre']]} />
-            </Field>
-            <Field label="Description"><Input value={form.description} onChange={v => setForm({ ...form, description: v })} /></Field>
-            <Field label="Image URL"><Input value={form.image_url} onChange={v => setForm({ ...form, image_url: v })} /></Field>
-            <Field label="Prix EUR (entier)"><Input type="number" value={String(form.price_eur)} onChange={v => setForm({ ...form, price_eur: Number(v) })} /></Field>
-            <Field label="Origine">
-              <Select value={form.origin_country} onChange={v => setForm({ ...form, origin_country: v })}
-                options={[['CN','Chine'],['US','USA'],['FR','France'],['OTHER','Autre']]} />
-            </Field>
-            <Field label="Disponibilité">
-              <Select value={form.stock_mode} onChange={v => setForm({ ...form, stock_mode: v })}
-                options={[['stock','En stock'],['commande','Sur commande']]} />
-            </Field>
-            {form.stock_mode === 'commande' && (
-              <Field label="Délai (jours)"><Input type="number" value={String(form.delivery_days)} onChange={v => setForm({ ...form, delivery_days: Number(v) })} /></Field>
-            )}
-            <Field label="Source">
-              <Select value={form.source_type} onChange={v => setForm({ ...form, source_type: v })}
-                options={[['manual','Manuel'],['reception','Réception'],['sourcing','Sourcing']]} />
-            </Field>
-            <Field label="Vérifié">
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 36 }}>
-                <input type="checkbox" checked={!!form.verified} onChange={e => setForm({ ...form, verified: e.target.checked })} />
-                <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Testé par la communauté</span>
-              </label>
-            </Field>
-            <Field label="Statut">
-              <Select value={form.status} onChange={v => setForm({ ...form, status: v })}
-                options={[['draft','Draft'],['published','Publié'],['archived','Archivé']]} />
-            </Field>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button onClick={submit} style={{ background: '#1a1a1a', color: '#fff', height: 36, padding: '0 14px', borderRadius: 8, fontSize: 13, border: 'none', cursor: 'pointer' }}>
-              {editingId ? 'Enregistrer' : 'Créer'}
-            </button>
-            <button onClick={() => { setShowForm(false); setEditingId(null); }} style={{ background: 'transparent', height: 36, padding: '0 14px', borderRadius: 8, fontSize: 13, border: '0.5px solid hsl(var(--color-border-tertiary))', cursor: 'pointer' }}>
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
+      {/* Table */}
       <div style={{ border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
           <div className="p-8 text-center text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>Chargement…</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>Aucun produit</div>
+        ) : rows.length === 0 ? (
+          <EmptyTab tab={tab} onCreate={openCreate} />
         ) : (
-          <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead style={{ background: 'hsl(var(--secondary))' }}>
-              <tr>
-                {['', 'Nom', 'Catégorie', 'Prix', 'Statut', 'Source', 'Origine', 'Date', ''].map((h, i) => (
-                  <th key={i} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'hsl(var(--muted-foreground))' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => {
-                const b = STATUS_BADGE[p.status] || STATUS_BADGE.draft;
-                return (
-                  <tr key={p.id} style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                    <td style={{ padding: 8 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 6, background: '#F5F5F5', overflow: 'hidden' }}>
-                        {p.image_url && <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
-                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
-                    <td style={{ padding: '10px 12px' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span style={{ background: b.bg, color: b.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{b.label}</span>
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      {(() => { const s = SOURCE_BADGE[p.source_type] || SOURCE_BADGE.manual; return (
-                        <span style={{ background: s.bg, color: s.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{s.label}</span>
-                      ); })()}
-                    </td>
-                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.origin_country}</td>
-                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>
-                      {new Date(p.created_at).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {p.status !== 'published' && (
-                        <ActionBtn onClick={() => setStatus(p.id, 'published')}>Publier</ActionBtn>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: 720 }}>
+              <thead style={{ background: 'hsl(var(--background-secondary))' }}>
+                <tr>
+                  {['', 'Nom', 'Catégorie', 'Prix EUR', 'Disponibilité', 'Origine', ...(tab === 'draft' ? ['Source'] : []), 'Date', ''].map((h, i) => (
+                    <th key={i} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(p => {
+                  const stock = p.stock_mode === 'stock'
+                    ? { label: 'En stock', bg: '#E1F5EE', color: '#085041' }
+                    : { label: `Sous ${p.delivery_days ?? 7} j`, bg: '#F5E6D8', color: '#8B5220' };
+                  return (
+                    <tr key={p.id} style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                      <td style={{ padding: 8 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 6, background: 'hsl(var(--background-secondary))', overflow: 'hidden' }}>
+                          {p.image_url && <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
+                      <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <Pill label={stock.label} bg={stock.bg} color={stock.color} />
+                      </td>
+                      <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.origin_country}</td>
+                      {tab === 'draft' && (
+                        <td style={{ padding: '10px 12px' }}>
+                          {(() => { const s = SOURCE_BADGE[p.source_type] || SOURCE_BADGE.manual; return (
+                            <Pill label={s.label} bg={s.bg} color={s.color} />
+                          ); })()}
+                        </td>
                       )}
-                      <ActionBtn onClick={() => startEdit(p)}>Modifier</ActionBtn>
-                      {p.status !== 'archived' && (
-                        <ActionBtn onClick={() => setStatus(p.id, 'archived')}>Archiver</ActionBtn>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace', fontSize: 12 }}>
+                        {fmtDate(p.created_at)}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {tab === 'draft' && (
+                          <button onClick={() => setStatus(p.id, 'published')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, marginLeft: 4, cursor: 'pointer' }}>Publier</button>
+                        )}
+                        <Ghost onClick={() => startEdit(p)}>Modifier</Ghost>
+                        {tab === 'draft' ? (
+                          <Ghost danger onClick={() => remove(p.id)}>Supprimer</Ghost>
+                        ) : (
+                          <Ghost danger onClick={() => setStatus(p.id, 'archived')}>Archiver</Ghost>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
+      </div>
+
+      {/* Form sheet */}
+      {showForm && (
+        <ProductFormSheet
+          form={form}
+          setForm={setForm}
+          editing={!!editingId}
+          onCancel={() => { setShowForm(false); setEditingId(null); }}
+          onSubmit={submit}
+        />
+      )}
+    </div>
+  );
+}
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        padding: '10px 14px', fontSize: 13,
+        fontWeight: active ? 500 : 400,
+        color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+        borderBottom: active ? '2px solid #1a1a1a' : '2px solid transparent',
+        marginBottom: -1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Pill({ label, bg, color }: { label: string; bg: string; color: string }) {
+  return (
+    <span style={{ background: bg, color, fontSize: 9, fontFamily: '"DM Mono", monospace', borderRadius: 20, padding: '3px 10px' }}>
+      {label}
+    </span>
+  );
+}
+
+function Ghost({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'transparent', border: 'none',
+        padding: '5px 8px', fontSize: 12, marginLeft: 4, cursor: 'pointer',
+        color: danger ? '#A32D2D' : 'hsl(var(--foreground))',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyTab({ tab, onCreate }: { tab: 'published' | 'draft'; onCreate: () => void }) {
+  return (
+    <div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+      <p style={{ fontSize: 14, marginBottom: 12 }}>
+        {tab === 'published' ? 'Aucun produit publié.' : 'Aucun draft en attente.'}
+      </p>
+      {tab === 'published' && (
+        <button
+          onClick={onCreate}
+          style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+        >
+          + Ajouter un produit
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ProductFormSheet({
+  form, setForm, editing, onCancel, onSubmit,
+}: {
+  form: typeof emptyForm;
+  setForm: (f: typeof emptyForm) => void;
+  editing: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div
+      onClick={onCancel}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'hsl(var(--background-primary))', width: '100%', maxWidth: 560,
+          borderRadius: '16px 16px 0 0', padding: 20, maxHeight: '92vh', overflowY: 'auto',
+        }}
+      >
+        <h3 style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>
+          {editing ? 'Modifier le produit' : 'Nouveau produit'}
+        </h3>
+
+        <Field label="Nom du produit *">
+          <Input value={form.name} onChange={v => setForm({ ...form, name: v })} />
+        </Field>
+
+        <Field label="Description *">
+          <textarea
+            rows={3}
+            value={form.description}
+            onChange={e => setForm({ ...form, description: e.target.value })}
+            style={{
+              width: '100%', padding: '10px', fontSize: 13,
+              border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 8,
+              background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
+              resize: 'vertical', fontFamily: 'inherit',
+            }}
+          />
+        </Field>
+
+        <Field label="Catégorie *">
+          <Select value={form.category} onChange={v => setForm({ ...form, category: v })} options={CATEGORY_OPTIONS} />
+        </Field>
+
+        <Field label="Prix EUR *">
+          <Input
+            type="number"
+            mono
+            value={String(form.price_eur || '')}
+            onChange={v => setForm({ ...form, price_eur: Math.max(0, Math.round(Number(v) || 0)) })}
+          />
+          <div style={{ marginTop: 4, fontSize: 11, color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>
+            = {fmtFcfa(form.price_eur)}
+          </div>
+        </Field>
+
+        <Field label="Origine *">
+          <Select value={form.origin_country} onChange={v => setForm({ ...form, origin_country: v })} options={ORIGIN_OPTIONS} />
+        </Field>
+
+        <Field label="Disponibilité *">
+          <div className="flex gap-2">
+            <RadioBtn active={form.stock_mode === 'stock'}    onClick={() => setForm({ ...form, stock_mode: 'stock' })}>En stock</RadioBtn>
+            <RadioBtn active={form.stock_mode === 'commande'} onClick={() => setForm({ ...form, stock_mode: 'commande' })}>Sous X jours</RadioBtn>
+          </div>
+        </Field>
+
+        {form.stock_mode === 'commande' && (
+          <Field label="Délai (jours)">
+            <Input
+              type="number"
+              value={String(form.delivery_days)}
+              onChange={v => setForm({ ...form, delivery_days: Math.max(1, Number(v) || 1) })}
+            />
+          </Field>
+        )}
+
+        <Field label="Image URL *">
+          <Input value={form.image_url} onChange={v => setForm({ ...form, image_url: v })} />
+        </Field>
+
+        <Field label="Vérifié">
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 40, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.verified}
+              onChange={e => setForm({ ...form, verified: e.target.checked })}
+              style={{ width: 16, height: 16 }}
+            />
+            <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>Testé par la communauté</span>
+          </label>
+        </Field>
+
+        <Field label="Statut *">
+          <div className="flex gap-2">
+            <RadioBtn active={form.status === 'draft'}     onClick={() => setForm({ ...form, status: 'draft' })}>Draft</RadioBtn>
+            <RadioBtn active={form.status === 'published'} onClick={() => setForm({ ...form, status: 'published' })}>Publié</RadioBtn>
+          </div>
+        </Field>
+
+        <div className="flex flex-col gap-2 mt-5">
+          <button
+            onClick={onSubmit}
+            style={{ background: '#1a1a1a', color: '#fff', height: 44, borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+          >
+            Enregistrer
+          </button>
+          <button
+            onClick={onCancel}
+            style={{ background: 'transparent', height: 44, borderRadius: 8, fontSize: 13, border: 'none', cursor: 'pointer', color: 'hsl(var(--muted-foreground))' }}
+          >
+            Annuler
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -280,55 +449,56 @@ export function BoutiqueTab() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'block', fontSize: 12 }}>
-      <span style={{ display: 'block', color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>{label}</span>
+    <label style={{ display: 'block', fontSize: 12, marginBottom: 14 }}>
+      <span style={{ display: 'block', color: 'hsl(var(--muted-foreground))', marginBottom: 6, fontSize: 12 }}>{label}</span>
       {children}
     </label>
   );
 }
 
-function Input({ value, onChange, type = 'text' }: { value: string; onChange: (v: string) => void; type?: string }) {
+function Input({ value, onChange, type = 'text', mono = false }: { value: string; onChange: (v: string) => void; type?: string; mono?: boolean }) {
   return (
     <input
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{
-        width: '100%', height: 36, padding: '0 10px', fontSize: 13,
+        width: '100%', height: 40, minHeight: 44, padding: '0 12px', fontSize: 13,
         border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 8,
         background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
+        fontFamily: mono ? '"DM Mono", monospace' : 'inherit',
       }}
     />
   );
 }
 
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: (string | [string, string])[] }) {
+function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{
-        width: '100%', height: 36, padding: '0 10px', fontSize: 13,
+        width: '100%', height: 44, padding: '0 12px', fontSize: 13,
         border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 8,
         background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
       }}
     >
-      {options.map(o => {
-        const [v, l] = Array.isArray(o) ? o : [o, o];
-        return <option key={v} value={v}>{l}</option>;
-      })}
+      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   );
 }
 
-function ActionBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function RadioBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
-        background: 'transparent', border: '0.5px solid hsl(var(--color-border-tertiary))',
-        borderRadius: 6, padding: '4px 10px', fontSize: 11, marginLeft: 4, cursor: 'pointer',
-        color: 'hsl(var(--foreground))',
+        flex: 1, minHeight: 44, padding: '0 14px', fontSize: 13,
+        background: active ? '#1a1a1a' : 'transparent',
+        color: active ? '#fff' : 'hsl(var(--muted-foreground))',
+        border: active ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))',
+        borderRadius: 8, cursor: 'pointer', fontWeight: active ? 500 : 400,
       }}
     >
       {children}
