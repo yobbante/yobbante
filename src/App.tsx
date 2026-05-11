@@ -72,6 +72,9 @@ const App = () => (
             <Route path="/track/:id" element={<TrackPage />} />
             <Route path="/boutique" element={<BoutiquePage />} />
             <Route path="/boutique/:id" element={<ProductDetailPage />} />
+            <Route path="/panier" element={<CartPage />} />
+            <Route path="/panier/checkout" element={<CheckoutPage />} />
+            <Route path="/panier/confirmation/:reference" element={<OrderConfirmationPage />} />
             {/* Spec route aliases → existing pages */}
             <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
             <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
