@@ -9,6 +9,7 @@ import EnterprisesPage from "./pages/EnterprisesPage";
 import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
+import SourcingPage from "./pages/SourcingPage";
 import TarifsPage from "./pages/TarifsPage";
 import DevisPage from "./pages/DevisPage";
 import DevisConfirmerPage from "./pages/DevisConfirmerPage";
@@ -63,8 +64,11 @@ const App = () => (
             {/* New 2-CTAs entry points */}
             <Route path="/expedier" element={<ExpedierPage />} />
             <Route path="/expedier/:mode" element={<ExpedierPage />} />
-            <Route path="/acheter" element={<AcheterPage />} />
-            <Route path="/acheter/:mode" element={<AcheterPage />} />
+            {/* Sourcing — canonical URL. /acheter kept as alias for the merchant-mode selection page only when ?mode=recevoir is needed. */}
+            <Route path="/sourcing" element={<SourcingPage />} />
+            <Route path="/acheter" element={<Navigate to="/sourcing" replace />} />
+            <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
+            <Route path="/acheter/recevoir" element={<AcheterPage />} />
             <Route path="/tarifs" element={<TarifsPage />} />
             <Route path="/devis" element={<DevisPage />} />
             <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
