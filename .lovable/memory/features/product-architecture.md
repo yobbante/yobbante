@@ -1,6 +1,6 @@
 ---
 name: product-architecture
-description: 2-CTA architecture (Expédier/Acheter), routes, and the rule that all jargon stays internal
+description: 2-CTA architecture (Expédier/Sourcing), routes, and the rule that all jargon stays internal
 type: feature
 ---
 # Yobbanté — Architecture produit (post-refonte)
@@ -8,25 +8,27 @@ type: feature
 ## Règle d'or
 Le site public ne doit JAMAIS exposer plus de **2 entrées** :
 1. **Expédier un colis** → `/expedier`
-2. **Acheter un produit** → `/acheter`
-
-Tout le reste (sourcing, douane, GP/aérien/maritime/routier, import/export, adresses internationales, groupage) est une **mécanique interne** révélée uniquement à l'intérieur des flows.
+2. **Sourcing produit** → `/sourcing` (URL canonique)
 
 ## Routes
-- `/` → LandingPage (hero 2-CTAs, How it works, Why, Trust, Final CTA)
-- `/expedier` → ExpedierPage (ouvre `<DossierWizard presetIntent="ship" />`)
-- `/acheter` → AcheterPage (ouvre `<DossierWizard presetIntent="buy" />`)
-- `/obtenir-adresse` → redirect vers `/expedier` (legacy)
-- `/confier-dossier` → redirect vers `/acheter` (legacy)
-- `/services`, `/entreprises`, `/simulateur`, `/devis-entreprise` → accessibles uniquement via le footer
+- `/` → LandingPage
+- `/expedier` → ExpedierPage (`<DossierWizard presetIntent="ship" />`)
+- `/sourcing` → SourcingPage (rend `SourcingFlow` directement, pas d'écran de sélection)
+- `/acheter` → **redirect 301 → /sourcing** (legacy)
+- `/acheter/sourcing` → redirect 301 → /sourcing
+- `/acheter/recevoir` → AcheterPage (parcours merchant Amazon/AliExpress, conservé)
+- `/expedier/recevoir` → flow Recevoir (alias)
+- `/obtenir-adresse` → /expedier (legacy)
+- `/confier-dossier` → /sourcing (legacy)
 
-## Wizard (DossierWizard)
-Accepte `presetIntent?: 'ship' | 'buy'`. Si fourni, skip l'écran 0 (intent split) et démarre directement step 1.
-Le flow ship a 5 steps + success ; le flow buy a 5 steps + success (avec parsing produit via edge function `parse-product`).
+## Pourquoi /sourcing rend SourcingFlow direct
+L'écran de sélection de /acheter (2 cartes Sourcing/Recevoir) provoquait une perception
+de "page vide" — peu de contenu au-dessus du fold + animations motion. La page canonique
+sert maintenant directement le formulaire pour garantir un contenu visible immédiat.
 
 ## Nav publique
-`PublicNav` n'expose plus que : Logo · Expédier · Acheter · Connexion · Mon espace.
-Le burger mobile met les 2 CTAs en avant et range l'auth + pages secondaires en dessous.
+PublicNav : Logo · Expédier · Sourcing · Dëkk · Réception · Suivre · Tarifs.
 
 ## Copy interdite en surface
-"GP", "aérien/maritime/routier", "douane", "import/export", "FCL/LCL", "groupage", "dédouanement". Ces termes sont OK à l'intérieur du wizard une fois l'intent choisi.
+"GP", "aérien/maritime/routier", "douane", "import/export", "FCL/LCL", "groupage", "dédouanement".
+OK à l'intérieur du wizard une fois l'intent choisi.
