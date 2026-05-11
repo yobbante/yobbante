@@ -214,7 +214,7 @@ function FeaturedStrip() {
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: DEKK_ACCENT_DARK }}>
           SÉLECTION DU MOMENT
         </div>
-        <div style={{ fontSize: 16, fontWeight: 500, color: '#1a1a1a', marginTop: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: '#1a1a1a', marginTop: 4 }}>
           Ce que Dakar commande en ce moment.
         </div>
       </div>
