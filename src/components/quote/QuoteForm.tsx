@@ -30,12 +30,13 @@ interface TabDef {
   key: ServiceMode;
   Icon: typeof Package;
   label: string;
+  shortLabel: string;
   subtitle?: string;
 }
 const TABS: TabDef[] = [
-  { key: 'send', Icon: Package, label: 'Envoyer un colis' },
-  { key: 'sourcing', Icon: Search, label: 'Sourcing', subtitle: 'On achète pour vous' },
-  { key: 'reception', Icon: Inbox, label: 'Réception de commande', subtitle: 'Amazon, AliExpress, eBay…' },
+  { key: 'send', Icon: Package, label: 'Envoyer un colis', shortLabel: 'Envoyer' },
+  { key: 'sourcing', Icon: Search, label: 'Sourcing', shortLabel: 'Sourcing', subtitle: 'On achète pour vous' },
+  { key: 'reception', Icon: Inbox, label: 'Réception de commande', shortLabel: 'Réception', subtitle: 'Amazon, AliExpress…' },
 ];
 
 export function QuoteForm() {
