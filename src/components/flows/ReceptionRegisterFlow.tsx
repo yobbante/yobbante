@@ -252,9 +252,8 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
     if (!selectedRelay || !createdReference) return;
     const lines = [
       selectedRelay.contact_name ?? 'Yobbanté',
-      `Réf: ${createdReference}`,
+      createdReference,
       selectedRelay.address_line1,
-      selectedRelay.address_line2,
       [selectedRelay.postal_code, selectedRelay.city].filter(Boolean).join(' '),
       selectedRelay.country,
       selectedRelay.phone ? `Tel: ${selectedRelay.phone}` : null,
