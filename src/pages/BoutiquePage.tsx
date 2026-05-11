@@ -560,7 +560,7 @@ function CartDrawer({ cart, total, onClose, onQty }: {
               ≈ {fmtFcfa(total * 655)} · Livraison incluse
             </div>
             <button
-              onClick={() => { window.location.href = '/devis'; }}
+              onClick={() => { window.location.href = '/panier'; }}
               style={{ width: '100%', minHeight: 50, background: DEKK.ink, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               Passer commande →
             </button>
