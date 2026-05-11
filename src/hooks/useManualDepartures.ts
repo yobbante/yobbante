@@ -73,10 +73,14 @@ export function useManualDepartures() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      // Block deletion if shipments are confirmed on this departure
-      // (manual departures aren't yet linked to shipments by FK; treat full as warning)
+      // DB trigger blocks deletion when active shipments are linked.
       const { error } = await supabase.from('manual_departures').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        const msg = /envois? confirm/i.test(error.message)
+          ? error.message
+          : `Suppression impossible : ${error.message}`;
+        throw new Error(msg);
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['manual_departures'] }),
   });
