@@ -121,21 +121,31 @@ export default function BoutiquePage() {
         </div>
 
         {/* Categories + sort */}
-        <div className="flex items-center gap-3 mb-6 sticky top-[52px] z-10 py-2" style={{ background: 'hsl(var(--background-primary))' }}>
-          <div className="flex gap-2 overflow-x-auto flex-1" style={{ scrollbarWidth: 'none' }}>
+        <div className="mb-6 flex items-center gap-3 flex-wrap md:flex-nowrap">
+          <div
+            className="flex gap-2 overflow-x-auto w-full md:flex-1"
+            style={{ scrollbarWidth: 'none', minWidth: 0, WebkitOverflowScrolling: 'touch' }}
+          >
             {CATEGORIES.map(cat => {
               const active = cat === activeCat;
               return (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setActiveCat(cat)}
                   style={{
-                    flexShrink: 0, minHeight: 32, padding: '6px 14px', borderRadius: 20, fontSize: 13,
+                    flex: '0 0 auto',
+                    height: 32,
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 13,
+                    lineHeight: 1,
                     fontWeight: active ? 500 : 400,
                     background: active ? DEKK_ACCENT : 'transparent',
-                    color: active ? '#fff' : 'hsl(var(--muted-foreground))',
-                    border: active ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))',
-                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    color: active ? '#ffffff' : 'hsl(var(--muted-foreground))',
+                    border: active ? '0.5px solid ' + DEKK_ACCENT : '0.5px solid hsl(var(--color-border-tertiary))',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {cat}
@@ -148,7 +158,7 @@ export default function BoutiquePage() {
             onChange={e => setSort(e.target.value)}
             className="hidden md:block"
             style={{
-              height: 32, padding: '0 10px', fontSize: 13, borderRadius: 8,
+              flex: '0 0 auto', height: 32, padding: '0 10px', fontSize: 13, borderRadius: 8,
               border: '0.5px solid hsl(var(--color-border-tertiary))',
               background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
             }}
