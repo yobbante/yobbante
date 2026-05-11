@@ -84,7 +84,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="w-full order-1 md:order-2">
+          <div className="w-full order-2 md:order-2">
             <QuoteForm />
             <TrustBar />
           </div>
