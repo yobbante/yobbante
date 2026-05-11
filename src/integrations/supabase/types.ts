@@ -1088,6 +1088,7 @@ export type Database = {
           status: string
           stock_mode: string
           updated_at: string
+          verified: boolean
         }
         Insert: {
           category: string
@@ -1104,6 +1105,7 @@ export type Database = {
           status?: string
           stock_mode?: string
           updated_at?: string
+          verified?: boolean
         }
         Update: {
           category?: string
@@ -1120,6 +1122,7 @@ export type Database = {
           status?: string
           stock_mode?: string
           updated_at?: string
+          verified?: boolean
         }
         Relationships: []
       }
