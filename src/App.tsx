@@ -14,6 +14,7 @@ import DevisPage from "./pages/DevisPage";
 import DevisConfirmerPage from "./pages/DevisConfirmerPage";
 import TrackPage from "./pages/TrackPage";
 import BoutiquePage from "./pages/BoutiquePage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/track" element={<TrackPage />} />
             <Route path="/track/:id" element={<TrackPage />} />
             <Route path="/boutique" element={<BoutiquePage />} />
+            <Route path="/boutique/:id" element={<ProductDetailPage />} />
             {/* Spec route aliases → existing pages */}
             <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
             <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
