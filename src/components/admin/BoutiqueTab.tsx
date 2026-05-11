@@ -244,7 +244,7 @@ export function BoutiqueTab() {
                       </div>
                     </td>
                     <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
-                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.category}</td>
+                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
                     <td style={{ padding: '10px 12px' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{ background: b.bg, color: b.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{b.label}</span>
