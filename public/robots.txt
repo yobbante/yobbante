@@ -12,3 +12,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /app
+Disallow: /auth
+Disallow: /panier
+Disallow: /business
+
+Sitemap: https://yobbante.com/sitemap.xml
