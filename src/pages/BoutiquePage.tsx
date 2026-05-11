@@ -23,7 +23,17 @@ const DEKK_ACCENT = '#C97B3A';
 const DEKK_ACCENT_LIGHT = '#F5E6D8';
 const DEKK_ACCENT_DARK = '#8B5220';
 
-const CATEGORIES = ['Tout', 'Électronique', 'Mode', 'Maison', 'Auto', 'Tech', 'Beauté', 'Autre'];
+const CATEGORIES: { key: string; label: string }[] = [
+  { key: 'all', label: 'Tout' },
+  { key: 'electronique', label: 'Électronique' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'maison', label: 'Maison' },
+  { key: 'auto', label: 'Auto' },
+  { key: 'tech', label: 'Tech' },
+  { key: 'beaute', label: 'Beauté' },
+  { key: 'autre', label: 'Autre' },
+];
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]));
 
 const SORTS = [
   { id: 'trending', label: 'Tendance' },
@@ -45,7 +55,7 @@ const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 export default function BoutiquePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState('Tout');
+  const [activeCat, setActiveCat] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('trending');
 
@@ -62,7 +72,7 @@ export default function BoutiquePage() {
   }, []);
 
   const filtered = useMemo(() => {
-    let list = activeCat === 'Tout' ? products : products.filter(p => p.category === activeCat);
+    let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q));
@@ -132,12 +142,12 @@ export default function BoutiquePage() {
           >
             <style>{`.dekk-chips::-webkit-scrollbar{display:none}`}</style>
             {CATEGORIES.map(cat => {
-              const active = cat === activeCat;
+              const active = cat.key === activeCat;
               return (
                 <button
-                  key={cat}
+                  key={cat.key}
                   type="button"
-                  onClick={() => setActiveCat(cat)}
+                  onClick={() => setActiveCat(cat.key)}
                   style={{
                     flex: '0 0 auto',
                     height: 32,
@@ -153,7 +163,7 @@ export default function BoutiquePage() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {cat}
+                  {cat.label}
                 </button>
               );
             })}
@@ -290,7 +300,7 @@ function ProductCard({ p }: { p: Product }) {
             color: 'hsl(var(--muted-foreground))', marginBottom: 4,
           }}
         >
-          {p.category}
+          {CATEGORY_LABEL[p.category] ?? p.category}
         </div>
         <div
           style={{

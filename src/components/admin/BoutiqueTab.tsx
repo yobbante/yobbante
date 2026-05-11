@@ -37,10 +37,15 @@ const SOURCE_BADGE: Record<string, { label: string; bg: string; color: string }>
   sourcing:  { label: 'Sourcing',  bg: '#EFF6FF', color: '#1D4ED8' },
 };
 
+const CATEGORY_LABEL: Record<string, string> = {
+  electronique: 'Électronique', mode: 'Mode', maison: 'Maison',
+  auto: 'Auto', tech: 'Tech', beaute: 'Beauté', autre: 'Autre',
+};
+
 const emptyForm = {
   name: '',
   description: '',
-  category: 'Électronique',
+  category: 'electronique',
   price_eur: 0,
   origin_country: 'CN',
   stock_mode: 'stock',
@@ -172,7 +177,7 @@ export function BoutiqueTab() {
             <Field label="Nom"><Input value={form.name} onChange={v => setForm({ ...form, name: v })} /></Field>
             <Field label="Catégorie">
               <Select value={form.category} onChange={v => setForm({ ...form, category: v })}
-                options={['Électronique','Mode','Auto','Maison','Tech','Beauté']} />
+                options={[['electronique','Électronique'],['mode','Mode'],['maison','Maison'],['auto','Auto'],['tech','Tech'],['beaute','Beauté'],['autre','Autre']]} />
             </Field>
             <Field label="Description"><Input value={form.description} onChange={v => setForm({ ...form, description: v })} /></Field>
             <Field label="Image URL"><Input value={form.image_url} onChange={v => setForm({ ...form, image_url: v })} /></Field>
@@ -239,7 +244,7 @@ export function BoutiqueTab() {
                       </div>
                     </td>
                     <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
-                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.category}</td>
+                    <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
                     <td style={{ padding: '10px 12px' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{ background: b.bg, color: b.color, fontSize: 11, padding: '3px 8px', borderRadius: 6 }}>{b.label}</span>
