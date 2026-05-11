@@ -81,44 +81,48 @@ export default function BoutiquePage() {
     <div className="min-h-screen" style={{ background: 'hsl(var(--background-primary))', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
       <PublicNav />
 
-      <main className="max-w-6xl mx-auto px-5 sm:px-6 py-8 sm:py-10">
-        {/* Store header */}
-        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-6">
-          <div>
-            <h1 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', color: DEKK_ACCENT, margin: 0, lineHeight: 1 }}>
-              DËKK
-            </h1>
-            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginTop: 8, margin: 0, marginBlockStart: 8 }}>
-              Le monde, livré ici.
-            </p>
-            <p style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
-              by Yobbanté
-            </p>
-          </div>
-          <div className="w-full md:w-[280px]">
+      <main className="max-w-6xl mx-auto" style={{ background: 'hsl(var(--background-primary))' }}>
+        {/* Dëkk brand header */}
+        <header style={{ padding: '28px 24px 0' }}>
+          <h1 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', color: DEKK_ACCENT, margin: 0, lineHeight: 1 }}>
+            DËKK
+          </h1>
+          <p style={{ fontSize: 13, fontWeight: 400, color: 'hsl(var(--muted-foreground))', marginTop: 6, margin: 0, marginBlockStart: 6 }}>
+            Le monde, livré ici.
+          </p>
+          <p style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 4, margin: 0, marginBlockStart: 4 }}>
+            by Yobbanté
+          </p>
+
+          {/* Search bar */}
+          <div style={{ marginTop: 20 }}>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher un produit..."
               style={{
-                width: '100%', height: 40, padding: '0 12px', fontSize: 13,
+                width: '100%', height: 40, padding: '0 14px', fontSize: 13,
                 border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 8,
-                background: 'hsl(var(--background-primary))', color: 'hsl(var(--foreground))',
+                background: 'hsl(var(--background-secondary))', color: 'hsl(var(--foreground))',
                 outline: 'none',
               }}
             />
           </div>
+
+          {/* Trust strip */}
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 10, fontFamily: '"DM Mono", monospace',
+              color: 'hsl(var(--muted-foreground))',
+              whiteSpace: 'nowrap', overflowX: 'auto',
+            }}
+          >
+            ✓ Produits testés et importés · ✓ Livraison au Sénégal incluse · ✓ Paiement sécurisé
+          </div>
         </header>
 
-        {/* Trust strip */}
-        <div
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-6 pb-5"
-          style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))', fontSize: 10, fontFamily: '"DM Mono", monospace', color: 'hsl(var(--muted-foreground))' }}
-        >
-          <span>✓ Produits testés et importés</span><span>·</span>
-          <span>✓ Livraison au Sénégal incluse</span><span>·</span>
-          <span>✓ Paiement sécurisé</span>
-        </div>
+        <div className="px-5 sm:px-6 pt-6 pb-10">
 
         {/* Categories + sort */}
         <div className="mb-6 flex items-center gap-3 flex-wrap md:flex-nowrap">
