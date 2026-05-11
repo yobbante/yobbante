@@ -255,7 +255,7 @@ function ProductCard({ p }: { p: Product }) {
         display: 'flex', flexDirection: 'column',
       }}
     >
-      <div style={{ position: 'relative', height: 200, background: 'hsl(var(--secondary))' }}>
+      <div style={{ position: 'relative', height: 200, background: 'hsl(var(--background-secondary))' }}>
         {p.image_url ? (
           <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : null}
