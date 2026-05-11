@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { supabase } from '@/integrations/supabase/client';
+import { applySeo } from '@/lib/dekkSeo';
+import { recommend, RecProduct, trackView } from '@/lib/dekkRecommend';
 import { ArrowLeft, Heart, Share2, ShieldCheck, Truck, Check, Plus, Minus, ShoppingBag, Star, ChevronRight } from 'lucide-react';
 
 type Product = {
