@@ -55,7 +55,7 @@ const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 export default function BoutiquePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState('Tout');
+  const [activeCat, setActiveCat] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('trending');
 
