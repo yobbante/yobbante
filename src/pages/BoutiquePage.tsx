@@ -320,7 +320,7 @@ function ProductCard({ p }: { p: Product }) {
           onMouseEnter={e => (e.currentTarget.style.background = DEKK_ACCENT_DARK)}
           onMouseLeave={e => (e.currentTarget.style.background = DEKK_ACCENT)}
           style={{
-            marginTop: 10, width: '100%', height: 44, minHeight: 44,
+            marginTop: 10, width: '100%', height: 40, minHeight: 44,
             background: DEKK_ACCENT, color: '#fff',
             fontSize: 13, fontWeight: 500, borderRadius: 8, border: 'none',
             cursor: 'pointer', transition: 'background 150ms',
