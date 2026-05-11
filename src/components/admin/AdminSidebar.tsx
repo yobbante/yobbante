@@ -29,7 +29,7 @@ export const ADMIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDa
   { id: 'departures',   label: 'Départs manuels',   icon: Plane,           live: true },
   { id: 'transporteurs',label: 'Transporteurs',     icon: UserCog,         live: true, adminOnly: true },
   { id: 'sourcing',     label: 'Sourcing',          icon: ShoppingCart,    live: true },
-  { id: 'boutique',     label: 'Boutique',          icon: ShoppingBag,     live: true },
+  { id: 'boutique',     label: 'Dëkk — Boutique',   icon: ShoppingBag,     live: true },
   { id: 'tracking',     label: 'Tracking global',   icon: MapPin,          live: true },
   { id: 'clients',      label: 'Clients',           icon: Users,           live: true },
   { id: 'enterprise',   label: 'Devis entreprise',  icon: Building2,       live: true },
