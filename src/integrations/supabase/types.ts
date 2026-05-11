@@ -1077,9 +1077,9 @@ export type Database = {
           category: string
           created_at: string
           delivery_days: number | null
-          description: string | null
+          description: string
           id: string
-          image_url: string | null
+          image_url: string
           name: string
           origin_country: string
           price_eur: number
@@ -1094,9 +1094,9 @@ export type Database = {
           category: string
           created_at?: string
           delivery_days?: number | null
-          description?: string | null
+          description: string
           id?: string
-          image_url?: string | null
+          image_url: string
           name: string
           origin_country?: string
           price_eur?: number
@@ -1111,9 +1111,9 @@ export type Database = {
           category?: string
           created_at?: string
           delivery_days?: number | null
-          description?: string | null
+          description?: string
           id?: string
-          image_url?: string | null
+          image_url?: string
           name?: string
           origin_country?: string
           price_eur?: number
