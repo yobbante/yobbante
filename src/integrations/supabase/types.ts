@@ -1828,6 +1828,7 @@ export type Database = {
         Args: { p_reason?: string; p_shipment_id: string }
         Returns: Json
       }
+      expire_past_manual_departures: { Args: never; Returns: number }
       expire_unpaid_shipments: { Args: never; Returns: number }
       generate_business_invoice_reference: { Args: never; Returns: string }
       generate_dossier_reference: { Args: never; Returns: string }
