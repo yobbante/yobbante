@@ -59,7 +59,7 @@ export default function LandingPage() {
       {/* ───── HERO + QUOTE FORM ───── */}
       <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
         <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_580px] gap-6 md:gap-12 items-start">
-          <div className="order-2 md:order-1">
+          <div className="order-1 md:order-1">
             <p
               className="text-[10px] sm:text-[11px] uppercase mb-2 sm:mb-3"
               style={{ letterSpacing: '0.1em', color: 'hsl(var(--text-tertiary))' }}
