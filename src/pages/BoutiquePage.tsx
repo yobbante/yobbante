@@ -159,6 +159,7 @@ export default function BoutiquePage() {
           >
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
+          </div>
         </div>
 
         {/* Grid / empty */}
