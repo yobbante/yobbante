@@ -56,6 +56,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
+      <LiveDeparturesTicker />
 
       {/* ───── HERO + QUOTE FORM ───── */}
       <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
