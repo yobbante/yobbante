@@ -40,7 +40,7 @@ const SOURCE_BADGE: Record<string, { label: string; bg: string; color: string }>
 const emptyForm = {
   name: '',
   description: '',
-  category: 'Électronique',
+  category: 'electronique',
   price_eur: 0,
   origin_country: 'CN',
   stock_mode: 'stock',
