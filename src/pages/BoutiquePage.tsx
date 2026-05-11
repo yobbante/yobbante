@@ -296,7 +296,7 @@ function ProductCard({ p }: { p: Product }) {
           style={{
             fontSize: 14, fontWeight: 500, color: 'hsl(var(--foreground))',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden', lineHeight: 1.3,
+            overflow: 'hidden', lineHeight: 1.4,
           }}
         >
           {p.name}
