@@ -131,8 +131,8 @@ export function FlowCompactHeader({
 }: {
   eyebrow: string;
   title: string;
-  onSwap: () => void;
-  swapLabel: string;
+  onSwap?: () => void;
+  swapLabel?: string;
   theme?: FlowTheme;
   /** Optional secondary action shown to the left of the swap button. */
   secondaryAction?: {
@@ -176,18 +176,20 @@ export function FlowCompactHeader({
               <span className="hidden sm:inline">{secondaryAction.label}</span>
             </button>
           )}
-          <button
-            onClick={onSwap}
-            className={cn(
-              'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all',
-              theme === 'dark'
-                ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
-                : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span className="hidden sm:inline">{swapLabel}</span>
-          </button>
+          {onSwap && (
+            <button
+              onClick={onSwap}
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-all',
+                theme === 'dark'
+                  ? 'border border-white/15 hover:border-white/40 text-white/80 hover:text-white'
+                  : 'border border-border hover:border-foreground text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span className="hidden sm:inline">{swapLabel ?? 'Changer'}</span>
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
