@@ -177,12 +177,12 @@ export default function BoutiquePage() {
           <EmptyState />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3" style={{ marginTop: 20 }}>
               {beforeFeatured.map(p => <ProductCard key={p.id} p={p} />)}
             </div>
             {afterFeatured.length > 0 && <FeaturedStrip />}
             {afterFeatured.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {afterFeatured.map(p => <ProductCard key={p.id} p={p} />)}
               </div>
             )}
