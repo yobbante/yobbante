@@ -323,7 +323,7 @@ export default function ProductDetailPage() {
             </button>
           </div>
 
-          <button onClick={() => { addToCart(); setTimeout(() => nav('/devis'), 200); }}
+          <button onClick={() => { addToCart(); setTimeout(() => nav('/panier/checkout'), 200); }}
             style={{
               marginTop: 10, width: '100%', minHeight: 52, borderRadius: 12,
               background: DEKK.accent, color: '#fff', border: 'none', cursor: 'pointer',
