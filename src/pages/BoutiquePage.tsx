@@ -197,6 +197,7 @@ export default function BoutiquePage() {
             La boutique alimentée par la communauté.
           </p>
         </footer>
+        </div>
       </main>
     </div>
   );
