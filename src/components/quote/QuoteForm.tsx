@@ -30,12 +30,13 @@ interface TabDef {
   key: ServiceMode;
   Icon: typeof Package;
   label: string;
+  shortLabel: string;
   subtitle?: string;
 }
 const TABS: TabDef[] = [
-  { key: 'send', Icon: Package, label: 'Envoyer un colis' },
-  { key: 'sourcing', Icon: Search, label: 'Sourcing', subtitle: 'On achète pour vous' },
-  { key: 'reception', Icon: Inbox, label: 'Réception de commande', subtitle: 'Amazon, AliExpress, eBay…' },
+  { key: 'send', Icon: Package, label: 'Envoyer un colis', shortLabel: 'Envoyer' },
+  { key: 'sourcing', Icon: Search, label: 'Sourcing', shortLabel: 'Sourcing', subtitle: 'On achète pour vous' },
+  { key: 'reception', Icon: Inbox, label: 'Réception de commande', shortLabel: 'Réception', subtitle: 'Amazon, AliExpress…' },
 ];
 
 export function QuoteForm() {
@@ -102,11 +103,11 @@ export function QuoteForm() {
 
   return (
     <div
-      className="rounded-[12px] p-5 max-w-[580px] w-full"
+      className="rounded-[12px] p-3 sm:p-5 max-w-[580px] w-full overflow-hidden"
       style={{ background: 'hsl(var(--secondary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
     >
       {/* Tabs */}
-      <div className="flex gap-1.5 mb-4">
+      <div className="grid grid-cols-3 gap-1.5 mb-4">
         {TABS.map(t => {
           const active = service === t.key;
           return (
@@ -114,9 +115,9 @@ export function QuoteForm() {
               key={t.key}
               type="button"
               onClick={() => setService(t.key)}
-              className="flex-1 text-left transition-colors"
+              className="text-left transition-colors min-w-0"
               style={{
-                padding: '8px 14px',
+                padding: '8px 10px',
                 borderRadius: 8,
                 background: active ? '#ffffff' : 'transparent',
                 border: active
@@ -127,13 +128,16 @@ export function QuoteForm() {
                 fontWeight: active ? 600 : 400,
               }}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <t.Icon className="w-4 h-4 shrink-0" />
-                <span className="text-[13px] font-medium leading-tight">{t.label}</span>
+                <span className="text-[12px] sm:text-[13px] font-medium leading-tight truncate">
+                  <span className="sm:hidden">{t.shortLabel}</span>
+                  <span className="hidden sm:inline">{t.label}</span>
+                </span>
               </div>
               {t.subtitle && (
                 <div
-                  className="text-[10px] mt-0.5 leading-tight"
+                  className="text-[10px] mt-0.5 leading-tight hidden sm:block truncate"
                   style={{ color: active ? 'hsl(var(--muted-foreground))' : 'hsl(var(--text-tertiary))' }}
                 >
                   {t.subtitle}
