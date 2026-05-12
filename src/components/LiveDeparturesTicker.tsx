@@ -108,7 +108,7 @@ export function LiveDeparturesTicker() {
     <span
       style={{
         fontFamily: '"DM Mono", ui-monospace, monospace',
-        color: '#333333',
+        color: '#8A8A8A',
         margin: '0 24px',
       }}
     >
@@ -122,7 +122,7 @@ export function LiveDeparturesTicker() {
           key={i}
           style={{
             fontFamily: '"DM Mono", ui-monospace, monospace',
-            color: '#AAAAAA',
+            color: '#E5E5E5',
             display: 'inline-flex',
             alignItems: 'center',
             whiteSpace: 'nowrap',
@@ -141,11 +141,11 @@ export function LiveDeparturesTicker() {
           {d.ville_depart}
           <span style={{ color: '#F5C518', margin: '0 6px' }}>→</span>
           {d.ville_arrivee}
-          <span style={{ color: '#555555', margin: '0 8px' }}>·</span>
+          <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
           {formatDate(d.date_depart)}
-          <span style={{ color: '#555555', margin: '0 8px' }}>·</span>
+          <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
           {formatMode(d.mode_transport)}
-          <span style={{ color: '#555555', margin: '0 8px' }}>·</span>
+          <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
           {d.transporteur || 'Yobbanté'}
         </span>
       ))
@@ -154,7 +154,7 @@ export function LiveDeparturesTicker() {
           key="fallback"
           style={{
             fontFamily: '"DM Mono", ui-monospace, monospace',
-            color: '#AAAAAA',
+            color: '#E5E5E5',
             whiteSpace: 'nowrap',
           }}
         >
@@ -200,10 +200,10 @@ export function LiveDeparturesTicker() {
       <span
         style={{
           fontFamily: '"DM Mono", ui-monospace, monospace',
-          fontSize: 9,
+          fontSize: 12,
           textTransform: 'uppercase',
           letterSpacing: '0.14em',
-          color: '#555555',
+          color: '#B0B0B0',
           paddingLeft: 16,
           paddingRight: 12,
           borderRight: '0.5px solid #1E1E1E',
@@ -236,7 +236,7 @@ export function LiveDeparturesTicker() {
             display: 'inline-flex',
             alignItems: 'center',
             height: '100%',
-            fontSize: 10,
+            fontSize: 12,
             animation: hasItems
               ? 'ticker-scroll 40s linear infinite'
               : 'ticker-scroll 60s linear infinite',
@@ -258,7 +258,7 @@ export function LiveDeparturesTicker() {
           animation-play-state: paused !important;
         }
         @media (max-width: 640px) {
-          .ticker-track { font-size: 9px !important; }
+          .ticker-track { font-size: 12px !important; }
         }
       `}</style>
     </div>

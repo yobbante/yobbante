@@ -123,6 +123,17 @@ export default function TarifsPage() {
               </AccordionItem>
             ))}
           </Accordion>
+          <p className="text-[13px] mt-3" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            Une question&nbsp;?{' '}
+            <a
+              href="https://wa.me/221786078080?text=Bonjour%20Yobbant%C3%A9%2C%20j%27ai%20une%20question%20sur%20vos%20tarifs."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              Écrivez-nous sur WhatsApp →
+            </a>
+          </p>
         </section>
       </main>
 
