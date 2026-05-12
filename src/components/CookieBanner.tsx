@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
+import { enableAnalytics } from '@/lib/analytics';
 
 const STORAGE_KEY = 'yobbante.cookies.v1';
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
 
   useEffect(() => {
+    if (isAdmin) return;
     try {
       if (!localStorage.getItem(STORAGE_KEY)) {
         const t = setTimeout(() => setVisible(true), 600);
@@ -15,14 +20,15 @@ export function CookieBanner() {
     } catch {
       // localStorage unavailable, skip
     }
-  }, []);
+  }, [isAdmin]);
 
   const dismiss = (choice: 'accept' | 'decline') => {
     try { localStorage.setItem(STORAGE_KEY, choice); } catch { /* ignore */ }
+    if (choice === 'accept') enableAnalytics();
     setVisible(false);
   };
 
-  if (!visible) return null;
+  if (isAdmin || !visible) return null;
 
   return (
     <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 z-[60] sm:max-w-sm animate-fade-in">
