@@ -20,6 +20,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import { CookieBanner } from "@/components/CookieBanner";
+import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="/business/pricing" element={<BusinessPricingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FloatingWhatsApp />
           <CookieBanner />
           <InstallAppPrompt />
         </MaintenanceGate>
