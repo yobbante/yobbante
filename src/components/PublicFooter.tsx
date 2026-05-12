@@ -76,6 +76,14 @@ export function PublicFooter() {
               Expédiez, recevez ou achetez à l'international. On gère tout, de A à Z.
             </p>
             <div className="mt-5 space-y-2">
+              <a
+                href={whatsappLink("Bonjour Yobbanté, j'ai une question sur vos services.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp · {YOBBANTE_WHATSAPP_DISPLAY}
+              </a>
               <a href="mailto:contact@yobbante.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="w-3.5 h-3.5" /> contact@yobbante.com
               </a>
@@ -83,6 +91,7 @@ export function PublicFooter() {
                 <MapPin className="w-3.5 h-3.5" /> Dakar · Paris · Shenzhen
               </p>
             </div>
+            <SocialLinks className="mt-4" />
           </div>
 
           {SECTIONS.map((s) => (
@@ -119,6 +128,14 @@ export function PublicFooter() {
           </div>
 
           <div className="mt-6 space-y-2">
+            <a
+              href={whatsappLink("Bonjour Yobbanté, j'ai une question sur vos services.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp · {YOBBANTE_WHATSAPP_DISPLAY}
+            </a>
             <a href="mailto:contact@yobbante.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <Mail className="w-3.5 h-3.5" /> contact@yobbante.com
             </a>
@@ -126,6 +143,7 @@ export function PublicFooter() {
               <MapPin className="w-3.5 h-3.5" /> Dakar · Paris · Shenzhen
             </p>
           </div>
+          <SocialLinks className="mt-5" />
         </div>
 
         <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
