@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, MapPin, Package, ShoppingCart, ChevronDown } from 'lucide-react';
+import { Mail, MapPin, MessageCircle, Package, ShoppingCart, ChevronDown, Instagram, Facebook, Linkedin } from 'lucide-react';
+import { whatsappLink, YOBBANTE_WHATSAPP_DISPLAY } from '@/lib/contact';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/BrandLogo';
 
