@@ -167,14 +167,14 @@ export function QuoteForm() {
                 value={weight} onChange={e => setWeight(e.target.value)} />
             </Field>
             <Field label="Mode">
-              <select className="input-base w-full" value={mode} onChange={e => setMode(e.target.value as TransportMode)}>
+              <select aria-label="Mode de transport" className="input-base w-full" value={mode} onChange={e => setMode(e.target.value as TransportMode)}>
                 <option value="air">Air</option>
                 <option value="sea">Mer LCL</option>
                 <option value="road">Route</option>
               </select>
             </Field>
             <Field label="Type">
-              <select className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
+              <select aria-label="Type de marchandise" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
                 {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
@@ -201,7 +201,7 @@ export function QuoteForm() {
                 value={budget} onChange={e => setBudget(e.target.value)} />
             </Field>
             <Field label="Pays d'origine">
-              <select className="input-base w-full" value={sourcingCountry} onChange={e => setSourcingCountry(e.target.value)}>
+              <select aria-label="Pays d'origine" className="input-base w-full" value={sourcingCountry} onChange={e => setSourcingCountry(e.target.value)}>
                 {SOURCING_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
@@ -245,12 +245,12 @@ export function QuoteForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Pays du marchand *">
-              <select className="input-base w-full" value={merchantCountry} onChange={e => setMerchantCountry(e.target.value)}>
+              <select aria-label="Pays du marchand" className="input-base w-full" value={merchantCountry} onChange={e => setMerchantCountry(e.target.value)}>
                 {MERCHANT_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
             <Field label="Mode *">
-              <select className="input-base w-full" value={recMode} onChange={e => setRecMode(e.target.value as TransportMode)}>
+              <select aria-label="Mode d'expédition" className="input-base w-full" value={recMode} onChange={e => setRecMode(e.target.value as TransportMode)}>
                 <option value="air">Aérien (3-7j)</option>
                 <option value="sea">Maritime LCL (18-25j)</option>
               </select>
@@ -262,7 +262,7 @@ export function QuoteForm() {
                 value={estimatedValue} onChange={e => setEstimatedValue(e.target.value)} />
             </Field>
             <Field label="Type de colis">
-              <select className="input-base w-full" value={recType} onChange={e => setRecType(e.target.value as GoodsType)}>
+              <select aria-label="Type de colis" className="input-base w-full" value={recType} onChange={e => setRecType(e.target.value as GoodsType)}>
                 {RECEPTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>

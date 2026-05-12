@@ -79,23 +79,23 @@ export function PricingSimulator({ compact = false }: { compact?: boolean }) {
     <div className="rounded-2xl p-5 md:p-6 space-y-4" style={{ background: '#111111', border: '0.5px solid #1E1E1E' }}>
       <div className={compact ? 'grid grid-cols-1 gap-3' : 'grid md:grid-cols-2 gap-4'}>
         <Field label="Origine *">
-          <select value={origin} onChange={e => setOrigin(e.target.value as Corridor)}
+          <select aria-label="Pays d'origine" value={origin} onChange={e => setOrigin(e.target.value as Corridor)}
             className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white">
             {CORRIDORS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Field>
         <Field label="Destination *">
-          <select value={destination} onChange={e => setDestination(e.target.value as Corridor)}
+          <select aria-label="Destination" value={destination} onChange={e => setDestination(e.target.value as Corridor)}
             className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white">
             {CORRIDORS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Field>
         <Field label="Poids estimé (kg) *">
-          <input type="number" step={0.5} min={0.5} value={weight} onChange={e => setWeight(e.target.value)}
+          <input aria-label="Poids estimé en kilogrammes" type="number" step={0.5} min={0.5} value={weight} onChange={e => setWeight(e.target.value)}
             className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white font-mono" />
         </Field>
         <Field label="Type de marchandise *">
-          <select value={merch} onChange={e => setMerch(e.target.value as Merch)}
+          <select aria-label="Type de marchandise" value={merch} onChange={e => setMerch(e.target.value as Merch)}
             className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-2.5 text-sm text-white">
             {MERCH.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
