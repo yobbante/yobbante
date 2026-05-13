@@ -66,7 +66,7 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
     }
   } catch { /* skip silently */ }
 
-  // SOURCE 3: konnekt_departures (skip silently if missing/error)
+  // SOURCE 3: konnekt_departures table (cached/synced)
   try {
     const { data: konnekt } = await supabase
       .from('konnekt_departures')
@@ -82,11 +82,41 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
           ville_arrivee: k.destination_city,
           date_depart: k.departure_date,
           mode_transport: k.transport,
-          transporteur: 'Yobbanté',
+          transporteur: 'Konnekt',
         });
       }
     }
   } catch { /* skip silently */ }
+
+  // SOURCE 4: live Konnekt feed via edge function (fallback when table is empty)
+  try {
+    const { data: live } = await supabase.functions.invoke('list-departures');
+    const deps = (live as any)?.departures as Array<any> | undefined;
+    if (Array.isArray(deps)) {
+      for (const k of deps) {
+        if (!k?.departure_date || k.departure_date < today) continue;
+        items.push({
+          ville_depart: k.origin_city,
+          ville_arrivee: k.destination_city,
+          date_depart: k.departure_date,
+          mode_transport: k.transport,
+          transporteur: 'Konnekt',
+        });
+      }
+    }
+  } catch { /* skip silently */ }
+
+  // Dedup by route + date + mode
+  const seen = new Set<string>();
+  const dedup: TickerItem[] = [];
+  for (const it of items) {
+    const key = `${it.ville_depart}|${it.ville_arrivee}|${it.date_depart}|${it.mode_transport}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    dedup.push(it);
+  }
+  items.length = 0;
+  items.push(...dedup);
 
   return items
     .sort((a, b) => a.date_depart.localeCompare(b.date_depart))
