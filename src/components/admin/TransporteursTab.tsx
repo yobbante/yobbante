@@ -91,13 +91,24 @@ export function TransporteursTab() {
           <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
           <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setEditing({
-          id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
-          adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
-          actif: true, created_at: '', updated_at: '',
-        } as Transporteur)}>
-          + Nouveau transporteur
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBlastOpen(true)}
+            className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Inviter tous les GP sur Konnekt
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditing({
+            id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
+            adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
+            actif: true, created_at: '', updated_at: '',
+          } as Transporteur)}>
+            + Nouveau transporteur
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-col sm:flex-row gap-2">
