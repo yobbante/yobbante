@@ -636,6 +636,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_import_logs: {
+        Row: {
+          created_at: string
+          errors: number
+          filename: string | null
+          id: string
+          imported: number
+          imported_by: string | null
+          total_rows: number
+          updated: number
+        }
+        Insert: {
+          created_at?: string
+          errors?: number
+          filename?: string | null
+          id?: string
+          imported?: number
+          imported_by?: string | null
+          total_rows?: number
+          updated?: number
+        }
+        Update: {
+          created_at?: string
+          errors?: number
+          filename?: string | null
+          id?: string
+          imported?: number
+          imported_by?: string | null
+          total_rows?: number
+          updated?: number
+        }
+        Relationships: []
+      }
       konnekt_departures: {
         Row: {
           available_capacity_kg: number
@@ -1595,16 +1628,20 @@ export type Database = {
           adresse_1: string
           adresse_2: string | null
           created_at: string
+          destinations: string[] | null
           id: string
           konnekt_registered: boolean
           konnekt_registered_at: string | null
+          modes_transport: string[] | null
           nom: string
           notes: string | null
+          prenom: string | null
           reference: string
           telephone_1: string
           telephone_2: string | null
           updated_at: string
           ville: string
+          whatsapp: string | null
           zone: string | null
         }
         Insert: {
@@ -1612,16 +1649,20 @@ export type Database = {
           adresse_1: string
           adresse_2?: string | null
           created_at?: string
+          destinations?: string[] | null
           id?: string
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          modes_transport?: string[] | null
           nom: string
           notes?: string | null
+          prenom?: string | null
           reference: string
           telephone_1: string
           telephone_2?: string | null
           updated_at?: string
           ville: string
+          whatsapp?: string | null
           zone?: string | null
         }
         Update: {
@@ -1629,16 +1670,20 @@ export type Database = {
           adresse_1?: string
           adresse_2?: string | null
           created_at?: string
+          destinations?: string[] | null
           id?: string
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          modes_transport?: string[] | null
           nom?: string
           notes?: string | null
+          prenom?: string | null
           reference?: string
           telephone_1?: string
           telephone_2?: string | null
           updated_at?: string
           ville?: string
+          whatsapp?: string | null
           zone?: string | null
         }
         Relationships: []
