@@ -134,7 +134,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // ── Form state (10 steps) ────────────────────────────────────────
   // Step 1 — sender profile + direction
-  const [senderKind, setSenderKind]       = useState<typeof SENDER_KINDS[number]['id'] | null>(null);
+  const [senderKind, setSenderKind]       = useState<SenderKind>('individual');
   // Direction: 'from_dakar' = Dakar → ville étrangère ; 'to_dakar' = ville étrangère → Dakar.
   // Détection initiale via preset (rétrocompat) : si preset.origin === 'SN' → from_dakar, sinon to_dakar.
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
