@@ -181,6 +181,13 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setEditing(t)}>
                         <Pencil className="w-4 h-4 mr-2" /> Modifier
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        const phone = t.telephone_1.replace(/[^\d]/g, '');
+                        const text = `Bonjour ${t.nom.split(' ')[0]} 👋\n\nYOBBANTÉ vous invite à rejoindre Konnekt pour gérer vos départs et recevoir plus de colis.\n\n👉 https://konnekt.app/invite\n\nMerci !\n— YOBBANTÉ Ops`;
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      }}>
+                        <Send className="w-4 h-4 mr-2" /> Inviter sur WhatsApp
+                      </DropdownMenuItem>
                       {t.actif && (
                         <DropdownMenuItem onClick={async () => {
                           await deactivate.mutateAsync(t.id);
