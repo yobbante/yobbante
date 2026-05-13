@@ -7,6 +7,7 @@ import { DevPanel } from '@/components/DevPanel';
 import { HomeView } from '@/pages/HomeView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
+import { IntentSearchBar } from '@/components/IntentSearchBar';
 
 const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile'];
 
