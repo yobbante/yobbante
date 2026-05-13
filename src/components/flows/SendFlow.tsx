@@ -651,20 +651,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </motion.div>
       )}
 
-      {/* ─── Step 1 — Sender profile + sens du trajet ─── */}
-      <FlowSection revealed step={1} total={10} title="Vous expédiez en tant que ?" hint="Cette étape n'est demandée qu'une seule fois.">
-        <ChipGroup
-          options={SENDER_KINDS}
-          value={senderKind}
-          onChange={(v) => {
-            if (v === 'business') {
-              toast.info("Redirection vers le parcours Entreprises", { duration: 3000 });
-              navigate('/devis-entreprise');
-              return;
-            }
-            setSenderKind(v);
-          }}
-        />
+      {/* ─── Step 1 — Sens du trajet ─── */}
+      <FlowSection revealed step={1} total={10} title="Sens du trajet" hint="Yobbanté opère entre Dakar et 36 villes internationales.">
         <div className="mt-5 max-w-md">
           <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
             <Globe2 className="w-3 h-3" /> Sens du trajet *
