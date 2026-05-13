@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { applySeo } from '@/lib/dekkSeo';
 import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
