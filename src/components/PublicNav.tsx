@@ -3,19 +3,27 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
+import { IntentSearchBar, type IntentKey } from '@/components/IntentSearchBar';
 
 interface PublicNavProps {
   /** Hide the inline action chips when the page already exposes them prominently. */
   hideActions?: boolean;
+  /** Show the unified intent search bar below the nav. Default: true unless hideActions. */
+  showIntentBar?: boolean;
+  /** Default tab on the intent bar. */
+  defaultIntent?: IntentKey;
 }
 
+
 const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
-  { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing', to: '/sourcing',           match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
-  { label: 'Dëkk',     to: '/boutique',           match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
-  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
-  { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
-  { label: 'Tarifs',   to: '/tarifs',             match: p => p.startsWith('/tarifs') },
+  // 3 CTAs égaux — entrée principale du site
+  { label: 'Expédier',  to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Sourcing',  to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
+  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  // Secondaires
+  { label: 'Dëkk',      to: '/boutique',          match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
+  { label: 'Suivre',    to: '/track',             match: p => p.startsWith('/track') },
+  { label: 'Tarifs',    to: '/tarifs',            match: p => p.startsWith('/tarifs') },
 ];
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
@@ -40,16 +48,20 @@ function initials(name?: string | null, email?: string | null): string {
   return src.slice(0, 2).toUpperCase();
 }
 
-export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ hideActions = false }, ref) {
+export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav(
+  { hideActions = false, showIntentBar, defaultIntent = 'send' },
+  ref,
+) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const shouldShowIntent = showIntentBar ?? !hideActions;
 
   return (
+    <div className="sticky top-0 z-50" style={{ background: 'hsl(var(--background-primary))' }}>
     <nav
       ref={ref}
-      className="sticky top-0 z-50"
       style={{
         height: 52,
         background: 'hsl(var(--background-primary))',
@@ -221,5 +233,15 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         </div>
       </div>
     </nav>
+    {shouldShowIntent && (
+      <div
+        className="px-4 sm:px-6 py-2 max-w-6xl mx-auto"
+        style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}
+      >
+        <IntentSearchBar variant="compact" defaultIntent={defaultIntent} />
+      </div>
+    )}
+    </div>
   );
 });
+

@@ -84,10 +84,14 @@ export default function LandingPage() {
               Prix instantané. Aucun appel. Dédouanement inclus. Paiement en ligne.
             </p>
             <div className="flex flex-wrap gap-2 md:hidden">
-              <button onClick={() => navigate('/expedier')} className="btn-cta flex-1 min-w-[140px]">Expédier</button>
-              <button onClick={() => navigate('/boutique')} className="btn-cta flex-1 min-w-[140px]"
+              <button onClick={() => navigate('/expedier')} className="btn-cta flex-1 min-w-[110px]">Expédier</button>
+              <button onClick={() => navigate('/sourcing')} className="btn-cta flex-1 min-w-[110px]"
                 style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                Boutique Dëkk
+                Sourcing
+              </button>
+              <button onClick={() => navigate('/expedier/recevoir')} className="btn-cta flex-1 min-w-[110px]"
+                style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                Réception
               </button>
             </div>
           </div>
@@ -246,13 +250,13 @@ export default function LandingPage() {
           </p>
           <div className="mt-6 sm:mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl mx-auto">
             <button onClick={() => navigate('/expedier')} className="btn-cta w-full">Expédier un colis</button>
-            <button onClick={() => navigate('/acheter')} className="btn-cta w-full"
+            <button onClick={() => navigate('/sourcing')} className="btn-cta w-full"
               style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-              Acheter un produit
+              Sourcing produit
             </button>
-            <button onClick={() => navigate('/boutique')} className="btn-cta w-full"
+            <button onClick={() => navigate('/expedier/recevoir')} className="btn-cta w-full"
               style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-              Boutique Dëkk
+              Réception
             </button>
           </div>
           <p className="mt-6 text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
