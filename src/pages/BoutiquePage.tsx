@@ -140,28 +140,72 @@ export default function BoutiquePage() {
         @keyframes dekkMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
       `}</style>
 
-      {/* HERO — editorial 2026 */}
-      <section style={{ position: 'relative', borderBottom: `0.5px solid ${DEKK.line}`, overflow: 'hidden' }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-10 pb-8 md:pt-14 md:pb-12">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 100, border: `0.5px solid ${DEKK.line}`, fontSize: 10, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-            <span style={{ width: 6, height: 6, borderRadius: 3, background: DEKK.accent, display: 'inline-block' }} />
-            By Yobbanté · Édition 2026
-          </div>
-          <h1 style={{
-            fontSize: 'clamp(56px, 14vw, 128px)',
-            fontWeight: 700, letterSpacing: '-0.05em', color: DEKK.ink,
-            margin: '14px 0 0', lineHeight: 0.92,
-          }}>
-            Dëkk<span style={{ color: DEKK.accent }}>.</span>
-          </h1>
-          <p style={{ fontSize: 'clamp(16px, 2.4vw, 20px)', fontWeight: 400, color: DEKK.muted, marginTop: 14, maxWidth: 540, lineHeight: 1.45 }}>
-            Une sélection de produits importés, contrôlés et livrés au Sénégal.
-            <br className="hidden sm:block" />
-            <span style={{ color: DEKK.ink }}>Le monde, à portée de main.</span>
+      {/* BACK + CUSTOM HEADER */}
+      <Link
+        to="/"
+        style={{
+          display: 'inline-block',
+          margin: '16px 20px 0',
+          fontSize: 14,
+          color: DEKK.muted,
+          textDecoration: 'none',
+          transition: 'color 150ms',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = DEKK.ink; }}
+        onMouseLeave={e => { e.currentTarget.style.color = DEKK.muted; }}
+      >
+        ← Accueil
+      </Link>
+      <header
+        style={{
+          background: 'hsl(var(--primary))',
+          padding: '24px 20px 28px',
+          marginTop: 12,
+        }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <p
+            style={{
+              fontFamily: '"DM Mono", "Inter", monospace',
+              fontSize: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.18em',
+              color: 'rgba(255,255,255,0.6)',
+              margin: 0,
+            }}
+          >
+            YOBBANTÉ · BOUTIQUE
           </p>
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: '-0.02em',
+              marginTop: 4,
+              lineHeight: 1.1,
+            }}
+          >
+            Boutique Dëkk
+          </h1>
+          <p
+            style={{
+              fontSize: 13,
+              color: 'rgba(255,255,255,0.7)',
+              marginTop: 6,
+              maxWidth: 520,
+              lineHeight: 1.5,
+            }}
+          >
+            Les meilleurs produits, livrés depuis le monde entier.
+          </p>
+        </div>
+      </header>
 
-          {/* Search */}
-          <div style={{ marginTop: 24, position: 'relative', maxWidth: 580 }}>
+      {/* Search + trust strip */}
+      <section style={{ borderBottom: `0.5px solid ${DEKK.line}`, background: '#fff' }}>
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-6 pb-6">
+          <div style={{ position: 'relative', maxWidth: 580 }}>
             <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: DEKK.muted }} />
             <input
               value={search}
