@@ -108,10 +108,21 @@ Deno.serve(async (req) => {
     }
 
     const phone = normalizePhone(String(telephone));
-    const message = buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids });
-    const waLink = `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(message)}`;
-
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Lookup GP konnekt registration status
+    let konnektRegistered = false;
+    if (transporteur_ref) {
+      const { data: gp } = await supabase
+        .from("transporteurs")
+        .select("konnekt_registered")
+        .eq("reference", String(transporteur_ref))
+        .maybeSingle();
+      konnektRegistered = !!gp?.konnekt_registered;
+    }
+
+    const message = buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids, transporteurRef: transporteur_ref ?? null, konnektRegistered });
+    const waLink = `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(message)}`;
 
     // Try Twilio if configured
     let sent = false;
