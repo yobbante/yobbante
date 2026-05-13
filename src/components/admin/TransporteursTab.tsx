@@ -228,7 +228,7 @@ export function TransporteursTab() {
                 <span className="font-mono">{eligibleCount}</span> transporteur{eligibleCount > 1 ? 's' : ''}
               </p>
               <p className="text-muted-foreground">
-                Un message WhatsApp personnalisé sera envoyé à chacun avec son lien unique.
+                Ouvre WhatsApp sur le numéro YOBBANTÉ (+221 78 607 80 80) avec la liste pré-remplie des GP à inviter — prêt à envoyer en un clic.
               </p>
               {blasting && (
                 <div className="space-y-2 pt-2">
