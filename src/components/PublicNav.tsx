@@ -3,11 +3,17 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
+import { IntentSearchBar, type IntentKey } from '@/components/IntentSearchBar';
 
 interface PublicNavProps {
   /** Hide the inline action chips when the page already exposes them prominently. */
   hideActions?: boolean;
+  /** Show the unified intent search bar below the nav. Default: true unless hideActions. */
+  showIntentBar?: boolean;
+  /** Default tab on the intent bar. */
+  defaultIntent?: IntentKey;
 }
+
 
 const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
   // 3 CTAs égaux — entrée principale du site
