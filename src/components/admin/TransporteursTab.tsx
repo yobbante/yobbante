@@ -41,29 +41,42 @@ export function TransporteursTab() {
     [list.data],
   );
 
-  const handleBlast = async () => {
+  const YOBBANTE_WA = '221786078080';
+
+  const buildInviteText = (gps: Transporteur[]) => {
+    const header =
+      `Bonjour 👋\n\nVoici la liste des GP à inviter sur Konnekt (${gps.length}) :\n\n`;
+    const lines = gps
+      .map((g, i) => `${i + 1}. Réf ${g.reference} — ${g.nom} — ${g.telephone_1}`)
+      .join('\n');
+    const footer =
+      `\n\n👉 Lien d'invitation Konnekt à transférer à chacun :\nhttps://konnekt.app/invite\n\n— YOBBANTÉ Ops`;
+    return header + lines + footer;
+  };
+
+  const handleBlast = () => {
     setBlasting(true);
-    setBlastProgress(15);
+    setBlastProgress(60);
     setBlastResult(null);
     try {
-      // animate progress while waiting
-      const interval = setInterval(() => {
-        setBlastProgress(p => (p < 85 ? p + 5 : p));
-      }, 400);
-      const { data, error } = await supabase.functions.invoke('konnekt-invite-blast', { body: {} });
-      clearInterval(interval);
-      if (error) throw error;
+      const eligible = (list.data ?? []).filter(t => t.actif && !t.konnekt_registered);
+      if (eligible.length === 0) {
+        toast.info('Aucun GP éligible');
+        return;
+      }
+      const text = buildInviteText(eligible);
+      const url = `https://wa.me/${YOBBANTE_WA}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
       setBlastProgress(100);
-      const total = data?.total ?? 0;
-      const sent = data?.sent ?? 0;
-      setBlastResult({ total, sent });
-      toast.success(`${sent} message${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`);
+      setBlastResult({ total: eligible.length, sent: eligible.length });
+      toast.success(`WhatsApp ouvert avec ${eligible.length} GP à inviter ✓`);
     } catch (e: any) {
-      toast.error(e?.message ?? "Erreur lors de l'envoi");
+      toast.error(e?.message ?? "Impossible d'ouvrir WhatsApp");
     } finally {
       setBlasting(false);
     }
   };
+
 
   const counts = useMemo(() => {
     const map: Record<string, { count: number; last: string | null }> = {};
