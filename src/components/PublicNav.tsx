@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
 import { IntentSearchBar, type IntentKey } from '@/components/IntentSearchBar';
+import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
 
 interface PublicNavProps {
   /** Hide the inline action chips when the page already exposes them prominently. */
@@ -17,13 +18,13 @@ interface PublicNavProps {
 
 const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
   // 3 CTAs égaux — entrée principale du site
-  { label: 'Expédier',  to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing',  to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
-  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  { label: 'Expédier',     to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
+  { label: 'Réception',    to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
   // Secondaires
-  { label: 'Dëkk',      to: '/boutique',          match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
-  { label: 'Suivre',    to: '/track',             match: p => p.startsWith('/track') },
-  { label: 'Tarifs',    to: '/tarifs',            match: p => p.startsWith('/tarifs') },
+  { label: 'Suivre',       to: '/track',             match: p => p.startsWith('/track') },
+  { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },
+  { label: 'Boutique Dëkk', to: '/boutique',         match: p => p.startsWith('/boutique') },
 ];
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
@@ -233,6 +234,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         </div>
       </div>
     </nav>
+    <LiveDeparturesTicker />
     {shouldShowIntent && (
       <div
         className="px-4 sm:px-6 py-2 max-w-6xl mx-auto"

@@ -215,9 +215,8 @@ export function LiveDeparturesTicker() {
 
   return (
     <div
-      className="sticky w-full"
+      className="w-full"
       style={{
-        top: 52,
         height: 32,
         background: '#0F0F0F',
         borderBottom: '0.5px solid #1E1E1E',
