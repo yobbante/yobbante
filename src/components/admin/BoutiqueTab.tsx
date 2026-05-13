@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
 
 type Product = {
   id: string;
@@ -64,6 +65,7 @@ const emptyForm = {
 };
 
 export function BoutiqueTab() {
+  const [view, setView] = useState<'products' | 'orders'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [showForm, setShowForm] = useState(false);
@@ -166,20 +168,32 @@ export function BoutiqueTab() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
+      <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
         <div>
           <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>
             DËKK · BOUTIQUE
           </div>
-          <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>Gestion des produits</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>
+            {view === 'products' ? 'Gestion des produits' : 'Commandes & suivi'}
+          </h2>
         </div>
-        <button
-          onClick={openCreate}
-          style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
-        >
-          + Ajouter un produit
-        </button>
+        {view === 'products' && (
+          <button
+            onClick={openCreate}
+            style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+          >
+            + Ajouter un produit
+          </button>
+        )}
       </div>
+
+      {/* Top selector */}
+      <div className="flex gap-1 mb-5" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+        <TabBtn active={view === 'products'} onClick={() => setView('products')}>Produits</TabBtn>
+        <TabBtn active={view === 'orders'}   onClick={() => setView('orders')}>Commandes</TabBtn>
+      </div>
+
+      {view === 'orders' ? <BoutiqueOrdersPanel /> : (<>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
@@ -262,6 +276,7 @@ export function BoutiqueTab() {
           onSubmit={submit}
         />
       )}
+      </>)}
     </div>
   );
 }

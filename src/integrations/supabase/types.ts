@@ -334,6 +334,101 @@ export type Database = {
         }
         Relationships: []
       }
+      dekk_order_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dekk_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "dekk_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dekk_orders: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          items: Json
+          note: string | null
+          payment_method: string
+          reference: string
+          status: string
+          subtotal_eur: number
+          total_eur: number
+          total_fcfa: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          items?: Json
+          note?: string | null
+          payment_method: string
+          reference: string
+          status?: string
+          subtotal_eur?: number
+          total_eur?: number
+          total_fcfa?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          items?: Json
+          note?: string | null
+          payment_method?: string
+          reference?: string
+          status?: string
+          subtotal_eur?: number
+          total_eur?: number
+          total_fcfa?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dossier_customs_documents: {
         Row: {
           created_at: string

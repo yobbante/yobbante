@@ -1,5 +1,6 @@
 import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AdminGlobalSearch } from './AdminGlobalSearch';
 
 export type AdminSection =
   | 'overview'
@@ -91,6 +92,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         minWidth: 220,
       }}
     >
+      <AdminGlobalSearch onJump={onChange} isAdmin={isAdmin} />
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n => !n.adminOnly || isAdmin);
         if (visibleItems.length === 0) return null;

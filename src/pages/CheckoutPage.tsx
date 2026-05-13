@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 import { applySeo } from '@/lib/dekkSeo';
 import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -77,15 +78,33 @@ export default function CheckoutPage() {
       status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
     };
     try {
-      // Persist last order for confirmation page
+      // Persist to backend
+      const { data: { session } } = await supabase.auth.getSession();
+      await supabase.from('dekk_orders' as any).insert({
+        reference,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email || null,
+        city,
+        address,
+        note: note || null,
+        payment_method: payment,
+        items: cart,
+        subtotal_eur: Math.round(subtotal),
+        total_eur: Math.round(subtotal),
+        total_fcfa: Math.round(subtotal * 655),
+        status: order.status,
+        user_id: session?.user?.id ?? null,
+      });
+      // Cache for confirmation page (offline fallback)
       localStorage.setItem(`dekk_order_${reference}`, JSON.stringify(order));
-      // Append to history
       const hist = JSON.parse(localStorage.getItem('dekk_orders') || '[]');
       hist.unshift({ reference, total_eur: subtotal, created_at: order.created_at });
       localStorage.setItem('dekk_orders', JSON.stringify(hist.slice(0, 20)));
-      // Clear cart
       localStorage.setItem('dekk_cart', '[]');
-    } catch {}
+    } catch (e) {
+      console.error('Order persist failed', e);
+    }
     setTimeout(() => nav(`/panier/confirmation/${reference}`, { replace: true }), 600);
   };
 
