@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil, Send, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Loader2, Upload } from 'lucide-react';
+import { GpImportDialog } from './GpImportDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,6 +29,12 @@ export function TransporteursTab() {
   const [blasting, setBlasting] = useState(false);
   const [blastProgress, setBlastProgress] = useState(0);
   const [blastResult, setBlastResult] = useState<{ total: number; sent: number } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const existingRefs = useMemo(
+    () => new Set((list.data ?? []).map(t => t.reference)),
+    [list.data],
+  );
 
   const eligibleCount = useMemo(
     () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered).length,
@@ -92,6 +99,16 @@ export function TransporteursTab() {
           <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-2 text-[13px] font-medium hover:bg-[#F5C518]/10 transition-colors"
+            style={{
+              border: '1px solid #F5C518', color: '#F5C518',
+              borderRadius: 10, padding: '10px 20px', background: 'transparent',
+            }}
+          >
+            <Upload className="w-4 h-4" /> Importer une base GP
+          </button>
           <Button
             variant="outline"
             size="sm"
@@ -234,6 +251,14 @@ export function TransporteursTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GpImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingRefs={existingRefs}
+        onAfterImport={() => list.refetch()}
+        onTriggerBlast={() => setBlastOpen(true)}
+      />
     </div>
   );
 }
