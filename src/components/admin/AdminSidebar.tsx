@@ -92,6 +92,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         minWidth: 220,
       }}
     >
+      <AdminGlobalSearch onJump={onChange} isAdmin={isAdmin} />
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n => !n.adminOnly || isAdmin);
         if (visibleItems.length === 0) return null;
