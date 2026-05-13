@@ -13,6 +13,8 @@ export interface Transporteur {
   zone: string | null;
   notes: string | null;
   actif: boolean;
+  konnekt_registered?: boolean;
+  konnekt_registered_at?: string | null;
   created_at: string;
   updated_at: string;
 }
