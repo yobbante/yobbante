@@ -65,6 +65,7 @@ const emptyForm = {
 };
 
 export function BoutiqueTab() {
+  const [view, setView] = useState<'products' | 'orders'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [showForm, setShowForm] = useState(false);
