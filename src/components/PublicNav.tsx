@@ -48,16 +48,20 @@ function initials(name?: string | null, email?: string | null): string {
   return src.slice(0, 2).toUpperCase();
 }
 
-export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav({ hideActions = false }, ref) {
+export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function PublicNav(
+  { hideActions = false, showIntentBar, defaultIntent = 'send' },
+  ref,
+) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const shouldShowIntent = showIntentBar ?? !hideActions;
 
   return (
+    <div className="sticky top-0 z-50" style={{ background: 'hsl(var(--background-primary))' }}>
     <nav
       ref={ref}
-      className="sticky top-0 z-50"
       style={{
         height: 52,
         background: 'hsl(var(--background-primary))',
