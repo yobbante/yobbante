@@ -23,15 +23,17 @@ function normalizePhone(p: string): string {
   return "+" + t;
 }
 
-function buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids }: {
+function buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids, transporteurRef, konnektRegistered }: {
   prenom: string;
   dossierRef: string;
   collecteAddress: string;
   destinationCity: string;
   dateDepart: string;
   poids: number | string;
+  transporteurRef?: string | null;
+  konnektRegistered?: boolean;
 }) {
-  return `Bonjour ${prenom},
+  const base = `Bonjour ${prenom},
 
 Un nouveau départ vous est assigné sur Yobbanté.
 
@@ -41,7 +43,18 @@ Un nouveau départ vous est assigné sur Yobbanté.
 📅 Date : ${dateDepart}
 ⚖️ Poids estimé : ${poids} kg
 
-Confirmez votre disponibilité en répondant à ce message.
+Confirmez votre disponibilité en répondant à ce message.`;
+
+  const beta = (!konnektRegistered && transporteurRef)
+    ? `
+
+────────────────────────────
+🚀 Nouveau : Rejoignez Konnekt
+Recevez encore plus de missions directement sur votre téléphone.
+👉 konnekt.app/beta?ref=GP${transporteurRef}`
+    : '';
+
+  return `${base}${beta}
 
 — Équipe Yobbanté`;
 }
@@ -95,10 +108,21 @@ Deno.serve(async (req) => {
     }
 
     const phone = normalizePhone(String(telephone));
-    const message = buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids });
-    const waLink = `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(message)}`;
-
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Lookup GP konnekt registration status
+    let konnektRegistered = false;
+    if (transporteur_ref) {
+      const { data: gp } = await supabase
+        .from("transporteurs")
+        .select("konnekt_registered")
+        .eq("reference", String(transporteur_ref))
+        .maybeSingle();
+      konnektRegistered = !!gp?.konnekt_registered;
+    }
+
+    const message = buildMessage({ prenom, dossierRef, collecteAddress, destinationCity, dateDepart, poids, transporteurRef: transporteur_ref ?? null, konnektRegistered });
+    const waLink = `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(message)}`;
 
     // Try Twilio if configured
     let sent = false;

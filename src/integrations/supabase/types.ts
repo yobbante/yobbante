@@ -1596,6 +1596,8 @@ export type Database = {
           adresse_2: string | null
           created_at: string
           id: string
+          konnekt_registered: boolean
+          konnekt_registered_at: string | null
           nom: string
           notes: string | null
           reference: string
@@ -1611,6 +1613,8 @@ export type Database = {
           adresse_2?: string | null
           created_at?: string
           id?: string
+          konnekt_registered?: boolean
+          konnekt_registered_at?: string | null
           nom: string
           notes?: string | null
           reference: string
@@ -1626,6 +1630,8 @@ export type Database = {
           adresse_2?: string | null
           created_at?: string
           id?: string
+          konnekt_registered?: boolean
+          konnekt_registered_at?: string | null
           nom?: string
           notes?: string | null
           reference?: string

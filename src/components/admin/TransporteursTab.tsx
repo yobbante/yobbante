@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { useTransporteurs, type Transporteur } from '@/hooks/useTransporteurs';
 import { useManualDepartures } from '@/hooks/useManualDepartures';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export function TransporteursTab() {
@@ -19,6 +24,39 @@ export function TransporteursTab() {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Transporteur | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [blastOpen, setBlastOpen] = useState(false);
+  const [blasting, setBlasting] = useState(false);
+  const [blastProgress, setBlastProgress] = useState(0);
+  const [blastResult, setBlastResult] = useState<{ total: number; sent: number } | null>(null);
+
+  const eligibleCount = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered).length,
+    [list.data],
+  );
+
+  const handleBlast = async () => {
+    setBlasting(true);
+    setBlastProgress(15);
+    setBlastResult(null);
+    try {
+      // animate progress while waiting
+      const interval = setInterval(() => {
+        setBlastProgress(p => (p < 85 ? p + 5 : p));
+      }, 400);
+      const { data, error } = await supabase.functions.invoke('konnekt-invite-blast', { body: {} });
+      clearInterval(interval);
+      if (error) throw error;
+      setBlastProgress(100);
+      const total = data?.total ?? 0;
+      const sent = data?.sent ?? 0;
+      setBlastResult({ total, sent });
+      toast.success(`${sent} message${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur lors de l'envoi");
+    } finally {
+      setBlasting(false);
+    }
+  };
 
   const counts = useMemo(() => {
     const map: Record<string, { count: number; last: string | null }> = {};
@@ -53,13 +91,24 @@ export function TransporteursTab() {
           <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
           <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setEditing({
-          id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
-          adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
-          actif: true, created_at: '', updated_at: '',
-        } as Transporteur)}>
-          + Nouveau transporteur
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBlastOpen(true)}
+            className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Inviter tous les GP sur Konnekt
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditing({
+            id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
+            adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
+            actif: true, created_at: '', updated_at: '',
+          } as Transporteur)}>
+            + Nouveau transporteur
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-col sm:flex-row gap-2">
@@ -132,6 +181,59 @@ export function TransporteursTab() {
           setEditing(null);
         }}
       />
+
+      <Dialog open={blastOpen} onOpenChange={(v) => { if (!blasting) { setBlastOpen(v); if (!v) { setBlastResult(null); setBlastProgress(0); } } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inviter les GP sur Konnekt</DialogTitle>
+            <DialogDescription>
+              Envoyer l'invitation Konnekt à tous les GP non encore inscrits ?
+            </DialogDescription>
+          </DialogHeader>
+
+          {!blastResult ? (
+            <div className="space-y-3 text-sm">
+              <p>
+                <span className="font-semibold">GP éligibles :</span>{' '}
+                <span className="font-mono">{eligibleCount}</span> transporteur{eligibleCount > 1 ? 's' : ''}
+              </p>
+              <p className="text-muted-foreground">
+                Un message WhatsApp personnalisé sera envoyé à chacun avec son lien unique.
+              </p>
+              {blasting && (
+                <div className="space-y-2 pt-2">
+                  <Progress value={blastProgress} />
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Envoi en cours…
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <p className="text-base font-semibold">{blastResult.sent} message{blastResult.sent > 1 ? 's' : ''} envoyé{blastResult.sent > 1 ? 's' : ''} ✓</p>
+              <p className="text-muted-foreground">sur {blastResult.total} GP éligible{blastResult.total > 1 ? 's' : ''}.</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!blastResult ? (
+              <>
+                <Button variant="outline" onClick={() => setBlastOpen(false)} disabled={blasting}>Annuler</Button>
+                <Button
+                  onClick={handleBlast}
+                  disabled={blasting || eligibleCount === 0}
+                  className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
+                >
+                  {blasting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : "Confirmer l'envoi"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => { setBlastOpen(false); setBlastResult(null); setBlastProgress(0); }}>Fermer</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
