@@ -276,6 +276,7 @@ export function BoutiqueTab() {
           onSubmit={submit}
         />
       )}
+      </>)}
     </div>
   );
 }
