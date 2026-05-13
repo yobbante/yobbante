@@ -10,12 +10,14 @@ interface PublicNavProps {
 }
 
 const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
-  { label: 'Expédier', to: '/expedier',           match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing', to: '/sourcing',           match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
-  { label: 'Dëkk',     to: '/boutique',           match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
-  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') },
-  { label: 'Suivre',   to: '/track',              match: p => p.startsWith('/track') },
-  { label: 'Tarifs',   to: '/tarifs',             match: p => p.startsWith('/tarifs') },
+  // 3 CTAs égaux — entrée principale du site
+  { label: 'Expédier',  to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Sourcing',  to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
+  { label: 'Réception', to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  // Secondaires
+  { label: 'Dëkk',      to: '/boutique',          match: p => p.startsWith('/boutique'), subBadge: 'by Yobbanté' },
+  { label: 'Suivre',    to: '/track',             match: p => p.startsWith('/track') },
+  { label: 'Tarifs',    to: '/tarifs',            match: p => p.startsWith('/tarifs') },
 ];
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
