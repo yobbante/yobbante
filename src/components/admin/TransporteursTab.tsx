@@ -24,6 +24,39 @@ export function TransporteursTab() {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Transporteur | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [blastOpen, setBlastOpen] = useState(false);
+  const [blasting, setBlasting] = useState(false);
+  const [blastProgress, setBlastProgress] = useState(0);
+  const [blastResult, setBlastResult] = useState<{ total: number; sent: number } | null>(null);
+
+  const eligibleCount = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered).length,
+    [list.data],
+  );
+
+  const handleBlast = async () => {
+    setBlasting(true);
+    setBlastProgress(15);
+    setBlastResult(null);
+    try {
+      // animate progress while waiting
+      const interval = setInterval(() => {
+        setBlastProgress(p => (p < 85 ? p + 5 : p));
+      }, 400);
+      const { data, error } = await supabase.functions.invoke('konnekt-invite-blast', { body: {} });
+      clearInterval(interval);
+      if (error) throw error;
+      setBlastProgress(100);
+      const total = data?.total ?? 0;
+      const sent = data?.sent ?? 0;
+      setBlastResult({ total, sent });
+      toast.success(`${sent} message${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur lors de l'envoi");
+    } finally {
+      setBlasting(false);
+    }
+  };
 
   const counts = useMemo(() => {
     const map: Record<string, { count: number; last: string | null }> = {};
