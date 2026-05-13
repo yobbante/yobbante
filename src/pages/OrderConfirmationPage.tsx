@@ -5,6 +5,7 @@ import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct } from '@/lib/dekkRecommend';
 import { Recommendations } from './CartPage';
 import { Check, Copy, MapPin, Package, Phone } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -23,10 +24,33 @@ export default function OrderConfirmationPage() {
 
   useEffect(() => {
     if (!reference) return;
-    try {
-      const raw = localStorage.getItem(`dekk_order_${reference}`);
-      if (raw) setOrder(JSON.parse(raw));
-    } catch {}
+    (async () => {
+      // Try backend first
+      const { data } = await supabase
+        .from('dekk_orders' as any)
+        .select('*')
+        .eq('reference', reference)
+        .maybeSingle();
+      if (data) {
+        const d: any = data;
+        setOrder({
+          reference: d.reference,
+          created_at: d.created_at,
+          customer: { name: d.customer_name, phone: d.customer_phone, email: d.customer_email, city: d.city, address: d.address, note: d.note },
+          payment_method: d.payment_method,
+          items: d.items,
+          subtotal_eur: d.subtotal_eur,
+          total_eur: d.total_eur,
+          total_fcfa: d.total_fcfa,
+          status: d.status,
+        });
+      } else {
+        try {
+          const raw = localStorage.getItem(`dekk_order_${reference}`);
+          if (raw) setOrder(JSON.parse(raw));
+        } catch {}
+      }
+    })();
     applySeo({
       title: `Commande ${reference} confirmée · Dëkk`,
       description: 'Votre commande Dëkk est confirmée. Suivez son acheminement directement depuis votre espace.',
