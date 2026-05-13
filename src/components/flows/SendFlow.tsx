@@ -31,10 +31,7 @@ import type { WarehouseCountry } from '@/lib/types';
 
 // ─────────────────────────── Static config ───────────────────────────
 
-const SENDER_KINDS = [
-  { id: 'individual' as const, label: 'Particulier',            desc: 'Envoi personnel',         icon: <User      className="w-3.5 h-3.5" /> },
-  { id: 'business'   as const, label: 'Entreprise / Commerçant', desc: 'Activité professionnelle', icon: <Building2 className="w-3.5 h-3.5" /> },
-];
+type SenderKind = 'individual' | 'business';
 
 const TIME_SLOTS = [
   { id: 'morning'   as const, label: 'Matin · 8h-12h',     desc: 'Récupération matinale' },
