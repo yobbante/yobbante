@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { useTransporteurs, type Transporteur } from '@/hooks/useTransporteurs';
 import { useManualDepartures } from '@/hooks/useManualDepartures';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export function TransporteursTab() {
