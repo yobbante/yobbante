@@ -181,6 +181,59 @@ export function TransporteursTab() {
           setEditing(null);
         }}
       />
+
+      <Dialog open={blastOpen} onOpenChange={(v) => { if (!blasting) { setBlastOpen(v); if (!v) { setBlastResult(null); setBlastProgress(0); } } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inviter les GP sur Konnekt</DialogTitle>
+            <DialogDescription>
+              Envoyer l'invitation Konnekt à tous les GP non encore inscrits ?
+            </DialogDescription>
+          </DialogHeader>
+
+          {!blastResult ? (
+            <div className="space-y-3 text-sm">
+              <p>
+                <span className="font-semibold">GP éligibles :</span>{' '}
+                <span className="font-mono">{eligibleCount}</span> transporteur{eligibleCount > 1 ? 's' : ''}
+              </p>
+              <p className="text-muted-foreground">
+                Un message WhatsApp personnalisé sera envoyé à chacun avec son lien unique.
+              </p>
+              {blasting && (
+                <div className="space-y-2 pt-2">
+                  <Progress value={blastProgress} />
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Envoi en cours…
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <p className="text-base font-semibold">{blastResult.sent} message{blastResult.sent > 1 ? 's' : ''} envoyé{blastResult.sent > 1 ? 's' : ''} ✓</p>
+              <p className="text-muted-foreground">sur {blastResult.total} GP éligible{blastResult.total > 1 ? 's' : ''}.</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!blastResult ? (
+              <>
+                <Button variant="outline" onClick={() => setBlastOpen(false)} disabled={blasting}>Annuler</Button>
+                <Button
+                  onClick={handleBlast}
+                  disabled={blasting || eligibleCount === 0}
+                  className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
+                >
+                  {blasting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : "Confirmer l'envoi"}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => { setBlastOpen(false); setBlastResult(null); setBlastProgress(0); }}>Fermer</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
