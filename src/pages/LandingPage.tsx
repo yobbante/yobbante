@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
 
 import { PublicFooter } from '@/components/PublicFooter';
+import { TransporteurSignupSection } from '@/components/TransporteurSignupSection';
 import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import { QuoteForm } from '@/components/quote/QuoteForm';
 import { TrustBar } from '@/components/quote/TrustBar';
@@ -184,6 +185,9 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
+
+      {/* ───── TRANSPORTEUR SIGNUP ───── */}
+      <TransporteurSignupSection />
 
       {/* ───── TÉMOIGNAGES ───── */}
       <section>
