@@ -95,7 +95,7 @@ export function TransporteurSignupSection() {
                   value={prenom}
                   onChange={(e) => setPrenom(e.target.value)}
                   placeholder="Votre prénom"
-                  className="form-input"
+                  className="w-full bg-transparent outline-none px-3 h-11 text-[14px] text-foreground placeholder:text-muted-foreground" style={{ border: "0.5px solid hsl(var(--color-border-tertiary))", borderRadius: 8 }}
                   maxLength={80}
                 />
               </Field>
@@ -106,7 +106,7 @@ export function TransporteurSignupSection() {
                   value={nom}
                   onChange={(e) => setNom(e.target.value)}
                   placeholder="Votre nom"
-                  className="form-input"
+                  className="w-full bg-transparent outline-none px-3 h-11 text-[14px] text-foreground placeholder:text-muted-foreground" style={{ border: "0.5px solid hsl(var(--color-border-tertiary))", borderRadius: 8 }}
                   maxLength={80}
                 />
               </Field>
@@ -117,7 +117,7 @@ export function TransporteurSignupSection() {
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value)}
                   placeholder="+221"
-                  className="form-input"
+                  className="w-full bg-transparent outline-none px-3 h-11 text-[14px] text-foreground placeholder:text-muted-foreground" style={{ border: "0.5px solid hsl(var(--color-border-tertiary))", borderRadius: 8 }}
                   maxLength={32}
                 />
               </Field>
@@ -126,7 +126,7 @@ export function TransporteurSignupSection() {
                 <select
                   value={ville}
                   onChange={(e) => setVille(e.target.value)}
-                  className="form-input"
+                  className="w-full bg-transparent outline-none px-3 h-11 text-[14px] text-foreground placeholder:text-muted-foreground" style={{ border: "0.5px solid hsl(var(--color-border-tertiary))", borderRadius: 8 }}
                 >
                   {VILLES.map((v) => (
                     <option key={v} value={v}>{v}</option>
