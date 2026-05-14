@@ -1717,6 +1717,48 @@ export type Database = {
           },
         ]
       }
+      transporteur_inscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          notes: string | null
+          prenom: string
+          source: string
+          status: string
+          telephone: string
+          types_transport: string[]
+          updated_at: string
+          ville: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          notes?: string | null
+          prenom: string
+          source?: string
+          status?: string
+          telephone: string
+          types_transport?: string[]
+          updated_at?: string
+          ville: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          notes?: string | null
+          prenom?: string
+          source?: string
+          status?: string
+          telephone?: string
+          types_transport?: string[]
+          updated_at?: string
+          ville?: string
+        }
+        Relationships: []
+      }
       transporteurs: {
         Row: {
           actif: boolean
