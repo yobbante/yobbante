@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck, ChevronLeft, ShoppingCart } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
