@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck, ChevronLeft, ShoppingCart } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 
 type Product = {
@@ -129,9 +129,13 @@ export default function BoutiquePage() {
     return m;
   }, [products]);
 
+  const focusSearch = () => {
+    const el = document.getElementById('dekk-search-input') as HTMLInputElement | null;
+    if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
       <style>{`
         .dekk-chips::-webkit-scrollbar{display:none}
         @keyframes dekkFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -140,74 +144,97 @@ export default function BoutiquePage() {
         @keyframes dekkMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
       `}</style>
 
-      {/* BACK + CUSTOM HEADER */}
-      <Link
-        to="/"
+      {/* PART 1 — Sticky top bar */}
+      <div
         style={{
-          display: 'inline-block',
-          margin: '16px 20px 0',
-          fontSize: 14,
-          color: DEKK.muted,
-          textDecoration: 'none',
-          transition: 'color 150ms',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = DEKK.ink; }}
-        onMouseLeave={e => { e.currentTarget.style.color = DEKK.muted; }}
-      >
-        ← Accueil
-      </Link>
-      <header
-        style={{
-          background: 'hsl(var(--primary))',
-          padding: '24px 20px 28px',
-          marginTop: 12,
+          position: 'sticky', top: 0, zIndex: 50,
+          height: 52, padding: '0 16px',
+          background: '#0A0A0A',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
-        <div className="max-w-6xl mx-auto">
-          <p
-            style={{
-              fontFamily: '"DM Mono", "Inter", monospace',
-              fontSize: 10,
-              textTransform: 'uppercase',
-              letterSpacing: '0.18em',
-              color: 'rgba(255,255,255,0.6)',
-              margin: 0,
-            }}
-          >
-            YOBBANTÉ · BOUTIQUE
-          </p>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: '#fff',
-              letterSpacing: '-0.02em',
-              marginTop: 4,
-              lineHeight: 1.1,
-            }}
-          >
-            Boutique Dëkk
-          </h1>
-          <p
-            style={{
-              fontSize: 13,
-              color: 'rgba(255,255,255,0.7)',
-              marginTop: 6,
-              maxWidth: 520,
-              lineHeight: 1.5,
-            }}
-          >
-            Les meilleurs produits, livrés depuis le monde entier.
-          </p>
+        <Link to="/" aria-label="Retour à l'accueil" style={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }}>
+          <ChevronLeft size={22} />
+        </Link>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
+          Boutique Dëkk
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button type="button" onClick={focusSearch} aria-label="Rechercher"
+            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
+            <Search size={20} />
+          </button>
+          <button type="button" onClick={() => setCartOpen(true)} aria-label="Voir le panier"
+            style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: '#fff', cursor: 'pointer', display: 'inline-flex' }}>
+            <ShoppingCart size={20} />
+            {cartCount > 0 && (
+              <span style={{
+                position: 'absolute', top: -4, right: -6,
+                width: 16, height: 16, borderRadius: 999,
+                background: 'hsl(var(--primary))', color: '#fff',
+                fontSize: 9, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{cartCount}</span>
+            )}
+          </button>
+          <button type="button" aria-label="Liste de souhaits"
+            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
+            <Heart size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* PART 2 — Hero band */}
+      <header style={{ background: '#0A0A0A', padding: '16px 16px 20px' }}>
+        <p style={{
+          fontFamily: '"Inter", system-ui, sans-serif',
+          fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em',
+          color: 'rgba(255,255,255,0.4)', margin: 0, marginBottom: 4,
+        }}>
+          YOBBANTÉ · BOUTIQUE
+        </p>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>
+          Boutique Dëkk
+        </h1>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4, lineHeight: 1.5, maxWidth: 520 }}>
+          Les meilleurs produits, livrés depuis le monde entier.
+        </p>
       </header>
 
-      {/* Search + trust strip */}
+      {/* PART 3 — Trust ticker */}
+      <div style={{
+        background: '#161616',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '8px 0',
+        overflow: 'hidden', whiteSpace: 'nowrap',
+      }}>
+        <div style={{ display: 'inline-flex', animation: 'dekkMarquee 32s linear infinite' }}>
+          {Array.from({ length: 2 }).map((_, k) => (
+            <div key={k} style={{
+              display: 'inline-flex', gap: 28, paddingRight: 28,
+              fontFamily: '"Inter", system-ui, sans-serif',
+              fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em',
+              color: 'rgba(255,255,255,0.3)',
+            }}>
+              <span>PAIEMENT SÉCURISÉ · WAVE · OM · CARTE</span>
+              <span>SERVICE APRÈS-VENTE</span>
+              <span>LIVRAISON DAKAR</span>
+              <span>PRODUITS VÉRIFIÉS</span>
+              <span>RETOURS ACCEPTÉS</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PART 4 — Search bar (existing) */}
       <section style={{ borderBottom: `0.5px solid ${DEKK.line}`, background: '#fff' }}>
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-6 pb-6">
           <div style={{ position: 'relative', maxWidth: 580 }}>
             <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: DEKK.muted }} />
             <input
+              id="dekk-search-input"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Rechercher un produit, une marque…"
@@ -220,21 +247,6 @@ export default function BoutiquePage() {
               onFocus={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = DEKK.ink; }}
               onBlur={e => { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderColor = DEKK.line; }}
             />
-          </div>
-        </div>
-
-        {/* Marquee trust strip */}
-        <div style={{ borderTop: `0.5px solid ${DEKK.line}`, background: '#FAFAFA', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          <div style={{ display: 'inline-flex', animation: 'dekkMarquee 32s linear infinite', padding: '12px 0' }}>
-            {Array.from({ length: 2 }).map((_, k) => (
-              <div key={k} style={{ display: 'inline-flex', gap: 36, paddingRight: 36, fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                <span>— Produits testés &amp; importés</span>
-                <span>— Livraison incluse au Sénégal</span>
-                <span>— Paiement sécurisé Wave · OM · Carte</span>
-                <span>— Service après-vente local</span>
-                <span>— 4.7★ · 128 avis</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
