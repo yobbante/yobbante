@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck, ChevronLeft, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { useDekkCart } from '@/hooks/useDekkCart';
+import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 
 type Product = {
   id: string;
@@ -70,10 +73,16 @@ export default function BoutiquePage() {
   const [activeCat, setActiveCat] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('trending');
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wishlistOnly = searchParams.get('wishlist') === '1';
+
+  const wishlist = useDekkWishlist();
+  const cart = useDekkCart();
+  const cartCount = cart.count;
+  const cartTotal = cart.total;
 
   useEffect(() => {
     (async () => {
@@ -85,34 +94,24 @@ export default function BoutiquePage() {
       setProducts((data as any as Product[]) || []);
       setLoading(false);
     })();
-    try {
-      setWishlist(new Set(JSON.parse(localStorage.getItem('dekk_wishlist') || '[]')));
-      setCart(JSON.parse(localStorage.getItem('dekk_cart') || '[]'));
-    } catch {}
   }, []);
 
-  useEffect(() => { localStorage.setItem('dekk_wishlist', JSON.stringify([...wishlist])); }, [wishlist]);
-  useEffect(() => { localStorage.setItem('dekk_cart', JSON.stringify(cart)); }, [cart]);
-
-  const toggleWish = (id: string) => {
-    setWishlist(w => { const n = new Set(w); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  };
+  const toggleWish = (id: string) => wishlist.toggle(id);
   const addToCart = (p: Product) => {
-    setCart(c => {
-      const existing = c.find(i => i.product.id === p.id);
-      if (existing) return c.map(i => i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...c, { product: p, qty: 1 }];
-    });
+    cart.addItem(p as any, 1);
     setCartOpen(true);
   };
-  const updateQty = (id: string, delta: number) => {
-    setCart(c => c.map(i => i.product.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i).filter(i => i.qty > 0));
+  const updateQty = (id: string, delta: number) => cart.updateQty(id, delta);
+
+  const toggleWishlistFilter = () => {
+    const sp = new URLSearchParams(searchParams);
+    if (wishlistOnly) sp.delete('wishlist'); else sp.set('wishlist', '1');
+    setSearchParams(sp, { replace: true });
   };
-  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const cartTotal = cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
 
   const filtered = useMemo(() => {
     let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
+    if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q));
@@ -121,7 +120,7 @@ export default function BoutiquePage() {
     else if (sort === 'price_desc') list = [...list].sort((a, b) => b.price_eur - a.price_eur);
     else if (sort === 'new') list = [...list].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     return list;
-  }, [products, activeCat, search, sort]);
+  }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: products.length };
@@ -144,46 +143,12 @@ export default function BoutiquePage() {
         @keyframes dekkMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
       `}</style>
 
-      {/* PART 1 — Sticky top bar */}
-      <div
-        style={{
-          position: 'sticky', top: 0, zIndex: 50,
-          height: 52, padding: '0 16px',
-          background: '#0A0A0A',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}
-      >
-        <Link to="/" aria-label="Retour à l'accueil" style={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }}>
-          <ChevronLeft size={22} />
-        </Link>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
-          Boutique Dëkk
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button type="button" onClick={focusSearch} aria-label="Rechercher"
-            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-            <Search size={20} />
-          </button>
-          <button type="button" onClick={() => setCartOpen(true)} aria-label="Voir le panier"
-            style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: '#fff', cursor: 'pointer', display: 'inline-flex' }}>
-            <ShoppingCart size={20} />
-            {cartCount > 0 && (
-              <span style={{
-                position: 'absolute', top: -4, right: -6,
-                width: 16, height: 16, borderRadius: 999,
-                background: 'hsl(var(--primary))', color: '#fff',
-                fontSize: 9, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{cartCount}</span>
-            )}
-          </button>
-          <button type="button" aria-label="Liste de souhaits"
-            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-            <Heart size={20} />
-          </button>
-        </div>
-      </div>
+      <DekkHeader
+        title="Boutique Dëkk"
+        backTo="/"
+        onSearch={focusSearch}
+        onWishlist={toggleWishlistFilter}
+      />
 
       {/* PART 2 — Hero band */}
       <header style={{ background: '#0A0A0A', padding: '16px 16px 20px' }}>
@@ -383,7 +348,7 @@ export default function BoutiquePage() {
       )}
 
       {cartOpen && (
-        <CartDrawer cart={cart} total={cartTotal} onClose={() => setCartOpen(false)} onQty={updateQty} />
+        <CartDrawer cart={cart.items as any} total={cartTotal} onClose={() => setCartOpen(false)} onQty={updateQty} />
       )}
     </div>
   );

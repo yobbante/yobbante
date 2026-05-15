@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { useDekkCart } from '@/hooks/useDekkCart';
+import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct, trackView } from '@/lib/dekkRecommend';
@@ -47,13 +49,15 @@ function variantsFor(p: Product) {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const dekkCart = useDekkCart();
+  const dekkWish = useDekkWishlist();
   const [p, setP] = useState<Product | null>(null);
   const [related, setRelated] = useState<RecProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
-  const [wished, setWished] = useState(false);
+  const wished = id ? dekkWish.has(id) : false;
   const [imgIdx, setImgIdx] = useState(0);
   const [tab, setTab] = useState<'desc' | 'specs' | 'ship'>('desc');
   const [adding, setAdding] = useState(false);
@@ -98,7 +102,6 @@ export default function ProductDetailPage() {
         setRelated(recs);
       }
       setLoading(false);
-      try { setWished(JSON.parse(localStorage.getItem('dekk_wishlist') || '[]').includes(id)); } catch {}
     })();
     window.scrollTo(0, 0);
   }, [id]);
@@ -109,28 +112,11 @@ export default function ProductDetailPage() {
     if (!p) return;
     if (variants.sizes && !size) return;
     setAdding(true);
-    try {
-      const c = JSON.parse(localStorage.getItem('dekk_cart') || '[]');
-      const existing = c.find((i: any) => i.product.id === p.id);
-      if (existing) existing.qty += qty;
-      else c.push({ product: p, qty });
-      localStorage.setItem('dekk_cart', JSON.stringify(c));
-    } catch {}
+    dekkCart.addItem(p as any, qty, { size, color });
     setTimeout(() => { setAdding(false); }, 800);
   };
 
-  const toggleWish = () => {
-    setWished(w => {
-      const next = !w;
-      try {
-        const list: string[] = JSON.parse(localStorage.getItem('dekk_wishlist') || '[]');
-        const set = new Set(list);
-        next ? set.add(id!) : set.delete(id!);
-        localStorage.setItem('dekk_wishlist', JSON.stringify([...set]));
-      } catch {}
-      return next;
-    });
-  };
+  const toggleWish = () => { if (id) dekkWish.toggle(id); };
 
   const share = async () => {
     const url = window.location.href;
@@ -141,7 +127,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <PublicNav />
+        <DekkHeader />
         <div className="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8 animate-pulse">
           <div style={{ aspectRatio: '1/1', background: '#F4F4F4', borderRadius: 16 }} />
           <div className="space-y-4">
@@ -158,7 +144,7 @@ export default function ProductDetailPage() {
   if (!p) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <PublicNav />
+        <DekkHeader />
         <div className="max-w-2xl mx-auto px-4 py-24 text-center">
           <p style={{ fontSize: 18, fontWeight: 500 }}>Ce produit n'existe plus.</p>
           <Link to="/boutique" style={{ display: 'inline-block', marginTop: 16, color: DEKK.accent, fontSize: 14 }}>← Retour à la boutique</Link>
@@ -172,7 +158,7 @@ export default function ProductDetailPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
 
       {/* Breadcrumb */}
       <div className="max-w-6xl mx-auto px-4 pt-4">

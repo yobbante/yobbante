@@ -1,7 +1,8 @@
 import { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Search, Inbox, ArrowRight } from 'lucide-react';
+import { Send, Search, Inbox, ArrowRight, ArrowRightLeft, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
 
 export type IntentKey = 'send' | 'sourcing' | 'receive';
 
@@ -17,41 +18,27 @@ const INTENTS: Array<{
   id: IntentKey;
   label: string;
   icon: typeof Send;
-  placeholder: string;
-  cta: string;
-  /** Build the destination URL from the query the user typed. */
-  to: (q: string) => string;
 }> = [
-  {
-    id: 'send',
-    label: 'Envoyer',
-    icon: Send,
-    placeholder: 'Vers où ? (ex. Paris, Dakar…)',
-    cta: 'Envoyer',
-    to: (q) => `/expedier/envoyer${q ? `?destination=${encodeURIComponent(q)}` : ''}`,
-  },
-  {
-    id: 'sourcing',
-    label: 'Sourcing',
-    icon: Search,
-    placeholder: 'Quel produit cherchez-vous ?',
-    cta: 'Sourcer',
-    to: (q) => `/sourcing${q ? `?q=${encodeURIComponent(q)}` : ''}`,
-  },
-  {
-    id: 'receive',
-    label: 'Réception',
-    icon: Inbox,
-    placeholder: 'Pays d’origine (Amazon, AliExpress…)',
-    cta: 'Recevoir',
-    to: (q) => `/expedier/recevoir${q ? `?origin=${encodeURIComponent(q)}` : ''}`,
-  },
+  { id: 'send',     label: 'Envoyer',   icon: Send },
+  { id: 'sourcing', label: 'Sourcing',  icon: Search },
+  { id: 'receive',  label: 'Réception', icon: Inbox },
 ];
+
+/** Best-effort match for a free-text city input against the catalog. */
+function matchCity(input: string) {
+  const v = input.trim().toLowerCase();
+  if (!v) return null;
+  return (
+    ALL_CITIES.find(c => c.city.toLowerCase() === v) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().startsWith(v)) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().includes(v) || c.countryLabel.toLowerCase().includes(v)) ??
+    null
+  );
+}
 
 /**
  * Unified entry point — 3 intents (Envoyer · Sourcing · Réception) → flows.
- * Used identically on the public landing and inside /app to keep the mental
- * model: one bar, three doors.
+ * For "Envoyer", Dakar est toujours verrouillé sur l'une des deux extrémités.
  */
 export function IntentSearchBar({
   variant = 'compact',
@@ -61,13 +48,40 @@ export function IntentSearchBar({
   const navigate = useNavigate();
   const [intent, setIntent] = useState<IntentKey>(defaultIntent);
   const [query, setQuery] = useState('');
+  // Send-only: 'from_dakar' = Dakar → ville étrangère ; 'to_dakar' = ville → Dakar
+  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
   const id = useId();
 
-  const current = INTENTS.find((i) => i.id === intent)!;
-
-  const submit = () => navigate(current.to(query.trim()));
-
   const isHero = variant === 'hero';
+
+  const placeholder =
+    intent === 'sourcing' ? 'Quel produit cherchez-vous ?' :
+    intent === 'receive'  ? 'Pays d\'origine (Amazon, AliExpress…)' :
+    direction === 'from_dakar' ? 'Ville de destination (Paris, Lyon…)' : 'Ville d\'origine (Paris, Lyon…)';
+
+  const ctaLabel =
+    intent === 'sourcing' ? 'Sourcer' :
+    intent === 'receive'  ? 'Recevoir' : 'Envoyer';
+
+  const submit = () => {
+    const q = query.trim();
+    if (intent === 'sourcing') {
+      navigate(`/sourcing${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+      return;
+    }
+    if (intent === 'receive') {
+      navigate(`/expedier/recevoir${q ? `?origin=${encodeURIComponent(q)}` : ''}`);
+      return;
+    }
+    // SEND — Dakar toujours sur une extrémité.
+    const matched = matchCity(q);
+    const foreignCountry = matched?.country ?? undefined;
+    const foreignCity    = matched?.city ?? (q || undefined);
+    const preset = direction === 'from_dakar'
+      ? { origin: 'SN', origin_city: HUB_DAKAR.city, destination: foreignCountry, destination_city: foreignCity, source: 'intent_bar' }
+      : { origin: foreignCountry, origin_city: foreignCity, destination: 'SN', destination_city: HUB_DAKAR.city, source: 'intent_bar' };
+    navigate('/expedier/envoyer', { state: { preset } });
+  };
 
   return (
     <div
@@ -120,6 +134,30 @@ export function IntentSearchBar({
         })}
       </div>
 
+      {/* Send — Dakar lock chip + direction swap */}
+      {intent === 'send' && (
+        <div className="flex items-center gap-2 mb-2 text-[11px]">
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
+            style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
+            title="Dakar est toujours une extrémité de la route"
+          >
+            <MapPin className="w-3 h-3" />
+            {direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setDirection(d => d === 'from_dakar' ? 'to_dakar' : 'from_dakar')}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground hover:text-foreground"
+            style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+            aria-label="Inverser le sens"
+          >
+            <ArrowRightLeft className="w-3 h-3" />
+            Inverser
+          </button>
+        </div>
+      )}
+
       {/* Input + CTA */}
       <div
         id={`${id}-panel`}
@@ -136,8 +174,9 @@ export function IntentSearchBar({
               submit();
             }
           }}
-          placeholder={current.placeholder}
-          aria-label={current.placeholder}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          list={intent === 'send' ? `${id}-cities` : undefined}
           className={cn(
             'flex-1 min-w-0 bg-transparent outline-none px-3 text-foreground placeholder:text-muted-foreground',
             isHero ? 'h-11 text-[14px]' : 'h-10 text-[13px]',
@@ -147,6 +186,13 @@ export function IntentSearchBar({
             borderRadius: 8,
           }}
         />
+        {intent === 'send' && (
+          <datalist id={`${id}-cities`}>
+            {ALL_CITIES.map(c => (
+              <option key={c.id} value={c.city}>{c.flag} {c.countryLabel}</option>
+            ))}
+          </datalist>
+        )}
         <button
           type="button"
           onClick={submit}
@@ -159,7 +205,7 @@ export function IntentSearchBar({
             color: 'hsl(var(--background))',
           }}
         >
-          {current.cta}
+          {ctaLabel}
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

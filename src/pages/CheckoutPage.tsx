@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
       const hist = JSON.parse(localStorage.getItem('dekk_orders') || '[]');
       hist.unshift({ reference, total_eur: subtotal, created_at: order.created_at });
       localStorage.setItem('dekk_orders', JSON.stringify(hist.slice(0, 20)));
-      localStorage.setItem('dekk_cart', '[]');
+      localStorage.setItem('dekk_cart', '[]'); window.dispatchEvent(new Event('dekk:cart'));
     } catch (e) {
       console.error('Order persist failed', e);
     }
@@ -110,7 +110,7 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
       <main className="max-w-5xl mx-auto px-4 md:px-6 pt-6 pb-24">
         <Link to="/panier" style={{ fontSize: 12, color: DEKK.muted, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: '"DM Mono", monospace', letterSpacing: '0.06em' }}>
           <ArrowLeft size={12} /> RETOUR AU PANIER

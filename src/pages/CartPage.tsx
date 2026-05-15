@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct } from '@/lib/dekkRecommend';
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
@@ -17,10 +17,13 @@ type CartItem = { product: Product; qty: number; size?: string | null; color?: s
 const fmtEur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`;
 const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
+function writeCart(c: CartItem[]) {
+  localStorage.setItem('dekk_cart', JSON.stringify(c));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('dekk:cart'));
+}
 function readCart(): CartItem[] {
   try { return JSON.parse(localStorage.getItem('dekk_cart') || '[]'); } catch { return []; }
 }
-function writeCart(c: CartItem[]) { localStorage.setItem('dekk_cart', JSON.stringify(c)); }
 
 export default function CartPage() {
   const nav = useNavigate();
@@ -62,7 +65,7 @@ export default function CartPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
       <main className="max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-24">
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           DËKK · Étape 1 sur 3

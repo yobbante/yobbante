@@ -133,6 +133,19 @@ function clearSession() {
 const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 function readLandingHub(): HubId | null {
   try {
+    // 1) URL ?origin= (set by IntentSearchBar "Réception")
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const raw = (sp.get('origin') ?? '').toLowerCase();
+      const map: Record<string, HubId> = {
+        cn: 'CN', chine: 'CN', china: 'CN', amazon: 'US', aliexpress: 'CN', alibaba: 'CN', shein: 'CN', temu: 'CN',
+        fr: 'FR', france: 'FR',
+        us: 'US', usa: 'US', 'états-unis': 'US', etats: 'US', ebay: 'US',
+        ae: 'AE', dubai: 'AE', dubaï: 'AE', emirats: 'AE',
+        tr: 'TR', turquie: 'TR', istanbul: 'TR',
+      };
+      for (const k of Object.keys(map)) if (raw.includes(k)) return map[k];
+    }
     const v = localStorage.getItem(LANDING_HUB_KEY);
     return v && ['CN', 'FR', 'US', 'AE', 'TR', 'SN'].includes(v) ? (v as HubId) : null;
   } catch { return null; }
