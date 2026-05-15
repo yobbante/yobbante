@@ -78,7 +78,7 @@ export function DekkHeader({
           style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
           <Search size={20} />
         </button>
-        <button type="button" onClick={() => nav('/boutique/panier')} aria-label="Voir le panier"
+        <button type="button" onClick={() => nav('/panier')} aria-label="Voir le panier"
           style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: '#fff', cursor: 'pointer', display: 'inline-flex' }}>
           <ShoppingCart size={20} />
           <Badge n={cartCount} />
