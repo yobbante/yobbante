@@ -83,7 +83,11 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     }
   }
 
-  const [productInput, setProductInput] = useState('');
+  const [productInput, setProductInput] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get('q') ?? '';
+  });
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<null | {
     title: string; platform: string; estimatedPriceEur: number;
