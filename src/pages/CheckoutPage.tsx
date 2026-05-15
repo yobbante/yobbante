@@ -101,7 +101,7 @@ export default function CheckoutPage() {
       const hist = JSON.parse(localStorage.getItem('dekk_orders') || '[]');
       hist.unshift({ reference, total_eur: subtotal, created_at: order.created_at });
       localStorage.setItem('dekk_orders', JSON.stringify(hist.slice(0, 20)));
-      localStorage.setItem('dekk_cart', '[]');
+      localStorage.setItem('dekk_cart', '[]'); window.dispatchEvent(new Event('dekk:cart'));
     } catch (e) {
       console.error('Order persist failed', e);
     }
