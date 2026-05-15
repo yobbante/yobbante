@@ -348,7 +348,7 @@ export default function BoutiquePage() {
       )}
 
       {cartOpen && (
-        <CartDrawer cart={cart} total={cartTotal} onClose={() => setCartOpen(false)} onQty={updateQty} />
+        <CartDrawer cart={cart.items as any} total={cartTotal} onClose={() => setCartOpen(false)} onQty={updateQty} />
       )}
     </div>
   );
