@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct } from '@/lib/dekkRecommend';
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
