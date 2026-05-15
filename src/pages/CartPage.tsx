@@ -17,10 +17,13 @@ type CartItem = { product: Product; qty: number; size?: string | null; color?: s
 const fmtEur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`;
 const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
+function writeCart(c: CartItem[]) {
+  localStorage.setItem('dekk_cart', JSON.stringify(c));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('dekk:cart'));
+}
 function readCart(): CartItem[] {
   try { return JSON.parse(localStorage.getItem('dekk_cart') || '[]'); } catch { return []; }
 }
-function writeCart(c: CartItem[]) { localStorage.setItem('dekk_cart', JSON.stringify(c)); }
 
 export default function CartPage() {
   const nav = useNavigate();
