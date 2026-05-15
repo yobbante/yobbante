@@ -68,7 +68,7 @@ export default function OrderConfirmationPage() {
   if (!order) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <PublicNav />
+        <DekkHeader />
         <div className="max-w-2xl mx-auto px-4 py-24 text-center">
           <p style={{ fontSize: 16, fontWeight: 500 }}>Commande introuvable.</p>
           <Link to="/boutique" style={{ display: 'inline-block', marginTop: 14, color: DEKK.accent, fontSize: 14 }}>Retour à la boutique</Link>
@@ -85,7 +85,7 @@ export default function OrderConfirmationPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
       <main className="max-w-3xl mx-auto px-4 md:px-6 pt-10 pb-20">
         {/* Hero */}
         <div style={{ textAlign: 'center', padding: '24px 0 32px' }}>

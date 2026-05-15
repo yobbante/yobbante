@@ -110,7 +110,7 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
       <main className="max-w-5xl mx-auto px-4 md:px-6 pt-6 pb-24">
         <Link to="/panier" style={{ fontSize: 12, color: DEKK.muted, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: '"DM Mono", monospace', letterSpacing: '0.06em' }}>
           <ArrowLeft size={12} /> RETOUR AU PANIER

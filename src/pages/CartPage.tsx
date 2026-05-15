@@ -62,7 +62,7 @@ export default function CartPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
       <main className="max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-24">
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           DËKK · Étape 1 sur 3

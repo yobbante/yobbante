@@ -143,7 +143,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <PublicNav />
+        <DekkHeader />
         <div className="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8 animate-pulse">
           <div style={{ aspectRatio: '1/1', background: '#F4F4F4', borderRadius: 16 }} />
           <div className="space-y-4">
@@ -160,7 +160,7 @@ export default function ProductDetailPage() {
   if (!p) {
     return (
       <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <PublicNav />
+        <DekkHeader />
         <div className="max-w-2xl mx-auto px-4 py-24 text-center">
           <p style={{ fontSize: 18, fontWeight: 500 }}>Ce produit n'existe plus.</p>
           <Link to="/boutique" style={{ display: 'inline-block', marginTop: 16, color: DEKK.accent, fontSize: 14 }}>← Retour à la boutique</Link>
@@ -174,7 +174,7 @@ export default function ProductDetailPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
-      <PublicNav />
+      <DekkHeader />
 
       {/* Breadcrumb */}
       <div className="max-w-6xl mx-auto px-4 pt-4">
