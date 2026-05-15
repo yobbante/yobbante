@@ -49,13 +49,15 @@ function variantsFor(p: Product) {
 export default function ProductDetailPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const dekkCart = useDekkCart();
+  const dekkWish = useDekkWishlist();
   const [p, setP] = useState<Product | null>(null);
   const [related, setRelated] = useState<RecProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [size, setSize] = useState<string | null>(null);
   const [color, setColor] = useState<string | null>(null);
-  const [wished, setWished] = useState(false);
+  const wished = id ? dekkWish.has(id) : false;
   const [imgIdx, setImgIdx] = useState(0);
   const [tab, setTab] = useState<'desc' | 'specs' | 'ship'>('desc');
   const [adding, setAdding] = useState(false);
