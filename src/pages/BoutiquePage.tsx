@@ -111,6 +111,7 @@ export default function BoutiquePage() {
 
   const filtered = useMemo(() => {
     let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
+    if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q));
@@ -119,7 +120,7 @@ export default function BoutiquePage() {
     else if (sort === 'price_desc') list = [...list].sort((a, b) => b.price_eur - a.price_eur);
     else if (sort === 'new') list = [...list].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     return list;
-  }, [products, activeCat, search, sort]);
+  }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: products.length };
