@@ -102,7 +102,6 @@ export default function ProductDetailPage() {
         setRelated(recs);
       }
       setLoading(false);
-      try { setWished(JSON.parse(localStorage.getItem('dekk_wishlist') || '[]').includes(id)); } catch {}
     })();
     window.scrollTo(0, 0);
   }, [id]);
@@ -113,28 +112,11 @@ export default function ProductDetailPage() {
     if (!p) return;
     if (variants.sizes && !size) return;
     setAdding(true);
-    try {
-      const c = JSON.parse(localStorage.getItem('dekk_cart') || '[]');
-      const existing = c.find((i: any) => i.product.id === p.id);
-      if (existing) existing.qty += qty;
-      else c.push({ product: p, qty });
-      localStorage.setItem('dekk_cart', JSON.stringify(c));
-    } catch {}
+    dekkCart.addItem(p as any, qty, { size, color });
     setTimeout(() => { setAdding(false); }, 800);
   };
 
-  const toggleWish = () => {
-    setWished(w => {
-      const next = !w;
-      try {
-        const list: string[] = JSON.parse(localStorage.getItem('dekk_wishlist') || '[]');
-        const set = new Set(list);
-        next ? set.add(id!) : set.delete(id!);
-        localStorage.setItem('dekk_wishlist', JSON.stringify([...set]));
-      } catch {}
-      return next;
-    });
-  };
+  const toggleWish = () => { if (id) dekkWish.toggle(id); };
 
   const share = async () => {
     const url = window.location.href;
