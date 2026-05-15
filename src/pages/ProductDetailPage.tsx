@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
+import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { useDekkCart } from '@/hooks/useDekkCart';
+import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct, trackView } from '@/lib/dekkRecommend';
