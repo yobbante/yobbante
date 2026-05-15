@@ -143,46 +143,12 @@ export default function BoutiquePage() {
         @keyframes dekkMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
       `}</style>
 
-      {/* PART 1 — Sticky top bar */}
-      <div
-        style={{
-          position: 'sticky', top: 0, zIndex: 50,
-          height: 52, padding: '0 16px',
-          background: '#0A0A0A',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}
-      >
-        <Link to="/" aria-label="Retour à l'accueil" style={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }}>
-          <ChevronLeft size={22} />
-        </Link>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
-          Boutique Dëkk
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button type="button" onClick={focusSearch} aria-label="Rechercher"
-            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-            <Search size={20} />
-          </button>
-          <button type="button" onClick={() => setCartOpen(true)} aria-label="Voir le panier"
-            style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: '#fff', cursor: 'pointer', display: 'inline-flex' }}>
-            <ShoppingCart size={20} />
-            {cartCount > 0 && (
-              <span style={{
-                position: 'absolute', top: -4, right: -6,
-                width: 16, height: 16, borderRadius: 999,
-                background: 'hsl(var(--primary))', color: '#fff',
-                fontSize: 9, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{cartCount}</span>
-            )}
-          </button>
-          <button type="button" aria-label="Liste de souhaits"
-            style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-            <Heart size={20} />
-          </button>
-        </div>
-      </div>
+      <DekkHeader
+        title="Boutique Dëkk"
+        backTo="/"
+        onSearch={focusSearch}
+        onWishlist={toggleWishlistFilter}
+      />
 
       {/* PART 2 — Hero band */}
       <header style={{ background: '#0A0A0A', padding: '16px 16px 20px' }}>
