@@ -109,6 +109,10 @@ export function PublicFooter() {
                     <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
                       {l.icon} {l.label}
                     </Link>
+                  ) : l.href ? (
+                    <a key={l.label} href={l.href} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      {l.icon} {l.label}
+                    </a>
                   ) : (
                     <span key={l.label} className="block text-sm text-muted-foreground">{l.label}</span>
                   )
@@ -206,6 +210,14 @@ function FooterAccordion({ section }: { section: FooterSection }) {
                 >
                   {l.icon} {l.label}
                 </Link>
+              ) : l.href ? (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {l.icon} {l.label}
+                </a>
               ) : (
                 <span key={l.label} className="block text-sm text-muted-foreground/80">{l.label}</span>
               )
