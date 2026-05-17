@@ -5,6 +5,7 @@ import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
 } from '@/lib/quote';
+import { CityPicker } from './CityPicker';
 
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
@@ -186,22 +187,40 @@ export function QuoteForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Origine *">
-              <input
-                className="input-base w-full"
-                placeholder="Ville, Pays…"
-                value={origin}
-                onChange={e => setOrigin(e.target.value)}
-                readOnly={direction === 'from_dakar'}
-              />
+              {direction === 'from_dakar' ? (
+                <input
+                  className="input-base w-full"
+                  value={origin}
+                  readOnly
+                  aria-label="Origine verrouillée à Dakar"
+                />
+              ) : (
+                <CityPicker
+                  value={origin}
+                  onChange={setOrigin}
+                  placeholder="Choisir une ville d'origine…"
+                  ariaLabel="Choisir la ville d'origine"
+                  excludeCity="Dakar"
+                />
+              )}
             </Field>
             <Field label="Destination *">
-              <input
-                className="input-base w-full"
-                placeholder="Ville, Pays…"
-                value={destination}
-                onChange={e => setDestination(e.target.value)}
-                readOnly={direction === 'to_dakar'}
-              />
+              {direction === 'to_dakar' ? (
+                <input
+                  className="input-base w-full"
+                  value={destination}
+                  readOnly
+                  aria-label="Destination verrouillée à Dakar"
+                />
+              ) : (
+                <CityPicker
+                  value={destination}
+                  onChange={setDestination}
+                  placeholder="Choisir une ville de destination…"
+                  ariaLabel="Choisir la ville de destination"
+                  excludeCity="Dakar"
+                />
+              )}
             </Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
