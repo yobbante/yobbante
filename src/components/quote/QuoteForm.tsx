@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Search, Inbox } from 'lucide-react';
+import { Package, Search, Inbox, ArrowRightLeft, MapPin } from 'lucide-react';
 import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
@@ -43,9 +43,22 @@ export function QuoteForm() {
   const navigate = useNavigate();
   const [service, setService] = useState<ServiceMode>('send');
 
-  // Shared
-  const [origin, setOrigin] = useState('');
+  // Shared — Dakar est toujours verrouillé sur une extrémité de la route.
+  const DAKAR = 'Dakar, Sénégal';
+  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
+  const [origin, setOrigin] = useState(DAKAR);
   const [destination, setDestination] = useState('');
+  const swapDirection = () => {
+    if (direction === 'from_dakar') {
+      setDirection('to_dakar');
+      setOrigin('');
+      setDestination(DAKAR);
+    } else {
+      setDirection('from_dakar');
+      setOrigin(DAKAR);
+      setDestination('');
+    }
+  };
   const [weight, setWeight] = useState('');
   const [mode, setMode] = useState<TransportMode>('air');
   const [type, setType] = useState<GoodsType>('standard');
@@ -151,14 +164,44 @@ export function QuoteForm() {
       {/* TAB 1 — SEND */}
       {service === 'send' && (
         <div className="space-y-3">
+          <div className="flex items-center gap-2 text-[11px]">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
+              style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
+              title="Dakar est toujours une extrémité de la route"
+            >
+              <MapPin className="w-3 h-3" />
+              {direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar'}
+            </span>
+            <button
+              type="button"
+              onClick={swapDirection}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground hover:text-foreground"
+              style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+              aria-label="Inverser le sens"
+            >
+              <ArrowRightLeft className="w-3 h-3" />
+              Inverser
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Origine *">
-              <input className="input-base w-full" placeholder="Dakar, Sénégal"
-                value={origin} onChange={e => setOrigin(e.target.value)} />
+              <input
+                className="input-base w-full"
+                placeholder="Ville, Pays…"
+                value={origin}
+                onChange={e => setOrigin(e.target.value)}
+                readOnly={direction === 'from_dakar'}
+              />
             </Field>
             <Field label="Destination *">
-              <input className="input-base w-full" placeholder="Ville, Pays…"
-                value={destination} onChange={e => setDestination(e.target.value)} />
+              <input
+                className="input-base w-full"
+                placeholder="Ville, Pays…"
+                value={destination}
+                onChange={e => setDestination(e.target.value)}
+                readOnly={direction === 'to_dakar'}
+              />
             </Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
