@@ -5,6 +5,7 @@ import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
 } from '@/lib/quote';
+import { CityPicker } from './CityPicker';
 
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
