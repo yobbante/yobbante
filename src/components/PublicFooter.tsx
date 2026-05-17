@@ -40,11 +40,13 @@ interface FooterSection {
 
 const SECTIONS: FooterSection[] = [
   {
-    title: 'Commencer',
+    title: 'Services',
     links: [
       { label: 'Expédier un colis', to: '/expedier', icon: <Package className="w-3.5 h-3.5" /> },
-      { label: 'Acheter un produit', to: '/acheter', icon: <ShoppingCart className="w-3.5 h-3.5" /> },
-      { label: 'Mon espace', to: '/auth' },
+      { label: 'Sourcing produit', to: '/sourcing' },
+      { label: 'Réception international', to: '/expedier/recevoir' },
+      { label: 'Suivre un colis', to: '/suivre' },
+      { label: 'Boutique Dëkk', to: '/boutique', icon: <ShoppingCart className="w-3.5 h-3.5" /> },
     ],
   },
   {
@@ -52,14 +54,18 @@ const SECTIONS: FooterSection[] = [
     links: [
       { label: 'Solution B2B', to: '/entreprises' },
       { label: 'Demander un devis', to: '/devis-entreprise' },
+      { label: 'Tarifs', to: '/tarifs' },
+      { label: 'Devenir partenaire', to: '/#transporteur' },
     ],
   },
   {
-    title: 'Légal',
+    title: 'Yobbanté',
     links: [
-      { label: 'CGU' },
-      { label: 'Confidentialité' },
-      { label: 'Mentions légales' },
+      { label: 'Mon espace', to: '/auth' },
+      { label: 'Centre d\'aide', href: 'mailto:contact@yobbante.com' },
+      { label: 'CGU', to: '/legal/cgu' },
+      { label: 'Confidentialité', to: '/legal/confidentialite' },
+      { label: 'Mentions légales', to: '/legal/mentions' },
     ],
   },
 ];
