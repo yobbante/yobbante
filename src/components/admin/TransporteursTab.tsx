@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil, Send, Loader2, Upload } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check } from 'lucide-react';
 import { GpImportDialog } from './GpImportDialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,42 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
 import { useTransporteurs, type Transporteur } from '@/hooks/useTransporteurs';
 import { useManualDepartures } from '@/hooks/useManualDepartures';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+/** Pad ref to GP0001 form. */
+function gpRef(reference: string) {
+  return `GP${String(reference).replace(/\D/g, '').padStart(4, '0')}`;
+}
+
+/** Build personalized invite text per GP. */
+function buildInviteMessage(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  return `Bonjour ${prenom},
+
+Yobbanté vous invite à rejoindre Konnekt — recevez plus de missions directement sur votre téléphone.
+
+En tant que partenaire Yobbanté, vous avez un accès exclusif :
+👉 https://konnekt.app/beta?ref=${gpRef(gp.reference)}
+
+Inscription en 30 secondes — vos informations sont déjà enregistrées.
+
+— Équipe Yobbanté`;
+}
+
+function buildWaUrl(gp: Transporteur) {
+  const phone = (gp.telephone_1 || '').replace(/\D/g, '');
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildInviteMessage(gp))}`;
+}
+
+function formatShortDate(iso?: string | null) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  } catch { return ''; }
+}
 
 export function TransporteursTab() {
   const { list, upsert, deactivate } = useTransporteurs();
@@ -26,9 +57,7 @@ export function TransporteursTab() {
   const [editing, setEditing] = useState<Transporteur | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [blastOpen, setBlastOpen] = useState(false);
-  const [blasting, setBlasting] = useState(false);
-  const [blastProgress, setBlastProgress] = useState(0);
-  const [blastResult, setBlastResult] = useState<{ total: number; sent: number } | null>(null);
+  const [sentMap, setSentMap] = useState<Record<string, string>>({});
   const [importOpen, setImportOpen] = useState(false);
 
   const existingRefs = useMemo(
@@ -36,47 +65,34 @@ export function TransporteursTab() {
     [list.data],
   );
 
-  const eligibleCount = useMemo(
-    () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered).length,
-    [list.data],
-  );
-
-  const YOBBANTE_WA = '221786078080';
-
-  const buildInviteText = (gps: Transporteur[]) => {
-    const header =
-      `Bonjour 👋\n\nVoici la liste des GP à inviter sur Konnekt (${gps.length}) :\n\n`;
-    const lines = gps
-      .map((g, i) => `${i + 1}. Réf ${g.reference} — ${g.nom} — ${g.telephone_1}`)
-      .join('\n');
-    const footer =
-      `\n\n👉 Lien d'invitation Konnekt à transférer à chacun :\nhttps://konnekt.app/invite\n\n— YOBBANTÉ Ops`;
-    return header + lines + footer;
-  };
-
-  const handleBlast = () => {
-    setBlasting(true);
-    setBlastProgress(60);
-    setBlastResult(null);
+  const markInvited = async (gp: Transporteur) => {
+    const now = new Date().toISOString();
+    setSentMap(prev => ({ ...prev, [gp.id]: now }));
     try {
-      const eligible = (list.data ?? []).filter(t => t.actif && !t.konnekt_registered);
-      if (eligible.length === 0) {
-        toast.info('Aucun GP éligible');
-        return;
-      }
-      const text = buildInviteText(eligible);
-      const url = `https://wa.me/${YOBBANTE_WA}?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setBlastProgress(100);
-      setBlastResult({ total: eligible.length, sent: eligible.length });
-      toast.success(`WhatsApp ouvert avec ${eligible.length} GP à inviter ✓`);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Impossible d'ouvrir WhatsApp");
-    } finally {
-      setBlasting(false);
+      await supabase
+        .from('transporteurs' as any)
+        .update({ beta_invite_sent_at: now })
+        .eq('id', gp.id);
+      list.refetch();
+    } catch (e) {
+      // Non-bloquant — l'ouverture WhatsApp a déjà eu lieu
     }
   };
 
+  const openInvite = async (gp: Transporteur) => {
+    const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
+    if (!phoneDigits) {
+      toast.error('Numéro de téléphone manquant');
+      return;
+    }
+    window.open(buildWaUrl(gp), '_blank', 'noopener,noreferrer');
+    await markInvited(gp);
+  };
+
+  const eligible = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered && !t.beta_invite_sent_at),
+    [list.data],
+  );
 
   const counts = useMemo(() => {
     const map: Record<string, { count: number; last: string | null }> = {};
@@ -98,6 +114,7 @@ export function TransporteursTab() {
     return base.filter(t =>
       t.reference.includes(s) ||
       t.nom.toLowerCase().includes(s) ||
+      (t.prenom ?? '').toLowerCase().includes(s) ||
       t.telephone_1.toLowerCase().includes(s) ||
       (t.telephone_2 ?? '').toLowerCase().includes(s) ||
       t.ville.toLowerCase().includes(s),
@@ -159,19 +176,23 @@ export function TransporteursTab() {
         </div>
       ) : (
         <div className="border border-border rounded-lg overflow-hidden">
-          <div className="hidden md:grid grid-cols-[80px_1fr_140px_120px_70px_120px_60px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
-            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Ville</div><div>Départs</div><div>Dernier</div><div></div>
+          <div className="hidden md:grid grid-cols-[80px_1fr_140px_120px_60px_100px_120px_60px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
+            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Ville</div><div>Dép.</div><div>Dernier</div><div>Statut Konnekt</div><div></div>
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
+            const inviteAt = sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
             return (
-              <div key={t.id} className={`grid md:grid-cols-[80px_1fr_140px_120px_70px_120px_60px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
-                <div className="font-mono font-semibold">{t.reference}</div>
-                <div className="font-medium">{t.nom}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
+              <div key={t.id} className={`grid md:grid-cols-[80px_1fr_140px_120px_60px_100px_120px_60px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
+                <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
+                <div className="font-medium">{[t.prenom, t.nom].filter(Boolean).join(' ') || t.nom}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
                 <div className="text-muted-foreground">{t.telephone_1}</div>
                 <div>{t.ville}</div>
                 <div>{c.count}</div>
                 <div className="text-muted-foreground">{c.last ?? '—'}</div>
+                <div>
+                  <KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} />
+                </div>
                 <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -181,17 +202,13 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setEditing(t)}>
                         <Pencil className="w-4 h-4 mr-2" /> Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const phone = t.telephone_1.replace(/[^\d]/g, '');
-                        const text = `Bonjour ${t.nom.split(' ')[0]} 👋\n\nYOBBANTÉ vous invite à rejoindre Konnekt pour gérer vos départs et recevoir plus de colis.\n\n👉 https://konnekt.app/invite\n\nMerci !\n— YOBBANTÉ Ops`;
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-                      }}>
-                        <Send className="w-4 h-4 mr-2" /> Inviter sur WhatsApp
+                      <DropdownMenuItem onClick={() => openInvite(t)}>
+                        <Send className="w-4 h-4 mr-2" /> Inviter sur Konnekt
                       </DropdownMenuItem>
                       {t.actif && (
                         <DropdownMenuItem onClick={async () => {
                           await deactivate.mutateAsync(t.id);
-                          toast.success(`Transporteur Réf. ${t.reference} désactivé`);
+                          toast.success(`Transporteur Réf. ${gpRef(t.reference)} désactivé`);
                         }} className="text-destructive">
                           <Power className="w-4 h-4 mr-2" /> Désactiver
                         </DropdownMenuItem>
@@ -214,60 +231,68 @@ export function TransporteursTab() {
             return;
           }
           await upsert.mutateAsync(data);
-          toast.success(`Transporteur Réf. ${data.reference} enregistré`);
+          toast.success(`Transporteur Réf. ${gpRef(data.reference)} enregistré`);
           setEditing(null);
         }}
       />
 
-      <Dialog open={blastOpen} onOpenChange={(v) => { if (!blasting) { setBlastOpen(v); if (!v) { setBlastResult(null); setBlastProgress(0); } } }}>
-        <DialogContent>
+      {/* Blast modal — manual per-row sends (no auto multi-tab) */}
+      <Dialog open={blastOpen} onOpenChange={setBlastOpen}>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Inviter les GP sur Konnekt</DialogTitle>
+            <DialogTitle>Envoi en masse</DialogTitle>
             <DialogDescription>
-              Envoyer l'invitation Konnekt à tous les GP non encore inscrits ?
+              L'envoi automatique en masse nécessite l'API WhatsApp Business.
+              Pour l'instant, voici la liste des GP à inviter — cliquez sur chaque
+              lien pour ouvrir WhatsApp.
             </DialogDescription>
           </DialogHeader>
 
-          {!blastResult ? (
-            <div className="space-y-3 text-sm">
-              <p>
-                <span className="font-semibold">GP éligibles :</span>{' '}
-                <span className="font-mono">{eligibleCount}</span> transporteur{eligibleCount > 1 ? 's' : ''}
-              </p>
-              <p className="text-muted-foreground">
-                Ouvre WhatsApp sur le numéro YOBBANTÉ (+221 78 607 80 80) avec la liste pré-remplie des GP à inviter — prêt à envoyer en un clic.
-              </p>
-              {blasting && (
-                <div className="space-y-2 pt-2">
-                  <Progress value={blastProgress} />
-                  <p className="text-xs text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Envoi en cours…
-                  </p>
-                </div>
-              )}
+          {eligible.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Aucun GP en attente d'invitation 🎉
             </div>
           ) : (
-            <div className="space-y-2 text-sm">
-              <p className="text-base font-semibold">{blastResult.sent} message{blastResult.sent > 1 ? 's' : ''} envoyé{blastResult.sent > 1 ? 's' : ''} ✓</p>
-              <p className="text-muted-foreground">sur {blastResult.total} GP éligible{blastResult.total > 1 ? 's' : ''}.</p>
+            <div className="max-h-[420px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+              {eligible.map((g) => {
+                const sentAt = sentMap[g.id];
+                const isSent = !!sentAt;
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">
+                        {[g.prenom, g.nom].filter(Boolean).join(' ') || g.nom}
+                        <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+                      </div>
+                      <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1}</div>
+                    </div>
+                    {isSent ? (
+                      <Button size="sm" variant="ghost" disabled className="text-emerald-500 hover:text-emerald-500">
+                        <Check className="w-4 h-4 mr-1" /> Envoyé
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openInvite(g)}
+                        className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                        Ouvrir WhatsApp
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
+          <p className="text-[12px] text-muted-foreground">
+            Tous les GP contactés sont marqués automatiquement comme « Invitation envoyée ».
+          </p>
+
           <DialogFooter>
-            {!blastResult ? (
-              <>
-                <Button variant="outline" onClick={() => setBlastOpen(false)} disabled={blasting}>Annuler</Button>
-                <Button
-                  onClick={handleBlast}
-                  disabled={blasting || eligibleCount === 0}
-                  className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
-                >
-                  {blasting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi…</> : "Confirmer l'envoi"}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => { setBlastOpen(false); setBlastResult(null); setBlastProgress(0); }}>Fermer</Button>
-            )}
+            <Button onClick={() => setBlastOpen(false)}>Fermer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -281,6 +306,25 @@ export function TransporteursTab() {
       />
     </div>
   );
+}
+
+function KonnektStatus({ invitedAt, registered }: { invitedAt: string | null; registered: boolean }) {
+  if (registered) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
+        ✓ Inscrit
+      </span>
+    );
+  }
+  if (invitedAt) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-amber-500">📤 Invité</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">{formatShortDate(invitedAt)}</div>
+      </div>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
 }
 
 function EditDrawer({

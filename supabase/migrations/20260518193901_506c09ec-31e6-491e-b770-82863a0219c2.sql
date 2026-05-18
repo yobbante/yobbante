@@ -1,0 +1,1 @@
+ALTER TABLE public.transporteurs ADD COLUMN IF NOT EXISTS beta_invite_sent_at timestamp with time zone;
