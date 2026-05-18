@@ -5,6 +5,7 @@ export interface Transporteur {
   id: string;
   reference: string;
   nom: string;
+  prenom?: string | null;
   telephone_1: string;
   telephone_2: string | null;
   adresse_1: string;
@@ -15,6 +16,7 @@ export interface Transporteur {
   actif: boolean;
   konnekt_registered?: boolean;
   konnekt_registered_at?: string | null;
+  beta_invite_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }
