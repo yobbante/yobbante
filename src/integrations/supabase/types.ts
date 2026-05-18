@@ -1764,6 +1764,7 @@ export type Database = {
           actif: boolean
           adresse_1: string
           adresse_2: string | null
+          beta_invite_sent_at: string | null
           created_at: string
           destinations: string[] | null
           id: string
@@ -1785,6 +1786,7 @@ export type Database = {
           actif?: boolean
           adresse_1: string
           adresse_2?: string | null
+          beta_invite_sent_at?: string | null
           created_at?: string
           destinations?: string[] | null
           id?: string
@@ -1806,6 +1808,7 @@ export type Database = {
           actif?: boolean
           adresse_1?: string
           adresse_2?: string | null
+          beta_invite_sent_at?: string | null
           created_at?: string
           destinations?: string[] | null
           id?: string
