@@ -114,7 +114,7 @@ export function TrackingTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-mono">{ev.event_type}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-mono">{formatEventLabel(ev.event_type)}</span>
                 </div>
                 {ev.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ev.description}</p>}
               </div>
