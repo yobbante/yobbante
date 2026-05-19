@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,20 +26,39 @@ import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
 
+/** URL slug → internal section key. Slugs not listed here fall through to `slug as AdminSection`. */
+const SLUG_TO_SECTION: Record<string, AdminSection> = {
+  dossiers: 'requests',
+};
+
 export default function AdminPage() {
   const navigate = useNavigate();
   const { isStaff, isAdmin, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { section: pathSlug } = useParams<{ section?: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const raw = searchParams.get('section') as AdminSection | null;
-  const section: AdminSection = raw && ALLOWED.includes(raw) ? raw : 'overview';
+  // Priority : URL path /admin/:section > legacy ?section= query > overview
+  const queryRaw = searchParams.get('section');
+  const pathSection = pathSlug ? (SLUG_TO_SECTION[pathSlug] ?? (pathSlug as AdminSection)) : null;
+  const requested = pathSection ?? (queryRaw as AdminSection | null);
+  const section: AdminSection = requested && ALLOWED.includes(requested) ? requested : 'overview';
+  const isUnknownSection = !!pathSlug && !ALLOWED.includes(pathSection as AdminSection);
 
   const setSection = (s: AdminSection) => {
-    const sp = new URLSearchParams(searchParams);
-    if (s === 'overview') sp.delete('section'); else sp.set('section', s);
-    setSearchParams(sp);
+    // Always navigate using the clean path form so URLs are shareable.
+    if (s === 'overview') {
+      navigate('/admin');
+    } else {
+      navigate(`/admin/${s}`);
+    }
+    // Clean any legacy ?section= param.
+    if (searchParams.has('section')) {
+      const sp = new URLSearchParams(searchParams);
+      sp.delete('section');
+      setSearchParams(sp, { replace: true });
+    }
     setMobileOpen(false);
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
   };
@@ -143,22 +162,40 @@ export default function AdminPage() {
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
-          <AdminBreadcrumb section={section} />
-          {section === 'overview'   && <OverviewTab onJump={setSection} />}
-          {section === 'requests'   && <RequestsTab />}
-          {section === 'shipments'  && <ShipmentsWorkflowTab />}
-          {section === 'orders'     && <OrdersTab />}
-          {section === 'reception'  && <ReceptionKanbanTab />}
-          {section === 'hubs'       && <HubsTab />}
-          {section === 'transport'  && <KonnektMonitorTab />}
-          {section === 'departures' && <DeparturesTab />}
-          {section === 'transporteurs' && isAdmin && <TransporteursTab />}
-          {section === 'sourcing'   && <SourcingTab />}
-          {section === 'boutique'   && <BoutiqueTab />}
-          {section === 'tracking'   && <TrackingTab />}
-          {section === 'clients'    && <ClientsTab />}
-          {section === 'enterprise' && <EnterpriseQuotesTab />}
-          {section === 'settings'   && <SettingsTab />}
+          {isUnknownSection ? (
+            <div className="py-20 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Erreur 404</p>
+              <h1 className="mt-2 text-2xl font-semibold text-foreground">Section admin introuvable</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                La section « <span className="font-mono">{pathSlug}</span> » n'existe pas.
+              </p>
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1.5 mt-6 text-sm font-medium text-primary hover:underline"
+              >
+                <ArrowLeft className="w-4 h-4" /> Retour au dashboard
+              </Link>
+            </div>
+          ) : (
+            <>
+              <AdminBreadcrumb section={section} />
+              {section === 'overview'   && <OverviewTab onJump={setSection} />}
+              {section === 'requests'   && <RequestsTab />}
+              {section === 'shipments'  && <ShipmentsWorkflowTab />}
+              {section === 'orders'     && <OrdersTab />}
+              {section === 'reception'  && <ReceptionKanbanTab />}
+              {section === 'hubs'       && <HubsTab />}
+              {section === 'transport'  && <KonnektMonitorTab />}
+              {section === 'departures' && <DeparturesTab />}
+              {section === 'transporteurs' && isAdmin && <TransporteursTab />}
+              {section === 'sourcing'   && <SourcingTab />}
+              {section === 'boutique'   && <BoutiqueTab />}
+              {section === 'tracking'   && <TrackingTab />}
+              {section === 'clients'    && <ClientsTab />}
+              {section === 'enterprise' && <EnterpriseQuotesTab />}
+              {section === 'settings'   && <SettingsTab />}
+            </>
+          )}
         </main>
       </div>
     </div>

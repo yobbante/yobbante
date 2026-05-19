@@ -86,14 +86,17 @@ function IndividualsTable() {
     queryKey: ['admin-clients'],
     staleTime: 60_000,
     queryFn: async () => {
-      const [profilesR, pkgR, dosR] = await Promise.all([
+      const [profilesR, pkgR, shipR, dosR] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, created_at').order('created_at', { ascending: false }).limit(500),
         supabase.from('packages').select('user_id').limit(2000),
+        supabase.from('shipments').select('user_id').limit(2000),
         supabase.from('dossiers').select('user_id').limit(2000),
       ]);
       const pkgCount = new Map<string, number>();
       const dosCount = new Map<string, number>();
+      // "Colis" = envois physiques (shipments) + colis enregistrés (packages)
       (pkgR.data || []).forEach(p => pkgCount.set(p.user_id, (pkgCount.get(p.user_id) || 0) + 1));
+      (shipR.data || []).forEach(s => pkgCount.set(s.user_id, (pkgCount.get(s.user_id) || 0) + 1));
       (dosR.data || []).forEach(d => dosCount.set(d.user_id, (dosCount.get(d.user_id) || 0) + 1));
       const rows: ClientRow[] = (profilesR.data || []).map(p => ({
         user_id: p.user_id,

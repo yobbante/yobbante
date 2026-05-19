@@ -15,7 +15,7 @@ export function HubsTab() {
       const todayIso = new Date().toISOString().slice(0, 10);
       const [pkgR, shipR, depR] = await Promise.all([
         supabase.from('packages').select('warehouse_country, status'),
-        supabase.from('shipments').select('origin_country, status, eta').order('created_at', { ascending: false }),
+        supabase.from('shipments').select('origin_country, destination_country, status, departure_date'),
         supabase
           .from('manual_departures')
           .select('origin_country, departure_date, status')
@@ -44,21 +44,39 @@ export function HubsTab() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {HUBS.map(hub => {
-          const incoming = data.packages.filter(p => p.warehouse_country === hub && ['CREATED', 'RECEIVED'].includes(p.status as string)).length;
-          const stored = data.packages.filter(p => p.warehouse_country === hub && p.status === 'IN_STORAGE').length;
-          const outgoing = data.shipments.filter(s => s.origin_country === hub && ['PENDING', 'IN_TRANSIT'].includes(s.status as string)).length;
+          // Mapping shipments → hub flux (origine du hub = pays de stockage international) :
+          // ENTRANTS  : envois rattachés au hub d'origine, en attente avant départ
+          // STOCKÉS   : envois en préparation / assignés au hub
+          // SORTANTS  : envois ayant quitté le hub (en transit / douane)
+          const INCOMING_STATUSES = new Set(['PENDING', 'WAITING_FOR_MATCH', 'CONFIRMED', 'MATCHED']);
+          const STORED_STATUSES = new Set(['IN_PREPARATION']);
+          const OUTGOING_STATUSES = new Set(['IN_TRANSIT', 'CUSTOMS', 'ARRIVED', 'OUT_FOR_DELIVERY']);
+
+          const hubShipments = data.shipments.filter(s => s.origin_country === hub);
+          const hubPackages = data.packages.filter(p => p.warehouse_country === hub);
+
+          const incoming =
+            hubShipments.filter(s => INCOMING_STATUSES.has(s.status as string)).length +
+            hubPackages.filter(p => ['CREATED', 'RECEIVED'].includes(p.status as string)).length;
+          const stored =
+            hubShipments.filter(s => STORED_STATUSES.has(s.status as string)).length +
+            hubPackages.filter(p => p.status === 'IN_STORAGE').length;
+          const outgoing = hubShipments.filter(s => OUTGOING_STATUSES.has(s.status as string)).length;
+
           const todayMs = new Date().setHours(0, 0, 0, 0);
           const futureDates: number[] = [
             ...data.departures
               .filter(d => d.origin_country === hub && d.departure_date)
               .map(d => +new Date(d.departure_date as string)),
             ...data.shipments
-              .filter(s => s.origin_country === hub && s.eta && +new Date(s.eta as string) >= todayMs && !['DELIVERED', 'CANCELLED'].includes(s.status as string))
-              .map(s => +new Date(s.eta as string)),
+              .filter(s => s.origin_country === hub && s.departure_date && +new Date(s.departure_date as string) >= todayMs && !['DELIVERED', 'CANCELLED'].includes(s.status as string))
+              .map(s => +new Date(s.departure_date as string)),
           ].filter(t => t >= todayMs).sort((a, b) => a - b);
           const nextDepartureTs = futureDates[0];
           const total = incoming + stored;
-          const capacityPct = Math.min(100, total * 4);
+          const HUB_MAX_CAPACITY = 100;
+          const capacityPct = Math.min(100, Math.round((stored / HUB_MAX_CAPACITY) * 100));
+          const showCapacity = stored > 0 || total > 0;
 
           return (
             <div key={hub} className="bg-card border border-border rounded-xl p-4">
@@ -92,14 +110,16 @@ export function HubsTab() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Capacité</span><span>{capacityPct}%</span>
+              {showCapacity && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Capacité</span><span>{capacityPct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-foreground/70" style={{ width: `${capacityPct}%` }} />
+                  </div>
                 </div>
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-foreground/70" style={{ width: `${capacityPct}%` }} />
-                </div>
-              </div>
+              )}
 
               <p className={cn(
                 'mt-3 text-[11px]',
