@@ -149,7 +149,7 @@ export function DeparturesTab() {
                   <tr key={d.id} className="border-t border-border hover:bg-secondary/20">
                     <td className="px-4 py-3 font-medium">{d.origin_city} → {d.destination_city}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{MODE_LABEL[d.transport_mode] ?? d.transport_mode}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{format(new Date(d.departure_date), 'dd MMM yyyy')}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDateFR(d.departure_date)}</td>
                     <td className="px-4 py-3">
                       <div className="space-y-1">
                         <div className="h-1 rounded-full overflow-hidden" style={{ background: 'hsl(var(--color-border-tertiary))' }}>
