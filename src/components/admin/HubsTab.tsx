@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
 import { ArrowDownRight, ArrowUpRight, Package } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { formatDateFR } from '@/lib/statusLabels';
 
 const HUBS: WarehouseCountry[] = ['CN', 'FR', 'US', 'AE', 'DE', 'CA'];
 
