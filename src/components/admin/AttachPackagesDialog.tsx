@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { COUNTRY_FLAGS, type Package } from '@/lib/types';
+import { formatStatusLabel } from '@/lib/statusLabels';
 import { toast } from 'sonner';
 
 interface Props {
