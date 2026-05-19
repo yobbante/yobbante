@@ -526,20 +526,20 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       setReference(dossier.reference);
       clearSession();
       toast.success('Suivi activé 📦');
-      console.log('WhatsApp trigger fired');
-      const { error: waError } = await supabase.functions.invoke('send-whatsapp', {
+      console.log('WA_INVOKE_START');
+      supabase.functions.invoke('send-whatsapp', {
         body: {
           client_name: user.email ?? 'Client',
           service_type: 'Réception',
           origin: hub ? COUNTRY_NAME(hub) : '—',
           destination: destination ? COUNTRY_NAME(destination) : '—',
           weight: totalWeight.toFixed(2),
-          recipient_phone: '+221786078080',
-        },
+          recipient_phone: '+221786078080'
+        }
+      }).then(({ data, error }) => {
+        if (error) console.error('WA_INVOKE_ERROR:', error);
+        else console.log('WA_INVOKE_SUCCESS:', JSON.stringify(data));
       });
-      if (waError) {
-        console.error('WhatsApp notification failed:', waError);
-      }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erreur';
       toast.error(message);
