@@ -222,7 +222,7 @@ function Header({ ref, status, secondary }: { ref: string; status: string; secon
       <div className="flex items-center gap-2">
         <span className="font-mono text-xs text-muted-foreground">#{ref.slice(0, 12)}</span>
         <Badge className={cn('text-[10px] uppercase tracking-wide font-bold', STATUS_TONE[status])} variant="outline">
-          {status.replace(/_/g, ' ')}
+          {formatStatusLabel(status)}
         </Badge>
       </div>
       <p className="text-sm text-foreground">{secondary}</p>
