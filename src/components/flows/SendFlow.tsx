@@ -467,8 +467,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         body: {
           client_name: senderName || 'Client',
           service_type: 'Expédition',
-          origin: originCity?.city || '',
-          destination: destCity?.city || '',
+          origin: originCity?.city || originCity?.country || 'Non précisé',
+          destination: destCity?.city || destCity?.country || 'Non précisé',
           weight: weight,
           recipient_phone: '+221786078080'
         }

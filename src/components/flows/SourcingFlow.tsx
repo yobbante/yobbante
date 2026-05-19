@@ -221,8 +221,8 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         body: {
           client_name: user.email ?? 'Client',
           service_type: 'Sourcing',
-          origin: origin,
-          destination: destination,
+          origin: origin || 'Non précisé',
+          destination: destination || 'Non précisé',
           weight: totalWeight,
           recipient_phone: '+221786078080'
         }
