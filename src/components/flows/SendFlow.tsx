@@ -463,18 +463,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
       console.log('WhatsApp trigger fired');
-      const { error: waError } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          client_name: senderName || recipientName || 'Client',
-          service_type: 'Expédition',
-          origin: `${originCity?.city ?? ''}, ${originCity?.country ?? ''}`,
-          destination: `${destCity?.city ?? ''}, ${destCity?.country ?? ''}`,
-          weight: weight,
-          recipient_phone: '+221786078080',
-        },
-      });
-      if (waError) {
-        console.error('WhatsApp notification failed:', waError);
+      try {
+        await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            client_name: senderName || 'Client',
+            service_type: 'Expédition',
+            origin: originCity?.city || '',
+            destination: destCity?.city || '',
+            weight: weight,
+            recipient_phone: '+221786078080',
+          },
+        });
+      } catch (waErr) {
+        console.error('WhatsApp failed:', waErr);
       }
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
