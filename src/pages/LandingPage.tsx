@@ -191,24 +191,24 @@ export default function LandingPage() {
 
       {/* ───── TÉMOIGNAGES ───── */}
       <section>
-        <div className="max-w-5xl mx-auto px-6 py-14 md:py-16">
+        <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 md:py-16">
           <p className="text-label text-center mb-2">Ils nous font confiance</p>
-          <h2 className="text-center text-[22px] md:text-[28px] mb-8">Ce que disent nos clients.</h2>
-          <div className="-mx-6 px-6 overflow-x-auto no-scrollbar">
-            <div className="flex md:grid md:grid-cols-3 gap-3 min-w-max md:min-w-0">
+          <h2 className="text-center text-[22px] md:text-[28px] mb-6 md:mb-8">Ce que disent nos clients.</h2>
+          <div className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5">
+            <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-3 min-w-max md:min-w-0 pb-2">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div
                   key={i}
                   variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                  className="surface-card min-w-[260px] md:min-w-0"
+                  className="surface-card snap-start flex flex-col w-[85vw] max-w-[320px] md:w-auto md:max-w-none md:min-w-0 p-5"
                 >
-                  <div className="text-[12px]" style={{ color: '#1D9E75' }}>★★★★★</div>
-                  <p className="mt-3" style={{ fontSize: 13, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>
+                  <div className="text-[13px] tracking-wider" style={{ color: '#1D9E75' }}>★★★★★</div>
+                  <p className="mt-3 flex-1" style={{ fontSize: 15, lineHeight: 1.65, color: 'hsl(var(--foreground))' }}>
                     "{t.quote}"
                   </p>
-                  <div className="mt-4">
-                    <div className="text-[12px] font-medium">{t.name}</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: 'hsl(var(--text-tertiary))' }}>{t.sub}</div>
+                  <div className="mt-5 pt-4" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                    <div className="text-[13px] font-medium">{t.name}</div>
+                    <div className="text-[12px] mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>{t.sub}</div>
                   </div>
                 </motion.div>
               ))}
