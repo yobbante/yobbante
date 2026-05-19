@@ -146,6 +146,7 @@ export function CityPicker({
           {/* sheet */}
           <div
             ref={sheetRef}
+            onClick={(e) => e.stopPropagation()}
             className={cn(
               'relative w-full sm:w-[440px] bg-background flex flex-col',
               // dvh keeps the sheet visible above the iOS keyboard
