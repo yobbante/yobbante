@@ -100,7 +100,7 @@ export function RelayAddressesPanel() {
               <Input placeholder="Nom contact" value={r.contact_name ?? ''} onChange={e => updateField(r.id, 'contact_name', e.target.value)} />
               <Input placeholder="Téléphone" value={r.phone ?? ''} onChange={e => updateField(r.id, 'phone', e.target.value)} />
             </div>
-            <Input placeholder="Adresse ligne 1" value={r.address_line1} onChange={e => updateField(r.id, 'address_line1', e.target.value)} />
+            <Input placeholder="Renseigner l'adresse" value={r.address_line1 ?? ''} onChange={e => updateField(r.id, 'address_line1', e.target.value)} />
             <Input placeholder="Adresse ligne 2 (suite, étage…)" value={r.address_line2 ?? ''} onChange={e => updateField(r.id, 'address_line2', e.target.value)} />
             <Input placeholder="Code postal" value={r.postal_code ?? ''} onChange={e => updateField(r.id, 'postal_code', e.target.value)} />
             <Textarea placeholder="Notes internes" rows={2} value={r.notes ?? ''} onChange={e => updateField(r.id, 'notes', e.target.value)} />

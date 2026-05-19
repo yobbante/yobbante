@@ -23,6 +23,22 @@ function gpRef(reference: string) {
   return `GP${String(reference).replace(/\D/g, '').padStart(4, '0')}`;
 }
 
+/** Build a clean display name: dedupes when prenom is already the prefix of nom,
+ *  and collapses any "Word Word" repetition inside prenom. */
+function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | null) {
+  const collapseDup = (s: string) => s.replace(/\b(\p{L}+)\s+\1\b/giu, '$1');
+  const prenom = collapseDup((prenomRaw ?? '').trim());
+  const nom = collapseDup((nomRaw ?? '').trim()).replace(/[-\s]+$/, '').trim();
+  if (!prenom) return nom;
+  if (!nom) return prenom;
+  // If nom already starts with prenom (case-insensitive), just use nom.
+  if (nom.toLowerCase() === prenom.toLowerCase() ||
+      nom.toLowerCase().startsWith(prenom.toLowerCase() + ' ')) {
+    return nom;
+  }
+  return `${prenom} ${nom}`;
+}
+
 /** Build personalized invite text per GP. */
 function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
@@ -185,7 +201,7 @@ export function TransporteursTab() {
             return (
               <div key={t.id} className={`grid md:grid-cols-[80px_1fr_140px_120px_60px_100px_120px_60px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
-                <div className="font-medium">{[t.prenom, t.nom].filter(Boolean).join(' ') || t.nom}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
+                <div className="font-medium">{formatTransporteurName(t.prenom, t.nom)}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
                 <div className="text-muted-foreground">{t.telephone_1}</div>
                 <div>{t.ville}</div>
                 <div>{c.count}</div>
@@ -261,7 +277,7 @@ export function TransporteursTab() {
                   <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">
-                        {[g.prenom, g.nom].filter(Boolean).join(' ') || g.nom}
+                        {formatTransporteurName(g.prenom, g.nom)}
                         <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
                       </div>
                       <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1}</div>
