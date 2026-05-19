@@ -462,21 +462,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
-      console.log('WhatsApp trigger fired');
-      try {
-        await supabase.functions.invoke('send-whatsapp', {
-          body: {
-            client_name: senderName || 'Client',
-            service_type: 'Expédition',
-            origin: originCity?.city || '',
-            destination: destCity?.city || '',
-            weight: weight,
-            recipient_phone: '+221786078080',
-          },
-        });
-      } catch (waErr) {
-        console.error('WhatsApp failed:', waErr);
-      }
+      console.log('WA_INVOKE_START');
+      supabase.functions.invoke('send-whatsapp', {
+        body: {
+          client_name: senderName || 'Client',
+          service_type: 'Expédition',
+          origin: originCity?.city || '',
+          destination: destCity?.city || '',
+          weight: weight,
+          recipient_phone: '+221786078080'
+        }
+      }).then(({ data, error }) => {
+        if (error) console.error('WA_INVOKE_ERROR:', error);
+        else console.log('WA_INVOKE_SUCCESS:', JSON.stringify(data));
+      });
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
