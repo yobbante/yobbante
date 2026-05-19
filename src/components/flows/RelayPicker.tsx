@@ -218,7 +218,9 @@ export function RelayPicker({
                         {r.country} · {r.city}
                       </p>
                       <p className={cn('text-[11px] line-clamp-2', isDark ? 'text-white/60' : 'text-muted-foreground')}>
-                        {r.address_line1}
+                        {r.address_line1?.trim()
+                          ? r.address_line1
+                          : '📍 Adresse communiquée après confirmation.'}
                       </p>
                     </div>
                   </div>
@@ -270,7 +272,9 @@ export function RelayPicker({
                 )}
               </div>
               <p className={cn('mt-2 text-[11px] line-clamp-2', isDark ? 'text-white/55' : 'text-muted-foreground')}>
-                {r.address_line1}
+                {r.address_line1?.trim()
+                  ? r.address_line1
+                  : '📍 Adresse du relais communiquée après confirmation de votre demande.'}
               </p>
               {r.phone && (
                 <p className={cn('mt-1.5 text-[10px] inline-flex items-center gap-1', isDark ? 'text-white/45' : 'text-muted-foreground')}>
