@@ -87,7 +87,14 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
             <div className="flex items-center gap-2">
               <Plane className="w-4 h-4 text-foreground" />
               <h2 className="text-sm font-semibold">Départs actifs</h2>
-              <span className="text-xs text-muted-foreground">· {depSummary.total} départs · {(depSummary.konnekt > 0 ? 1 : 0) + (depSummary.manual > 0 ? 1 : 0)} sources</span>
+              {(() => {
+                const sources = (depSummary.konnekt > 0 ? 1 : 0) + (depSummary.manual > 0 ? 1 : 0);
+                return (
+                  <span className="text-xs text-muted-foreground">
+                    · {depSummary.total} {depSummary.total === 1 ? 'départ' : 'départs'} · {sources} {sources === 1 ? 'source' : 'sources'}
+                  </span>
+                );
+              })()}
             </div>
             <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
               Gérer les départs <ArrowUpRight className="w-3 h-3" />

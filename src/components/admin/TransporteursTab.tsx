@@ -185,7 +185,7 @@ export function TransporteursTab() {
             return (
               <div key={t.id} className={`grid md:grid-cols-[80px_1fr_140px_120px_60px_100px_120px_60px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
-                <div className="font-medium">{[t.prenom, t.nom].filter(Boolean).join(' ') || t.nom}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
+                <div className="font-medium">{formatTransporteurName(t.prenom, t.nom)}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
                 <div className="text-muted-foreground">{t.telephone_1}</div>
                 <div>{t.ville}</div>
                 <div>{c.count}</div>
