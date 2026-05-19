@@ -55,6 +55,8 @@ export function HubsTab() {
               .map(s => +new Date(s.eta as string)),
           ].filter(t => t >= todayMs).sort((a, b) => a - b);
           const nextDepartureTs = futureDates[0];
+          const total = incoming + stored;
+          const capacityPct = Math.min(100, total * 4);
 
           return (
             <div key={hub} className="bg-card border border-border rounded-xl p-4">
