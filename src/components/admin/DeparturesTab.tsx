@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Search, Pencil, Trash2, PauseCircle, PlayCircle, AlertTriangle, Calendar } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
-import { format } from 'date-fns';
+import { formatDateFR } from '@/lib/statusLabels';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
