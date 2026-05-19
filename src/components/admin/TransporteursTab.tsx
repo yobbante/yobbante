@@ -23,6 +23,22 @@ function gpRef(reference: string) {
   return `GP${String(reference).replace(/\D/g, '').padStart(4, '0')}`;
 }
 
+/** Build a clean display name: dedupes when prenom is already the prefix of nom,
+ *  and collapses any "Word Word" repetition inside prenom. */
+function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | null) {
+  const collapseDup = (s: string) => s.replace(/\b(\p{L}+)\s+\1\b/giu, '$1');
+  const prenom = collapseDup((prenomRaw ?? '').trim());
+  const nom = collapseDup((nomRaw ?? '').trim()).replace(/[-\s]+$/, '').trim();
+  if (!prenom) return nom;
+  if (!nom) return prenom;
+  // If nom already starts with prenom (case-insensitive), just use nom.
+  if (nom.toLowerCase() === prenom.toLowerCase() ||
+      nom.toLowerCase().startsWith(prenom.toLowerCase() + ' ')) {
+    return nom;
+  }
+  return `${prenom} ${nom}`;
+}
+
 /** Build personalized invite text per GP. */
 function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
@@ -261,7 +277,7 @@ export function TransporteursTab() {
                   <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">
-                        {[g.prenom, g.nom].filter(Boolean).join(' ') || g.nom}
+                        {formatTransporteurName(g.prenom, g.nom)}
                         <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
                       </div>
                       <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1}</div>
