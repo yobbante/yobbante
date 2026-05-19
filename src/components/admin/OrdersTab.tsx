@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS, type Package } from '@/lib/types';
+import { formatStatusLabel } from '@/lib/statusLabels';
 import { OrderDetailDrawer, type OrderRowRef } from './OrderDetailDrawer';
 
 type Shipment = {
@@ -134,7 +135,7 @@ export function OrdersTab() {
                     <td className="px-4 py-2.5 text-foreground truncate max-w-[260px]">{r.label}</td>
                     <td className="px-4 py-2.5">
                       <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide', STATUS_TONE[r.status] || 'bg-muted text-muted-foreground')}>
-                        {r.status.replace(/_/g, ' ')}
+                        {formatStatusLabel(r.status)}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{r.transport}</td>

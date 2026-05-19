@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Search, Pencil, Trash2, PauseCircle, PlayCircle, AlertTriangle, Calendar } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
-import { format } from 'date-fns';
+import { formatDateFR } from '@/lib/statusLabels';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -149,7 +149,7 @@ export function DeparturesTab() {
                   <tr key={d.id} className="border-t border-border hover:bg-secondary/20">
                     <td className="px-4 py-3 font-medium">{d.origin_city} → {d.destination_city}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{MODE_LABEL[d.transport_mode] ?? d.transport_mode}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{format(new Date(d.departure_date), 'dd MMM yyyy')}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDateFR(d.departure_date)}</td>
                     <td className="px-4 py-3">
                       <div className="space-y-1">
                         <div className="h-1 rounded-full overflow-hidden" style={{ background: 'hsl(var(--color-border-tertiary))' }}>
@@ -206,7 +206,7 @@ export function DeparturesTab() {
               <AlertTriangle className="w-4 h-4 text-amber-500" /> Supprimer ce départ ?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · ${format(new Date(confirmDelete.departure_date), 'dd MMM yyyy')}`}
+              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · ${formatDateFR(confirmDelete.departure_date)}`}
               <br />
               Cette action est définitive. Si des envois sont déjà confirmés sur ce départ, annulez-les d'abord.
             </AlertDialogDescription>

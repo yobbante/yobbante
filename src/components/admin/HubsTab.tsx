@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type WarehouseCountry } from '@/lib/types';
 import { ArrowDownRight, ArrowUpRight, Package } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { formatDateFR } from '@/lib/statusLabels';
 
 const HUBS: WarehouseCountry[] = ['CN', 'FR', 'US', 'AE', 'DE', 'CA'];
 
@@ -10,11 +12,22 @@ export function HubsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-hubs'],
     queryFn: async () => {
-      const [pkgR, shipR] = await Promise.all([
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const [pkgR, shipR, depR] = await Promise.all([
         supabase.from('packages').select('warehouse_country, status'),
         supabase.from('shipments').select('origin_country, status, eta').order('created_at', { ascending: false }),
+        supabase
+          .from('manual_departures')
+          .select('origin_country, departure_date, status')
+          .gte('departure_date', todayIso)
+          .eq('status', 'active')
+          .order('departure_date', { ascending: true }),
       ]);
-      return { packages: pkgR.data || [], shipments: shipR.data || [] };
+      return {
+        packages: pkgR.data || [],
+        shipments: shipR.data || [],
+        departures: depR.data || [],
+      };
     },
   });
 
@@ -34,9 +47,16 @@ export function HubsTab() {
           const incoming = data.packages.filter(p => p.warehouse_country === hub && ['CREATED', 'RECEIVED'].includes(p.status as string)).length;
           const stored = data.packages.filter(p => p.warehouse_country === hub && p.status === 'IN_STORAGE').length;
           const outgoing = data.shipments.filter(s => s.origin_country === hub && ['PENDING', 'IN_TRANSIT'].includes(s.status as string)).length;
-          const nextDeparture = data.shipments
-            .filter(s => s.origin_country === hub && s.eta)
-            .sort((a, b) => +new Date(a.eta as string) - +new Date(b.eta as string))[0];
+          const todayMs = new Date().setHours(0, 0, 0, 0);
+          const futureDates: number[] = [
+            ...data.departures
+              .filter(d => d.origin_country === hub && d.departure_date)
+              .map(d => +new Date(d.departure_date as string)),
+            ...data.shipments
+              .filter(s => s.origin_country === hub && s.eta && +new Date(s.eta as string) >= todayMs && !['DELIVERED', 'CANCELLED'].includes(s.status as string))
+              .map(s => +new Date(s.eta as string)),
+          ].filter(t => t >= todayMs).sort((a, b) => a - b);
+          const nextDepartureTs = futureDates[0];
           const total = incoming + stored;
           const capacityPct = Math.min(100, total * 4);
 
@@ -81,8 +101,11 @@ export function HubsTab() {
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Prochain départ : {nextDeparture ? new Date(nextDeparture.eta as string).toLocaleDateString('fr-FR') : '—'}
+              <p className={cn(
+                'mt-3 text-[11px]',
+                nextDepartureTs ? 'text-muted-foreground' : 'text-muted-foreground/60 italic'
+              )}>
+                Prochain départ : {nextDepartureTs ? formatDateFR(nextDepartureTs) : 'Aucun départ prévu'}
               </p>
             </div>
           );

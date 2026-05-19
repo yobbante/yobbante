@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, MapPin, Package, Truck, CheckCircle2, AlertCircle, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TimelineEvent } from '@/lib/types';
+import { formatEventLabel } from '@/lib/statusLabels';
 
 const ICONS: Record<string, React.ReactNode> = {
   WELCOME: <CheckCircle2 className="w-3.5 h-3.5" />,
@@ -113,7 +114,7 @@ export function TrackingTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-mono">{ev.event_type}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-mono">{formatEventLabel(ev.event_type)}</span>
                 </div>
                 {ev.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ev.description}</p>}
               </div>
