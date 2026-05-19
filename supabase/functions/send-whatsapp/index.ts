@@ -1,101 +1,50 @@
-// Send WhatsApp messages via Meta Cloud API
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
-const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN");
-const WHATSAPP_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID");
-const ADMIN_RECIPIENT = "221786078080"; // +221 78 607 80 80 (digits only)
-
-interface Payload {
-  recipient_phone?: string;
-  client_name?: string;
-  service_type?: string; // "Expédition" | "Réception" | "Sourcing"
-  origin?: string;
-  destination?: string;
-  weight?: string | number;
-  custom_message?: string; // optional override
-}
-
-function buildMessage(p: Payload): string {
-  if (p.custom_message) return p.custom_message;
-  return [
-    "🚀 Nouvelle demande Yobbanté",
-    "",
-    `Client : ${p.client_name ?? "—"}`,
-    `Service : ${p.service_type ?? "—"}`,
-    `De : ${p.origin ?? "—"}`,
-    `Vers : ${p.destination ?? "—"}`,
-    `Poids : ${p.weight ?? "—"}kg`,
-    "",
-    "Voir le dossier → https://yobbante.com/admin",
-  ].join("\n");
-}
-
-function normalizePhone(raw: string): string {
-  return raw.replace(/[^\d]/g, "");
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) {
-    return new Response(
-      JSON.stringify({ error: "WhatsApp not configured" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
-
-  let payload: Payload = {};
+serve(async (req) => {
   try {
-    payload = await req.json();
-  } catch (_) {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    const body = await req.json();
+    console.log('Received payload:', JSON.stringify(body));
 
-  const to = normalizePhone(payload.recipient_phone || ADMIN_RECIPIENT);
-  const body = buildMessage(payload);
+    const token = Deno.env.get('WHATSAPP_TOKEN');
+    const phoneId = Deno.env.get('WHATSAPP_PHONE_ID');
 
-  try {
-    const r = await fetch(
-      `https://graph.facebook.com/v25.0/${WHATSAPP_PHONE_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          type: "text",
-          text: { body },
-        }),
-      },
-    );
-
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      console.error("WhatsApp API error", r.status, data);
-      return new Response(
-        JSON.stringify({ ok: false, status: r.status, error: data }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (!token || !phoneId) {
+      console.error('Missing env vars');
+      return new Response(JSON.stringify({ error: 'Missing config' }), { status: 500 });
     }
 
-    return new Response(JSON.stringify({ ok: true, data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const recipient = body.recipient_phone?.replace(/\D/g, '');
+    const message = `🚀 Nouvelle demande Yobbanté\n\nClient : ${body.client_name || 'N/A'}\nService : ${body.service_type || 'N/A'}\nDe : ${body.origin || 'N/A'}\nVers : ${body.destination || 'N/A'}\nPoids : ${body.weight || 'N/A'}kg\n\nVoir le dossier → https://yobbante.com/admin`;
+
+    console.log('Sending to:', recipient);
+
+    const res = await fetch(
+      `https://graph.facebook.com/v19.0/${phoneId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: recipient,
+          type: 'text',
+          text: { body: message },
+        }),
+      }
+    );
+
+    const result = await res.json();
+    console.log('Meta API response:', JSON.stringify(result));
+
+    return new Response(JSON.stringify(result), {
+      headers: { 'Content-Type': 'application/json' },
+      status: res.ok ? 200 : 400,
     });
-  } catch (e) {
-    console.error("send-whatsapp failed", e);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+
+  } catch (err) {
+    console.error('Function error:', err.message);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 });
