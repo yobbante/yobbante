@@ -26,20 +26,39 @@ import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
 
+/** URL slug → internal section key. Slugs not listed here fall through to `slug as AdminSection`. */
+const SLUG_TO_SECTION: Record<string, AdminSection> = {
+  dossiers: 'requests',
+};
+
 export default function AdminPage() {
   const navigate = useNavigate();
   const { isStaff, isAdmin, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { section: pathSlug } = useParams<{ section?: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const raw = searchParams.get('section') as AdminSection | null;
-  const section: AdminSection = raw && ALLOWED.includes(raw) ? raw : 'overview';
+  // Priority : URL path /admin/:section > legacy ?section= query > overview
+  const queryRaw = searchParams.get('section');
+  const pathSection = pathSlug ? (SLUG_TO_SECTION[pathSlug] ?? (pathSlug as AdminSection)) : null;
+  const requested = pathSection ?? (queryRaw as AdminSection | null);
+  const section: AdminSection = requested && ALLOWED.includes(requested) ? requested : 'overview';
+  const isUnknownSection = !!pathSlug && !ALLOWED.includes(pathSection as AdminSection);
 
   const setSection = (s: AdminSection) => {
-    const sp = new URLSearchParams(searchParams);
-    if (s === 'overview') sp.delete('section'); else sp.set('section', s);
-    setSearchParams(sp);
+    // Always navigate using the clean path form so URLs are shareable.
+    if (s === 'overview') {
+      navigate('/admin');
+    } else {
+      navigate(`/admin/${s}`);
+    }
+    // Clean any legacy ?section= param.
+    if (searchParams.has('section')) {
+      const sp = new URLSearchParams(searchParams);
+      sp.delete('section');
+      setSearchParams(sp, { replace: true });
+    }
     setMobileOpen(false);
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
   };
