@@ -15,7 +15,7 @@ export function HubsTab() {
       const todayIso = new Date().toISOString().slice(0, 10);
       const [pkgR, shipR, depR] = await Promise.all([
         supabase.from('packages').select('warehouse_country, status'),
-        supabase.from('shipments').select('origin_country, status, eta').order('created_at', { ascending: false }),
+        supabase.from('shipments').select('origin_country, destination_country, status, departure_date'),
         supabase
           .from('manual_departures')
           .select('origin_country, departure_date, status')
