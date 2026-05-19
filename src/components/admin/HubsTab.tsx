@@ -99,8 +99,11 @@ export function HubsTab() {
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Prochain départ : {nextDeparture ? new Date(nextDeparture.eta as string).toLocaleDateString('fr-FR') : '—'}
+              <p className={cn(
+                'mt-3 text-[11px]',
+                nextDepartureTs ? 'text-muted-foreground' : 'text-muted-foreground/60 italic'
+              )}>
+                Prochain départ : {nextDepartureTs ? formatDateFR(nextDepartureTs) : 'Aucun départ prévu'}
               </p>
             </div>
           );
