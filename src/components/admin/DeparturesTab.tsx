@@ -206,7 +206,7 @@ export function DeparturesTab() {
               <AlertTriangle className="w-4 h-4 text-amber-500" /> Supprimer ce départ ?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · ${format(new Date(confirmDelete.departure_date), 'dd MMM yyyy')}`}
+              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · ${formatDateFR(confirmDelete.departure_date)}`}
               <br />
               Cette action est définitive. Si des envois sont déjà confirmés sur ce départ, annulez-les d'abord.
             </AlertDialogDescription>
