@@ -102,7 +102,7 @@ export function AttachPackagesDialog({ open, onOpenChange, dossierId, ownerUserI
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{p.description || 'Colis sans description'}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {p.status.replace(/_/g, ' ').toLowerCase()} · {p.weight ? `${p.weight} kg` : '—'}
+                        {formatStatusLabel(p.status)} · {p.weight ? `${p.weight} kg` : '—'}
                       </p>
                     </div>
                   </label>
