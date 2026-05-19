@@ -9,6 +9,7 @@ import { ArrowRight, Loader2, Package as PkgIcon, Truck, User, MapPin, Calendar,
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { formatStatusLabel } from '@/lib/statusLabels';
 import {
   PACKAGE_STATUS_ORDER, SHIPMENT_STATUS_ORDER,
   COUNTRY_FLAGS, type PackageStatus, type ShipmentStatus,
