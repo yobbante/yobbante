@@ -86,12 +86,7 @@ const App = () => (
             <Route path="/sourcing" element={<Navigate to="/acheter" replace />} />
             <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
             <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
-            <Route path="/admin/departures" element={<Navigate to="/admin?section=departures" replace />} />
-            <Route path="/admin/shipments" element={<Navigate to="/admin?section=shipments" replace />} />
-            <Route path="/admin/receptions" element={<Navigate to="/admin?section=reception" replace />} />
-            <Route path="/admin/devis" element={<Navigate to="/admin?section=requests" replace />} />
-            <Route path="/admin/tarifs" element={<Navigate to="/admin?section=settings" replace />} />
-            <Route path="/admin/boutique" element={<Navigate to="/admin?section=boutique" replace />} />
+            {/* Legacy admin alias removed — handled by /admin/:section below */}
             {/* Legacy public URLs → folded into the 2 user-facing flows */}
             <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
             <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
