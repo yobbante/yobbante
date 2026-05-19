@@ -162,22 +162,40 @@ export default function AdminPage() {
         </header>
 
         <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
-          <AdminBreadcrumb section={section} />
-          {section === 'overview'   && <OverviewTab onJump={setSection} />}
-          {section === 'requests'   && <RequestsTab />}
-          {section === 'shipments'  && <ShipmentsWorkflowTab />}
-          {section === 'orders'     && <OrdersTab />}
-          {section === 'reception'  && <ReceptionKanbanTab />}
-          {section === 'hubs'       && <HubsTab />}
-          {section === 'transport'  && <KonnektMonitorTab />}
-          {section === 'departures' && <DeparturesTab />}
-          {section === 'transporteurs' && isAdmin && <TransporteursTab />}
-          {section === 'sourcing'   && <SourcingTab />}
-          {section === 'boutique'   && <BoutiqueTab />}
-          {section === 'tracking'   && <TrackingTab />}
-          {section === 'clients'    && <ClientsTab />}
-          {section === 'enterprise' && <EnterpriseQuotesTab />}
-          {section === 'settings'   && <SettingsTab />}
+          {isUnknownSection ? (
+            <div className="py-20 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Erreur 404</p>
+              <h1 className="mt-2 text-2xl font-semibold text-foreground">Section admin introuvable</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                La section « <span className="font-mono">{pathSlug}</span> » n'existe pas.
+              </p>
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1.5 mt-6 text-sm font-medium text-primary hover:underline"
+              >
+                <ArrowLeft className="w-4 h-4" /> Retour au dashboard
+              </Link>
+            </div>
+          ) : (
+            <>
+              <AdminBreadcrumb section={section} />
+              {section === 'overview'   && <OverviewTab onJump={setSection} />}
+              {section === 'requests'   && <RequestsTab />}
+              {section === 'shipments'  && <ShipmentsWorkflowTab />}
+              {section === 'orders'     && <OrdersTab />}
+              {section === 'reception'  && <ReceptionKanbanTab />}
+              {section === 'hubs'       && <HubsTab />}
+              {section === 'transport'  && <KonnektMonitorTab />}
+              {section === 'departures' && <DeparturesTab />}
+              {section === 'transporteurs' && isAdmin && <TransporteursTab />}
+              {section === 'sourcing'   && <SourcingTab />}
+              {section === 'boutique'   && <BoutiqueTab />}
+              {section === 'tracking'   && <TrackingTab />}
+              {section === 'clients'    && <ClientsTab />}
+              {section === 'enterprise' && <EnterpriseQuotesTab />}
+              {section === 'settings'   && <SettingsTab />}
+            </>
+          )}
         </main>
       </div>
     </div>
