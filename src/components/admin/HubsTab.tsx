@@ -10,11 +10,22 @@ export function HubsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-hubs'],
     queryFn: async () => {
-      const [pkgR, shipR] = await Promise.all([
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const [pkgR, shipR, depR] = await Promise.all([
         supabase.from('packages').select('warehouse_country, status'),
         supabase.from('shipments').select('origin_country, status, eta').order('created_at', { ascending: false }),
+        supabase
+          .from('manual_departures')
+          .select('origin_country, departure_date, status')
+          .gte('departure_date', todayIso)
+          .eq('status', 'active')
+          .order('departure_date', { ascending: true }),
       ]);
-      return { packages: pkgR.data || [], shipments: shipR.data || [] };
+      return {
+        packages: pkgR.data || [],
+        shipments: shipR.data || [],
+        departures: depR.data || [],
+      };
     },
   });
 
