@@ -140,7 +140,8 @@ export function CityPicker({
           {/* backdrop — click to close */}
           <div
             className="absolute inset-0 bg-black/50 animate-in fade-in-0"
-            onClick={() => setOpen(false)}
+            onMouseDown={() => setOpen(false)}
+            onTouchStart={() => setOpen(false)}
             aria-hidden="true"
           />
           {/* sheet */}
