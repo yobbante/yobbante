@@ -531,8 +531,8 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         body: {
           client_name: user.email ?? 'Client',
           service_type: 'Réception',
-          origin: hub ? COUNTRY_NAME(hub) : '—',
-          destination: destination ? COUNTRY_NAME(destination) : '—',
+          origin: (hub ? COUNTRY_NAME(hub) : '') || 'Non précisé',
+          destination: (destination ? COUNTRY_NAME(destination) : '') || 'Non précisé',
           weight: totalWeight.toFixed(2),
           recipient_phone: '+221786078080'
         }
