@@ -45,11 +45,16 @@ export function HubsTab() {
           const incoming = data.packages.filter(p => p.warehouse_country === hub && ['CREATED', 'RECEIVED'].includes(p.status as string)).length;
           const stored = data.packages.filter(p => p.warehouse_country === hub && p.status === 'IN_STORAGE').length;
           const outgoing = data.shipments.filter(s => s.origin_country === hub && ['PENDING', 'IN_TRANSIT'].includes(s.status as string)).length;
-          const nextDeparture = data.shipments
-            .filter(s => s.origin_country === hub && s.eta)
-            .sort((a, b) => +new Date(a.eta as string) - +new Date(b.eta as string))[0];
-          const total = incoming + stored;
-          const capacityPct = Math.min(100, total * 4);
+          const todayMs = new Date().setHours(0, 0, 0, 0);
+          const futureDates: number[] = [
+            ...data.departures
+              .filter(d => d.origin_country === hub && d.departure_date)
+              .map(d => +new Date(d.departure_date as string)),
+            ...data.shipments
+              .filter(s => s.origin_country === hub && s.eta && +new Date(s.eta as string) >= todayMs && !['DELIVERED', 'CANCELLED'].includes(s.status as string))
+              .map(s => +new Date(s.eta as string)),
+          ].filter(t => t >= todayMs).sort((a, b) => a - b);
+          const nextDepartureTs = futureDates[0];
 
           return (
             <div key={hub} className="bg-card border border-border rounded-xl p-4">
