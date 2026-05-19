@@ -526,6 +526,16 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       setReference(dossier.reference);
       clearSession();
       toast.success('Suivi activé 📦');
+      supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: '+221786078080',
+          client_name: user.email ?? 'Client',
+          service_type: 'Réception',
+          origin: hub ? COUNTRY_NAME(hub) : '—',
+          destination: destination ? COUNTRY_NAME(destination) : '—',
+          weight: totalWeight.toFixed(2),
+        },
+      }).catch(() => {});
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erreur';
       toast.error(message);

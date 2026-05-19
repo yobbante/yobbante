@@ -462,6 +462,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
+      supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: '+221786078080',
+          client_name: senderName || recipientName || 'Client',
+          service_type: 'Expédition',
+          origin: `${originCity?.city ?? ''}, ${originCity?.country ?? ''}`,
+          destination: `${destCity?.city ?? ''}, ${destCity?.country ?? ''}`,
+          weight: weight,
+        },
+      }).catch(() => {});
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }

@@ -216,6 +216,16 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
       setReference(dossier.reference);
       clearDraft(DRAFT_KEY);
       toast.success('Sourcing lancé 🏭');
+      supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: '+221786078080',
+          client_name: user.email ?? 'Client',
+          service_type: 'Sourcing',
+          origin: origin,
+          destination: destination,
+          weight: totalWeight,
+        },
+      }).catch(() => {});
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
