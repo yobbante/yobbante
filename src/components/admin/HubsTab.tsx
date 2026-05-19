@@ -110,14 +110,16 @@ export function HubsTab() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Capacité</span><span>{capacityPct}%</span>
+              {showCapacity && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Capacité</span><span>{capacityPct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-foreground/70" style={{ width: `${capacityPct}%` }} />
+                  </div>
                 </div>
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-foreground/70" style={{ width: `${capacityPct}%` }} />
-                </div>
-              </div>
+              )}
 
               <p className={cn(
                 'mt-3 text-[11px]',
