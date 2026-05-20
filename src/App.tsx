@@ -27,6 +27,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
+import InboxImportPage from "./pages/admin/InboxImportPage";
 import BusinessPage from "./pages/BusinessPage";
 import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/app" element={<Index />} />
             <Route path="/app/dossier/:id" element={<DossierDetail />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/inbox/import" element={<InboxImportPage />} />
             <Route path="/admin/:section" element={<AdminPage />} />
             <Route path="/business" element={<BusinessPage />} />
             <Route path="/business/join" element={<BusinessJoinPage />} />

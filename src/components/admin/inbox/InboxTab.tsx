@@ -1,13 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, Upload } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useInboxDossiers, type InboxDossier } from '@/hooks/useInboxDossiers';
+import { useInboxStats } from '@/hooks/useInboxStats';
 import { InboxCard } from './InboxCard';
 import { InboxFilters, type InboxFilterState } from './InboxFilters';
 import { NewIntakeDialog } from './NewIntakeDialog';
-import { detectServiceKind } from '@/lib/intakeSources';
+import { InboxKpiCards } from './InboxKpiCards';
+import { HistoryColumn } from './HistoryColumn';
+import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const COLS = [
   { id: 'todo',      title: '🔴 À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
@@ -15,11 +20,32 @@ const COLS = [
   { id: 'confirmed', title: '🟢 Confirmés',          statuses: ['CONFIRMED'] },
 ] as const;
 
+function buildClientRecap(d: InboxDossier) {
+  const kind = detectServiceKind(d);
+  const serviceLabel = SERVICE_KINDS.find(s => s.id === kind)?.label || 'Demande';
+  const tracking = `https://yobbante.com/suivre?ref=${d.reference}`;
+  return (
+    `Bonjour ${d.buyer_name || ''}, ici Yobbanté 👋\n\n` +
+    `Suite à notre échange, voici le récap de votre demande :\n` +
+    `📦 ${serviceLabel}\n` +
+    `🛣️ ${d.origin_country} → ${d.destination_country}\n` +
+    (d.estimated_weight ? `⚖️ ${d.estimated_weight} kg\n` : '') +
+    (d.estimated_cost ? `💰 Estimation : ${Math.round(d.estimated_cost * 655.957)} XOF\n` : '') +
+    `📋 Numéro de suivi : ${d.reference}\n` +
+    `🔗 Suivre : ${tracking}\n\n` +
+    `Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.\n` +
+    `Merci de votre confiance 🙏`
+  );
+}
+
 export function InboxTab() {
   const { data: dossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
+  const stats = useInboxStats(dossiers);
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [detail, setDetail] = useState<InboxDossier | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'history' ? 'history' : 'kanban';
 
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
@@ -54,13 +80,7 @@ export function InboxTab() {
   const handleWhatsApp = (d: InboxDossier) => {
     if (!d.contact_phone) return;
     const phone = d.contact_phone.replace(/[^\d]/g, '');
-    const url = `${window.location.origin}/suivre?ref=${d.reference}`;
-    const msg = `Bonjour ${d.buyer_name || ''}, voici le récap de votre dossier Yobbanté :
-Réf : ${d.reference}
-${d.origin_country} → ${d.destination_country}${d.estimated_weight ? ` · ${d.estimated_weight} kg` : ''}
-${d.estimated_cost ? `Estimation : ${Math.round(d.estimated_cost)} €` : ''}
-Suivi : ${url}`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildClientRecap(d))}`, '_blank');
   };
 
   return (
@@ -71,6 +91,9 @@ Suivi : ${url}`;
           <p className="text-sm text-muted-foreground">Toutes les demandes — site, WhatsApp, appels, email…</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/inbox/import"><Upload className="w-4 h-4 mr-1" /> Import Excel</Link>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
@@ -80,37 +103,52 @@ Suivi : ${url}`;
         </div>
       </div>
 
-      <InboxFilters value={filters} onChange={setFilters} />
+      <InboxKpiCards stats={stats} />
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {COLS.map(col => (
-            <div key={col.id} className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-                <span className="text-xs text-muted-foreground">{byCol[col.id].length}</span>
-              </div>
-              <div className="space-y-2 min-h-[200px] p-2 rounded-lg bg-muted/30">
-                {byCol[col.id].length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-8">Aucun dossier</p>
-                ) : (
-                  byCol[col.id].map(d => (
-                    <InboxCard
-                      key={d.id}
-                      dossier={d}
-                      onView={setDetail}
-                      onConfirm={handleConfirm}
-                      onWhatsApp={handleWhatsApp}
-                    />
-                  ))
-                )}
-              </div>
+      <Tabs value={tab} onValueChange={v => { const sp = new URLSearchParams(searchParams); if (v === 'history') sp.set('tab', 'history'); else sp.delete('tab'); setSearchParams(sp, { replace: true }); }}>
+        <TabsList>
+          <TabsTrigger value="kanban">Kanban</TabsTrigger>
+          <TabsTrigger value="history">📚 Historique</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban" className="space-y-4 mt-4">
+          <InboxFilters value={filters} onChange={setFilters} />
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {COLS.map(col => (
+                <div key={col.id} className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
+                    <span className="text-xs text-muted-foreground">{byCol[col.id].length}</span>
+                  </div>
+                  <div className="space-y-2 min-h-[200px] p-2 rounded-lg bg-muted/30">
+                    {byCol[col.id].length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-8">Aucun dossier</p>
+                    ) : (
+                      byCol[col.id].map(d => (
+                        <InboxCard
+                          key={d.id}
+                          dossier={d}
+                          onView={setDetail}
+                          onConfirm={handleConfirm}
+                          onWhatsApp={handleWhatsApp}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
+          <HistoryColumn />
+        </TabsContent>
+      </Tabs>
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
 
@@ -141,7 +179,7 @@ Suivi : ${url}`;
                 )}
                 <div className="pt-2 flex gap-2">
                   <Button size="sm" onClick={() => handleWhatsApp(detail)} disabled={!detail.contact_phone}>
-                    WhatsApp
+                    Récap WhatsApp client
                   </Button>
                   {detail.status !== 'CONFIRMED' && (
                     <Button size="sm" variant="outline" onClick={() => { handleConfirm(detail); setDetail(null); }}>

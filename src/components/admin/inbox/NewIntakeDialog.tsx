@@ -181,16 +181,25 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
 
       if (sendWhatsApp && data.client_phone) {
         const phoneClean = data.client_phone.replace(/[^\d]/g, '');
-        const trackingUrl = `${window.location.origin}/suivre?ref=${created.reference}`;
+        const trackingUrl = `https://yobbante.com/suivre?ref=${created.reference}`;
+        const serviceLabel = SERVICE_KINDS.find(s => s.id === data.service_kind)?.label || 'Demande';
+        const route = data.service_kind === 'envoi'
+          ? `${data.origin_city || data.origin_country_reception || '?'} → ${data.destination_city || 'Dakar'}`
+          : data.service_kind === 'sourcing'
+            ? `${data.sourcing_country || '?'} → Sénégal`
+            : `${data.origin_country_reception || '?'} → SN`;
+        const priceXof = price ? Math.round(price * 655.957) : null;
         const msg =
-`Bonjour ${data.client_name},
-Récap de votre demande Yobbanté :
-Réf : ${created.reference}
-Service : ${SERVICE_KINDS.find(s => s.id === data.service_kind)?.label}
-${data.origin_city ? `Origine : ${data.origin_city}\n` : ''}${data.destination_city ? `Destination : ${data.destination_city}\n` : ''}${data.weight_kg ? `Poids : ${data.weight_kg} kg\n` : ''}${price ? `Estimation : ${Math.round(price)} €\n` : ''}
-Suivi : ${trackingUrl}
+`Bonjour ${data.client_name}, ici Yobbanté 👋
 
-Merci !`;
+Suite à notre échange, voici le récap de votre demande :
+📦 ${serviceLabel}
+🛣️ ${route}
+${data.weight_kg ? `⚖️ ${data.weight_kg} kg\n` : ''}${priceXof ? `💰 Estimation : ${priceXof} XOF\n` : ''}📋 Numéro de suivi : ${created.reference}
+🔗 Suivre : ${trackingUrl}
+
+Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.
+Merci de votre confiance 🙏`;
         window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
