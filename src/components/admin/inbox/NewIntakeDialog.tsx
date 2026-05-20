@@ -415,6 +415,10 @@ Merci de votre confiance.`;
           )}
 
           {step === 3 && (
+            <DepartureStep data={data} update={update} />
+          )}
+
+          {step === 4 && (
             <div className="space-y-4">
               <h3 className="text-base font-semibold">Récap + Notes</h3>
               <Card className="p-3 bg-muted/50 text-xs space-y-1">
@@ -506,7 +510,7 @@ Merci de votre confiance.`;
               <ArrowLeft className="w-4 h-4 mr-1" />
               {step === 0 ? 'Annuler' : 'Retour'}
             </Button>
-            {step < 3 ? (
+            {step < TOTAL_STEPS - 1 ? (
               <Button onClick={() => setStep(step + 1)} disabled={!canNext}>
                 Suivant <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
