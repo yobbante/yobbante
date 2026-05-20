@@ -1,21 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useManualDepartures, type ManualDeparture } from '@/hooks/useManualDepartures';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSeo } from '@/hooks/useSeo';
+import { WeekExportTemplate } from '@/components/admin/inbox/WeekExportTemplate';
+import { DepartureDetailDrawer } from '@/components/admin/inbox/DepartureDetailDrawer';
 
-const MODE_ICON: Record<string, string> = {
-  air: '✈️',
-  sea_lcl: '🚢',
-  road: '🚛',
-};
+const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
 const PUB_BADGE: Record<string, { label: string; variant: any }> = {
   draft: { label: 'Brouillon', variant: 'warning' },
@@ -35,11 +37,11 @@ function formatDayHeader(d: string) {
 function buildWhatsAppText(departures: ManualDeparture[]): string {
   const sorted = [...departures].sort((a, b) => a.departure_date.localeCompare(b.departure_date));
   const lines = sorted.map(d => {
-    const icon = MODE_ICON[d.transport_mode] ?? '📦';
     const date = formatDateShort(d.departure_date);
-    return `${icon} ${date} · ${d.origin_city} → ${d.destination_city} · *Réf ${d.short_ref ?? '----'}*`;
+    const mode = MODE_LABEL[d.transport_mode] ?? d.transport_mode;
+    return `- ${date} · ${mode} · ${d.origin_city} -> ${d.destination_city} · *Réf ${d.short_ref ?? '----'}*`;
   });
-  return `📅 *PROCHAINS DÉPARTS YOBBANTÉ*\n\n${lines.join('\n')}\n\n📞 Contactez-nous au +221 78 122 18 91 en indiquant la référence du départ.`;
+  return `*PROCHAINS DÉPARTS YOBBANTÉ*\n\n${lines.join('\n')}\n\nContactez-nous au +221 78 122 18 91 en indiquant la référence du départ.`;
 }
 
 export default function DeparturesWeekPage() {
@@ -50,6 +52,9 @@ export default function DeparturesWeekPage() {
   const [modeFilter, setModeFilter] = useState('all');
   const [pubFilter, setPubFilter] = useState('all');
   const [copied, setCopied] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'square' | 'story' | null>(null);
+  const [selected, setSelected] = useState<ManualDeparture | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const upcoming = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -91,6 +96,33 @@ export default function DeparturesWeekPage() {
     }
   }
 
+  async function exportImage(format: 'square' | 'story') {
+    setExportFormat(format);
+    // wait next paint
+    await new Promise(r => setTimeout(r, 100));
+    if (!exportRef.current) {
+      setExportFormat(null);
+      return;
+    }
+    try {
+      const dataUrl = await toPng(exportRef.current, {
+        cacheBust: true,
+        pixelRatio: 1,
+        width: 1080,
+        height: format === 'story' ? 1920 : 1080,
+      });
+      const link = document.createElement('a');
+      link.download = `yobbante-departs-${format}-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success(`Image ${format === 'story' ? '1080×1920' : '1080×1080'} téléchargée`);
+    } catch (e: any) {
+      toast.error(`Export échoué : ${e.message}`);
+    } finally {
+      setExportFormat(null);
+    }
+  }
+
   async function markPublished(d: ManualDeparture) {
     const { error } = await supabase
       .from('manual_departures')
@@ -117,10 +149,26 @@ export default function DeparturesWeekPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={copyWhatsApp} className="gap-2" disabled={upcoming.length === 0}>
+          <Button onClick={copyWhatsApp} variant="outline" className="gap-2" disabled={upcoming.length === 0}>
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             Copier texte WhatsApp
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2" disabled={upcoming.length === 0 || exportFormat !== null}>
+                <ImageIcon className="w-4 h-4" />
+                {exportFormat ? 'Génération…' : 'Exporter image'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportImage('square')} className="gap-2">
+                <ImageIcon className="w-4 h-4" /> Carré 1080×1080 (Instagram, Facebook)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportImage('story')} className="gap-2">
+                <Smartphone className="w-4 h-4" /> Story 1080×1920 (WhatsApp, Stories)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -138,9 +186,9 @@ export default function DeparturesWeekPage() {
             <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous modes</SelectItem>
-              <SelectItem value="air">✈️ Air</SelectItem>
-              <SelectItem value="sea_lcl">🚢 Mer</SelectItem>
-              <SelectItem value="road">🚛 Route</SelectItem>
+              <SelectItem value="air">Air</SelectItem>
+              <SelectItem value="sea_lcl">Mer</SelectItem>
+              <SelectItem value="road">Route</SelectItem>
             </SelectContent>
           </Select>
           <Select value={pubFilter} onValueChange={setPubFilter}>
@@ -174,19 +222,17 @@ export default function DeparturesWeekPage() {
                   const total = d.total_capacity_kg;
                   const pub = PUB_BADGE[d.publication_status ?? 'draft'];
                   return (
-                    <div
+                    <button
                       key={d.id}
-                      className="rounded-xl border border-border p-4 bg-card hover:border-primary/50 transition-colors"
+                      onClick={() => setSelected(d)}
+                      className="text-left rounded-xl border border-border p-4 bg-card hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <div className="text-xs text-muted-foreground">{MODE_ICON[d.transport_mode]} {d.transport_mode}</div>
+                          <div className="text-xs text-muted-foreground">{MODE_LABEL[d.transport_mode]}</div>
                           <div className="font-semibold mt-1">{d.origin_city} → {d.destination_city}</div>
                         </div>
-                        <div
-                          className="text-right"
-                          style={{ color: '#F5C518' }}
-                        >
+                        <div className="text-right" style={{ color: '#F5C518' }}>
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Réf</div>
                           <div className="text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
                         </div>
@@ -199,12 +245,16 @@ export default function DeparturesWeekPage() {
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant={pub.variant}>{pub.label}</Badge>
                         {(d.publication_status ?? 'draft') !== 'published' && (
-                          <Button size="sm" variant="outline" onClick={() => markPublished(d)} className="gap-1">
+                          <span
+                            role="button"
+                            onClick={(e) => { e.stopPropagation(); markPublished(d); }}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
+                          >
                             <Send className="w-3 h-3" /> Marquer publié
-                          </Button>
+                          </span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -212,6 +262,15 @@ export default function DeparturesWeekPage() {
           ))
         )}
       </div>
+
+      {/* Offscreen export template */}
+      {exportFormat && (
+        <div style={{ position: 'fixed', top: -10000, left: -10000, pointerEvents: 'none' }}>
+          <WeekExportTemplate ref={exportRef} departures={upcoming} format={exportFormat} />
+        </div>
+      )}
+
+      <DepartureDetailDrawer departure={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
