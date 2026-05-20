@@ -78,6 +78,144 @@ const INITIAL: IntakeData = {
 
 const TOTAL_STEPS = 5;
 
+function DepartureStep({ data, update }: { data: IntakeData; update: (p: Partial<IntakeData>) => void }) {
+  const [searching, setSearching] = useState(false);
+  const [routeDeps, setRouteDeps] = useState<any[]>([]);
+
+  async function lookupByRef() {
+    const ref = data.departure_short_ref.trim();
+    if (!/^\d{4}$/.test(ref)) {
+      toast.error('La référence doit faire 4 chiffres');
+      return;
+    }
+    setSearching(true);
+    const { data: rows, error } = await supabase
+      .from('manual_departures')
+      .select('id, short_ref, origin_city, destination_city, departure_date, transport_mode, available_capacity_kg, total_capacity_kg, carrier_name')
+      .eq('short_ref', ref)
+      .limit(1);
+    setSearching(false);
+    if (error || !rows || rows.length === 0) {
+      toast.error('Aucun départ trouvé pour cette référence');
+      update({ selected_departure_id: null, selected_departure_label: '' });
+      return;
+    }
+    const d: any = rows[0];
+    update({
+      selected_departure_id: d.id,
+      selected_departure_label: `#${d.short_ref} · ${d.origin_city}→${d.destination_city} · ${new Date(d.departure_date).toLocaleDateString('fr-FR')}`,
+    });
+    if (d.available_capacity_kg <= 0) toast.warning('⚠️ Ce départ est complet');
+  }
+
+  async function loadByRoute() {
+    if (!data.origin_city || !data.destination_city) {
+      toast.error('Origine et destination requises (étape précédente)');
+      return;
+    }
+    setSearching(true);
+    const { data: rows } = await supabase
+      .from('manual_departures')
+      .select('id, short_ref, origin_city, destination_city, departure_date, transport_mode, available_capacity_kg, total_capacity_kg, carrier_name')
+      .ilike('destination_city', `%${data.destination_city}%`)
+      .gte('departure_date', new Date().toISOString().slice(0, 10))
+      .eq('status', 'active')
+      .order('departure_date', { ascending: true })
+      .limit(20);
+    setSearching(false);
+    setRouteDeps(rows ?? []);
+    if (!rows || rows.length === 0) toast.info('Aucun départ disponible pour cette route');
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Quel départ ?</h3>
+      <p className="text-xs text-muted-foreground">Le client mentionne-t-il une référence ?</p>
+
+      <RadioGroup
+        value={data.departure_mode ?? ''}
+        onValueChange={(v: any) => update({ departure_mode: v, selected_departure_id: null, selected_departure_label: '', selected_transporteur_ref: '' })}
+        className="space-y-2"
+      >
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="ref" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Oui — il a vu une réf publiée</div>
+            {data.departure_mode === 'ref' && (
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder="0000"
+                  maxLength={4}
+                  value={data.departure_short_ref}
+                  onChange={e => update({ departure_short_ref: e.target.value.replace(/\D/g, '') })}
+                  className="w-24 font-mono"
+                />
+                <Button size="sm" variant="outline" type="button" onClick={lookupByRef} disabled={searching}>
+                  Chercher
+                </Button>
+                {data.selected_departure_label && (
+                  <span className="text-xs text-primary self-center">{data.selected_departure_label}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="route" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Non — trouver le bon départ pour la route</div>
+            {data.departure_mode === 'route' && (
+              <div className="mt-2 space-y-2">
+                <Button size="sm" variant="outline" type="button" onClick={loadByRoute} disabled={searching}>
+                  Charger les départs disponibles
+                </Button>
+                {routeDeps.map(d => {
+                  const status = d.available_capacity_kg <= 0 ? '🔴' : d.available_capacity_kg < 5 ? '🟡' : '🟢';
+                  const selected = data.selected_departure_id === d.id;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => update({
+                        selected_departure_id: d.id,
+                        selected_departure_label: `#${d.short_ref} · ${d.origin_city}→${d.destination_city}`,
+                      })}
+                      className={`w-full text-left text-xs p-2 rounded border ${selected ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      {status} {new Date(d.departure_date).toLocaleDateString('fr-FR')} · {d.carrier_name ?? 'GP'} · <strong>Réf {d.short_ref}</strong> · {d.available_capacity_kg}kg dispo
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="gp" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Aucun départ ne convient — j'ai un GP en tête</div>
+            {data.departure_mode === 'gp' && (
+              <Input
+                className="mt-2"
+                placeholder="Réf transporteur (4 chiffres) ou nom"
+                value={data.selected_transporteur_ref}
+                onChange={e => update({ selected_transporteur_ref: e.target.value })}
+              />
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="skip" className="mt-0.5" />
+          <div className="text-sm font-medium">Skip — on verra plus tard</div>
+        </label>
+      </RadioGroup>
+    </div>
+  );
+}
+
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
