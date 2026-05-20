@@ -246,12 +246,12 @@ Merci de votre confiance.`;
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Nouveau dossier · Étape {step + 1} / 4</SheetTitle>
+          <SheetTitle>Nouveau dossier · Étape {step + 1} / {TOTAL_STEPS}</SheetTitle>
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
           <div className="flex gap-1">
-            {[0, 1, 2, 3].map(i => (
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded ${i <= step ? 'bg-primary' : 'bg-muted'}`}
