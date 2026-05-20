@@ -99,7 +99,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col border-r border-border sticky top-0 h-screen">
+      <aside className="hidden lg:flex lg:w-60 lg:flex-col border-r border-border sticky top-0 h-screen self-start">
         <div className="px-4 py-4 border-b border-border">
           <button onClick={() => navigate('/app')} className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground">
             <ArrowLeft className="w-4 h-4 text-muted-foreground" />
