@@ -142,7 +142,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
           <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded text-muted-foreground hover:text-foreground">
