@@ -38,12 +38,12 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
           className="border-0 text-[10px] px-1.5 py-0.5 font-medium"
           style={{ background: `${src.color}22`, color: src.color }}
         >
-          {src.emoji} {src.label}
+          {src.label}
         </Badge>
       </div>
 
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span>{kindMeta.emoji} {kindMeta.label}</span>
+        <span>{kindMeta.label}</span>
       </div>
 
       <div className="flex items-center gap-1 text-xs text-foreground/80">

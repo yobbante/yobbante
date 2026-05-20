@@ -190,16 +190,16 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
             : `${data.origin_country_reception || '?'} → SN`;
         const priceXof = price ? Math.round(price * 655.957) : null;
         const msg =
-`Bonjour ${data.client_name}, ici Yobbanté 👋
+`Bonjour ${data.client_name}, ici Yobbanté.
 
 Suite à notre échange, voici le récap de votre demande :
-📦 ${serviceLabel}
-🛣️ ${route}
-${data.weight_kg ? `⚖️ ${data.weight_kg} kg\n` : ''}${priceXof ? `💰 Estimation : ${priceXof} XOF\n` : ''}📋 Numéro de suivi : ${created.reference}
-🔗 Suivre : ${trackingUrl}
+${serviceLabel}
+${route}
+${data.weight_kg ? `${data.weight_kg} kg\n` : ''}${priceXof ? `Estimation : ${priceXof} XOF\n` : ''}Numéro de suivi : ${created.reference}
+Suivre : ${trackingUrl}
 
 Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.
-Merci de votre confiance 🙏`;
+Merci de votre confiance.`;
         window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
@@ -245,7 +245,7 @@ Merci de votre confiance 🙏`;
                       background: data.source === s.id ? `${s.color}15` : 'transparent',
                     }}
                   >
-                    <div className="text-2xl">{s.emoji}</div>
+                    <div className="text-2xl"></div>
                     <div className="text-sm font-medium mt-1">{s.label}</div>
                   </button>
                 ))}
@@ -320,7 +320,7 @@ Merci de votre confiance 🙏`;
                       data.service_kind === k.id ? 'border-primary bg-primary/10' : 'border-border'
                     }`}
                   >
-                    <div className="text-2xl">{k.emoji}</div>
+                    <div className="text-2xl"></div>
                     <div className="text-xs font-medium mt-1">{k.label}</div>
                   </button>
                 ))}
