@@ -33,6 +33,11 @@ import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
+import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
+import MentionsLegalesPage from "./pages/legal/MentionsLegalesPage";
+import CguPage from "./pages/legal/CguPage";
+import CgvPage from "./pages/legal/CgvPage";
+import CookiesPage from "./pages/legal/CookiesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -103,6 +108,16 @@ const App = () => (
             <Route path="/business" element={<BusinessPage />} />
             <Route path="/business/join" element={<BusinessJoinPage />} />
             <Route path="/business/pricing" element={<BusinessPricingPage />} />
+            {/* Legal pages */}
+            <Route path="/confidentialite" element={<ConfidentialitePage />} />
+            <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+            <Route path="/cgu" element={<CguPage />} />
+            <Route path="/cgv" element={<CgvPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
+            {/* Legacy legal aliases */}
+            <Route path="/legal/cgu" element={<Navigate to="/cgu" replace />} />
+            <Route path="/legal/confidentialite" element={<Navigate to="/confidentialite" replace />} />
+            <Route path="/legal/mentions" element={<Navigate to="/mentions-legales" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <FloatingWhatsApp />
