@@ -25,16 +25,16 @@ function buildClientRecap(d: InboxDossier) {
   const serviceLabel = SERVICE_KINDS.find(s => s.id === kind)?.label || 'Demande';
   const tracking = `https://yobbante.com/suivre?ref=${d.reference}`;
   return (
-    `Bonjour ${d.buyer_name || ''}, ici Yobbanté 👋\n\n` +
+    `Bonjour ${d.buyer_name || ''}, ici Yobbanté.\n\n` +
     `Suite à notre échange, voici le récap de votre demande :\n` +
-    `📦 ${serviceLabel}\n` +
-    `🛣️ ${d.origin_country} → ${d.destination_country}\n` +
-    (d.estimated_weight ? `⚖️ ${d.estimated_weight} kg\n` : '') +
-    (d.estimated_cost ? `💰 Estimation : ${Math.round(d.estimated_cost * 655.957)} XOF\n` : '') +
-    `📋 Numéro de suivi : ${d.reference}\n` +
-    `🔗 Suivre : ${tracking}\n\n` +
+    `${serviceLabel}\n` +
+    `${d.origin_country} -> ${d.destination_country}\n` +
+    (d.estimated_weight ? `${d.estimated_weight} kg\n` : '') +
+    (d.estimated_cost ? `Estimation : ${Math.round(d.estimated_cost * 655.957)} XOF\n` : '') +
+    `Numéro de suivi : ${d.reference}\n` +
+    `Suivre : ${tracking}\n\n` +
     `Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.\n` +
-    `Merci de votre confiance 🙏`
+    `Merci de votre confiance.`
   );
 }
 
