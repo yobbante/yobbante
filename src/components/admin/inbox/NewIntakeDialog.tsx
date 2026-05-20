@@ -181,7 +181,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
 
       if (sendWhatsApp && data.client_phone) {
         const phoneClean = data.client_phone.replace(/[^\d]/g, '');
-        const trackingUrl = `https://yobbante.com/suivre?ref=${created.reference}`;
+        const trackingUrl = `https://yobbante.com/suivre/${created.reference}`;
         const serviceLabel = SERVICE_KINDS.find(s => s.id === data.service_kind)?.label || 'Demande';
         const route = data.service_kind === 'envoi'
           ? `${data.origin_city || data.origin_country_reception || '?'} → ${data.destination_city || 'Dakar'}`
