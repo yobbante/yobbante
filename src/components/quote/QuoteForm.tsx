@@ -50,6 +50,15 @@ export function QuoteForm() {
   const [origin, setOrigin] = useState(DAKAR);
   const [destination, setDestination] = useState('');
   const swapDirection = () => {
+    const bothFilled = origin && destination;
+    if (bothFilled) {
+      // Échange simple en gardant les deux villes
+      const prevOrigin = origin;
+      setOrigin(destination);
+      setDestination(prevOrigin);
+      setDirection(direction === 'from_dakar' ? 'to_dakar' : 'from_dakar');
+      return;
+    }
     if (direction === 'from_dakar') {
       setDirection('to_dakar');
       setOrigin('');
