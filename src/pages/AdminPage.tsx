@@ -135,7 +135,7 @@ export default function AdminPage() {
               <span className="text-sm font-bold tracking-tight">YOBBANTÉ</span>
               <button onClick={() => setMobileOpen(false)} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
             </div>
           </aside>
