@@ -60,7 +60,7 @@ export function InboxFilters({ value, onChange }: Props) {
                 color: active ? s.color : 'hsl(var(--muted-foreground))',
               }}
             >
-              {s.emoji} {s.label}
+              {s.label}
             </button>
           );
         })}
@@ -77,7 +77,7 @@ export function InboxFilters({ value, onChange }: Props) {
               className="h-7 text-[11px]"
               onClick={() => toggleKind(k.id)}
             >
-              {k.emoji} {k.label}
+              {k.label}
             </Button>
           );
         })}

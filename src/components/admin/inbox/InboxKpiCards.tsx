@@ -4,10 +4,10 @@ import type { InboxStats } from '@/hooks/useInboxStats';
 
 export function InboxKpiCards({ stats }: { stats: InboxStats }) {
   const kpis = [
-    { label: '📥 Cette semaine', main: stats.weekTotal, sub: 'nouveaux dossiers' },
-    { label: '🔴 À traiter',     main: stats.todo,      sub: `${stats.todoNewThisWeek} cette semaine` },
-    { label: '🟡 Attente client', main: stats.awaiting,  sub: `${stats.awaitingPending} en attente` },
-    { label: '🟢 Confirmés',      main: stats.confirmed, sub: `${stats.confirmedThisWeek} cette semaine` },
+    { label: 'Cette semaine', main: stats.weekTotal, sub: 'nouveaux dossiers' },
+    { label: 'À traiter',     main: stats.todo,      sub: `${stats.todoNewThisWeek} cette semaine` },
+    { label: 'Attente client', main: stats.awaiting,  sub: `${stats.awaitingPending} en attente` },
+    { label: 'Confirmés',      main: stats.confirmed, sub: `${stats.confirmedThisWeek} cette semaine` },
   ];
 
   return (
@@ -31,7 +31,6 @@ export function InboxKpiCards({ stats }: { stats: InboxStats }) {
               return (
                 <div key={row.source} className="flex items-center gap-2 text-xs">
                   <span className="w-28 flex items-center gap-1 truncate">
-                    <span>{meta?.emoji ?? '•'}</span>
                     <span className="truncate">{meta?.label ?? row.source}</span>
                   </span>
                   <div className="flex-1 h-2 bg-muted rounded overflow-hidden">

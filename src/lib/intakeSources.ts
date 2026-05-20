@@ -41,9 +41,9 @@ export const SOURCE_BY_ID: Record<IntakeSource, IntakeSourceMeta> =
   Object.fromEntries(INTAKE_SOURCES.map(s => [s.id, s])) as Record<IntakeSource, IntakeSourceMeta>;
 
 export const SERVICE_KINDS: { id: ServiceKind; label: string; emoji: string }[] = [
-  { id: 'envoi',     label: 'Envoyer un colis',  emoji: '📦' },
-  { id: 'sourcing',  label: 'Sourcing',          emoji: '🛒' },
-  { id: 'reception', label: 'Réception',         emoji: '📥' },
+  { id: 'envoi',     label: 'Envoyer un colis',  emoji: '' },
+  { id: 'sourcing',  label: 'Sourcing',          emoji: '' },
+  { id: 'reception', label: 'Réception',         emoji: '' },
 ];
 
 /** Tag prepended to product_description so we can detect "reception" intake from a dossier row. */

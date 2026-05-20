@@ -15,9 +15,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const COLS = [
-  { id: 'todo',      title: '🔴 À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
-  { id: 'awaiting',  title: '🟡 En attente client', statuses: ['AWAITING_CLIENT'] },
-  { id: 'confirmed', title: '🟢 Confirmés',          statuses: ['CONFIRMED'] },
+  { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
+  { id: 'awaiting',  title: 'En attente client', statuses: ['AWAITING_CLIENT'] },
+  { id: 'confirmed', title: 'Confirmés',          statuses: ['CONFIRMED'] },
 ] as const;
 
 function buildClientRecap(d: InboxDossier) {
@@ -87,7 +87,7 @@ export function InboxTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">📬 Inbox</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Inbox</h1>
           <p className="text-sm text-muted-foreground">Toutes les demandes — site, WhatsApp, appels, email…</p>
         </div>
         <div className="flex gap-2">
@@ -108,7 +108,7 @@ export function InboxTab() {
       <Tabs value={tab} onValueChange={v => { const sp = new URLSearchParams(searchParams); if (v === 'history') sp.set('tab', 'history'); else sp.delete('tab'); setSearchParams(sp, { replace: true }); }}>
         <TabsList>
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="history">📚 Historique</TabsTrigger>
+          <TabsTrigger value="history">Historique</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4 mt-4">
