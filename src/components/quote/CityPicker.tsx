@@ -222,7 +222,7 @@ export function CityPicker({
                       city={c.city}
                       country={c.countryLabel}
                       selected={value === `${c.city}, ${c.countryLabel}` || value === c.city}
-                      onClick={() => select(`${c.city}, ${c.countryLabel}`)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); requestAnimationFrame(() => select(`${c.city}, ${c.countryLabel}`)); }}
                     />
                   ))}
                 </Section>
@@ -236,7 +236,7 @@ export function CityPicker({
                       city={c.city}
                       country={c.countryLabel}
                       selected={value === `${c.city}, ${c.countryLabel}` || value === c.city}
-                      onClick={() => select(`${c.city}, ${c.countryLabel}`)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); requestAnimationFrame(() => select(`${c.city}, ${c.countryLabel}`)); }}
                     />
                   ))}
                 </Section>
@@ -270,7 +270,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 
 function CityRow({
   flag, city, country, selected, onClick,
-}: { flag: string; city: string; country: string; selected: boolean; onClick: () => void }) {
+}: { flag: string; city: string; country: string; selected: boolean; onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   return (
     <button
       type="button"
