@@ -26,15 +26,15 @@ export interface IntakeSourceMeta {
 }
 
 export const INTAKE_SOURCES: IntakeSourceMeta[] = [
-  { id: 'whatsapp',  label: 'WhatsApp',         emoji: '📱', color: '#25D366', referencePlaceholder: 'Numéro WhatsApp (ex: +221…)' },
-  { id: 'telephone', label: 'Appel',            emoji: '☎️', color: '#F59E0B', referencePlaceholder: 'Numéro appelant ou heure d’appel' },
-  { id: 'email',     label: 'Email',            emoji: '✉️', color: '#8B5CF6', referencePlaceholder: 'Adresse email du client' },
-  { id: 'instagram', label: 'Instagram DM',     emoji: '📷', color: '#E1306C', referencePlaceholder: 'Pseudo Instagram' },
-  { id: 'facebook',  label: 'Facebook DM',      emoji: '📘', color: '#1877F2', referencePlaceholder: 'Pseudo / page Facebook' },
-  { id: 'walk_in',   label: 'Walk-in',          emoji: '🚶', color: '#64748B', referencePlaceholder: 'Lieu (bureau, hub, …)' },
-  { id: 'referral',  label: 'Recommandation',   emoji: '👥', color: '#EAB308', referencePlaceholder: 'Nom du référent' },
-  { id: 'site_web',  label: 'Site web',         emoji: '🌐', color: '#3B82F6', referencePlaceholder: 'URL ou parcours' },
-  { id: 'autre',     label: 'Autre',            emoji: '➕', color: '#94A3B8', referencePlaceholder: 'Précisez le canal' },
+  { id: 'whatsapp',  label: 'WhatsApp',         emoji: '', color: '#25D366', referencePlaceholder: 'Numero WhatsApp (ex: +221…)' },
+  { id: 'telephone', label: 'Appel',            emoji: '', color: '#F59E0B', referencePlaceholder: "Numero appelant ou heure d'appel" },
+  { id: 'email',     label: 'Email',            emoji: '', color: '#8B5CF6', referencePlaceholder: 'Adresse email du client' },
+  { id: 'instagram', label: 'Instagram DM',     emoji: '', color: '#E1306C', referencePlaceholder: 'Pseudo Instagram' },
+  { id: 'facebook',  label: 'Facebook DM',      emoji: '', color: '#1877F2', referencePlaceholder: 'Pseudo / page Facebook' },
+  { id: 'walk_in',   label: 'Walk-in',          emoji: '', color: '#64748B', referencePlaceholder: 'Lieu (bureau, hub, …)' },
+  { id: 'referral',  label: 'Recommandation',   emoji: '', color: '#EAB308', referencePlaceholder: 'Nom du referent' },
+  { id: 'site_web',  label: 'Site web',         emoji: '', color: '#3B82F6', referencePlaceholder: 'URL ou parcours' },
+  { id: 'autre',     label: 'Autre',            emoji: '', color: '#94A3B8', referencePlaceholder: 'Precisez le canal' },
 ];
 
 export const SOURCE_BY_ID: Record<IntakeSource, IntakeSourceMeta> =
@@ -43,7 +43,7 @@ export const SOURCE_BY_ID: Record<IntakeSource, IntakeSourceMeta> =
 export const SERVICE_KINDS: { id: ServiceKind; label: string; emoji: string }[] = [
   { id: 'envoi',     label: 'Envoyer un colis',  emoji: '' },
   { id: 'sourcing',  label: 'Sourcing',          emoji: '' },
-  { id: 'reception', label: 'Réception',         emoji: '' },
+  { id: 'reception', label: 'Reception',         emoji: '' },
 ];
 
 /** Tag prepended to product_description so we can detect "reception" intake from a dossier row. */
