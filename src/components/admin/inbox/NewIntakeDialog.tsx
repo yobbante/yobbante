@@ -21,6 +21,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
+type DepartureMode = 'ref' | 'route' | 'gp' | 'skip';
+
 type IntakeData = {
   source: IntakeSource | null;
   source_reference: string;
@@ -51,6 +53,12 @@ type IntakeData = {
   manual_currency: 'XOF' | 'EUR';
   initial_status: 'SUBMITTED' | 'CONFIRMED';
   send_whatsapp: boolean;
+  // Fix 3 — Quel départ ?
+  departure_mode: DepartureMode | null;
+  departure_short_ref: string;
+  selected_departure_id: string | null;
+  selected_departure_label: string;
+  selected_transporteur_ref: string;
 };
 
 const INITIAL: IntakeData = {
@@ -64,7 +72,149 @@ const INITIAL: IntakeData = {
   origin_country_reception: '', tracking_number: '',
   intake_notes: '', price_mode: 'auto', manual_price: '', manual_currency: 'XOF',
   initial_status: 'SUBMITTED', send_whatsapp: true,
+  departure_mode: null, departure_short_ref: '', selected_departure_id: null,
+  selected_departure_label: '', selected_transporteur_ref: '',
 };
+
+const TOTAL_STEPS = 5;
+
+function DepartureStep({ data, update }: { data: IntakeData; update: (p: Partial<IntakeData>) => void }) {
+  const [searching, setSearching] = useState(false);
+  const [routeDeps, setRouteDeps] = useState<any[]>([]);
+
+  async function lookupByRef() {
+    const ref = data.departure_short_ref.trim();
+    if (!/^\d{4}$/.test(ref)) {
+      toast.error('La référence doit faire 4 chiffres');
+      return;
+    }
+    setSearching(true);
+    const { data: rows, error } = await supabase
+      .from('manual_departures')
+      .select('id, short_ref, origin_city, destination_city, departure_date, transport_mode, available_capacity_kg, total_capacity_kg, carrier_name')
+      .eq('short_ref', ref)
+      .limit(1);
+    setSearching(false);
+    if (error || !rows || rows.length === 0) {
+      toast.error('Aucun départ trouvé pour cette référence');
+      update({ selected_departure_id: null, selected_departure_label: '' });
+      return;
+    }
+    const d: any = rows[0];
+    update({
+      selected_departure_id: d.id,
+      selected_departure_label: `#${d.short_ref} · ${d.origin_city}→${d.destination_city} · ${new Date(d.departure_date).toLocaleDateString('fr-FR')}`,
+    });
+    if (d.available_capacity_kg <= 0) toast.warning('⚠️ Ce départ est complet');
+  }
+
+  async function loadByRoute() {
+    if (!data.origin_city || !data.destination_city) {
+      toast.error('Origine et destination requises (étape précédente)');
+      return;
+    }
+    setSearching(true);
+    const { data: rows } = await supabase
+      .from('manual_departures')
+      .select('id, short_ref, origin_city, destination_city, departure_date, transport_mode, available_capacity_kg, total_capacity_kg, carrier_name')
+      .ilike('destination_city', `%${data.destination_city}%`)
+      .gte('departure_date', new Date().toISOString().slice(0, 10))
+      .eq('status', 'active')
+      .order('departure_date', { ascending: true })
+      .limit(20);
+    setSearching(false);
+    setRouteDeps(rows ?? []);
+    if (!rows || rows.length === 0) toast.info('Aucun départ disponible pour cette route');
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold">Quel départ ?</h3>
+      <p className="text-xs text-muted-foreground">Le client mentionne-t-il une référence ?</p>
+
+      <RadioGroup
+        value={data.departure_mode ?? ''}
+        onValueChange={(v: any) => update({ departure_mode: v, selected_departure_id: null, selected_departure_label: '', selected_transporteur_ref: '' })}
+        className="space-y-2"
+      >
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="ref" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Oui — il a vu une réf publiée</div>
+            {data.departure_mode === 'ref' && (
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder="0000"
+                  maxLength={4}
+                  value={data.departure_short_ref}
+                  onChange={e => update({ departure_short_ref: e.target.value.replace(/\D/g, '') })}
+                  className="w-24 font-mono"
+                />
+                <Button size="sm" variant="outline" type="button" onClick={lookupByRef} disabled={searching}>
+                  Chercher
+                </Button>
+                {data.selected_departure_label && (
+                  <span className="text-xs text-primary self-center">{data.selected_departure_label}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="route" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Non — trouver le bon départ pour la route</div>
+            {data.departure_mode === 'route' && (
+              <div className="mt-2 space-y-2">
+                <Button size="sm" variant="outline" type="button" onClick={loadByRoute} disabled={searching}>
+                  Charger les départs disponibles
+                </Button>
+                {routeDeps.map(d => {
+                  const status = d.available_capacity_kg <= 0 ? '🔴' : d.available_capacity_kg < 5 ? '🟡' : '🟢';
+                  const selected = data.selected_departure_id === d.id;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => update({
+                        selected_departure_id: d.id,
+                        selected_departure_label: `#${d.short_ref} · ${d.origin_city}→${d.destination_city}`,
+                      })}
+                      className={`w-full text-left text-xs p-2 rounded border ${selected ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      {status} {new Date(d.departure_date).toLocaleDateString('fr-FR')} · {d.carrier_name ?? 'GP'} · <strong>Réf {d.short_ref}</strong> · {d.available_capacity_kg}kg dispo
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="gp" className="mt-0.5" />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Aucun départ ne convient — j'ai un GP en tête</div>
+            {data.departure_mode === 'gp' && (
+              <Input
+                className="mt-2"
+                placeholder="Réf transporteur (4 chiffres) ou nom"
+                value={data.selected_transporteur_ref}
+                onChange={e => update({ selected_transporteur_ref: e.target.value })}
+              />
+            )}
+          </div>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
+          <RadioGroupItem value="skip" className="mt-0.5" />
+          <div className="text-sm font-medium">Skip — on verra plus tard</div>
+        </label>
+      </RadioGroup>
+    </div>
+  );
+}
 
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(0);
@@ -95,6 +245,14 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       if (data.service_kind === 'envoi') return !!(data.origin_city && data.destination_city && data.weight_kg);
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
+    }
+    if (step === 3) {
+      // Departure step is optional (skip is always valid)
+      if (!data.departure_mode) return false;
+      if (data.departure_mode === 'ref') return !!data.selected_departure_id;
+      if (data.departure_mode === 'route') return !!data.selected_departure_id;
+      if (data.departure_mode === 'gp') return data.selected_transporteur_ref.trim().length > 0;
+      return true; // skip
     }
     return true;
   }, [step, data]);
@@ -132,6 +290,11 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? (data.manual_currency === 'EUR' ? parseFloat(data.manual_price) : parseFloat(data.manual_price) / 655.957)
         : estimatedPrice;
 
+      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART
+      const computedStatus = data.departure_mode === 'gp'
+        ? 'EN_RECHERCHE_DEPART'
+        : data.initial_status;
+
       const insertRow: any = {
         user_id: user.id,
         product_description: productDescription,
@@ -153,11 +316,14 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           data.quantity && `Quantité: ${data.quantity}`,
           data.tracking_number && `Tracking: ${data.tracking_number}`,
           data.declared_value && `Valeur déclarée: ${data.declared_value} €`,
+          data.selected_departure_label && `Départ: ${data.selected_departure_label}`,
         ].filter(Boolean).join('\n') || null,
-        status: data.initial_status,
+        status: computedStatus,
         source: data.source,
         source_reference: data.source_reference || null,
         intake_notes: data.intake_notes || null,
+        assigned_departure_id: data.selected_departure_id || null,
+        assigned_transporteur_ref: data.selected_transporteur_ref || null,
         intake_by: user.id,
         intake_method: 'manual_intake',
         buyer_name: data.client_name,
@@ -181,7 +347,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
 
       if (sendWhatsApp && data.client_phone) {
         const phoneClean = data.client_phone.replace(/[^\d]/g, '');
-        const trackingUrl = `https://yobbante.com/suivre?ref=${created.reference}`;
+        const trackingUrl = `https://yobbante.com/suivre/${created.reference}`;
         const serviceLabel = SERVICE_KINDS.find(s => s.id === data.service_kind)?.label || 'Demande';
         const route = data.service_kind === 'envoi'
           ? `${data.origin_city || data.origin_country_reception || '?'} → ${data.destination_city || 'Dakar'}`
@@ -218,12 +384,12 @@ Merci de votre confiance.`;
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Nouveau dossier · Étape {step + 1} / 4</SheetTitle>
+          <SheetTitle>Nouveau dossier · Étape {step + 1} / {TOTAL_STEPS}</SheetTitle>
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
           <div className="flex gap-1">
-            {[0, 1, 2, 3].map(i => (
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded ${i <= step ? 'bg-primary' : 'bg-muted'}`}
@@ -387,6 +553,10 @@ Merci de votre confiance.`;
           )}
 
           {step === 3 && (
+            <DepartureStep data={data} update={update} />
+          )}
+
+          {step === 4 && (
             <div className="space-y-4">
               <h3 className="text-base font-semibold">Récap + Notes</h3>
               <Card className="p-3 bg-muted/50 text-xs space-y-1">
@@ -478,7 +648,7 @@ Merci de votre confiance.`;
               <ArrowLeft className="w-4 h-4 mr-1" />
               {step === 0 ? 'Annuler' : 'Retour'}
             </Button>
-            {step < 3 ? (
+            {step < TOTAL_STEPS - 1 ? (
               <Button onClick={() => setStep(step + 1)} disabled={!canNext}>
                 Suivant <ArrowRight className="w-4 h-4 ml-1" />
               </Button>

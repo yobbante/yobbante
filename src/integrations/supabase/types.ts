@@ -559,6 +559,8 @@ export type Database = {
         Row: {
           admin_notes: string | null
           app_source: string
+          assigned_departure_id: string | null
+          assigned_transporteur_ref: string | null
           budget_eur: number | null
           business_id: string | null
           buyer_contact: string | null
@@ -605,6 +607,8 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           app_source?: string
+          assigned_departure_id?: string | null
+          assigned_transporteur_ref?: string | null
           budget_eur?: number | null
           business_id?: string | null
           buyer_contact?: string | null
@@ -651,6 +655,8 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           app_source?: string
+          assigned_departure_id?: string | null
+          assigned_transporteur_ref?: string | null
           budget_eur?: number | null
           business_id?: string | null
           buyer_contact?: string | null
@@ -695,6 +701,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dossiers_assigned_departure_id_fkey"
+            columns: ["assigned_departure_id"]
+            isOneToOne: false
+            referencedRelation: "manual_departures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dossiers_business_id_fkey"
             columns: ["business_id"]
@@ -1009,10 +1022,16 @@ export type Database = {
           destination_city: string
           destination_country: string | null
           id: string
+          max_capacity_kg: number | null
           notes: string | null
+          notes_admin: string | null
           origin_city: string
           origin_country: string | null
           price_override_xof: number | null
+          publication_status: string
+          published_at: string | null
+          reserved_capacity_kg: number
+          short_ref: string | null
           source: string
           status: string
           total_capacity_kg: number
@@ -1031,10 +1050,16 @@ export type Database = {
           destination_city: string
           destination_country?: string | null
           id?: string
+          max_capacity_kg?: number | null
           notes?: string | null
+          notes_admin?: string | null
           origin_city: string
           origin_country?: string | null
           price_override_xof?: number | null
+          publication_status?: string
+          published_at?: string | null
+          reserved_capacity_kg?: number
+          short_ref?: string | null
           source?: string
           status?: string
           total_capacity_kg: number
@@ -1053,10 +1078,16 @@ export type Database = {
           destination_city?: string
           destination_country?: string | null
           id?: string
+          max_capacity_kg?: number | null
           notes?: string | null
+          notes_admin?: string | null
           origin_city?: string
           origin_country?: string | null
           price_override_xof?: number | null
+          publication_status?: string
+          published_at?: string | null
+          reserved_capacity_kg?: number
+          short_ref?: string | null
           source?: string
           status?: string
           total_capacity_kg?: number
@@ -2148,6 +2179,7 @@ export type Database = {
       }
       generate_reception_reference: { Args: never; Returns: string }
       generate_shipment_tracking_number: { Args: never; Returns: string }
+      generate_unique_short_ref: { Args: never; Returns: string }
       get_user_contact: {
         Args: { _user_id: string }
         Returns: {
@@ -2174,6 +2206,10 @@ export type Database = {
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       mark_overdue_invoices: { Args: never; Returns: number }
       monitor_shipment_etas: { Args: never; Returns: number }
+      recompute_departure_reserved_capacity: {
+        Args: { p_departure_id: string }
+        Returns: undefined
+      }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
       score_departure: {
@@ -2231,6 +2267,7 @@ export type Database = {
         | "AWAITING_CLIENT"
         | "CONFIRMED"
         | "STALE"
+        | "EN_RECHERCHE_DEPART"
       dossier_type:
         | "individual"
         | "business_import"
@@ -2424,6 +2461,7 @@ export const Constants = {
         "AWAITING_CLIENT",
         "CONFIRMED",
         "STALE",
+        "EN_RECHERCHE_DEPART",
       ],
       dossier_type: [
         "individual",

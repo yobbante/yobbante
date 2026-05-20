@@ -60,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'hubs',         label: 'Hubs',            icon: Globe2, live: true },
       { id: 'transport',    label: 'Konnekt',         icon: Truck,  live: true },
       { id: 'departures',   label: 'Départs manuels', icon: Plane,  live: true },
+      { id: 'departs-semaine' as any, label: 'Départs de la semaine', icon: Plane, live: true },
       { id: 'transporteurs',label: 'Transporteurs',   icon: UserCog,live: true, adminOnly: true },
     ],
   },

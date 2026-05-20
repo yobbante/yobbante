@@ -1,86 +1,82 @@
-# Système d'intake multi-canaux — Points 1 à 3
+## Yobbanté — Gestion interne adaptée au workflow réel (Départs-centric)
 
-Objectif : centraliser dans l'admin toutes les commandes (WhatsApp, appel, email, IG, FB, site) sans casser les flows existants (Send/Receive/Sourcing) qui continueront simplement avec `source = 'site_web'` par défaut.
+### Compréhension
+Le "Départ planifié" (`manual_departures`) est l'entité centrale. Les admins capturent les départs des GP (statuts WhatsApp), publient une liste hebdo, puis rattachent les dossiers clients aux départs via une référence courte (4 chiffres).
 
-## 1) Migration Supabase
+---
 
-Une seule migration regroupant :
+### Priorité 1 — Bloquant launch
 
-**`dossiers` — colonnes ajoutées**
-- `source TEXT NOT NULL DEFAULT 'site_web'` + CHECK (`site_web`, `whatsapp`, `telephone`, `email`, `instagram`, `facebook`, `walk_in`, `referral`, `autre`)
-- `source_reference TEXT`
-- `intake_notes TEXT`
-- `intake_by UUID` (références `auth.users` — non FK directe : on suit le pattern projet et utilise juste `uuid` lié logiquement)
-- `intake_method TEXT DEFAULT 'self_service'` + CHECK (`self_service`, `manual_intake`)
+**Fix 6 — Route `/suivre/:trackingNumber`**
+- Ajouter routes dans `App.tsx`:
+  - `/suivre/:trackingNumber` → `TrackPage`
+  - `/suivre` → `TrackPage` (gère `?ref=` via redirect interne vers `/suivre/:ref`)
+- Adapter `TrackPage.tsx` pour lire `useParams().trackingNumber` en plus du query param existant, et pré-charger.
+- Mettre à jour `buildClientRecap` (dans `useInboxDossiers.ts` / `NewIntakeDialog.tsx`) pour générer `https://yobbante.com/suivre/<ref>`.
 
-Note : `dossier_status` enum existant utilise `SUBMITTED/IN_REVIEW/...`. On va mapper logiquement pour l'Inbox :
-- **À traiter** = `SUBMITTED` + `IN_REVIEW`
-- **En attente client** = nouveau status pas nécessaire pour l'instant — on réutilise `IN_REVIEW` avec un flag, OU on étend l'enum. **Décision : étendre l'enum avec `AWAITING_CLIENT` et `CONFIRMED`** pour matcher la sémantique demandée. Les flows existants ne sont pas impactés (valeurs additives).
+**Fix 1 — Référence courte sur `manual_departures`**
+- Migration:
+  - `short_ref TEXT UNIQUE` (4 chiffres)
+  - `publication_status TEXT CHECK (...) DEFAULT 'draft'`
+  - `published_at TIMESTAMPTZ`
+  - `notes_admin TEXT`
+  - `max_capacity_kg NUMERIC`
+  - `reserved_capacity_kg NUMERIC DEFAULT 0`
+  - Fonction `generate_unique_short_ref()` (loop random 1000-9999, vérifie unicité)
+  - Trigger BEFORE INSERT : si `short_ref` NULL, génère auto
+  - Backfill: générer un `short_ref` pour les départs existants
+- Update `ManualDepartureForm.tsx` : input `short_ref` optionnel + suggestion "4 derniers chiffres du WhatsApp GP" + bouton "Générer".
+- Affichage gros "Réf #XXXX" dans `DeparturesTab` et carte.
 
-**Nouvelle table `legacy_dossiers`** (admin-only RLS via `is_staff`)
+**Fix 3 — Étape "Quel départ ?" dans NewIntakeDialog**
+- Remplacer/ajouter dans `NewIntakeDialog.tsx` une étape "Départ" (entre Service et Récap):
+  - Radio: A) Réf publiée, B) Trouver départ pour route, C) GP connu, D) Skip
+  - A: input 4 chiffres → query `manual_departures` par `short_ref` → card + check capacité
+  - B: liste filtrée par route (origine/destination)
+  - C: autocomplete transporteurs → statut `EN_RECHERCHE_DEPART`
+  - D: aucun
+- Ajouter colonnes `dossiers`:
+  - `assigned_departure_id UUID REFERENCES manual_departures(id)`
+  - `assigned_transporteur_ref TEXT`
+- Ajouter valeur enum `dossier_status`: `EN_RECHERCHE_DEPART`
 
-**Nouvelle table `intake_drafts`** (auto-save) — RLS : un user voit/modifie ses propres drafts ; staff voit tout.
+**Fix 2C — Format texte WhatsApp à copier (page Départs semaine)**
+- Nouvelle page `/admin/departs-semaine` (`DeparturesWeekPage.tsx`):
+  - Liste groupée par date (semaine courante + 2 suivantes)
+  - Carte avec date, mode, route, **Réf #XXXX**, GP, capacité, statut publication, nb dossiers
+  - Bouton "Copier texte WhatsApp" → génère format texte spécifié
+  - Bouton "Marquer comme publié" → maj `publication_status='published'`, `published_at=now()`
+  - Filtres : route, GP, mode
+- Lien dans `AdminSidebar.tsx`.
 
-## 2) Page `/admin/inbox`
+---
 
-- Nouvelle route ajoutée à `AdminPage` + entrée dans `AdminSidebar` tout en haut, intitulée "📬 Inbox".
-- Composant `InboxTab.tsx` :
-  - Header avec filtres (canal multi-select, type service, recherche client, opérateur) + bouton **+ Nouveau dossier**.
-  - 3 colonnes Kanban responsives (mobile = onglets) :
-    - 🔴 À traiter (`SUBMITTED`, `IN_REVIEW`)
-    - 🟡 En attente client (`AWAITING_CLIENT`)
-    - 🟢 Confirmés (`CONFIRMED`)
-  - Composant `InboxCard.tsx` : nom client + ville, type (📦/🛒/📥 selon `needs_sourcing` / présence reception_order / défaut envoi), route origine→destination, **badge source coloré**, date, montant, avatar opérateur intake.
-  - Actions rapides : Voir détail (réutilise `OrderDetailDrawer`), Envoyer récap WhatsApp (wa.me pré-rempli), Marquer confirmé (update status).
+### Priorité 2 — Semaine prochaine
 
-## 3) Formulaire "+ Nouveau dossier"
+**Fix 2A — Export image Canva-ready** : `html2canvas` sur template 1080×1080 / 1080×1920 (logo + tableau + URL).
+**Fix 4 — Drawer "Par départ"** : ouvre détails + liste dossiers attachés.
+**Fix 5 — "Notifier le GP"** : génère message récap mission + ouvre `wa.me`.
 
-Composant `NewIntakeDialog.tsx` (drawer plein écran avec stepper 4 étapes) :
+---
 
-1. **Source** — radio gros boutons colorés + champ `source_reference` + note auto "Saisi le … par …"
-2. **Client** — recherche autocomplete dans `profiles` (par nom/phone) OU formulaire "nouveau client" (crée profil minimal ou stocke en `contact_phone`/`contact_email`/notes sur le dossier si pas d'auth user — pour le MVP on stocke sur le dossier sans créer d'auth user)
-3. **Service** — radio Envoi / Sourcing / Réception → champs conditionnels (origine/destination/poids/mode/desc pour envoi ; produit/pays/budget/quantité/URL pour sourcing ; origine/tracking/desc/valeur pour réception)
-4. **Récap + Notes** — récap visuel, `intake_notes`, prix (calculé via `calculate_quote` RPC ou manuel), statut initial (`SUBMITTED` ou `CONFIRMED`)
+### Détails techniques
 
-**Boutons finaux :**
-- *Enregistrer + Envoyer récap WhatsApp* — insert dossier puis ouvre `wa.me/<phone>?text=<récap+lien suivi+ref YBT-…>`
-- *Enregistrer seulement*
-- *Annuler*
+```text
+manual_departures
+├── short_ref (UNIQUE, auto 4 chiffres)
+├── publication_status (draft|ready|published|closed|completed)
+├── published_at, notes_admin, max_capacity_kg, reserved_capacity_kg
+└── (existant : origin_*, destination_*, departure_date, transport_mode, ...)
 
-**Auto-save** : hook `useIntakeDraft` qui upsert dans `intake_drafts` toutes les 10s ; reload propose de reprendre le brouillon au montage.
+dossiers
+├── assigned_departure_id → manual_departures.id
+├── assigned_transporteur_ref TEXT
+└── status enum + 'EN_RECHERCHE_DEPART'
+```
 
-## Notes techniques
+Trigger `reserved_capacity_kg` : recalculé à l'INSERT/UPDATE/DELETE sur `dossiers.assigned_departure_id` (somme `estimated_weight` des dossiers liés non annulés).
 
-- Les flows existants (`SendFlow`, `ReceiveFlow`, `SourcingFlow`, `DossierWizard`, `useDossiers`) restent **inchangés** — la colonne `source` a default `'site_web'`, donc rétrocompatible.
-- Pour le service "Réception", on crée un dossier classique avec `dossier_type='individual'` et notes spécifiques (les `reception_orders` restent pour le flow self-service ; l'intake manuel utilise `dossiers` pour simplicité MVP).
-- Mapping type service dans Inbox :
-  - 🛒 Sourcing si `needs_sourcing = true`
-  - 📥 Réception si `intake_notes` ou meta contient marqueur (on ajoutera `service_kind` léger dans `intake_notes` JSON ou via tag — pour MVP on déduit du formulaire en stockant `[RECEPTION]` en préfixe de `product_description`)
-- Légende couleurs sources (constante partagée `INTAKE_SOURCES`) :
-  - whatsapp = vert #25D366, site_web = bleu primary, telephone = orange, email = violet, instagram = rose, facebook = bleu FB, walk_in = gris, referral = jaune, autre = neutre
+---
 
-## Fichiers créés / modifiés
-
-**Migration** : 1 fichier (alter dossiers + create legacy_dossiers + create intake_drafts + RLS + extend enum)
-
-**Nouveaux** :
-- `src/lib/intakeSources.ts` (constantes + couleurs)
-- `src/hooks/useIntakeDraft.ts`
-- `src/hooks/useInboxDossiers.ts`
-- `src/components/admin/inbox/InboxTab.tsx`
-- `src/components/admin/inbox/InboxCard.tsx`
-- `src/components/admin/inbox/InboxFilters.tsx`
-- `src/components/admin/inbox/NewIntakeDialog.tsx`
-- `src/components/admin/inbox/steps/StepSource.tsx`
-- `src/components/admin/inbox/steps/StepClient.tsx`
-- `src/components/admin/inbox/steps/StepService.tsx`
-- `src/components/admin/inbox/steps/StepRecap.tsx`
-
-**Modifiés** :
-- `src/components/admin/AdminSidebar.tsx` (entrée Inbox en haut)
-- `src/pages/AdminPage.tsx` (route /admin/inbox)
-- `src/lib/types.ts` (étendre `DossierStatus` + ajouter `IntakeSource`, étendre interface `Dossier`)
-
-**Inchangés** : tous les flows publics, `useDossiers`, `DossierWizard`, `SendFlow`, `ReceiveFlow`, `SourcingFlow`.
-
-Confirme-moi pour lancer la migration et l'implémentation.
+### Confirmation
+Je livre P1 en premier (Fix 6 → Fix 1 → Fix 3 → Fix 2C). Je peux enchaîner sur P2 dans la même session ou attendre ton OK après P1.
