@@ -21,6 +21,7 @@ import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
 import { TransporteursTab } from '@/components/admin/TransporteursTab';
 import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
+import { InboxTab } from '@/components/admin/inbox/InboxTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
@@ -180,6 +181,7 @@ export default function AdminPage() {
             <>
               <AdminBreadcrumb section={section} />
               {section === 'overview'   && <OverviewTab onJump={setSection} />}
+              {section === 'inbox'      && <InboxTab />}
               {section === 'requests'   && <RequestsTab />}
               {section === 'shipments'  && <ShipmentsWorkflowTab />}
               {section === 'orders'     && <OrdersTab />}

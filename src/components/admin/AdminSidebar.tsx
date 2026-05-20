@@ -1,9 +1,10 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2 } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
 
 export type AdminSection =
   | 'overview'
+  | 'inbox'
   | 'requests'
   | 'shipments'
   | 'orders'
@@ -26,7 +27,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
-      { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, live: true },
+      { id: 'inbox',    label: '📬 Inbox',   icon: MessageSquare,   live: true },
+      { id: 'overview', label: 'Dashboard',  icon: LayoutDashboard, live: true },
     ],
   },
   {
