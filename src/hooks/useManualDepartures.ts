@@ -25,9 +25,15 @@ export interface ManualDeparture {
   created_at: string;
   updated_at: string;
   transporteur_ref?: string | null;
+  short_ref?: string | null;
+  publication_status?: 'draft' | 'ready' | 'published' | 'closed' | 'completed';
+  published_at?: string | null;
+  notes_admin?: string | null;
+  max_capacity_kg?: number | null;
+  reserved_capacity_kg?: number;
 }
 
-export type ManualDepartureInput = Omit<ManualDeparture, 'id' | 'source' | 'created_at' | 'updated_at' | 'created_by'>;
+export type ManualDepartureInput = Omit<ManualDeparture, 'id' | 'source' | 'created_at' | 'updated_at' | 'created_by' | 'reserved_capacity_kg' | 'published_at'>;
 
 export function useManualDepartures() {
   const qc = useQueryClient();
