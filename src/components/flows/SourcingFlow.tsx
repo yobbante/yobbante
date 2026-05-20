@@ -224,7 +224,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           origin: origin || 'Non précisé',
           destination: destination || 'Non précisé',
           weight: totalWeight,
-          recipient_phone: '+221786078080'
+          recipient_phone: '+221781221891'
         }
       }).then(({ data, error }) => {
         if (error) console.error('WA_INVOKE_ERROR:', error);

@@ -470,7 +470,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           origin: originCity?.city || originCity?.country || 'Non précisé',
           destination: destCity?.city || destCity?.country || 'Non précisé',
           weight: weight,
-          recipient_phone: '+221786078080'
+          recipient_phone: '+221781221891'
         }
       }).then(({ data, error }) => {
         if (error) console.error('WA_INVOKE_ERROR:', error);
