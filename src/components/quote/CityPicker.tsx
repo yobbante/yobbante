@@ -270,7 +270,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 
 function CityRow({
   flag, city, country, selected, onClick,
-}: { flag: string; city: string; country: string; selected: boolean; onClick: () => void }) {
+}: { flag: string; city: string; country: string; selected: boolean; onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   return (
     <button
       type="button"
