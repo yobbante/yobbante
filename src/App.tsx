@@ -28,6 +28,8 @@ import Auth from "./pages/Auth";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
 import InboxImportPage from "./pages/admin/InboxImportPage";
+import DeparturesWeekPage from "./pages/admin/DeparturesWeekPage";
+import SuivreEntry from "./pages/SuivreEntry";
 import BusinessPage from "./pages/BusinessPage";
 import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
@@ -106,7 +108,11 @@ const App = () => (
             <Route path="/app/dossier/:id" element={<DossierDetail />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin/inbox/import" element={<InboxImportPage />} />
+            <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
             <Route path="/admin/:section" element={<AdminPage />} />
+            {/* Canonical tracking URL — /suivre redirects to /track */}
+            <Route path="/suivre" element={<SuivreEntry />} />
+            <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
             <Route path="/business" element={<BusinessPage />} />
             <Route path="/business/join" element={<BusinessJoinPage />} />
             <Route path="/business/pricing" element={<BusinessPricingPage />} />
