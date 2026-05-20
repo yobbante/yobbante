@@ -107,7 +107,8 @@ export default function AdminPage() {
           </button>
           <p className="text-[11px] text-muted-foreground mt-1 ml-6">Console opérations</p>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+
           <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
         </div>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
@@ -134,7 +135,7 @@ export default function AdminPage() {
               <span className="text-sm font-bold tracking-tight">YOBBANTÉ</span>
               <button onClick={() => setMobileOpen(false)} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
             </div>
           </aside>
