@@ -152,6 +152,11 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? (data.manual_currency === 'EUR' ? parseFloat(data.manual_price) : parseFloat(data.manual_price) / 655.957)
         : estimatedPrice;
 
+      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART
+      const computedStatus = data.departure_mode === 'gp'
+        ? 'EN_RECHERCHE_DEPART'
+        : data.initial_status;
+
       const insertRow: any = {
         user_id: user.id,
         product_description: productDescription,
@@ -173,11 +178,14 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           data.quantity && `Quantité: ${data.quantity}`,
           data.tracking_number && `Tracking: ${data.tracking_number}`,
           data.declared_value && `Valeur déclarée: ${data.declared_value} €`,
+          data.selected_departure_label && `Départ: ${data.selected_departure_label}`,
         ].filter(Boolean).join('\n') || null,
-        status: data.initial_status,
+        status: computedStatus,
         source: data.source,
         source_reference: data.source_reference || null,
         intake_notes: data.intake_notes || null,
+        assigned_departure_id: data.selected_departure_id || null,
+        assigned_transporteur_ref: data.selected_transporteur_ref || null,
         intake_by: user.id,
         intake_method: 'manual_intake',
         buyer_name: data.client_name,
