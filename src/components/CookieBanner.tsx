@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { enableAnalytics } from '@/lib/analytics';
 
@@ -35,7 +35,8 @@ export function CookieBanner() {
       <div className="bg-foreground text-background rounded-2xl shadow-2xl p-4 sm:p-5 border border-background/10">
         <div className="flex items-start gap-3">
           <p className="text-xs sm:text-sm leading-relaxed flex-1 text-pretty">
-            Nous utilisons des cookies essentiels pour améliorer votre expérience. Aucun tracking publicitaire.
+            Nous utilisons des cookies essentiels pour améliorer votre expérience. Aucun tracking publicitaire.{' '}
+            <Link to="/cookies" className="underline font-medium hover:opacity-80">En savoir plus</Link>
           </p>
           <button
             onClick={() => dismiss('decline')}

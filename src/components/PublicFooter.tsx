@@ -59,13 +59,22 @@ const SECTIONS: FooterSection[] = [
     ],
   },
   {
-    title: 'Yobbanté',
+    title: 'Aide',
     links: [
       { label: 'Mon espace', to: '/auth' },
-      { label: 'Centre d\'aide', href: 'mailto:contact@yobbante.com' },
-      { label: 'CGU', to: '/legal/cgu' },
-      { label: 'Confidentialité', to: '/legal/confidentialite' },
-      { label: 'Mentions légales', to: '/legal/mentions' },
+      { label: 'Suivre un envoi', to: '/track' },
+      { label: 'Contact', href: 'mailto:contact@yobbante.com' },
+      { label: 'FAQ', href: 'mailto:contact@yobbante.com?subject=FAQ' },
+    ],
+  },
+  {
+    title: 'Légal',
+    links: [
+      { label: 'Politique de confidentialité', to: '/confidentialite' },
+      { label: 'Mentions légales', to: '/mentions-legales' },
+      { label: 'CGU', to: '/cgu' },
+      { label: 'CGV', to: '/cgv' },
+      { label: 'Cookies', to: '/cookies' },
     ],
   },
 ];
