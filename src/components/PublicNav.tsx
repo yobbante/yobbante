@@ -235,14 +235,6 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
       </div>
     </nav>
     <LiveDeparturesTicker />
-    {shouldShowIntent && (
-      <div
-        className="hidden md:block px-4 sm:px-6 py-2 max-w-6xl mx-auto"
-        style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}
-      >
-        <IntentSearchBar variant="compact" defaultIntent={defaultIntent} />
-      </div>
-    )}
     </div>
   );
 });
