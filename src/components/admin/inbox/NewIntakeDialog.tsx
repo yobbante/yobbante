@@ -108,6 +108,14 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
     }
+    if (step === 3) {
+      // Departure step is optional (skip is always valid)
+      if (!data.departure_mode) return false;
+      if (data.departure_mode === 'ref') return !!data.selected_departure_id;
+      if (data.departure_mode === 'route') return !!data.selected_departure_id;
+      if (data.departure_mode === 'gp') return data.selected_transporteur_ref.trim().length > 0;
+      return true; // skip
+    }
     return true;
   }, [step, data]);
 
