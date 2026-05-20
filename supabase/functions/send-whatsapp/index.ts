@@ -20,7 +20,9 @@ serve(async (req) => {
       });
     }
     const recipient = (body.recipient_phone || '').replace(/\D/g, '');
-    const message = `🚀 Nouvelle demande Yobbanté\n\nClient : ${body.client_name || 'N/A'}\nService : ${body.service_type || 'N/A'}\nDe : ${body.origin || 'N/A'}\nVers : ${body.destination || 'N/A'}\nPoids : ${body.weight || 'N/A'}kg\n\nVoir le dossier → https://yobbante.com/admin`;
+    const message = body.message
+      ? String(body.message)
+      : `🚀 Nouvelle demande Yobbanté\n\nClient : ${body.client_name || 'N/A'}\nService : ${body.service_type || 'N/A'}\nDe : ${body.origin || 'N/A'}\nVers : ${body.destination || 'N/A'}\nPoids : ${body.weight || 'N/A'}kg\n\nVoir le dossier → https://yobbante.com/admin`;
     console.log('WA_SENDING to:', recipient);
     const res = await fetch(
       `https://graph.facebook.com/v19.0/${phoneId}/messages`,
