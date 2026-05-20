@@ -245,7 +245,7 @@ Merci de votre confiance.`;
                       background: data.source === s.id ? `${s.color}15` : 'transparent',
                     }}
                   >
-                    <div className="text-2xl">{s.emoji}</div>
+                    <div className="text-2xl"></div>
                     <div className="text-sm font-medium mt-1">{s.label}</div>
                   </button>
                 ))}
@@ -320,7 +320,7 @@ Merci de votre confiance.`;
                       data.service_kind === k.id ? 'border-primary bg-primary/10' : 'border-border'
                     }`}
                   >
-                    <div className="text-2xl">{k.emoji}</div>
+                    <div className="text-2xl"></div>
                     <div className="text-xs font-medium mt-1">{k.label}</div>
                   </button>
                 ))}
