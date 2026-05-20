@@ -97,9 +97,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen overflow-hidden bg-background flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col border-r border-border sticky top-0 h-screen self-start">
+      <aside className="hidden lg:flex lg:w-60 lg:flex-col border-r border-border h-screen flex-shrink-0">
         <div className="px-4 py-4 border-b border-border">
           <button onClick={() => navigate('/app')} className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground">
             <ArrowLeft className="w-4 h-4 text-muted-foreground" />
@@ -142,7 +142,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
           <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded text-muted-foreground hover:text-foreground">
