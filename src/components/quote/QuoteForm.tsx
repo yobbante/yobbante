@@ -187,42 +187,47 @@ export function QuoteForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Origine *">
-              {direction === 'from_dakar' ? (
-                <input
-                  className="input-base w-full"
-                  value={origin}
-                  readOnly
-                  aria-label="Origine verrouillée à Dakar"
-                />
-              ) : (
-                <CityPicker
-                  value={origin}
-                  onChange={setOrigin}
-                  placeholder="Choisir une ville d'origine…"
-                  ariaLabel="Choisir la ville d'origine"
-                  excludeCity="Dakar"
-                />
-              )}
+              <CityPicker
+                value={origin}
+                onChange={(v) => {
+                  if (v === DAKAR) {
+                    setDirection('from_dakar');
+                    setOrigin(DAKAR);
+                    if (destination === DAKAR) setDestination('');
+                  } else {
+                    // Choisir une autre ville en origine ⇒ Dakar devient destination
+                    setDirection('to_dakar');
+                    setOrigin(v);
+                    setDestination(DAKAR);
+                  }
+                }}
+                placeholder="Choisir une ville d'origine…"
+                ariaLabel="Choisir la ville d'origine"
+                excludeCity={direction === 'to_dakar' ? 'Dakar' : undefined}
+              />
             </Field>
             <Field label="Destination *">
-              {direction === 'to_dakar' ? (
-                <input
-                  className="input-base w-full"
-                  value={destination}
-                  readOnly
-                  aria-label="Destination verrouillée à Dakar"
-                />
-              ) : (
-                <CityPicker
-                  value={destination}
-                  onChange={setDestination}
-                  placeholder="Choisir une ville de destination…"
-                  ariaLabel="Choisir la ville de destination"
-                  excludeCity="Dakar"
-                />
-              )}
+              <CityPicker
+                value={destination}
+                onChange={(v) => {
+                  if (v === DAKAR) {
+                    setDirection('to_dakar');
+                    setDestination(DAKAR);
+                    if (origin === DAKAR) setOrigin('');
+                  } else {
+                    // Choisir une autre ville en destination ⇒ Dakar devient origine
+                    setDirection('from_dakar');
+                    setDestination(v);
+                    setOrigin(DAKAR);
+                  }
+                }}
+                placeholder="Choisir une ville de destination…"
+                ariaLabel="Choisir la ville de destination"
+                excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
+              />
             </Field>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Field label="Poids (kg) *">
               <input type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
