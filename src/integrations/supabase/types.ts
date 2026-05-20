@@ -578,6 +578,9 @@ export type Database = {
           hs_code: string | null
           id: string
           incoterm: string | null
+          intake_by: string | null
+          intake_method: string
+          intake_notes: string | null
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
           needs_sourcing: boolean
@@ -586,6 +589,8 @@ export type Database = {
           product_description: string
           quantity: number | null
           reference: string
+          source: string
+          source_reference: string | null
           status: Database["public"]["Enums"]["dossier_status"]
           supplier_contact: string | null
           supplier_country: string | null
@@ -616,6 +621,9 @@ export type Database = {
           hs_code?: string | null
           id?: string
           incoterm?: string | null
+          intake_by?: string | null
+          intake_method?: string
+          intake_notes?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           needs_sourcing?: boolean
@@ -624,6 +632,8 @@ export type Database = {
           product_description: string
           quantity?: number | null
           reference?: string
+          source?: string
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
           supplier_contact?: string | null
           supplier_country?: string | null
@@ -654,6 +664,9 @@ export type Database = {
           hs_code?: string | null
           id?: string
           incoterm?: string | null
+          intake_by?: string | null
+          intake_method?: string
+          intake_notes?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           needs_sourcing?: boolean
@@ -662,6 +675,8 @@ export type Database = {
           product_description?: string
           quantity?: number | null
           reference?: string
+          source?: string
+          source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
           supplier_contact?: string | null
           supplier_country?: string | null
@@ -761,6 +776,30 @@ export type Database = {
           imported_by?: string | null
           total_rows?: number
           updated?: number
+        }
+        Relationships: []
+      }
+      intake_drafts: {
+        Row: {
+          created_at: string
+          draft_data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          draft_data?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          draft_data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -877,6 +916,77 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      legacy_dossiers: {
+        Row: {
+          amount: number | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          destination: string | null
+          id: string
+          imported_at: string
+          legacy_id: string | null
+          notes: string | null
+          origin: string | null
+          promoted_to_dossier_id: string | null
+          source: string | null
+          status_legacy: string | null
+          type: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          amount?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          destination?: string | null
+          id?: string
+          imported_at?: string
+          legacy_id?: string | null
+          notes?: string | null
+          origin?: string | null
+          promoted_to_dossier_id?: string | null
+          source?: string | null
+          status_legacy?: string | null
+          type?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          amount?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          destination?: string | null
+          id?: string
+          imported_at?: string
+          legacy_id?: string | null
+          notes?: string | null
+          origin?: string | null
+          promoted_to_dossier_id?: string | null
+          source?: string | null
+          status_legacy?: string | null
+          type?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legacy_dossiers_promoted_to_dossier_id_fkey"
+            columns: ["promoted_to_dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       manual_departures: {
         Row: {
@@ -2109,6 +2219,8 @@ export type Database = {
         | "CUSTOMS"
         | "DELIVERED"
         | "CLOSED"
+        | "AWAITING_CLIENT"
+        | "CONFIRMED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -2299,6 +2411,8 @@ export const Constants = {
         "CUSTOMS",
         "DELIVERED",
         "CLOSED",
+        "AWAITING_CLIENT",
+        "CONFIRMED",
       ],
       dossier_type: [
         "individual",

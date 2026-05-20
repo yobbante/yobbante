@@ -1,30 +1,86 @@
+# Système d'intake multi-canaux — Points 1 à 3
 
-The user wants to enable Google sign-in. Looking at the codebase, Google OAuth is already partially wired:
-- `src/integrations/lovable/index.ts` exists with `lovable.auth.signInWithOAuth`
-- `src/hooks/useAuth.ts` has `signInWithGoogle` using the lovable module
-- `src/pages/Auth.tsx` has a "Continuer avec Google" button — BUT it currently calls `supabase.auth.signInWithOAuth` directly instead of the managed `lovable.auth.signInWithOAuth`
+Objectif : centraliser dans l'admin toutes les commandes (WhatsApp, appel, email, IG, FB, site) sans casser les flows existants (Send/Receive/Sourcing) qui continueront simplement avec `source = 'site_web'` par défaut.
 
-This is the exact pattern flagged in the cloud-google-auth knowledge: old/incorrect path that won't work with Lovable Cloud's managed Google OAuth. Needs to be switched to the lovable module.
+## 1) Migration Supabase
 
-## Plan
+Une seule migration regroupant :
 
-**Goal**: Make the existing "Continuer avec Google" button on `/auth` actually work using Lovable Cloud's managed Google OAuth (no API keys needed from you).
+**`dossiers` — colonnes ajoutées**
+- `source TEXT NOT NULL DEFAULT 'site_web'` + CHECK (`site_web`, `whatsapp`, `telephone`, `email`, `instagram`, `facebook`, `walk_in`, `referral`, `autre`)
+- `source_reference TEXT`
+- `intake_notes TEXT`
+- `intake_by UUID` (références `auth.users` — non FK directe : on suit le pattern projet et utilise juste `uuid` lié logiquement)
+- `intake_method TEXT DEFAULT 'self_service'` + CHECK (`self_service`, `manual_intake`)
 
-**Changes**:
+Note : `dossier_status` enum existant utilise `SUBMITTED/IN_REVIEW/...`. On va mapper logiquement pour l'Inbox :
+- **À traiter** = `SUBMITTED` + `IN_REVIEW`
+- **En attente client** = nouveau status pas nécessaire pour l'instant — on réutilise `IN_REVIEW` avec un flag, OU on étend l'enum. **Décision : étendre l'enum avec `AWAITING_CLIENT` et `CONFIRMED`** pour matcher la sémantique demandée. Les flows existants ne sont pas impactés (valeurs additives).
 
-1. **`src/pages/Auth.tsx`** — Replace the direct `supabase.auth.signInWithOAuth({ provider: 'google' })` call with the managed `lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin + '/app' })`. Handle the `result.error` and `result.redirected` cases properly per the Lovable Cloud spec.
+**Nouvelle table `legacy_dossiers`** (admin-only RLS via `is_staff`)
 
-2. **No backend changes needed** — Lovable Cloud manages the Google OAuth credentials by default. It's safe and requires zero setup.
+**Nouvelle table `intake_drafts`** (auto-save) — RLS : un user voit/modifie ses propres drafts ; staff voit tout.
 
-3. **Optional later**: If you want your own branding (Google consent screen showing "Yobbanté" instead of Lovable), you can add your own Google OAuth Client ID/Secret in the Cloud → Users → Authentication Settings → Google. Not required to ship.
+## 2) Page `/admin/inbox`
 
-**After this change**: clicking "Continuer avec Google" on `/auth` will redirect to Google, the user picks an account, comes back to `/app`, and the existing `handle_new_user` DB trigger auto-creates their profile + 3 warehouse addresses (FR/CN/US) + welcome timeline event.
+- Nouvelle route ajoutée à `AdminPage` + entrée dans `AdminSidebar` tout en haut, intitulée "📬 Inbox".
+- Composant `InboxTab.tsx` :
+  - Header avec filtres (canal multi-select, type service, recherche client, opérateur) + bouton **+ Nouveau dossier**.
+  - 3 colonnes Kanban responsives (mobile = onglets) :
+    - 🔴 À traiter (`SUBMITTED`, `IN_REVIEW`)
+    - 🟡 En attente client (`AWAITING_CLIENT`)
+    - 🟢 Confirmés (`CONFIRMED`)
+  - Composant `InboxCard.tsx` : nom client + ville, type (📦/🛒/📥 selon `needs_sourcing` / présence reception_order / défaut envoi), route origine→destination, **badge source coloré**, date, montant, avatar opérateur intake.
+  - Actions rapides : Voir détail (réutilise `OrderDetailDrawer`), Envoyer récap WhatsApp (wa.me pré-rempli), Marquer confirmé (update status).
 
-**Test plan** (mobile 390px, current viewport):
-- Open `/auth` → click "Continuer avec Google" → pick Google account → land on `/app` with addresses pre-generated.
+## 3) Formulaire "+ Nouveau dossier"
 
-<lov-actions>
-<lov-suggestion message="Apply the plan: switch the Google button on /auth to use lovable.auth.signInWithOAuth and test the full sign-in flow.">Apply and test Google login</lov-suggestion>
-<lov-suggestion message="Also add the 'Continuer avec Google' button at the top of the Auth form (above email/password) for higher conversion, and add a Google icon to the button.">Polish the Google button UI</lov-suggestion>
-<lov-suggestion message="Configure my own Google OAuth credentials so the consent screen shows 'Yobbanté' branding instead of Lovable.">Use my own Google OAuth credentials</lov-suggestion>
-</lov-actions>
+Composant `NewIntakeDialog.tsx` (drawer plein écran avec stepper 4 étapes) :
+
+1. **Source** — radio gros boutons colorés + champ `source_reference` + note auto "Saisi le … par …"
+2. **Client** — recherche autocomplete dans `profiles` (par nom/phone) OU formulaire "nouveau client" (crée profil minimal ou stocke en `contact_phone`/`contact_email`/notes sur le dossier si pas d'auth user — pour le MVP on stocke sur le dossier sans créer d'auth user)
+3. **Service** — radio Envoi / Sourcing / Réception → champs conditionnels (origine/destination/poids/mode/desc pour envoi ; produit/pays/budget/quantité/URL pour sourcing ; origine/tracking/desc/valeur pour réception)
+4. **Récap + Notes** — récap visuel, `intake_notes`, prix (calculé via `calculate_quote` RPC ou manuel), statut initial (`SUBMITTED` ou `CONFIRMED`)
+
+**Boutons finaux :**
+- *Enregistrer + Envoyer récap WhatsApp* — insert dossier puis ouvre `wa.me/<phone>?text=<récap+lien suivi+ref YBT-…>`
+- *Enregistrer seulement*
+- *Annuler*
+
+**Auto-save** : hook `useIntakeDraft` qui upsert dans `intake_drafts` toutes les 10s ; reload propose de reprendre le brouillon au montage.
+
+## Notes techniques
+
+- Les flows existants (`SendFlow`, `ReceiveFlow`, `SourcingFlow`, `DossierWizard`, `useDossiers`) restent **inchangés** — la colonne `source` a default `'site_web'`, donc rétrocompatible.
+- Pour le service "Réception", on crée un dossier classique avec `dossier_type='individual'` et notes spécifiques (les `reception_orders` restent pour le flow self-service ; l'intake manuel utilise `dossiers` pour simplicité MVP).
+- Mapping type service dans Inbox :
+  - 🛒 Sourcing si `needs_sourcing = true`
+  - 📥 Réception si `intake_notes` ou meta contient marqueur (on ajoutera `service_kind` léger dans `intake_notes` JSON ou via tag — pour MVP on déduit du formulaire en stockant `[RECEPTION]` en préfixe de `product_description`)
+- Légende couleurs sources (constante partagée `INTAKE_SOURCES`) :
+  - whatsapp = vert #25D366, site_web = bleu primary, telephone = orange, email = violet, instagram = rose, facebook = bleu FB, walk_in = gris, referral = jaune, autre = neutre
+
+## Fichiers créés / modifiés
+
+**Migration** : 1 fichier (alter dossiers + create legacy_dossiers + create intake_drafts + RLS + extend enum)
+
+**Nouveaux** :
+- `src/lib/intakeSources.ts` (constantes + couleurs)
+- `src/hooks/useIntakeDraft.ts`
+- `src/hooks/useInboxDossiers.ts`
+- `src/components/admin/inbox/InboxTab.tsx`
+- `src/components/admin/inbox/InboxCard.tsx`
+- `src/components/admin/inbox/InboxFilters.tsx`
+- `src/components/admin/inbox/NewIntakeDialog.tsx`
+- `src/components/admin/inbox/steps/StepSource.tsx`
+- `src/components/admin/inbox/steps/StepClient.tsx`
+- `src/components/admin/inbox/steps/StepService.tsx`
+- `src/components/admin/inbox/steps/StepRecap.tsx`
+
+**Modifiés** :
+- `src/components/admin/AdminSidebar.tsx` (entrée Inbox en haut)
+- `src/pages/AdminPage.tsx` (route /admin/inbox)
+- `src/lib/types.ts` (étendre `DossierStatus` + ajouter `IntakeSource`, étendre interface `Dossier`)
+
+**Inchangés** : tous les flows publics, `useDossiers`, `DossierWizard`, `SendFlow`, `ReceiveFlow`, `SourcingFlow`.
+
+Confirme-moi pour lancer la migration et l'implémentation.
