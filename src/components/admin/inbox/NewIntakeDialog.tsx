@@ -21,6 +21,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
+type DepartureMode = 'ref' | 'route' | 'gp' | 'skip';
+
 type IntakeData = {
   source: IntakeSource | null;
   source_reference: string;
@@ -51,6 +53,12 @@ type IntakeData = {
   manual_currency: 'XOF' | 'EUR';
   initial_status: 'SUBMITTED' | 'CONFIRMED';
   send_whatsapp: boolean;
+  // Fix 3 — Quel départ ?
+  departure_mode: DepartureMode | null;
+  departure_short_ref: string;
+  selected_departure_id: string | null;
+  selected_departure_label: string;
+  selected_transporteur_ref: string;
 };
 
 const INITIAL: IntakeData = {
@@ -64,7 +72,11 @@ const INITIAL: IntakeData = {
   origin_country_reception: '', tracking_number: '',
   intake_notes: '', price_mode: 'auto', manual_price: '', manual_currency: 'XOF',
   initial_status: 'SUBMITTED', send_whatsapp: true,
+  departure_mode: null, departure_short_ref: '', selected_departure_id: null,
+  selected_departure_label: '', selected_transporteur_ref: '',
 };
+
+const TOTAL_STEPS = 5;
 
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(0);
