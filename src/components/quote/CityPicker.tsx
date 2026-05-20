@@ -222,7 +222,7 @@ export function CityPicker({
                       city={c.city}
                       country={c.countryLabel}
                       selected={value === `${c.city}, ${c.countryLabel}` || value === c.city}
-                      onClick={() => select(`${c.city}, ${c.countryLabel}`)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); requestAnimationFrame(() => select(`${c.city}, ${c.countryLabel}`)); }}
                     />
                   ))}
                 </Section>
@@ -236,7 +236,7 @@ export function CityPicker({
                       city={c.city}
                       country={c.countryLabel}
                       selected={value === `${c.city}, ${c.countryLabel}` || value === c.city}
-                      onClick={() => select(`${c.city}, ${c.countryLabel}`)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); requestAnimationFrame(() => select(`${c.city}, ${c.countryLabel}`)); }}
                     />
                   ))}
                 </Section>
