@@ -20,9 +20,11 @@ interface Props {
 }
 
 export function LegalLayout({ title, updatedAt, description, children }: Props) {
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   useSeo({
     title: `${title} · Yobbanté`,
     description: description ?? `${title} de Yobbanté — plateforme logistique internationale.`,
+    path,
   });
 
   return (
