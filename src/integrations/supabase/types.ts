@@ -583,12 +583,15 @@ export type Database = {
           intake_notes: string | null
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
+          last_client_contact: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           product_description: string
           quantity: number | null
           reference: string
+          reminder_count: number
+          reminder_sent_at: string | null
           source: string
           source_reference: string | null
           status: Database["public"]["Enums"]["dossier_status"]
@@ -626,12 +629,15 @@ export type Database = {
           intake_notes?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
+          last_client_contact?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           product_description: string
           quantity?: number | null
           reference?: string
+          reminder_count?: number
+          reminder_sent_at?: string | null
           source?: string
           source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
@@ -669,12 +675,15 @@ export type Database = {
           intake_notes?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
+          last_client_contact?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           product_description?: string
           quantity?: number | null
           reference?: string
+          reminder_count?: number
+          reminder_sent_at?: string | null
           source?: string
           source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
@@ -2221,6 +2230,7 @@ export type Database = {
         | "CLOSED"
         | "AWAITING_CLIENT"
         | "CONFIRMED"
+        | "STALE"
       dossier_type:
         | "individual"
         | "business_import"
@@ -2413,6 +2423,7 @@ export const Constants = {
         "CLOSED",
         "AWAITING_CLIENT",
         "CONFIRMED",
+        "STALE",
       ],
       dossier_type: [
         "individual",
