@@ -574,7 +574,29 @@ A traiter manuellement.`);
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Tout est OK → on crée
+    // Confirmation OUI/NON avant creation
+    if (!prior.awaiting_confirm) {
+      await saveSession('dep', { ...collected, awaiting_confirm: true });
+      const dStr = formatDateFr(dateIso);
+      await reply(`Confirmer ce depart ?
+Destination : ${city}
+Date : ${dStr}
+Capacite : ${Math.max(1, Math.round(weight))}kg
+
+Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'dep_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider ce depart ou NON pour annuler.`, 'dep_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // OUI → on cree
     const capacity = Math.max(1, Math.round(weight));
     const { data: dep, error } = await supa
       .from('manual_departures')
