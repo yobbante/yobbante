@@ -4,17 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, CheckCircle2, Loader2, Truck, Smartphone, Search, ExternalLink, Check } from 'lucide-react';
+import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, CheckCircle2, Loader2, Truck, Smartphone, Search, ExternalLink, Check, Scale } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTransporteurs } from '@/hooks/useTransporteurs';
 import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { sendGpMessage } from '@/lib/sendGpMessage';
+import { WeighingDialog, type WeighingDossier } from './WeighingDialog';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
 const SECTIONS = [
   { id: 'departures', label: 'Departs du jour', icon: Plane },
   { id: 'pending', label: 'Collectes en attente', icon: Package },
+  { id: 'weighing', label: 'À peser', icon: Scale },
   { id: 'transit', label: 'Livraisons en cours', icon: Truck },
   { id: 'unknown_intent', label: 'Commandes non reconnues', icon: MessageSquareWarning },
   { id: 'unknown_contacts', label: 'Nouveaux contacts inconnus', icon: UserPlus },
