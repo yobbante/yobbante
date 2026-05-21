@@ -20,6 +20,8 @@ import { useManualDepartures } from '@/hooks/useManualDepartures';
 import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sendGpMessage } from '@/lib/sendGpMessage';
+import { Progress } from '@/components/ui/progress';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
