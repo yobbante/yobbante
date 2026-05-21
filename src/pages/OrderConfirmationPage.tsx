@@ -6,6 +6,7 @@ import { recommend, RecProduct } from '@/lib/dekkRecommend';
 import { Recommendations } from './CartPage';
 import { Check, Copy, MapPin, Package, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ecommerce } from '@/lib/analytics';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -63,6 +64,25 @@ export default function OrderConfirmationPage() {
     const cats = [...new Set(order.items.map((i: any) => i.product.category))] as string[];
     const ids = order.items.map((i: any) => i.product.id);
     recommend({ excludeIds: ids, primaryCategory: cats[0], limit: 4 }).then(setRecs);
+
+    // Fire Purchase event once per order reference (idempotent via sessionStorage flag)
+    try {
+      const flag = `dekk_purchase_fired_${order.reference}`;
+      if (!sessionStorage.getItem(flag)) {
+        ecommerce.purchase(
+          order.reference,
+          order.items.map((i: any) => ({
+            id: i.product.id,
+            name: i.product.name,
+            category: i.product.category,
+            price: i.product.price_eur,
+            quantity: i.qty,
+          })),
+          { value: order.total_eur, currency: 'EUR' },
+        );
+        sessionStorage.setItem(flag, '1');
+      }
+    } catch {}
   }, [order]);
 
   if (!order) {

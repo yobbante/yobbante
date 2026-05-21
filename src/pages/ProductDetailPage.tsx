@@ -6,6 +6,7 @@ import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct, trackView } from '@/lib/dekkRecommend';
+import { ecommerce } from '@/lib/analytics';
 import { ArrowLeft, Heart, Share2, ShieldCheck, Truck, Check, Plus, Minus, ShoppingBag, Star, ChevronRight } from 'lucide-react';
 
 type Product = {
@@ -98,6 +99,10 @@ export default function ProductDetailPage() {
             },
           },
         });
+        ecommerce.viewContent(
+          { id: prod.id, name: prod.name, category: prod.category, price: prod.price_eur, quantity: 1 },
+          { value: prod.price_eur, currency: 'EUR' },
+        );
         const recs = await recommend({ excludeIds: [prod.id], primaryCategory: prod.category, limit: 4 });
         setRelated(recs);
       }

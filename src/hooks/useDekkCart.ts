@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { ecommerce } from '@/lib/analytics';
 
 /**
  * Shared cart hook for Boutique Dëkk.
@@ -52,6 +53,11 @@ export function useDekkCart() {
       next = [...cur, { product, qty, size: opts.size ?? null, color: opts.color ?? null }];
     }
     write(next);
+    const price = Number(product.price_eur ?? 0);
+    ecommerce.addToCart(
+      { id: product.id, name: product.name, category: product.category, price, quantity: qty },
+      { value: price * qty, currency: 'EUR' },
+    );
   }, [write]);
 
   const updateQty = useCallback((id: string, delta: number) => {
