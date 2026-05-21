@@ -514,7 +514,7 @@ function BotBlastDialog({
       } catch { /* non-bloquant */ }
       setBlastProgress({ done: i + 1, ok, fail });
       // 1s rate-limit between sends
-      if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1000));
+      if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
     setBlasting(false);
     toast.success(`${ok} envoyés, ${fail} échecs (fallback wa.me disponible)`);
