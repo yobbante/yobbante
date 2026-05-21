@@ -71,8 +71,9 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  // Re-expand when switching mode so the user sees the inputs
-  useEffect(() => { setExpanded(true); }, [mode]);
+  // Re-expand when switching mode so the user sees the inputs (skip first render)
+  const firstModeRender = useRef(true);
+  useEffect(() => { if (firstModeRender.current) { firstModeRender.current = false; return; } setExpanded(true); }, [mode]);
 
   // ── Envoyer state ────────────────────────────────────────────────
   const DAKAR = 'Dakar, Sénégal';
