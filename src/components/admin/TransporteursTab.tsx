@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle } from 'lucide-react';
 import { GpImportDialog } from './GpImportDialog';
 import { GpActionsPanel } from './GpActionsPanel';
 import { Input } from '@/components/ui/input';
@@ -16,8 +17,33 @@ import {
 } from '@/components/ui/dialog';
 import { useTransporteurs, type Transporteur } from '@/hooks/useTransporteurs';
 import { useManualDepartures } from '@/hooks/useManualDepartures';
+import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const YOBBANTE_BOT_NUMBER = '+221781221891';
+
+/** Build the personalized bot-onboarding message (no accents for WhatsApp). */
+function buildBotInviteMessage(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  return `Salam ${prenom},
+
+J'ai mis en place un assistant automatique pour nos colis.
+
+Enregistre ce numero dans tes contacts :
+${YOBBANTE_BOT_NUMBER}
+Nom : Yobbante GP
+
+Envoie-lui le mot AIDE pour voir comment ca marche.
+
+On continue nos echanges comme avant sur ce numero.`;
+}
+
+function buildBotWaUrl(gp: Transporteur) {
+  const phone = (gp.telephone_1 || '').replace(/\D/g, '');
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildBotInviteMessage(gp))}`;
+}
+
 
 /** Pad ref to GP0001 form. */
 function gpRef(reference: string) {
