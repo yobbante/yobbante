@@ -18,6 +18,8 @@ export interface Transporteur {
   konnekt_registered_at?: string | null;
   beta_invite_sent_at?: string | null;
   invitation_bot_sent_at?: string | null;
+  default_rate_per_kg?: number | null;
+  default_routes?: Record<string, number> | null;
   created_at: string;
   updated_at: string;
 }
