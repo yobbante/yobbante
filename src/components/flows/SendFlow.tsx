@@ -755,7 +755,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       )}
 
       {/* ─── Step 1 — Collecte ─── */}
+      <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+
 
         {originCity ? (
           <div className="mt-2 space-y-4 max-w-xl">
