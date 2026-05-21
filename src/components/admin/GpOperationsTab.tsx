@@ -266,16 +266,13 @@ function PendingCollects() {
     if (!ref) return;
     const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
     if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: gp.telephone_1,
-        recipient_type: 'gp',
-        message: `Rappel : merci de confirmer la collecte du colis ${tracking}. Envoyez : COLLECTE ${tracking}`,
-        transporteur_id: gp.id,
-        trigger_type: 'admin_remind_collect',
-      },
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: `Rappel : merci de confirmer la collecte du colis ${tracking}. Envoyez : COLLECTE ${tracking}`,
+      transporteur_id: gp.id,
+      trigger_type: 'admin_remind_collect',
     });
-    toast.success('GP relance');
+    if (res.ok) toast.success('GP relance');
   }
 
   async function markCollected(id: string) {
