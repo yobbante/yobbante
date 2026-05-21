@@ -343,18 +343,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return () => clearTimeout(handle);
   }, [description, declaredEur, goodsManualOverride]);
 
-  // ── Reveal logic per step
-  const step1Ok = !!senderKind && !!direction;
-  const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
-  const step3Ok = step2Ok && !!destCity;
-  const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
-  const step5Ok = step4Ok && !!description.trim() && !!declaredLocal && weightTouched;
+  // ── Validation (sections are all visible, gates only block submit)
+  const routeOk = !!originCity && !!destCity;
+  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
+  const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
+  const packageOk = !!description.trim() && !!declaredLocal && weightTouched;
   const goodsAutoConfident = !!goodsAutoDetected && (goodsAutoDetected.confidence === 'high' || goodsAutoDetected.confidence === 'medium') && !goodsManualOverride;
   const skipGoodsStep = goodsAutoConfident && !!goodsType;
-  const step6Ok = step5Ok && !!goodsType;
-  const step7Ok = step6Ok;
-  const step8Ok = step7Ok && (!showInsuranceStep || true);
-  const allReady = step8Ok && !!senderName.trim() && !!senderPhone.trim();
+  const goodsOk = !!goodsType;
+  const allReady = routeOk && collecteOk && recipientOk && packageOk && goodsOk && !!senderName.trim() && !!senderPhone.trim();
 
   const summary = originCity && destCity
     ? `${originCity.city} → ${destCity.city}${transportMode ? ` · ${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}` : ''} · ${formatLocalAmount(totalEur, originProfile)}`
