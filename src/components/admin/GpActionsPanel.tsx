@@ -37,6 +37,8 @@ export function GpActionsPanel({
         <div className="mt-5 space-y-2">
           <ActionButton icon={Plane} label="Enregistrer un depart pour ce GP" onClick={() => setAction('depart')} />
           <ActionButton icon={ListChecks} label="Voir les missions de ce GP" onClick={() => setAction('missions')} />
+          <ActionButton icon={Coins} label="Tarifs GP (par défaut + routes)" onClick={() => setAction('rates')} />
+          <ActionButton icon={Wallet} label="Historique paiements GP" onClick={() => setAction('payments')} />
           <ActionButton icon={Send} label="Envoyer un message au GP" onClick={() => setAction('message')} />
           <ActionButton icon={Bot} label="Simuler une commande bot" onClick={() => setAction('simulate')} />
           <ActionButton icon={History} label="Historique conversations WhatsApp" onClick={() => setAction('history')} />
@@ -47,10 +49,15 @@ export function GpActionsPanel({
         {action === 'message' && <SendMessageDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'simulate' && <SimulateBotDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'history' && <GpHistoryDialog gp={gp} onClose={() => setAction(null)} />}
+        {action === 'rates' && (
+          <GpRatesDialog gp={gp} open onClose={() => setAction(null)} />
+        )}
+        {action === 'payments' && <GpPaymentsHistoryDialog gp={gp} onClose={() => setAction(null)} />}
       </SheetContent>
     </Sheet>
   );
 }
+
 
 function ActionButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
   return (
