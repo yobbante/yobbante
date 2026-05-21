@@ -174,6 +174,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
+  // Identité de la personne qui remplit le formulaire
+  // 'sender' = je suis dans la ville d'origine (j'expédie)
+  // 'recipient' = je suis dans la ville de destination (je recevrai)
+  // 'third'  = je remplis pour quelqu'un d'autre
+  const [userRole, setUserRole] = useState<'sender' | 'recipient' | 'third'>('sender');
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
@@ -619,9 +624,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         {/* Recap */}
         <section className="mt-4 mb-20 rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3 text-sm">
           <h3 className="text-base font-semibold tracking-tight">Récapitulatif</h3>
-          <RecapRow label="Expéditeur" value={`${senderName} · ${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
-          <RecapRow label="Collecte"   value={`${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'} · ${pickupAddress}`} />
-          <RecapRow label="Destinataire" value={`${recipientName} · ${destProfile.flag} ${destCity?.city}, ${destProfile.name}`} />
+          <RecapRow label="Trajet"       value={`${originProfile.flag} ${originCity?.city} → ${destProfile.flag} ${destCity?.city}`} />
+          <RecapRow label="Expéditeur"   value={`${senderName} · ${senderPhone} · ${originCity?.city}`} />
+          <RecapRow label="Collecte"     value={`${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'} · ${pickupAddress}`} />
+          <RecapRow label="Destinataire" value={`${recipientName} · ${recipientPhone} · ${destCity?.city}`} />
+
           <RecapRow label="Article"    value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label} — ${description}`} />
           <RecapRow label="Poids"      value={`${weight} kg · ${parcelCount} colis`} />
           <RecapRow label="Transport"  value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
@@ -694,8 +701,45 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </section>
 
+      {/* ─── Identity selector — qui complète ce formulaire ? ─── */}
+      {routeOk && (
+        <section className="mt-5">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2.5">
+              Qui complète ce formulaire ?
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {([
+                { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: 'J\'expédie le colis' },
+                { id: 'recipient' as const, label: `Je suis à ${destCity?.city}`,    sub: 'Je recevrai le colis' },
+                { id: 'third'     as const, label: 'Je suis intermédiaire',          sub: 'Je remplis pour un tiers' },
+              ]).map(opt => {
+                const active = userRole === opt.id;
+                return (
+                  <button key={opt.id} type="button" onClick={() => setUserRole(opt.id)}
+                    className={`text-left rounded-xl border-2 px-3.5 py-2.5 transition-all ${
+                      active
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border bg-card hover:border-foreground/40'
+                    }`}>
+                    <p className="text-sm font-semibold leading-tight">{opt.label}</p>
+                    <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.sub}</p>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {userRole === 'sender' && 'Vos coordonnées seront utilisées comme expéditeur. Renseignez le destinataire ci-dessous.'}
+              {userRole === 'recipient' && 'Vos coordonnées seront utilisées comme destinataire. Renseignez l\'expéditeur ci-dessous.'}
+              {userRole === 'third' && 'Renseignez séparément les coordonnées de l\'expéditeur et du destinataire.'}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* ─── Step 1 — Collecte ─── */}
-      <FlowSection revealed step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+      <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+
         {originCity ? (
           <div className="mt-2 space-y-4 max-w-xl">
             <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
@@ -733,7 +777,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 2 — Recipient ─── */}
-      <FlowSection revealed step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
+      <FlowSection revealed={routeOk} step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
             <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
@@ -751,7 +795,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       {/* ─── Step 3 — Package description ─── */}
-      <FlowSection revealed step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+      <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
@@ -823,7 +867,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
-        <FlowSection revealed step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+        <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
@@ -857,7 +901,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       ) : null}
 
       {/* ─── Step 5 — Transport & priority ─── */}
-      <FlowSection revealed step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
+      <FlowSection revealed={routeOk} step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
         {(() => {
           // ── Prix venant directement du moteur (pricing engine v2)
           // Standard et Express sont calculés côté DB via urgency_mult.
@@ -892,6 +936,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             },
           ];
 
+          const hasInstantDeparture = options.length > 0;
+          const noInstant = !matching && !hasInstantDeparture && originCity && destCity && weightTouched;
+
           return (
             <div className="space-y-4">
               <DoorToDoorBanner
@@ -899,87 +946,92 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 destination={destCoverageCheck}
                 variant="subtle"
               />
-              <div className="grid sm:grid-cols-2 gap-3">
-                {cards.map(c => {
-                  const active = priority === c.id;
-                  return (
-                    <button key={c.id} type="button"
-                      onClick={() => {
-                        setPriority(c.id);
-                        // Auto-pick transport: Express -> AIR, Standard -> keep (or AIR by default).
-                        if (c.id === 'express') setTransportMode('AIR');
-                      }}
-                      className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
-                        active
-                          ? 'border-foreground bg-foreground text-background shadow-md'
-                          : 'border-border bg-card hover:border-foreground/40'
-                      }`}>
-                      {c.recommended && !active && (
-                        <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
-                          Recommandé
-                        </span>
-                      )}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {c.icon}
-                          <p className="text-base font-bold truncate">{c.label}</p>
-                        </div>
-                        {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-                      </div>
-                      <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
-
-                      <div className="mt-4">
-                        <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
-                          {formatLocalAmount(c.price, originProfile)}
-                        </span>
-                      </div>
-                      <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
-                        Livraison estimée · {c.eta}
-                      </p>
-
-                      <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
-                        {c.perks.map(p => (
-                          <li key={p} className="flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {weight >= 30 && priority === 'express' && (
-                <p className="text-[11px] text-muted-foreground">
-                  💡 Pour {weight} kg, le mode Standard peut diviser le coût par 2.
-                </p>
-              )}
-
-              {!matching && options.length === 0 && originCity && destCity && weightTouched && (
-                <div className="rounded-2xl border border-border bg-card p-5 space-y-3 max-w-md">
+              {noInstant ? (
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 w-10 h-10 rounded-full bg-secondary grid place-items-center"><Search className="w-4 h-4" /></div>
                     <div>
-                      <p className="text-sm font-semibold">Aucun départ instantané — devis sur mesure</p>
-                      <p className="text-xs text-muted-foreground">Réponse personnalisée sous 2 h ouvrées.</p>
+                      <p className="text-sm font-semibold">Aucun départ instantané sur ce trajet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pas de tarif instantané affiché. Notre équipe vous propose un devis personnalisé sous 2 h ouvrées.
+                      </p>
                     </div>
                   </div>
                   <button type="button" onClick={() => setManualQuoteOpen(true)}
                     className="w-full inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
-                    Demander un devis
+                    Demander un devis sur mesure
                   </button>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {cards.map(c => {
+                      const active = priority === c.id;
+                      return (
+                        <button key={c.id} type="button"
+                          onClick={() => {
+                            setPriority(c.id);
+                            if (c.id === 'express') setTransportMode('AIR');
+                          }}
+                          className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
+                            active
+                              ? 'border-foreground bg-foreground text-background shadow-md'
+                              : 'border-border bg-card hover:border-foreground/40'
+                          }`}>
+                          {c.recommended && !active && (
+                            <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
+                              Recommandé
+                            </span>
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {c.icon}
+                              <p className="text-base font-bold truncate">{c.label}</p>
+                            </div>
+                            {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                          </div>
+                          <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
 
-              <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                          <div className="mt-4">
+                            <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
+                              {formatLocalAmount(c.price, originProfile)}
+                            </span>
+                          </div>
+                          <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+                            Livraison estimée · {c.eta}
+                          </p>
+
+                          <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
+                            {c.perks.map(p => (
+                              <li key={p} className="flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {weight >= 30 && priority === 'express' && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Pour {weight} kg, le mode Standard peut diviser le coût par 2.
+                    </p>
+                  )}
+
+                  <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                </>
+              )}
             </div>
           );
         })()}
       </FlowSection>
 
+
+
       {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
-        <FlowSection revealed step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
+        <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
               { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
@@ -1003,39 +1055,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </FlowSection>
       )}
 
-      {/* ─── Step 7 — Recap & payment ─── */}
-      <FlowSection revealed step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
+      {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      <FlowSection revealed={routeOk} step={7} total={7} title="Coordonnées, paiement & récapitulatif" hint="Renseignez l'expéditeur, choisissez votre paiement et vérifiez le résumé.">
         <div className="space-y-5 max-w-2xl">
-          <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
-            <RecapRow label="Expéditeur"   value={`${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
-            <RecapRow label="Collecte"     value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
-            <RecapRow label="Destinataire" value={destCity ? `${recipientName || '—'} · ${destProfile.flag} ${destCity.city}, ${destProfile.name}` : '—'} />
-            <RecapRow label="Article"      value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
-            <RecapRow label="Poids"        value={`${weight} kg · ${parcelCount} colis`} />
-            <RecapRow label="Transport"    value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
-            <RecapRow label="Assurance"    value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
-            <div className="pt-3 mt-2 border-t border-border space-y-1.5">
-              <RecapRow label="Collecte"  value="Incluse" />
-              <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
-              {priorityCostEur > 0 && <RecapRow label="Express" value={`+ ${formatLocalAmount(priorityCostEur, originProfile)}`} />}
-              {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
-            </div>
-            <div className="pt-3 border-t-2 border-foreground/10">
-              <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
+
+          {/* ── Coordonnées expéditeur ── */}
+          <div className="rounded-xl border border-border bg-secondary/40 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Coordonnées de l'expéditeur
+                {userRole === 'sender' && <span className="ml-1.5 text-foreground normal-case">· c'est vous</span>}
               </p>
+              {userRole !== 'sender' && recipientName && (
+                <button type="button"
+                  onClick={() => { setSenderName(recipientName); setSenderPhone(recipientPhone); }}
+                  className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                  Copier depuis le destinataire
+                </button>
+              )}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
+              <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
             </div>
           </div>
 
-          <DoorToDoorBanner
-            origin={originCoverageCheck}
-            destination={destCoverageCheck}
-            detailed
-          />
-
+          {/* ── Mode de paiement (avant récapitulatif) ── */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Mode de paiement</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mode de paiement</p>
             <div className="grid grid-cols-3 gap-2.5">
               {PAYMENT_METHODS.map(m => (
                 <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
@@ -1049,16 +1097,52 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-secondary/40 p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vos coordonnées d'expéditeur</p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
-              <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+          <DoorToDoorBanner
+            origin={originCoverageCheck}
+            destination={destCoverageCheck}
+            detailed
+          />
+
+          {/* ── Récapitulatif (en dernier) ── */}
+          <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Récapitulatif</p>
+            <RecapRow label="Trajet" value={originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'} />
+            <RecapRow
+              label="Expéditeur"
+              value={senderName || senderPhone
+                ? `${senderName || '—'}${senderPhone ? ` · ${senderPhone}` : ''} · ${originCity?.city ?? '—'}`
+                : '— (à renseigner)'}
+            />
+            <RecapRow
+              label="Collecte"
+              value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}${pickupAddress ? ` · ${pickupAddress}` : ''}` : '—'}
+            />
+            <RecapRow
+              label="Destinataire"
+              value={recipientName || recipientPhone
+                ? `${recipientName || '—'}${recipientPhone ? ` · ${recipientPhone}` : ''} · ${destCity?.city ?? '—'}${deliveryAddress ? ` · ${deliveryAddress}` : ''}`
+                : '— (à renseigner)'}
+            />
+            <RecapRow label="Article"   value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
+            <RecapRow label="Poids"     value={`${weight} kg · ${parcelCount} colis`} />
+            <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
+            <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
+            <RecapRow label="Paiement"  value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
+            <div className="pt-3 mt-2 border-t border-border space-y-1.5">
+              <RecapRow label="Collecte"  value="Incluse" />
+              <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
+              {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
+            </div>
+            <div className="pt-3 border-t-2 border-foreground/10">
+              <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
+              </p>
             </div>
           </div>
         </div>
       </FlowSection>
+
 
       <LiveSummaryBar
         visible={routeOk}
