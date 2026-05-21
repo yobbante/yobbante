@@ -180,7 +180,10 @@ export function BoutiqueTab() {
             DËKK · BOUTIQUE
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>
-            {view === 'products' ? 'Gestion des produits' : 'Commandes & suivi'}
+            {view === 'products' ? 'Gestion des produits'
+              : view === 'orders' ? 'Commandes & suivi'
+              : view === 'promos' ? 'Codes promo'
+              : 'Statistiques boutique'}
           </h2>
         </div>
         {view === 'products' && (
@@ -197,6 +200,8 @@ export function BoutiqueTab() {
       <div className="flex gap-1 mb-5" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
         <TabBtn active={view === 'products'} onClick={() => setView('products')}>Produits</TabBtn>
         <TabBtn active={view === 'orders'}   onClick={() => setView('orders')}>Commandes</TabBtn>
+        <TabBtn active={view === 'promos'}   onClick={() => setView('promos')}>Codes promo</TabBtn>
+        <TabBtn active={view === 'stats'}    onClick={() => setView('stats')}>Statistiques</TabBtn>
       </div>
 
       {view === 'orders' ? <BoutiqueOrdersPanel /> : (<>
