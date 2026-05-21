@@ -185,6 +185,7 @@ export default function AdminPage() {
               <AdminBreadcrumb section={section} />
               {section === 'overview'   && <OverviewTab onJump={setSection} />}
               {section === 'inbox'      && <InboxTab />}
+              {section === 'messages'   && <MessagesTab />}
               {section === 'requests'   && <RequestsTab />}
               {section === 'shipments'  && <ShipmentsWorkflowTab />}
               {section === 'orders'     && <OrdersTab />}
