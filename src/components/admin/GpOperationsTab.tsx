@@ -3,8 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, CheckCircle2, Loader2, Truck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, CheckCircle2, Loader2, Truck, Smartphone, Search, ExternalLink, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTransporteurs } from '@/hooks/useTransporteurs';
+import { useGpBotActive } from '@/hooks/useGpBotActive';
+
+const YOBBANTE_BOT_NUMBER = '+221781221891';
 
 const SECTIONS = [
   { id: 'departures', label: 'Departs du jour', icon: Plane },
@@ -12,6 +17,7 @@ const SECTIONS = [
   { id: 'transit', label: 'Livraisons en cours', icon: Truck },
   { id: 'unknown_intent', label: 'Commandes non reconnues', icon: MessageSquareWarning },
   { id: 'unknown_contacts', label: 'Nouveaux contacts inconnus', icon: UserPlus },
+  { id: 'onboarding', label: 'Onboarding GP', icon: Smartphone },
 ] as const;
 
 type SectionId = typeof SECTIONS[number]['id'];
