@@ -371,7 +371,7 @@ function InvoiceSection({ dossier, isStaff }: { dossier: any; isStaff: boolean }
   );
 }
 
-
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{label}</p>
@@ -379,3 +379,4 @@ function InvoiceSection({ dossier, isStaff }: { dossier: any; isStaff: boolean }
     </div>
   );
 }
+
