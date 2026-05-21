@@ -62,7 +62,7 @@ async function buildMorningReport(supa: any): Promise<string> {
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
       .gte('created_at', today)),
     safeCount(supa.from('whatsapp_inbound_messages').select('*', { count: 'exact', head: true })
-      .eq('is_read', false).catch?.(() => ({ count: 0 })) ?? Promise.resolve({ count: 0 })),
+      .eq('is_read', false)),
   ]);
 
   return `Bonjour ! Resume Yobbante du jour :
