@@ -184,6 +184,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [submitting, setSubmitting]       = useState(false);
   const [confirmed, setConfirmed]         = useState<{ reference: string; price: number; eta: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   // ── Derived ──────────────────────────────────────────────────────
   // Direction enforces Dakar as the locked endpoint:
