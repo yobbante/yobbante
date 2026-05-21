@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot } from 'lucide-react';
 import { GpImportDialog } from './GpImportDialog';
+import { GpActionsPanel } from './GpActionsPanel';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -75,6 +76,7 @@ export function TransporteursTab() {
   const [blastOpen, setBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
   const [importOpen, setImportOpen] = useState(false);
+  const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
 
   const existingRefs = useMemo(
     () => new Set((list.data ?? []).map(t => t.reference)),
@@ -215,6 +217,9 @@ export function TransporteursTab() {
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setActionsGp(t)}>
+                        <Bot className="w-4 h-4 mr-2" /> Actions GP
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditing(t)}>
                         <Pencil className="w-4 h-4 mr-2" /> Modifier
                       </DropdownMenuItem>
@@ -320,6 +325,8 @@ export function TransporteursTab() {
         onAfterImport={() => list.refetch()}
         onTriggerBlast={() => setBlastOpen(true)}
       />
+
+      <GpActionsPanel gp={actionsGp} open={!!actionsGp} onClose={() => setActionsGp(null)} />
     </div>
   );
 }
