@@ -182,12 +182,26 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // 'third'  = je remplis pour quelqu'un d'autre
   const [userRole, setUserRole] = useState<'sender' | 'recipient' | 'third'>('sender');
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
+  // Tracks which step is currently being edited (null = use collapsed summaries when complete)
+  const [editingStep, setEditingStep] = useState<number | null>(null);
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
   const [confirmed, setConfirmed]         = useState<{ reference: string; price: number; eta: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // ── Role-aware identity binding ────────────────────────────────
+  // The identity block writes to the slot corresponding to the user's role:
+  //   - sender    → senderName / senderPhone
+  //   - recipient → recipientName / recipientPhone (Step 2 then collapses)
+  //   - third     → senderName / senderPhone (intermediary acts as the sender contact)
+  const isRecipientRole = userRole === 'recipient';
+  const identityName  = isRecipientRole ? recipientName  : senderName;
+  const identityPhone = isRecipientRole ? recipientPhone : senderPhone;
+  const setIdentityName  = (v: string) => (isRecipientRole ? setRecipientName(v)  : setSenderName(v));
+  const setIdentityPhone = (v: string) => (isRecipientRole ? setRecipientPhone(v) : setSenderPhone(v));
+
 
   // ── Derived ──────────────────────────────────────────────────────
   // Direction enforces Dakar as the locked endpoint:
