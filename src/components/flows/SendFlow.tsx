@@ -1370,42 +1370,62 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </TabsContent>
 
             <TabsContent value="recap" className="mt-4">
-              <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
-                <RecapRow label="Trajet" value={originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'} />
-                <RecapRow
-                  label="Expéditeur"
-                  value={senderName || senderPhone
-                    ? `${senderName || '—'}${senderPhone ? ` · ${senderPhone}` : ''} · ${originCity?.city ?? '—'}`
-                    : '— (à renseigner)'}
-                />
-                <RecapRow
-                  label="Collecte"
-                  value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}${pickupAddress ? ` · ${pickupAddress}` : ''}` : '—'}
-                />
-                <RecapRow
-                  label="Destinataire"
-                  value={recipientName || recipientPhone
-                    ? `${recipientName || '—'}${recipientPhone ? ` · ${recipientPhone}` : ''} · ${destCity?.city ?? '—'}${deliveryAddress ? ` · ${deliveryAddress}` : ''}`
-                    : '— (à renseigner)'}
-                />
-                <RecapRow label="Article"   value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
-                <RecapRow label="Poids"     value={`${weight} kg · ${parcelCount} colis`} />
-                <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
-                <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
-                <RecapRow label="Paiement"  value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
-                <div className="pt-3 mt-2 border-t border-border space-y-1.5">
-                  <RecapRow label="Collecte"  value="Incluse" />
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                {/* Header with route */}
+                <div className="bg-foreground text-background px-5 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-background/60">Itinéraire</p>
+                  <p className="mt-1 text-base font-semibold">
+                    {originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-background/70">
+                    {TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · {priority === 'express' ? 'Express' : 'Standard'}
+                    {next_departure_date && ` · Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}`}
+                  </p>
+                </div>
+
+                {/* Personnes */}
+                <RecapGroup icon={<User className="w-3.5 h-3.5" />} title="Personnes">
+                  <RecapRow label="Expéditeur" value={senderName || senderPhone
+                    ? `${senderName || '—'} · ${senderPhone || '—'} · ${originCity?.city ?? '—'}`
+                    : '— (à renseigner)'} />
+                  <RecapRow label="Destinataire" value={recipientName || recipientPhone
+                    ? `${recipientName || '—'} · ${recipientPhone || '—'} · ${destCity?.city ?? '—'}`
+                    : '— (à renseigner)'} />
+                </RecapGroup>
+
+                {/* Collecte */}
+                <RecapGroup icon={<MapPin className="w-3.5 h-3.5" />} title="Collecte & livraison">
+                  <RecapRow label="Collecte" value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
+                  {pickupAddress && <RecapRow label="Adresse" value={pickupAddress} />}
+                  {deliveryAddress && <RecapRow label="Livraison" value={deliveryAddress} />}
+                </RecapGroup>
+
+                {/* Colis */}
+                <RecapGroup icon={<Package className="w-3.5 h-3.5" />} title="Colis">
+                  <RecapRow label="Article" value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
+                  <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
+                  <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
+                </RecapGroup>
+
+                {/* Coût */}
+                <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
+                    <CreditCard className="w-3 h-3" /> Détail du coût
+                  </p>
+                  <RecapRow label="Collecte" value="Incluse" />
                   <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
                   {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
-                </div>
-                <div className="pt-3 border-t-2 border-foreground/10">
-                  <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+                  <RecapRow label="Paiement" value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
+                  <div className="pt-2.5 mt-1 border-t border-border">
+                    <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+                  </div>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
                     Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
                   </p>
                 </div>
               </div>
             </TabsContent>
+
           </Tabs>
         </div>
       </FlowSection>
