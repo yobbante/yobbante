@@ -1174,6 +1174,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </div>
         </div>
       </FlowSection>
+      </div>
+
 
 
       <LiveSummaryBar
