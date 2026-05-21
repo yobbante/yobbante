@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
-import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
+import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote, Tag, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
 
@@ -46,6 +46,12 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
   const [payment, setPayment] = useState<typeof PAY_METHODS[number]['id']>('wave');
+
+  // Promo code state
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplying, setPromoApplying] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promo, setPromo] = useState<{ id: string; code: string; discount_eur: number } | null>(null);
 
   useEffect(() => {
     const c = readCart();
