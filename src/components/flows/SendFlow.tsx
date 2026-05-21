@@ -700,7 +700,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </section>
 
       {/* ─── Step 1 — Collecte ─── */}
-      <FlowSection revealed step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+      <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
         {originCity ? (
           <div className="mt-2 space-y-4 max-w-xl">
             <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
@@ -738,7 +738,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 2 — Recipient ─── */}
-      <FlowSection revealed step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
+      <FlowSection revealed={routeOk} step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
             <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
@@ -756,7 +756,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       {/* ─── Step 3 — Package description ─── */}
-      <FlowSection revealed step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+      <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
@@ -828,7 +828,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
-        <FlowSection revealed step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+        <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
@@ -862,7 +862,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       ) : null}
 
       {/* ─── Step 5 — Transport & priority ─── */}
-      <FlowSection revealed step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
+      <FlowSection revealed={routeOk} step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
         {(() => {
           // ── Prix venant directement du moteur (pricing engine v2)
           // Standard et Express sont calculés côté DB via urgency_mult.
@@ -984,7 +984,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
-        <FlowSection revealed step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
+        <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
               { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
@@ -1009,7 +1009,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       )}
 
       {/* ─── Step 7 — Recap & payment ─── */}
-      <FlowSection revealed step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
+      <FlowSection revealed={routeOk} step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
         <div className="space-y-5 max-w-2xl">
           <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
             <RecapRow label="Expéditeur"   value={`${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
