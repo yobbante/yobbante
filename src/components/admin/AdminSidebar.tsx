@@ -80,6 +80,12 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Finance',
+    items: [
+      { id: 'finances', label: 'Finances GP', icon: Wallet, live: true, adminOnly: true },
+    ],
+  },
+  {
     label: 'Système',
     items: [
       { id: 'settings', label: 'Paramètres', icon: Settings, live: true },
