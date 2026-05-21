@@ -36,6 +36,7 @@ import BusinessPage from "./pages/BusinessPage";
 import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
+import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
