@@ -889,10 +889,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </p>
         </div>
       </FlowSection>
+      </div>
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
+        <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
