@@ -405,6 +405,38 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     'section-goods':       !goodsOk,
     'section-final':       !senderName.trim() || !senderPhone.trim(),
   } as const;
+  // Per-field validation map — only populated after a failed submit so the form
+  // doesn't shout at the user before they've tried.
+  const fieldErrors = submitAttempted ? {
+    identityName:    !identityName.trim(),
+    identityPhone:   !identityPhone.trim(),
+    senderName:      !senderName.trim(),
+    senderPhone:     !senderPhone.trim(),
+    recipientName:   !recipientName.trim(),
+    recipientPhone:  !recipientPhone.trim(),
+    deliveryAddress: !destIsSenegal && !deliveryAddress.trim(),
+    pickupAddress:   !pickupAddress.trim(),
+    pickupDate:      !pickupDate,
+    pickupSlot:      !pickupSlot,
+    description:     !description.trim(),
+    declaredLocal:   !declaredLocal,
+    goodsType:       !goodsType,
+  } : {} as Record<string, boolean>;
+
+  // step number → DOM id for scroll-to + edit handling from the recap tab.
+  const STEP_DOM_ID: Record<number, string> = {
+    1: 'section-collecte',
+    2: 'section-recipient',
+    3: 'section-package',
+    4: 'section-goods',
+    7: 'section-final',
+  };
+  function goToStep(step: number) {
+    setEditingStep(step);
+    requestAnimationFrame(() => {
+      document.getElementById(STEP_DOM_ID[step])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
   function scrollToFirstError() {
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
