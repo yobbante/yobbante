@@ -63,7 +63,7 @@ function DeparturesToday() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('manual_departures')
-        .select('id, short_ref, transporteur_ref, destination_city, destination, departure_date, total_capacity_kg, available_capacity_kg, status')
+        .select('id, short_ref, transporteur_ref, destination_city, departure_date, total_capacity_kg, available_capacity_kg, status')
         .eq('departure_date', today)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -97,7 +97,7 @@ function DeparturesToday() {
               <div>
                 <div className="font-mono text-sm font-semibold">#{d.short_ref}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  GP {d.transporteur_ref ?? '—'} · {d.destination_city ?? d.destination ?? '—'} · {used}/{d.total_capacity_kg}kg
+                  GP {d.transporteur_ref ?? '—'} · {d.destination_city ?? '—'} · {used}/{d.total_capacity_kg}kg
                 </div>
               </div>
               <Badge variant="secondary" className="text-[10px]">{d.status}</Badge>
