@@ -116,9 +116,12 @@ export default function CheckoutPage() {
         ? Math.min(subtotal, Math.floor(subtotal * p.discount_value / 100))
         : Math.min(subtotal, p.discount_value);
       setPromo({ id: p.id, code: p.code, discount_eur: d });
+      if (!silent) toast.success(`Code ${p.code} appliqué`, { description: `−${d} € de remise.` });
     } catch (e: any) {
       setPromo(null);
-      setPromoError(e?.message || 'Code invalide.');
+      const msg = e?.message || 'Code invalide.';
+      setPromoError(msg);
+      if (!silent) toast.error('Code refusé', { description: msg });
     } finally {
       setPromoApplying(false);
     }
