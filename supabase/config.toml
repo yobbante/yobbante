@@ -45,3 +45,7 @@ verify_jwt = false
 [functions.webhook-orange-money]
 verify_jwt = false
 
+[functions.generate-invoice]
+verify_jwt = false
+
+

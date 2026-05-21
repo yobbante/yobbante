@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink, Download, RefreshCw, Receipt } from 'lucide-react';
 
 const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 import { supabase } from '@/integrations/supabase/client';
@@ -222,6 +222,11 @@ export default function DossierDetail() {
           )}
         </section>
 
+        {/* Invoice */}
+        <InvoiceSection dossier={dossier as any} isStaff={isStaff} />
+
+
+
         {/* Customs documents */}
         <section>
           <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -305,6 +310,67 @@ export default function DossierDetail() {
   );
 }
 
+function InvoiceSection({ dossier, isStaff }: { dossier: any; isStaff: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(dossier.invoice_url ?? null);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(dossier.invoice_number ?? null);
+  const paid = dossier.payment_status === 'paid';
+
+  if (!paid && !invoiceUrl) return null;
+
+  async function run(regenerate: boolean) {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-invoice', {
+        body: { dossier_id: dossier.id, regenerate },
+      });
+      if (error) throw error;
+      if (data?.invoice_url) {
+        setInvoiceUrl(data.invoice_url);
+        setInvoiceNumber(data.invoice_number);
+        toast.success(regenerate ? 'Facture régénérée' : 'Facture générée');
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erreur génération facture');
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <section>
+      <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+        <Receipt className="w-4 h-4" /> Facture
+      </h2>
+      <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            {invoiceNumber || (paid ? 'Aucune facture générée' : '—')}
+          </p>
+          {dossier.invoice_generated_at && (
+            <p className="text-xs text-muted-foreground">
+              Émise le {new Date(dossier.invoice_generated_at).toLocaleDateString('fr-FR')}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {invoiceUrl && (
+            <Button asChild size="sm" variant="outline">
+              <a href={invoiceUrl} target="_blank" rel="noreferrer">
+                <Download className="w-3.5 h-3.5 mr-1" /> Télécharger
+              </a>
+            </Button>
+          )}
+          {isStaff && paid && (
+            <Button size="sm" onClick={() => run(!!invoiceUrl)} disabled={busy}>
+              <RefreshCw className={cn('w-3.5 h-3.5 mr-1', busy && 'animate-spin')} />
+              {invoiceUrl ? 'Régénérer' : 'Générer'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -313,3 +379,4 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
