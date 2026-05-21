@@ -961,6 +961,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dossiers_assigned_departure_id_fkey"
+            columns: ["assigned_departure_id"]
+            isOneToOne: false
+            referencedRelation: "public_active_departures"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dossiers_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
@@ -2143,6 +2150,13 @@ export type Database = {
             referencedRelation: "manual_departures"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "shipments_manual_departure_id_fkey"
+            columns: ["manual_departure_id"]
+            isOneToOne: false
+            referencedRelation: "public_active_departures"
+            referencedColumns: ["id"]
+          },
         ]
       }
       timeline_events: {
@@ -2633,6 +2647,65 @@ export type Database = {
           transporter_id: string | null
         }
         Relationships: []
+      }
+      public_active_departures: {
+        Row: {
+          arrival_estimate: string | null
+          available_capacity_kg: number | null
+          carrier_name: string | null
+          departure_date: string | null
+          destination_city: string | null
+          destination_country: string | null
+          id: string | null
+          origin_city: string | null
+          origin_country: string | null
+          short_ref: string | null
+          status: string | null
+          total_capacity_kg: number | null
+          transport_mode: string | null
+          transporteur_ref: string | null
+        }
+        Insert: {
+          arrival_estimate?: string | null
+          available_capacity_kg?: number | null
+          carrier_name?: string | null
+          departure_date?: string | null
+          destination_city?: string | null
+          destination_country?: string | null
+          id?: string | null
+          origin_city?: string | null
+          origin_country?: string | null
+          short_ref?: string | null
+          status?: string | null
+          total_capacity_kg?: number | null
+          transport_mode?: string | null
+          transporteur_ref?: string | null
+        }
+        Update: {
+          arrival_estimate?: string | null
+          available_capacity_kg?: number | null
+          carrier_name?: string | null
+          departure_date?: string | null
+          destination_city?: string | null
+          destination_country?: string | null
+          id?: string | null
+          origin_city?: string | null
+          origin_country?: string | null
+          short_ref?: string | null
+          status?: string | null
+          total_capacity_kg?: number | null
+          transport_mode?: string | null
+          transporteur_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_departures_transporteur_ref_fkey"
+            columns: ["transporteur_ref"]
+            isOneToOne: false
+            referencedRelation: "transporteurs"
+            referencedColumns: ["reference"]
+          },
+        ]
       }
     }
     Functions: {
