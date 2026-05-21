@@ -128,7 +128,12 @@ export function MessagesTab() {
   const [templateKey, setTemplateKey] = useState<WaTemplateKey>('PACKAGE_COLLECTED');
   const [params, setParams] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
+  const [gpMode, setGpMode] = useState<'libre' | 'templates'>('libre');
+  const [gpText, setGpText] = useState('');
+  const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
+  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pauseTimerRef = useRef<number | null>(null);
 
   // ---------- Initial load + realtime subscriptions ----------
   useEffect(() => {
