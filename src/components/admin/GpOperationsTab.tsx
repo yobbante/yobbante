@@ -8,6 +8,7 @@ import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, Ch
 import { toast } from 'sonner';
 import { useTransporteurs } from '@/hooks/useTransporteurs';
 import { useGpBotActive } from '@/hooks/useGpBotActive';
+import { sendGpMessage } from '@/lib/sendGpMessage';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
