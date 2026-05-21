@@ -31,8 +31,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
-      { id: 'inbox',    label: 'Inbox',   icon: MessageSquare,   live: true },
-      { id: 'overview', label: 'Dashboard',  icon: LayoutDashboard, live: true },
+      { id: 'inbox',    label: 'Inbox',     icon: MessageSquare,   live: true },
+      { id: 'messages', label: 'Messages',  icon: MessageCircle,   live: true },
+      { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, live: true },
     ],
   },
   {
