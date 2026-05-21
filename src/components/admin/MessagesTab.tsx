@@ -1,12 +1,63 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
+
+interface LinkedDossier {
+  id: string;
+  reference: string | null;
+  tracking_id: string | null;
+  status: string;
+  origin_country: string | null;
+  destination_country: string | null;
+  estimated_weight: number | null;
+  assigned_transporteur_ref: string | null;
+  estimated_delivery_date: string | null;
+}
+
+interface GpTemplate {
+  key: string;
+  label: string;
+  build: (ctx: { gp_prenom: string; route: string; poids: string; destination: string; tracking_id: string; date: string; departure_date: string }) => string;
+}
+
+function gpTemplatesForStatus(status: string | undefined): GpTemplate[] {
+  const map: Record<string, GpTemplate[]> = {
+    NEW: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    SUBMITTED: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    CONFIRMED: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    AWAITING_ADDRESS: [
+      { key: 'pickup', label: 'Adresse collecte Dakar', build: () => `C'est quoi ton adresse de collecte a Dakar ?` },
+      { key: 'dropoff', label: 'Adresse remise', build: (c) => `Et l'adresse de remise a ${c.destination} ?` },
+    ],
+    ASSIGNED: [
+      { key: 'confirm', label: 'Confirmer la mission', build: (c) => `Salam ${c.gp_prenom}, je t'amene le colis ${c.tracking_id} le ${c.date}. Confirme-moi que c'est bon.` },
+      { key: 'dep', label: 'Confirmer le depart', build: (c) => `Tu pars bien le ${c.departure_date} ?` },
+    ],
+    COLLECTED: [
+      { key: 'ok', label: 'Collecte ok ?', build: () => `Tout s'est bien passe pour la collecte ?` },
+      { key: 'flight', label: 'Vol confirme ?', build: () => `Tu es parti ? Le vol est confirme ?` },
+    ],
+  };
+  return map[status ?? ''] ?? [
+    { key: 'hello', label: 'Salutation', build: (c) => `Salam ${c.gp_prenom}, comment tu vas ?` },
+  ];
+}
 
 type Channel = 'client' | 'gp';
 
