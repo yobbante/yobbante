@@ -93,24 +93,35 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   };
 
   // ── Recevoir state ───────────────────────────────────────────────
-  const [merchant, setMerchant] = useState<string>('Amazon');
-  const [merchantCountry, setMerchantCountry] = useState<typeof MERCHANT_COUNTRIES[number]['code']>('US');
-  const [recMode, setRecMode] = useState<'AIR' | 'SEA'>('AIR');
-  const [estValue, setEstValue] = useState('');
+  // Hydrate from URL on mount so deep links like /expedier/recevoir?merchant=Amazon&country=US&mode=air&value=120
+  // pre-fill the bar and the underlying ReceiveFlow stays in sync.
+  const initialRecParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const [merchant, setMerchant] = useState<string>(() => initialRecParams.get('merchant') || 'Amazon');
+  const [merchantCountry, setMerchantCountry] = useState<typeof MERCHANT_COUNTRIES[number]['code']>(() => {
+    const c = (initialRecParams.get('country') || initialRecParams.get('origin') || '').toUpperCase();
+    return (['US', 'CN', 'FR', 'AE', 'TR'] as const).includes(c as any) ? (c as any) : 'US';
+  });
+  const [recMode, setRecMode] = useState<'AIR' | 'SEA'>(() =>
+    (initialRecParams.get('mode') || '').toLowerCase() === 'sea' ? 'SEA' : 'AIR'
+  );
+  const [estValue, setEstValue] = useState(() => initialRecParams.get('value') || '');
 
   useEffect(() => {
+    // Only auto-pick a country when the merchant was changed *by the user* —
+    // not when we just hydrated from URL params (which already includes country).
     const map: Record<string, typeof merchantCountry> = {
       Amazon: 'US', eBay: 'US', AliExpress: 'CN', SHEIN: 'CN', Temu: 'CN',
     };
     if (map[merchant]) setMerchantCountry(map[merchant]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [merchant]);
 
   // ── Sourcing state ───────────────────────────────────────────────
-  const [productQuery, setProductQuery] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return new URLSearchParams(window.location.search).get('q') ?? '';
+  const [productQuery, setProductQuery] = useState(() => initialRecParams.get('q') ?? '');
+  const [srcOrigin, setSrcOrigin] = useState<typeof SOURCING_ORIGINS[number]['code']>(() => {
+    const c = (initialRecParams.get('origin') || '').toUpperCase();
+    return (['CN', 'FR', 'AE', 'US'] as const).includes(c as any) ? (c as any) : 'CN';
   });
-  const [srcOrigin, setSrcOrigin] = useState<typeof SOURCING_ORIGINS[number]['code']>('CN');
 
   // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
