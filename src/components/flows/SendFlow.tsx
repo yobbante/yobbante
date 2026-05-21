@@ -919,6 +919,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           )}
         </FlowSection>
+        </div>
       ) : corridorWarning ? (
         <div className="mx-auto max-w-2xl px-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
