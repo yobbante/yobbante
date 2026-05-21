@@ -1045,31 +1045,60 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       {!skipGoodsStep ? (
         <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {GOODS_TYPES.map(g => (
-              <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
-                className={`text-left rounded-xl border-2 px-4 py-3.5 transition-all ${
-                  goodsType === g.id
-                    ? 'border-foreground bg-foreground text-background shadow-sm'
-                    : 'border-border bg-card hover:border-foreground/40'
-                }`}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold">{g.label}</p>
-                  {g.risk === 'high' && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+          {goodsOk && editingStep !== 4 ? (
+            <StepCollapsed
+              title={GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'}
+              lines={[
+                GOODS_TYPES.find(g => g.id === goodsType)?.desc ?? '',
+                goodsAutoConfident ? 'Détecté automatiquement à partir de votre description' : '',
+              ].filter(Boolean)}
+              onEdit={() => setEditingStep(4)}
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {GOODS_TYPES.map(g => {
+                  const active = goodsType === g.id;
+                  const riskColor = g.risk === 'high' ? 'text-amber-500' : g.risk === 'medium' ? 'text-blue-500' : 'text-emerald-500';
+                  return (
+                    <button key={g.id} type="button"
+                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); setEditingStep(null); }}
+                      className={cn(
+                        'group relative text-left rounded-xl border-2 p-3 transition-all overflow-hidden',
+                        active
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border bg-card hover:border-foreground/40',
+                      )}>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[13px] font-semibold leading-tight">{g.label}</p>
+                        <span className={cn(
+                          'shrink-0 w-1.5 h-1.5 rounded-full mt-1.5',
+                          active ? 'bg-background/70' : g.risk === 'high' ? 'bg-amber-400' : g.risk === 'medium' ? 'bg-blue-400' : 'bg-emerald-400',
+                        )} />
+                      </div>
+                      <p className={cn('mt-1 text-[10.5px] leading-snug',
+                        active ? 'text-background/70' : 'text-muted-foreground',
+                      )}>{g.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Standard</span>
+                <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Vérif. requise</span>
+                <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Restriction douanière</span>
+              </div>
+              {corridorWarning && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{corridorWarning}</span>
                 </div>
-                <p className={`mt-0.5 text-[11px] ${goodsType === g.id ? 'text-background/70' : 'text-muted-foreground'}`}>{g.desc}</p>
-              </button>
-            ))}
-          </div>
-          {corridorWarning && (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{corridorWarning}</span>
-            </div>
+              )}
+            </>
           )}
         </FlowSection>
         </div>
+
       ) : corridorWarning ? (
         <div className="mx-auto max-w-2xl px-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
