@@ -152,7 +152,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
   const activity = useMemo(() => {
     if (!data) return [];
     type Row = {
-      id: string; service: 'expedier' | 'sourcing' | 'reception';
+      id: string; rawId: string; service: 'expedier' | 'sourcing' | 'reception';
       ref: string; title: string; status: string; statusLabel: string;
       ts: string; flag?: string; meta?: string;
     };
