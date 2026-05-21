@@ -80,7 +80,7 @@ export function WeighingDialog({
         update.status = 'WEIGHED';
       }
 
-      const { error: updErr } = await supabase.from('dossiers').update(update).eq('id', dossier.id);
+      const { error: updErr } = await supabase.from('dossiers').update(update as any).eq('id', dossier.id);
       if (updErr) throw updErr;
 
       await supabase.from('weight_logs' as any).insert({
