@@ -969,6 +969,44 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_bot_sessions: {
+        Row: {
+          created_at: string
+          from_phone: string
+          id: string
+          pending_data: Json
+          pending_intent: string | null
+          transporteur_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_phone: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          transporteur_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_phone?: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          transporteur_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_bot_sessions_transporteur_id_fkey"
+            columns: ["transporteur_id"]
+            isOneToOne: false
+            referencedRelation: "transporteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gp_import_logs: {
         Row: {
           created_at: string
@@ -999,6 +1037,42 @@ export type Database = {
           imported_by?: string | null
           total_rows?: number
           updated?: number
+        }
+        Relationships: []
+      }
+      gp_unknown_contacts: {
+        Row: {
+          contacted_at: string
+          followed_up: boolean
+          followed_up_at: string | null
+          followed_up_by: string | null
+          from_name: string | null
+          id: string
+          message: string | null
+          notes: string | null
+          phone: string
+        }
+        Insert: {
+          contacted_at?: string
+          followed_up?: boolean
+          followed_up_at?: string | null
+          followed_up_by?: string | null
+          from_name?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone: string
+        }
+        Update: {
+          contacted_at?: string
+          followed_up?: boolean
+          followed_up_at?: string | null
+          followed_up_by?: string | null
+          from_name?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          phone?: string
         }
         Relationships: []
       }
@@ -2119,6 +2193,7 @@ export type Database = {
           adresse_1: string
           adresse_2: string | null
           beta_invite_sent_at: string | null
+          bot_paused_until: string | null
           created_at: string
           destinations: string[] | null
           id: string
@@ -2141,6 +2216,7 @@ export type Database = {
           adresse_1: string
           adresse_2?: string | null
           beta_invite_sent_at?: string | null
+          bot_paused_until?: string | null
           created_at?: string
           destinations?: string[] | null
           id?: string
@@ -2163,6 +2239,7 @@ export type Database = {
           adresse_1?: string
           adresse_2?: string | null
           beta_invite_sent_at?: string | null
+          bot_paused_until?: string | null
           created_at?: string
           destinations?: string[] | null
           id?: string
