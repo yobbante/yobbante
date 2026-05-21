@@ -815,9 +815,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             placeholder="ahmed@example.com" type="email" />
         </div>
       </FlowSection>
+      </div>
 
       {/* ─── Step 3 — Package description ─── */}
+      <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
