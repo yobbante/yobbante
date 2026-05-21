@@ -1466,7 +1466,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
 
                 {/* Personnes */}
-                <RecapGroup icon={<User className="w-3.5 h-3.5" />} title="Personnes">
+                <RecapGroup
+                  icon={<User className="w-3.5 h-3.5" />}
+                  title="Personnes"
+                  onEdit={() => goToStep(2)}
+                  incomplete={!recipientOk || !senderName.trim() || !senderPhone.trim()}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Expéditeur" value={senderName || senderPhone
                     ? `${senderName || '—'} · ${senderPhone || '—'} · ${originCity?.city ?? '—'}`
                     : '— (à renseigner)'} />
@@ -1476,14 +1482,26 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </RecapGroup>
 
                 {/* Collecte */}
-                <RecapGroup icon={<MapPin className="w-3.5 h-3.5" />} title="Collecte & livraison">
+                <RecapGroup
+                  icon={<MapPin className="w-3.5 h-3.5" />}
+                  title="Collecte & livraison"
+                  onEdit={() => goToStep(1)}
+                  incomplete={!collecteOk}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Collecte" value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
                   {pickupAddress && <RecapRow label="Adresse" value={pickupAddress} />}
                   {deliveryAddress && <RecapRow label="Livraison" value={deliveryAddress} />}
                 </RecapGroup>
 
                 {/* Colis */}
-                <RecapGroup icon={<Package className="w-3.5 h-3.5" />} title="Colis">
+                <RecapGroup
+                  icon={<Package className="w-3.5 h-3.5" />}
+                  title="Colis"
+                  onEdit={() => goToStep(3)}
+                  incomplete={!packageOk || !goodsOk}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Article" value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
                   <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
                   <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
