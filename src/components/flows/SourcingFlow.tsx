@@ -397,6 +397,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
         <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
       </FlowSection>
 
+      <div id="tarifs" className="scroll-mt-32">
       <FlowSection
         revealed={!!matchInput}
         title="Estimation logistique"
@@ -425,6 +426,8 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           </>
         )}
       </FlowSection>
+      </div>
+
 
       {/* ─── Bifurcation finale : confier le sourcing OU commander soi-même ─── */}
       {!!matchInput && !matching && (
