@@ -1046,7 +1046,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
+          {packageOk && (
+            <button type="button" onClick={() => setEditingStep(null)}
+              className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+              Valider et replier
+            </button>
+          )}
         </div>
+        )}
       </FlowSection>
       </div>
 
