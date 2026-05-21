@@ -330,7 +330,7 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
   }
 
   // ---------- MES DEPARTS ----------
-  if (isMesDeparts) {
+  async function runMesDeparts() {
     await clearSession();
     const { data } = await supa
       .from('manual_departures')
@@ -351,9 +351,10 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
     }
     return new Response('ok', { headers: corsHeaders });
   }
+  if (isMesDeparts) return await runMesDeparts();
 
   // ---------- MES MISSIONS ----------
-  if (isMesMissions) {
+  async function runMesMissions() {
     await clearSession();
     const { data } = await supa
       .from('dossiers')
@@ -373,6 +374,7 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
     }
     return new Response('ok', { headers: corsHeaders });
   }
+  if (isMesMissions) return await runMesMissions();
 
   // =================================================================
   //  Menu numerote : 1..6 (ou "un", "deux", ...)
