@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { ecommerce } from '@/lib/analytics';
 
 /**
  * Shared cart hook for Boutique Dëkk.
