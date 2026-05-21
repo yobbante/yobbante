@@ -369,3 +369,141 @@ function SimulateBotDialog({ gp, onClose }: { gp: Transporteur; onClose: () => v
     </Dialog>
   );
 }
+
+// ============================================================================
+// GP HISTORY — All WhatsApp messages with this GP + saved addresses
+// ============================================================================
+function GpHistoryDialog({ gp, onClose }: { gp: Transporteur; onClose: () => void }) {
+  const [q, setQ] = useState('');
+  const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
+  const phoneTail = phoneDigits.slice(-9);
+
+  const { data: inbound = [], isLoading: loadingIn } = useQuery({
+    queryKey: ['gp-history-in', gp.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('whatsapp_inbound_messages' as any)
+        .select('id, from_phone, message_body, bot_intent, received_at, dossier_id')
+        .or(`transporteur_id.eq.${gp.id},from_phone.ilike.%${phoneTail}`)
+        .order('received_at', { ascending: false })
+        .limit(500);
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: outbound = [], isLoading: loadingOut } = useQuery({
+    queryKey: ['gp-history-out', gp.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('whatsapp_outbound_messages' as any)
+        .select('id, to_phone, message_body, template_name, status, created_at')
+        .or(`transporteur_id.eq.${gp.id},to_phone.ilike.%${phoneTail}`)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: trData } = useQuery({
+    queryKey: ['gp-addresses', gp.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('transporteurs' as any)
+        .select('adresse_collecte_dakar, adresses_remise')
+        .eq('id', gp.id)
+        .maybeSingle();
+      return data as { adresse_collecte_dakar: string | null; adresses_remise: Record<string, string> | null } | null;
+    },
+  });
+
+  const merged = [
+    ...inbound.map((m: any) => ({ kind: 'in' as const, id: m.id, body: m.message_body || `[${m.bot_intent ?? 'media'}]`, at: m.received_at })),
+    ...outbound.map((m: any) => ({ kind: 'out' as const, id: m.id, body: m.message_body || `[template: ${m.template_name}]`, at: m.created_at })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
+  const filtered = !q.trim() ? merged : merged.filter((m) => (m.body || '').toLowerCase().includes(q.trim().toLowerCase()));
+
+  const copy = (txt: string) => {
+    navigator.clipboard.writeText(txt).then(() => toast.success('Copie'));
+  };
+
+  const addrCollecte = trData?.adresse_collecte_dakar ?? null;
+  const addrRemise = (trData?.adresses_remise ?? {}) as Record<string, string>;
+  const hasSaved = !!addrCollecte || Object.keys(addrRemise).length > 0;
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Historique conversations — {gp.prenom ?? ''} {gp.nom}</DialogTitle>
+          <DialogDescription>Toutes les conversations WhatsApp et adresses sauvegardees</DialogDescription>
+        </DialogHeader>
+
+        {hasSaved && (
+          <div className="rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-3 space-y-2">
+            <div className="text-xs font-bold text-[#F5C518] flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" /> Adresses sauvegardees
+            </div>
+            {addrCollecte && (
+              <div className="flex items-start justify-between gap-2 text-xs">
+                <div>
+                  <div className="font-medium text-foreground">Collecte Dakar</div>
+                  <div className="text-muted-foreground">{addrCollecte}</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => copy(addrCollecte)} className="h-7 px-2">
+                  <Copy className="w-3 h-3 mr-1" /> Copier
+                </Button>
+              </div>
+            )}
+            {Object.entries(addrRemise).map(([city, addr]) => (
+              <div key={city} className="flex items-start justify-between gap-2 text-xs">
+                <div>
+                  <div className="font-medium text-foreground">Remise {city}</div>
+                  <div className="text-muted-foreground">{addr}</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => copy(addr)} className="h-7 px-2">
+                  <Copy className="w-3 h-3 mr-1" /> Copier
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="relative">
+          <SearchIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher dans les messages..." className="pl-8 h-9 text-xs" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto -mx-6 px-6 space-y-1.5">
+          {(loadingIn || loadingOut) ? (
+            <div className="text-center py-8"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-center text-xs text-muted-foreground py-8">Aucun message</p>
+          ) : (
+            filtered.map((m) => (
+              <div key={`${m.kind}-${m.id}`} className={cnHist(m.kind)}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <Badge variant={m.kind === 'in' ? 'secondary' : 'default'} className="h-4 text-[9px]">
+                    {m.kind === 'in' ? 'Recu' : 'Envoye'}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">{new Date(m.at).toLocaleString('fr-FR')}</span>
+                </div>
+                <div className="text-xs whitespace-pre-wrap break-words">{m.body}</div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="outline">Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function cnHist(kind: 'in' | 'out') {
+  return kind === 'in'
+    ? 'rounded-lg border border-border bg-muted/30 p-2'
+    : 'rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-2';
+}
