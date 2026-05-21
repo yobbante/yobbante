@@ -145,7 +145,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       ...(estValue ? { value: estValue } : {}),
       origin: merchantCountry,
     });
-    window.history.replaceState({}, '', `/expedier/recevoir?${params.toString()}`);
+    navigate(`/expedier/recevoir?${params.toString()}`, { replace: true });
     setExpanded(false);
     onApply?.();
   }
@@ -155,7 +155,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       ...(q ? { q } : {}),
       origin: srcOrigin,
     });
-    window.history.replaceState({}, '', `/sourcing${params.toString() ? `?${params}` : ''}`);
+    navigate(`/sourcing${params.toString() ? `?${params}` : ''}`, { replace: true });
     setExpanded(false);
     onApply?.();
   }
