@@ -1120,12 +1120,14 @@ function TrackingFlow({
         />
       </FlowSection>
 
-      <FlowSection
-        revealed={hasItems && !!hub} step={3} total={TOTAL}
-        title="Où vous livrer ?"
-      >
-        <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
-      </FlowSection>
+      <div id="tarifs">
+        <FlowSection
+          revealed={hasItems && !!hub} step={3} total={TOTAL}
+          title="Où vous livrer ?"
+        >
+          <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
+        </FlowSection>
+      </div>
 
       {/* Sticky submit bar */}
       <AnimatePresence>
