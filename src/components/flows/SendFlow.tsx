@@ -811,41 +811,81 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
-      {/* ─── Step 1 — Collecte ─── */}
+      {/* ─── Step 1 — Collecte (incl. sender contact when user is recipient/third) ─── */}
       <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
-
-
+      <FlowSection
+        revealed={routeOk}
+        step={1}
+        total={7}
+        title={userRole === 'sender' ? 'Collecte du colis' : `Collecte chez l'expéditeur à ${originCity?.city ?? '—'}`}
+        hint={userRole === 'sender'
+          ? 'Adresse + créneau souhaité pour la prise en charge.'
+          : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
+      >
         {originCity ? (
-          <div className="mt-2 space-y-4 max-w-xl">
-            <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
-
-            <AddressField
-              label={`Adresse de collecte à ${originCity.city} *`}
-              value={pickupAddress} onChange={setPickup}
-              placeholder="N°, rue, quartier, code postal…"
+          collecteOk && editingStep !== 1 ? (
+            <StepCollapsed
+              title="Collecte programmée"
+              lines={[
+                `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}`,
+                pickupAddress,
+                userRole !== 'sender' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
+              ].filter(Boolean) as string[]}
+              onEdit={() => setEditingStep(1)}
             />
+          ) : (
+            <div className="mt-2 space-y-4 max-w-xl">
+              <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
 
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label className="block">
-                <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-                  <CalendarIcon className="w-3 h-3" /> Date de collecte *
-                </span>
-                <input
-                  type="date" value={pickupDate} min={localCalendarMin}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all"
-                />
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Délai min {coverage.minLeadHours}h selon votre zone.
-                </p>
-              </label>
-              <div>
-                <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
-                <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
+              {/* Sender contact (only when user is NOT the sender) */}
+              {userRole !== 'sender' && (
+                <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Coordonnées de l'expéditeur à {originCity.city}
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
+                      placeholder={`Personne qui remet le colis à ${originCity.city}`} />
+                    <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                  </div>
+                </div>
+              )}
+
+              <AddressField
+                label={`Adresse de collecte à ${originCity.city} *`}
+                value={pickupAddress} onChange={setPickup}
+                placeholder="N°, rue, quartier, code postal…"
+              />
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
+                    <CalendarIcon className="w-3 h-3" /> Date de collecte *
+                  </span>
+                  <input
+                    type="date" value={pickupDate} min={localCalendarMin}
+                    onChange={(e) => setPickupDate(e.target.value)}
+                    className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Délai min {coverage.minLeadHours}h selon votre zone.
+                  </p>
+                </label>
+                <div>
+                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
+                  <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
+                </div>
               </div>
+
+              {collecteOk && (
+                <button type="button" onClick={() => setEditingStep(null)}
+                  className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                  Valider et replier
+                </button>
+              )}
             </div>
-          </div>
+          )
         ) : (
           <p className="text-sm text-muted-foreground">Sélectionnez l'itinéraire dans la barre pour activer la collecte.</p>
         )}
@@ -855,24 +895,55 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 2 — Recipient ─── */}
       <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection revealed={routeOk} step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
-
-        <div className="space-y-3 max-w-xl">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`} />
-            <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
-              placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
-          </div>
-          <AddressField
-            label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
-            value={deliveryAddress} onChange={setDelivery}
-            placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
+      <FlowSection
+        revealed={routeOk}
+        step={2}
+        total={7}
+        title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'}
+        hint={userRole === 'recipient'
+          ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
+          : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
+      >
+        {recipientOk && editingStep !== 2 ? (
+          <StepCollapsed
+            title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
+            lines={[
+              `${recipientName} · ${recipientPhone}`,
+              deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
+              recipientEmail || null,
+            ].filter(Boolean) as string[]}
+            onEdit={() => setEditingStep(2)}
           />
-          <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
-            placeholder="ahmed@example.com" type="email" />
-        </div>
+        ) : (
+          <div className="space-y-3 max-w-xl">
+            {userRole === 'recipient' && (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] text-emerald-900">
+                Vos nom et téléphone ont été repris du bloc d'identité ci-dessus. Complétez juste l'adresse de livraison.
+              </p>
+            )}
+            <div className="grid sm:grid-cols-2 gap-3">
+              <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`} />
+              <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
+                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+            </div>
+            <AddressField
+              label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
+              value={deliveryAddress} onChange={setDelivery}
+              placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
+            />
+            <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
+              placeholder="ahmed@example.com" type="email" />
+            {recipientOk && (
+              <button type="button" onClick={() => setEditingStep(null)}
+                className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                Valider et replier
+              </button>
+            )}
+          </div>
+        )}
       </FlowSection>
       </div>
+
 
       {/* ─── Step 3 — Package description ─── */}
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
