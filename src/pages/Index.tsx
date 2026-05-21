@@ -8,6 +8,7 @@ import { HomeView } from '@/pages/HomeView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
 import { IntentSearchBar } from '@/components/IntentSearchBar';
+import { markInApp } from '@/lib/homeHref';
 
 const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile'];
 
@@ -29,6 +30,11 @@ export default function Index() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Mark this session as "inside the app shell" so any subsequent
+  // "Accueil" / "Retour" link (search bar, flow header, etc.) brings
+  // the user back to /app instead of the public landing page.
+  useEffect(() => { markInApp(); }, []);
 
   const rawView = searchParams.get('view');
   let view: TabId = 'home';

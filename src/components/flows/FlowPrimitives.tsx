@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
+import { getHomeHref } from '@/lib/homeHref';
 
 /* =========================================================================
    Continuous-flow primitives — Apple-grade.
@@ -111,7 +112,7 @@ export function FlowShell({
             compactHeader
           ) : (
             <Link
-              to="/"
+              to={getHomeHref()}
               className={cn('inline-flex items-center gap-1.5 text-xs hover:opacity-100 transition-opacity mt-6', t.muted)}
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Retour

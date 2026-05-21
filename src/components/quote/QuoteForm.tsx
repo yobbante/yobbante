@@ -6,6 +6,25 @@ import {
   saveDraft,
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
+import { ALL_CITIES } from '@/lib/worldCities';
+
+const SEND_PRESET_KEY = 'send-flow:preset';
+
+function resolveCityToCountry(label: string): { country: string; city: string } | null {
+  if (!label) return null;
+  if (label === 'Dakar, Sénégal' || label === 'Dakar') return { country: 'SN', city: 'Dakar' };
+  const m = ALL_CITIES.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
+  return m ? { country: m.country, city: m.city } : null;
+}
+
+function sourcingCountryToCode(label: string): 'CN' | 'FR' | 'AE' | 'US' {
+  switch (label) {
+    case 'Chine': return 'CN';
+    case 'USA': return 'US';
+    case 'Europe': return 'FR';
+    default: return 'CN';
+  }
+}
 
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
@@ -86,17 +105,43 @@ export function QuoteForm() {
   const [recType, setRecType] = useState<GoodsType>('standard');
 
   const submit = () => {
-    let input: QuoteInput;
     if (service === 'send') {
       if (!origin || !destination || !weight) return;
-      input = {
+      // Hand off directly to /expedier/envoyer with the same preset
+      // shape ExpedierSearchBar consumes, so the flow shows the price
+      // section without a separate /devis detour. Hash #tarifs lets
+      // SendFlow auto-scroll to the pricing step once the route is ready.
+      const o = resolveCityToCountry(origin);
+      const d = resolveCityToCountry(destination);
+      if (!o || !d) return;
+      const transport: 'AIR' | 'SEA' | 'ROAD' =
+        mode === 'air' ? 'AIR' : mode === 'sea' ? 'SEA' : 'ROAD';
+      const preset = {
+        origin: o.country, destination: d.country,
+        origin_city: o.city, destination_city: d.city,
+        transport, weight: Number(weight) || undefined,
+        source: 'landing-quote-form',
+      };
+      try { sessionStorage.setItem(SEND_PRESET_KEY, JSON.stringify(preset)); } catch {}
+      // Persist legacy draft too, for users who still navigate to /devis later.
+      saveDraft({
         service, origin, destination,
         weightKg: Number(weight) || 0,
         mode, type,
-      };
-    } else if (service === 'sourcing') {
+      });
+      navigate('/expedier/envoyer#tarifs');
+      return;
+    }
+    if (service === 'sourcing') {
       if (!query || !budget) return;
-      input = {
+      // Send users to the unified sourcing flow with prefilled query/origin
+      // instead of /devis (which doesn't know about the sourcing pipeline).
+      const params = new URLSearchParams({
+        q: query,
+        origin: sourcingCountryToCode(sourcingCountry),
+        ...(budget ? { budget } : {}),
+      });
+      saveDraft({
         service,
         origin: sourcingCountry,
         destination: 'Dakar, Sénégal',
@@ -104,24 +149,20 @@ export function QuoteForm() {
         mode: 'air',
         type: 'standard',
         query, budgetEur: Number(budget) || 0, sourcingCountry,
-      };
-    } else {
-      if (!estimatedValue) return;
-      // Reception flow has its own dedicated registration page that
-      // inserts into reception_orders + relay_addresses. Hand off there
-      // with prefilled query params instead of the quote/devis pipeline.
-      const params = new URLSearchParams({
-        merchant: merchant || '',
-        country: merchantCountry || '',
-        value: estimatedValue || '',
-        mode: recMode,
-        type: recType,
       });
-      navigate(`/expedier/recevoir?${params.toString()}`);
+      navigate(`/sourcing?${params.toString()}`);
       return;
     }
-    saveDraft(input);
-    navigate('/devis');
+    // Réception
+    if (!estimatedValue) return;
+    const params = new URLSearchParams({
+      merchant: merchant || '',
+      country: merchantCountry || '',
+      value: estimatedValue || '',
+      mode: recMode,
+      type: recType,
+    });
+    navigate(`/expedier/recevoir?${params.toString()}`);
   };
 
   return (
