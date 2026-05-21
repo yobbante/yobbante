@@ -204,7 +204,10 @@ export function BoutiqueTab() {
         <TabBtn active={view === 'stats'}    onClick={() => setView('stats')}>Statistiques</TabBtn>
       </div>
 
-      {view === 'orders' ? <BoutiqueOrdersPanel /> : (<>
+      {view === 'orders' ? <BoutiqueOrdersPanel />
+        : view === 'promos' ? <BoutiquePromosPanel />
+        : view === 'stats' ? <BoutiqueStatsPanel />
+        : (<>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
