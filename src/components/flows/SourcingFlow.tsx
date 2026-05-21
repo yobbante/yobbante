@@ -115,13 +115,13 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   // toujours refaire ce choix explicitement à chaque nouveau sourcing.
   const draftSnapshot = { productInput, quantity, budget, quality, urgency, origin, destination };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
-    if (d.productInput) setProductInput(d.productInput);
+    // ⚠️ On NE restaure PAS productInput / origin / destination depuis le draft :
+    // ces valeurs doivent toujours venir du choix utilisateur courant (barre
+    // de recherche → URL params), sinon un ancien brief écrase la session.
     if (typeof d.quantity === 'number') setQuantity(d.quantity);
-    if (d.budget) setBudget(d.budget);
+    if (d.budget && !budget) setBudget(d.budget);
     if (d.quality) setQuality(d.quality);
     if (d.urgency) setUrgency(d.urgency);
-    if (d.origin) setOrigin(d.origin);
-    if (d.destination) setDestination(d.destination);
   });
 
   async function runParse() {
