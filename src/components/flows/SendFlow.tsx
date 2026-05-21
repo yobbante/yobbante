@@ -948,8 +948,17 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       {/* ─── Step 3 — Package description ─── */}
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
-
+        {packageOk && editingStep !== 3 ? (
+          <StepCollapsed
+            title={`${description} — ${weight} kg`}
+            lines={[
+              `${parcelCount} colis · ${declaredLocal} ${originProfile.currencySymbol}`,
+            ]}
+            onEdit={() => setEditingStep(3)}
+          />
+        ) : (
         <div className="space-y-4 max-w-xl">
+
           {/* Description — textarea avec compteur (max 140) */}
           <label className="block">
             <span className="flex items-center justify-between mb-1.5">
