@@ -321,8 +321,7 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   if (isAide || (isStart && !sessionActive)) {
     await clearSession();
     if (isStart && !isAide) {
-      await reply(`Bonjour ${prenom} ! 👋
-Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
+      await reply(`Bonjour ${prenom} !\n\n${HELP_TEXT}`, 'start');
     } else {
       await reply(HELP_TEXT, 'help');
     }
