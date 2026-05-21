@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
 
@@ -18,6 +18,7 @@ export type AdminSection =
   | 'tracking'
   | 'clients'
   | 'enterprise'
+  | 'manual-quotes'
   | 'settings';
 
 type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean };
@@ -34,8 +35,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Demandes entrantes',
     items: [
-      { id: 'requests',   label: 'Particuliers',     icon: Inbox,     live: true },
-      { id: 'enterprise', label: 'Entreprises',      icon: Building2, live: true },
+      { id: 'requests',     label: 'Particuliers', icon: Inbox,     live: true },
+      { id: 'manual-quotes',label: 'Devis manuels',icon: Search,    live: true },
+      { id: 'enterprise',   label: 'Entreprises',  icon: Building2, live: true },
     ],
   },
   {

@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
 import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
+import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 
 // ─────────────────────────── Static config ───────────────────────────
@@ -184,6 +185,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [submitting, setSubmitting]       = useState(false);
   const [confirmed, setConfirmed]         = useState<{ reference: string; price: number; eta: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   // ── Derived ──────────────────────────────────────────────────────
   // Direction enforces Dakar as the locked endpoint:
@@ -234,13 +236,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     senderName, senderPhone, chosenId: chosen?.id ?? null,
   };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
-    if (d.direction === 'from_dakar' || d.direction === 'to_dakar') setDirection(d.direction);
-    if (d.originCountry) setOriginCountry(d.originCountry);
-    if (d.originCityId) setOriginCity(d.originCityId);
+    // ⚠️ On ne restaure PAS les villes (originCityId / destCityId) ni la
+    // direction depuis un ancien draft. Les villes doivent toujours venir
+    // du choix utilisateur dans la barre de recherche (preset), sinon un
+    // ancien envoi laisse une ville (ex. "Casablanca") coller à toutes les sessions.
     if (d.pickupAddress) setPickup(d.pickupAddress);
     if (d.pickupDate) setPickupDate(d.pickupDate);
     if (d.pickupSlot) setPickupSlot(d.pickupSlot);
-    if (d.destCityId) setDestCity(d.destCityId);
     if (d.recipientName) setRecipientName(d.recipientName);
     if (d.recipientPhone) setRecipientPhone(d.recipientPhone);
     if (d.recipientEmail) setRecipientEmail(d.recipientEmail);
@@ -365,19 +367,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const corridorWarning = corridorRisk(goodsType, originProfile.code, destProfile.code);
 
   // ── Submit ──────────────────────────────────────────────────────
+  // Map: id of section → boolean indicating it currently has unmet required fields.
+  // We compute it here so both the visual highlight and the scroll-on-submit work.
+  const sectionErrors = {
+    'section-collecte':    !collecteOk,
+    'section-recipient':   !recipientOk,
+    'section-package':     !packageOk,
+    'section-goods':       !goodsOk,
+    'section-final':       !senderName.trim() || !senderPhone.trim(),
+  } as const;
+  function scrollToFirstError() {
+    const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
+    if (!firstBadId) return;
+    requestAnimationFrame(() => {
+      document.getElementById(firstBadId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   async function submit() {
-    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk) {
-      toast.error('Étapes incomplètes', { description: 'Vérifiez les informations avant de confirmer.' });
+    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
+      setSubmitAttempted(true);
+      toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      scrollToFirstError();
       return;
     }
     if (!dakarRouteOk) {
       toast('Choisissez Dakar', { description: "Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée." });
       return;
     }
-    if (!senderName.trim() || !senderPhone.trim()) {
-      toast.error('Coordonnées expéditeur manquantes');
-      return;
-    }
+    setSubmitAttempted(false);
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -738,7 +756,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       )}
 
       {/* ─── Step 1 — Collecte ─── */}
+      <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+
 
         {originCity ? (
           <div className="mt-2 space-y-4 max-w-xl">
@@ -774,18 +794,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <p className="text-sm text-muted-foreground">Sélectionnez l'itinéraire dans la barre pour activer la collecte.</p>
         )}
       </FlowSection>
+      </div>
 
 
       {/* ─── Step 2 — Recipient ─── */}
+      <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
+
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
-            <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
+            <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`} />
             <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
               placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
           </div>
           <AddressField
-            label={destIsSenegal ? 'Adresse / Quartier (optionnel)' : 'Adresse complète *'}
+            label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
             value={deliveryAddress} onChange={setDelivery}
             placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
           />
@@ -793,9 +816,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             placeholder="ahmed@example.com" type="email" />
         </div>
       </FlowSection>
+      </div>
 
       {/* ─── Step 3 — Package description ─── */}
+      <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
@@ -864,10 +890,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </p>
         </div>
       </FlowSection>
+      </div>
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
+        <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
@@ -891,6 +920,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           )}
         </FlowSection>
+        </div>
       ) : corridorWarning ? (
         <div className="mx-auto max-w-2xl px-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
@@ -964,6 +994,74 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               ) : (
                 <>
+                  {/* ── Choix du départ — affiché dès qu'on a 1+ départ Konnekt ── */}
+                  {options.length >= 1 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {options.length > 1 ? `${options.length} départs disponibles` : 'Départ disponible'}
+                        </p>
+                        {chosen && <span className="text-[10px] text-muted-foreground">Cliquez pour changer</span>}
+                      </div>
+                      <div className={cn('grid gap-2.5', options.length > 1 ? 'sm:grid-cols-2' : '')}>
+                        {options.map((opt) => {
+                          const active = chosen?.id === opt.id;
+                          const dep = opt.departure_date
+                            ? new Date(opt.departure_date + 'T00:00:00')
+                            : null;
+                          // Estimate arrival date from eta_days "3-7 jours" → take upper bound
+                          const etaMaxMatch = /(\d+)\s*[–-]\s*(\d+)/.exec(opt.eta_days);
+                          const etaMaxDays = etaMaxMatch ? Number(etaMaxMatch[2]) : Number((opt.eta_days.match(/\d+/) || [0])[0]);
+                          const arr = dep && etaMaxDays
+                            ? new Date(dep.getTime() + etaMaxDays * 86_400_000)
+                            : null;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setChosen(opt)}
+                              className={cn(
+                                'text-left rounded-2xl border-2 p-4 transition-all relative',
+                                active
+                                  ? 'border-foreground bg-foreground text-background shadow-md'
+                                  : 'border-border bg-card hover:border-foreground/40'
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
+                                  <p className="text-sm font-bold truncate">{opt.label}</p>
+                                </div>
+                                {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                              </div>
+                              <div className="mt-2.5 grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Départ</p>
+                                  <p className="font-semibold mt-0.5">
+                                    {dep ? dep.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Arrivée estimée</p>
+                                  <p className="font-semibold mt-0.5">
+                                    {arr ? arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : opt.eta_days}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className={cn('mt-2 text-[11px]', active ? 'text-background/70' : 'text-muted-foreground')}>
+                                Délai · {opt.eta_days}
+                              </p>
+                              <p className="mt-2 text-base font-bold tabular-nums">
+                                {formatLocalAmount(Math.round(opt.price_eur), originProfile)}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+
                   <div className="grid sm:grid-cols-2 gap-3">
                     {cards.map(c => {
                       const active = priority === c.id;
@@ -1056,7 +1154,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       )}
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      <div id="section-final" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-final'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={7} total={7} title="Coordonnées, paiement & récapitulatif" hint="Renseignez l'expéditeur, choisissez votre paiement et vérifiez le résumé.">
+
         <div className="space-y-5 max-w-2xl">
 
           {/* ── Coordonnées expéditeur ── */}
@@ -1142,6 +1242,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </div>
         </div>
       </FlowSection>
+      </div>
+
 
 
       <LiveSummaryBar
