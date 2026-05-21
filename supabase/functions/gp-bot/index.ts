@@ -422,6 +422,56 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
     return await handleLivre(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
   }
 
+  // ---------- Confirmation d'adresse detectee (session) ----------
+  if (sessionActive && session!.pending_intent === 'confirm_address') {
+    const prior = (session!.pending_data ?? {}) as Record<string, any>;
+    const addr = String(prior.address ?? '').trim();
+    const kind = String(prior.kind ?? 'collecte') as 'collecte' | 'remise';
+    const city = String(prior.city ?? '').trim();
+    if (/^(oui|ok|yes|confirm|c'est ca|cest ca|exact|valide|valider)/i.test(msg)) {
+      if (kind === 'collecte') {
+        await supa.from('transporteurs').update({ adresse_collecte_dakar: addr }).eq('id', transporteur.id);
+        await reply(`Adresse sauvegardee ✓\nVotre adresse de collecte Dakar : ${addr}`, 'address_saved_collecte');
+        await notifyAdmin(`Adresse Dakar mise a jour pour ${prenom} (Ref ${transporteur.reference}) :\n${addr}`);
+      } else {
+        const current = (transporteur.adresses_remise ?? {}) as Record<string, string>;
+        const next = { ...current, [city || 'Autre']: addr };
+        await supa.from('transporteurs').update({ adresses_remise: next }).eq('id', transporteur.id);
+        await reply(`Adresse sauvegardee ✓\nAdresse remise ${city || ''} : ${addr}`, 'address_saved_remise');
+        await notifyAdmin(`Adresse remise ${city || ''} mise a jour pour ${prenom} (Ref ${transporteur.reference}) :\n${addr}`);
+      }
+      await clearSession();
+    } else if (/^(non|no|annul|cancel)/i.test(msg)) {
+      await clearSession();
+      await reply(`OK, adresse non sauvegardee. Tapez AIDE pour les commandes.`, 'address_canceled');
+    } else {
+      await clearSession();
+      // tomber dans le flux normal
+    }
+    if (msg && /^(oui|ok|yes|confirm|non|no|annul|cancel|c'est ca|cest ca|exact|valide|valider)/i.test(msg)) {
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- Detection d'adresse (avant fallback) ----------
+  const ADDR_KEYWORDS = /\b(villa|rue|avenue|av\.?|bd\.?|boulevard|cite|quartier|hlm|sacre\s*coeur|liberte|parcelles?|sicap|fann|mermoz|ouakam|yoff|almadies|plateau|medina|grand\s*dakar|point\s*e|grand\s*yoff|guediawaye|pikine|rufisque|thies|saly|mbour|n°|numero|appt|app|immeuble|residence|cite\s+\w+)\b/i;
+  const FOREIGN_CITIES = ['paris', 'marseille', 'lyon', 'toulouse', 'nice', 'nantes', 'strasbourg', 'bordeaux', 'lille', 'rennes', 'montpellier', 'new york', 'newark', 'brooklyn', 'manhattan', 'bruxelles', 'liege', 'geneve', 'lausanne', 'zurich', 'montreal', 'toronto', 'london', 'londres', 'madrid', 'barcelona', 'roma', 'milano', 'berlin', 'frankfurt', 'casablanca', 'rabat', 'abidjan', 'bamako', 'cotonou', 'lome', 'conakry', 'nouakchott', 'libreville', 'douala', 'yaounde'];
+
+  const hasAddrKeyword = ADDR_KEYWORDS.test(msg);
+  const foreignCity = FOREIGN_CITIES.find((c) => msg.includes(c));
+
+  if (hasAddrKeyword && rawMsg.length >= 8) {
+    const addrCandidate = rawMsg.trim().slice(0, 200);
+    if (foreignCity) {
+      await saveSession('confirm_address', { address: addrCandidate, kind: 'remise', city: foreignCity.replace(/\b\w/g, (c) => c.toUpperCase()) });
+      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de remise a ${foreignCity.replace(/\b\w/g, (c) => c.toUpperCase())} ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_remise');
+    } else {
+      await saveSession('confirm_address', { address: addrCandidate, kind: 'collecte', city: 'Dakar' });
+      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de collecte a Dakar ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_collecte');
+    }
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   // ---------- Fallback : intent inconnu ----------
   await notifyAdmin(`Commande non comprise de ${prenom} (Ref ${transporteur.reference}) :
 "${rawMsg.slice(0, 150)}"
