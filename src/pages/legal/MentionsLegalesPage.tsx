@@ -15,7 +15,8 @@ export default function MentionsLegalesPage() {
           <li><strong>NINEA :</strong> {COMPANY_INFO.ninea}</li>
           <li><strong>RCCM :</strong> {COMPANY_INFO.rccm}</li>
           <li><strong>Email :</strong> <a href={`mailto:${COMPANY_INFO.email}`} className="underline">{COMPANY_INFO.email}</a></li>
-          <li><strong>Téléphone :</strong> {COMPANY_INFO.phone}</li>
+          <li><strong>Contact clients :</strong> WhatsApp &amp; Tél&nbsp;: {COMPANY_INFO.phone}</li>
+          <li><strong>Contact transporteurs (GP) :</strong> WhatsApp&nbsp;: {COMPANY_INFO.phoneGp}</li>
           <li><strong>Site web :</strong> <a href={COMPANY_INFO.site} className="underline">{COMPANY_INFO.site}</a></li>
         </ul>
       </Section>
