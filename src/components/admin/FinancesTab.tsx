@@ -226,6 +226,10 @@ export function FinancesTab() {
       {/* ============ Monthly chart ============ */}
       <MonthlyChartSection />
 
+      {/* ============ Factures émises ============ */}
+      <InvoicesSection />
+
+
       {paying && (
         <PayDialog
           open={!!paying}
