@@ -47,7 +47,7 @@ export default function PayPage() {
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement…
           </div>
         ) : !dossier ? (
-          <EmptyState title="Lien invalide" description="Ce lien de paiement n’est pas valide." />
+          <EmptyState icon={CreditCard} title="Lien invalide" description="Ce lien de paiement n’est pas valide." />
         ) : dossier.payment_status === 'paid' ? (
           <div className="surface-card text-center py-10">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#1D9E75' }} />
@@ -57,7 +57,7 @@ export default function PayPage() {
             </p>
           </div>
         ) : dossier.payment_status !== 'pending' ? (
-          <EmptyState title="Paiement indisponible" description="Aucun paiement n’est attendu pour ce colis." />
+          <EmptyState icon={CreditCard} title="Paiement indisponible" description="Aucun paiement n’est attendu pour ce colis." />
         ) : (
           <div className="surface-card">
             <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">

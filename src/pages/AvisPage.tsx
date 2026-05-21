@@ -89,9 +89,10 @@ export default function AvisPage() {
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement…
           </div>
         ) : !dossier ? (
-          <EmptyState title="Avis non disponible" description="Ce lien n’est pas valide." />
+          <EmptyState icon={Star} title="Avis non disponible" description="Ce lien n’est pas valide." />
         ) : dossier.status !== 'DELIVERED' ? (
           <EmptyState
+            icon={Star}
             title="Avis non disponible"
             description="Vous pourrez laisser un avis dès que votre colis sera livré."
           />
