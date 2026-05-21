@@ -203,6 +203,7 @@ export default function AdminPage() {
               {section === 'clients'    && <ClientsTab />}
               {section === 'enterprise' && <EnterpriseQuotesTab />}
               {section === 'manual-quotes' && <ManualQuotesTab />}
+              {section === 'finances' && isAdmin && <FinancesTab />}
               {section === 'settings'   && <SettingsTab />}
             </>
           )}
