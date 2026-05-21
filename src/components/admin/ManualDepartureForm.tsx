@@ -288,7 +288,7 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
               <div>
                 <Label>Téléphone principal *</Label>
                 <Input value={tTel1} onChange={(e) => { setTTel1(e.target.value); markEditedIf(matched?.telephone_1, e.target.value); }} placeholder="+221 77 ..." />
-                <p className="text-[11px] text-muted-foreground mt-1">ℹ️ Utilisé pour la notification WhatsApp automatique</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Utilisé pour la notification WhatsApp automatique</p>
               </div>
               <div>
                 <Label>Téléphone secondaire</Label>
