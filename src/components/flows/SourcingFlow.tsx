@@ -84,11 +84,15 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     }
   }
 
-  const [productInput, setProductInput] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    const sp = new URLSearchParams(window.location.search);
-    return sp.get('q') ?? '';
-  });
+  // Hydrate from URL params (search bar writes ?q=&origin=&budget=).
+  // These are the same params ExpedierSearchBar pushes on "Continuer" so
+  // the choice persists after a remount/refresh.
+  const initialParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const initialOrigin = (() => {
+    const c = (initialParams.get('origin') || '').toUpperCase();
+    return (['CN', 'FR', 'AE', 'US'] as const).includes(c as any) ? c : 'CN';
+  })();
+  const [productInput, setProductInput] = useState(() => initialParams.get('q') ?? '');
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<null | {
     title: string; platform: string; estimatedPriceEur: number;
@@ -96,10 +100,10 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   }>(null);
 
   const [quantity, setQuantity] = useState(100);
-  const [budget, setBudget] = useState('');
+  const [budget, setBudget] = useState(() => initialParams.get('budget') ?? '');
   const [quality, setQuality] = useState<typeof QUALITIES[number]['id'] | null>(null);
   const [urgency, setUrgency] = useState<typeof URGENCIES[number]['id'] | null>(null);
-  const [origin, setOrigin] = useState<string | null>('CN');
+  const [origin, setOrigin] = useState<string | null>(initialOrigin);
   const [destination, setDestination] = useState<string | null>(null);
   const [chosen, setChosen] = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting] = useState(false);
