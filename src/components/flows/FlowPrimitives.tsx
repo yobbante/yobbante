@@ -611,7 +611,7 @@ export function CitySelector({
 }
 
 export function TextField({
-  label, value, onChange, placeholder, type = 'text', icon, suffix,
+  label, value, onChange, placeholder, type = 'text', icon, suffix, invalid,
 }: {
   label?: string;
   value: string;
@@ -620,23 +620,31 @@ export function TextField({
   type?: string;
   icon?: ReactNode;
   suffix?: ReactNode;
+  invalid?: boolean;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
   return (
     <label className="block">
-      {label && <span className={cn('block text-xs mb-1.5 font-medium', t.muted)}>{label}</span>}
+      {label && (
+        <span className={cn('block text-xs mb-1.5 font-medium', invalid ? 'text-danger' : t.muted)}>
+          {label}
+        </span>
+      )}
       <div className="relative">
-        {icon && <span className={cn('absolute left-3.5 top-1/2 -translate-y-1/2', t.muted)}>{icon}</span>}
+        {icon && <span className={cn('absolute left-3.5 top-1/2 -translate-y-1/2', invalid ? 'text-danger' : t.muted)}>{icon}</span>}
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          aria-invalid={invalid || undefined}
           className={cn(
             'w-full border-2 rounded-xl px-4 py-3.5 text-base focus:outline-none transition-all',
-            t.inputBg, t.border, t.inputPlaceholder,
-            theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground',
+            t.inputBg, t.inputPlaceholder,
+            invalid
+              ? 'border-danger focus:border-danger'
+              : cn(t.border, theme === 'dark' ? 'focus:border-yellow-400/60' : 'focus:border-foreground'),
             icon && 'pl-10', suffix && 'pr-14'
           )}
         />

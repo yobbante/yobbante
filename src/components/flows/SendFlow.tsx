@@ -405,6 +405,38 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     'section-goods':       !goodsOk,
     'section-final':       !senderName.trim() || !senderPhone.trim(),
   } as const;
+  // Per-field validation map — only populated after a failed submit so the form
+  // doesn't shout at the user before they've tried.
+  const fieldErrors = submitAttempted ? {
+    identityName:    !identityName.trim(),
+    identityPhone:   !identityPhone.trim(),
+    senderName:      !senderName.trim(),
+    senderPhone:     !senderPhone.trim(),
+    recipientName:   !recipientName.trim(),
+    recipientPhone:  !recipientPhone.trim(),
+    deliveryAddress: !destIsSenegal && !deliveryAddress.trim(),
+    pickupAddress:   !pickupAddress.trim(),
+    pickupDate:      !pickupDate,
+    pickupSlot:      !pickupSlot,
+    description:     !description.trim(),
+    declaredLocal:   !declaredLocal,
+    goodsType:       !goodsType,
+  } : {} as Record<string, boolean>;
+
+  // step number → DOM id for scroll-to + edit handling from the recap tab.
+  const STEP_DOM_ID: Record<number, string> = {
+    1: 'section-collecte',
+    2: 'section-recipient',
+    3: 'section-package',
+    4: 'section-goods',
+    7: 'section-final',
+  };
+  function goToStep(step: number) {
+    setEditingStep(step);
+    requestAnimationFrame(() => {
+      document.getElementById(STEP_DOM_ID[step])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
   function scrollToFirstError() {
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
@@ -803,12 +835,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   {userRole === 'third'     && 'Vos coordonnées (intermédiaire)'}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <TextField label="Nom complet *" value={identityName} onChange={setIdentityName} placeholder="Votre nom" />
+                  <TextField label="Nom complet *" value={identityName} onChange={setIdentityName} placeholder="Votre nom"
+                    invalid={fieldErrors.identityName} />
                   <TextField
                     label={`Téléphone * (${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix})`}
                     value={identityPhone} onChange={setIdentityPhone}
                     placeholder={`${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix} · · · · · ·`}
-                    type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                    type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                    invalid={fieldErrors.identityPhone} />
                 </div>
                 {identityName.trim() && identityPhone.trim() && (
                   <button type="button" onClick={() => setIdentityCollapsed(true)}
@@ -858,9 +892,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
-                      placeholder={`Personne qui remet le colis à ${originCity.city}`} />
+                      placeholder={`Personne qui remet le colis à ${originCity.city}`}
+                      invalid={fieldErrors.senderName} />
                     <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                      invalid={fieldErrors.senderPhone} />
                   </div>
                 </div>
               )}
@@ -870,6 +906,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier, code postal…"
+                invalid={fieldErrors.pickupAddress}
               />
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -880,7 +917,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <input
                     type="date" value={pickupDate} min={localCalendarMin}
                     onChange={(e) => setPickupDate(e.target.value)}
-                    className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all"
+                    aria-invalid={fieldErrors.pickupDate || undefined}
+                    className={cn(
+                      'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card focus:outline-none transition-all',
+                      fieldErrors.pickupDate ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+                    )}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Délai min {coverage.minLeadHours}h selon votre zone.
@@ -936,14 +977,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </p>
             )}
             <div className="grid sm:grid-cols-2 gap-3">
-              <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`} />
+              <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName}
+                placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`}
+                invalid={fieldErrors.recipientName} />
               <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
-                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                invalid={fieldErrors.recipientPhone} />
             </div>
             <AddressField
               label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
               value={deliveryAddress} onChange={setDelivery}
               placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
+              invalid={fieldErrors.deliveryAddress}
             />
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
@@ -976,10 +1021,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           {/* Description — textarea avec compteur (max 140) */}
           <label className="block">
             <span className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Description *</span>
+              <span className={cn('text-xs font-medium', fieldErrors.description ? 'text-danger' : 'text-muted-foreground')}>Description *</span>
               <span className={cn(
                 'text-[10px] tabular-nums',
-                description.length > 140 ? 'text-red-500 font-semibold' : 'text-muted-foreground/70',
+                description.length > 140 ? 'text-danger font-semibold' : 'text-muted-foreground/70',
               )}>{description.length}/140</span>
             </span>
             <textarea
@@ -988,7 +1033,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               maxLength={140}
               rows={2}
               placeholder="Ex. 3 robes, 2 pantalons, chaussures"
-              className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+              aria-invalid={fieldErrors.description || undefined}
+              className={cn(
+                'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card placeholder:text-muted-foreground/60 focus:outline-none transition-all resize-none',
+                fieldErrors.description ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+              )}
             />
             <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et améliore la détection automatique.</p>
           </label>
@@ -1024,6 +1073,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               placeholder={originProfile.currency === 'XOF' ? '85 000' : '120'}
               suffix={originProfile.currencySymbol}
               type="number"
+              invalid={fieldErrors.declaredLocal}
             />
             <div className="flex items-end">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -1086,29 +1136,27 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
                 {GOODS_TYPES.map(g => {
                   const active = goodsType === g.id;
-                  const riskColor = g.risk === 'high' ? 'text-amber-500' : g.risk === 'medium' ? 'text-blue-500' : 'text-emerald-500';
+                  const dotColor = g.risk === 'high' ? 'bg-amber-400' : g.risk === 'medium' ? 'bg-blue-400' : 'bg-emerald-400';
                   return (
                     <button key={g.id} type="button"
+                      title={g.desc}
                       onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); setEditingStep(null); }}
                       className={cn(
-                        'group relative text-left rounded-xl border-2 p-3 transition-all overflow-hidden',
+                        'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
-                          ? 'border-foreground bg-foreground text-background'
+                          ? 'border-foreground bg-foreground text-background shadow-sm'
                           : 'border-border bg-card hover:border-foreground/40',
                       )}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-[13px] font-semibold leading-tight">{g.label}</p>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[12px] font-semibold leading-tight truncate">{g.label}</span>
                         <span className={cn(
-                          'shrink-0 w-1.5 h-1.5 rounded-full mt-1.5',
-                          active ? 'bg-background/70' : g.risk === 'high' ? 'bg-amber-400' : g.risk === 'medium' ? 'bg-blue-400' : 'bg-emerald-400',
+                          'shrink-0 w-1.5 h-1.5 rounded-full',
+                          active ? 'bg-background/70' : dotColor,
                         )} />
                       </div>
-                      <p className={cn('mt-1 text-[10.5px] leading-snug',
-                        active ? 'text-background/70' : 'text-muted-foreground',
-                      )}>{g.desc}</p>
                     </button>
                   );
                 })}
@@ -1418,7 +1466,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
 
                 {/* Personnes */}
-                <RecapGroup icon={<User className="w-3.5 h-3.5" />} title="Personnes">
+                <RecapGroup
+                  icon={<User className="w-3.5 h-3.5" />}
+                  title="Personnes"
+                  onEdit={() => goToStep(2)}
+                  incomplete={!recipientOk || !senderName.trim() || !senderPhone.trim()}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Expéditeur" value={senderName || senderPhone
                     ? `${senderName || '—'} · ${senderPhone || '—'} · ${originCity?.city ?? '—'}`
                     : '— (à renseigner)'} />
@@ -1428,14 +1482,26 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </RecapGroup>
 
                 {/* Collecte */}
-                <RecapGroup icon={<MapPin className="w-3.5 h-3.5" />} title="Collecte & livraison">
+                <RecapGroup
+                  icon={<MapPin className="w-3.5 h-3.5" />}
+                  title="Collecte & livraison"
+                  onEdit={() => goToStep(1)}
+                  incomplete={!collecteOk}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Collecte" value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
                   {pickupAddress && <RecapRow label="Adresse" value={pickupAddress} />}
                   {deliveryAddress && <RecapRow label="Livraison" value={deliveryAddress} />}
                 </RecapGroup>
 
                 {/* Colis */}
-                <RecapGroup icon={<Package className="w-3.5 h-3.5" />} title="Colis">
+                <RecapGroup
+                  icon={<Package className="w-3.5 h-3.5" />}
+                  title="Colis"
+                  onEdit={() => goToStep(3)}
+                  incomplete={!packageOk || !goodsOk}
+                  missingLabel="à compléter"
+                >
                   <RecapRow label="Article" value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
                   <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
                   <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
@@ -1511,12 +1577,35 @@ function RecapRow({ label, value, strong }: { label: string; value: string; stro
   );
 }
 
-function RecapGroup({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function RecapGroup({
+  icon, title, children, onEdit, incomplete, missingLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  onEdit?: () => void;
+  incomplete?: boolean;
+  missingLabel?: string;
+}) {
   return (
-    <div className="px-5 py-4 border-t border-border space-y-1.5">
-      <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
-        {icon} {title}
-      </p>
+    <div className={cn('px-5 py-4 border-t border-border space-y-1.5', incomplete && 'bg-danger/5')}>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium inline-flex items-center gap-1.5 text-muted-foreground">
+          {incomplete && <span className="w-1.5 h-1.5 rounded-full bg-danger" aria-hidden />}
+          <span className="inline-flex items-center gap-1.5">{icon} {title}</span>
+          {incomplete && (
+            <span className="ml-1 text-[10px] normal-case tracking-normal text-danger font-medium">
+              · {missingLabel ?? 'champs manquants'}
+            </span>
+          )}
+        </p>
+        {onEdit && (
+          <button type="button" onClick={onEdit}
+            className="text-[11px] font-medium text-foreground hover:underline underline-offset-2 shrink-0">
+            Modifier
+          </button>
+        )}
+      </div>
       {children}
     </div>
   );
@@ -1544,15 +1633,19 @@ function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[
 
 
 function AddressField({
-  label, value, onChange, placeholder,
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  label, value, onChange, placeholder, invalid,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; invalid?: boolean }) {
   return (
     <label className="block">
-      <span className="block text-xs mb-1.5 font-medium text-muted-foreground">{label}</span>
+      <span className={cn('block text-xs mb-1.5 font-medium', invalid ? 'text-danger' : 'text-muted-foreground')}>{label}</span>
       <textarea
         value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder} rows={2}
-        className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+        aria-invalid={invalid || undefined}
+        className={cn(
+          'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card placeholder:text-muted-foreground/60 focus:outline-none transition-all resize-none',
+          invalid ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+        )}
       />
     </label>
   );
