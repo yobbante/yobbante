@@ -88,11 +88,10 @@ export default function PayPage() {
     if (!trackingId || !dossier) return;
     setBusy('cod');
     try {
-      const { error } = await supabase
-        .from('dossiers')
-        .update({ cash_on_delivery: true, payment_status: 'pending_delivery' })
-        .or(`tracking_id.eq.${trackingId},reference.eq.${trackingId}`);
+      const { data, error } = await supabase.rpc('set_dossier_cod_public', { p_tracking: trackingId });
       if (error) throw error;
+      if (data !== true) throw new Error('Impossible de confirmer le paiement à la livraison');
+
 
       const ref = dossier.tracking_id || dossier.reference;
       // Notif admin (best-effort)
