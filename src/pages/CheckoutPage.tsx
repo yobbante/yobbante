@@ -271,7 +271,7 @@ export default function CheckoutPage() {
                   <button onClick={() => setStep('delivery')} style={ghostBtn}>← Modifier la livraison</button>
                   <button onClick={handleConfirm} disabled={submitting}
                     style={{ ...primaryBtn, flex: 1, opacity: submitting ? 0.6 : 1 }}>
-                    {submitting ? 'Confirmation…' : `Confirmer la commande · ${fmtEur(subtotal)}`}
+                    {submitting ? 'Confirmation…' : `Confirmer la commande · ${fmtEur(total)}`}
                   </button>
                 </div>
               </section>
