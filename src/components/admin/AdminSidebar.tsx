@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
 
