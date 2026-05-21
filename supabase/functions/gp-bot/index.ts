@@ -113,36 +113,29 @@ function formatDateFr(iso: string): string {
 //  Messages canoniques (sans accents, compatibilité WhatsApp basique)
 // =================================================================
 
-const HELP_TEXT = `Bienvenue sur Yobbante GP 👋
+const HELP_TEXT = `Bienvenue sur Yobbante GP !
 Je suis votre assistant automatique.
-Voici comment je fonctionne :
 
-📅 ENREGISTRER UN DEPART
-Envoyez : DEP [ville] [date] [poids]kg
-Exemple : DEP Paris 28/05 25kg
+Que voulez-vous faire ?
 
-✅ CONFIRMER UNE COLLECTE
-Envoyez : COLLECTE [numero de suivi]
-Exemple : COLLECTE YOB-K7M9P2
+1 - Enregistrer un depart
+2 - Confirmer une collecte
+3 - Enregistrer un poids
+4 - Confirmer une livraison
+5 - Mes missions en cours
+6 - Mes prochains departs
 
-⚖️ ENREGISTRER LE POIDS
-Envoyez : POIDS [numero] [poids]kg
-Exemple : POIDS YOB-K7M9P2 2.3kg
-
-🏠 CONFIRMER UNE LIVRAISON
-Envoyez : LIVRE [numero de suivi]
-Exemple : LIVRE YOB-K7M9P2
-
-📦 VOS COLIS EN COURS
-Envoyez : MES MISSIONS
-
-🚀 VOS PROCHAINS DEPARTS
-Envoyez : MES DEPARTS
-
-❓ AFFICHER CE MENU
-Envoyez : AIDE
+Repondez avec le numero de votre choix
+ou tapez directement votre commande.
+Ex: DEP Paris 28/05 25kg
 
 Pour toute urgence : +221784604003`;
+
+const FALLBACK_TEXT = `Je n'ai pas compris.
+Tapez AIDE pour voir le menu
+ou choisissez :
+1-Depart  2-Collecte  3-Poids
+4-Livraison  5-Missions  6-Departs`;
 
 const ONBOARDING_TEXT = `Bonjour ! 👋
 Ce numero est reserve aux transporteurs partenaires de Yobbante.
