@@ -641,18 +641,38 @@ Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg`);
 
     const { data: dossier } = await supa
       .from('dossiers')
-      .select('id, assigned_transporteur_ref, status, tracking_id, contact_phone, buyer_name')
+      .select('id, assigned_transporteur_ref, status, tracking_id, contact_phone, buyer_name, estimated_weight')
       .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
       .maybeSingle();
 
     if (!dossier) {
       await clearSession();
-      await reply(`Tracking ${tracking} non trouve. Verifiez le numero et reessayez.`, 'collecte_notfound');
+      await reply(`Numero ${tracking} non trouve. Verifiez et reessayez.`, 'collecte_notfound');
       return new Response('ok', { headers: corsHeaders });
     }
     if (dossier.assigned_transporteur_ref !== transporteur.reference) {
       await clearSession();
       await reply(`Ce dossier ne vous est pas assigne.`, 'collecte_unauthorized');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('collecte', { tracking, awaiting_confirm: true });
+      await reply(`Confirmer la collecte de ${dossier.tracking_id} ?
+Client : ${dossier.buyer_name ?? '—'}
+Poids estime : ${dossier.estimated_weight ?? '—'}kg
+
+Repondez OUI pour valider ou NON pour annuler.`, 'collecte_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'collecte_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider la collecte ou NON pour annuler.`, 'collecte_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
 
@@ -666,7 +686,7 @@ Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg`);
     if (error) {
       await reply(`Erreur : ${error.message}`, 'collecte_error');
     } else {
-      await reply(`✅ Collecte enregistree pour ${dossier.tracking_id}.
+      await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
 Pesez le colis et envoyez :
 POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la collecte de ${dossier.tracking_id} (${dossier.buyer_name ?? '—'})`);
