@@ -31,6 +31,11 @@ export default function Index() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Mark this session as "inside the app shell" so any subsequent
+  // "Accueil" / "Retour" link (search bar, flow header, etc.) brings
+  // the user back to /app instead of the public landing page.
+  useEffect(() => { markInApp(); }, []);
+
   const rawView = searchParams.get('view');
   let view: TabId = 'home';
   if (rawView && ALLOWED.includes(rawView as TabId)) {
