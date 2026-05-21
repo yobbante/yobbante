@@ -7,12 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Plane, Send, ListChecks, Bot, CheckCircle2, Loader2, History, MapPin, Copy, Search as SearchIcon } from 'lucide-react';
+import { Plane, Send, ListChecks, Bot, CheckCircle2, Loader2, History, MapPin, Copy, Search as SearchIcon, Coins, Wallet, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Transporteur } from '@/hooks/useTransporteurs';
+import { GpRatesDialog } from './GpRatesDialog';
+import { formatXof, PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/lib/gpFinance';
 
-type Action = 'depart' | 'missions' | 'message' | 'simulate' | 'history';
+type Action = 'depart' | 'missions' | 'message' | 'simulate' | 'history' | 'rates' | 'payments';
+
 
 export function GpActionsPanel({
   gp, open, onClose,
