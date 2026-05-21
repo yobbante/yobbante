@@ -39,7 +39,7 @@ const KIND_TABS: ReadonlyArray<{
     hint: 'On trouve, on achète, on livre.',
     Icon: Sparkles,
     ctaLabel: 'Confier un sourcing',
-    ctaHref: '/acheter',
+    ctaHref: '/sourcing',
   },
   {
     id: 'receive',
