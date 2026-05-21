@@ -225,13 +225,13 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
         });
         if (notifyData && notifyData.sent === false) {
           toast.warning(
-            `⚠️ Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+            `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
             { duration: 8000 },
           );
         }
       } catch {
         toast.warning(
-          `⚠️ Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+          `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
           { duration: 8000 },
         );
       }
