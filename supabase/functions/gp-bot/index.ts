@@ -375,8 +375,52 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
   }
 
   // =================================================================
+  //  Menu numerote : 1..6 (ou "un", "deux", ...)
+  // =================================================================
+  const MENU_MAP: Record<string, string> = {
+    '1': '1', 'un': '1', 'une': '1',
+    '2': '2', 'deux': '2',
+    '3': '3', 'trois': '3',
+    '4': '4', 'quatre': '4',
+    '5': '5', 'cinq': '5',
+    '6': '6', 'six': '6',
+  };
+  if (!sessionActive && MENU_MAP[msg]) {
+    const choice = MENU_MAP[msg];
+    await clearSession();
+    if (choice === '1') {
+      await saveSession('dep', {});
+      await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '2') {
+      await saveSession('collecte', {});
+      await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_collecte');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '3') {
+      await saveSession('poids', {});
+      await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_poids');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '4') {
+      await saveSession('livre', {});
+      await reply(`Quel est le numero de suivi du colis livre ?\n(Exemple : YOB-K7M9P2)`, 'menu_livre');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '5') {
+      return await runMesMissions();
+    }
+    if (choice === '6') {
+      return await runMesDeparts();
+    }
+  }
+
+  // =================================================================
   //  Détection intent DEP / COLLECTE / POIDS / LIVRE (tolérant)
   // =================================================================
+
+
 
   const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg);
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
