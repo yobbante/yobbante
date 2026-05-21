@@ -8,6 +8,7 @@ import { HomeView } from '@/pages/HomeView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
 import { IntentSearchBar } from '@/components/IntentSearchBar';
+import { markInApp } from '@/lib/homeHref';
 
 const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile'];
 
