@@ -31,12 +31,12 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
   // SOURCE 1 + 2: manual_departures (with optional transporteur join)
   try {
     const { data: manual } = await supabase
-      .from('manual_departures')
+      .from('public_active_departures' as any)
       .select('origin_city, destination_city, departure_date, transport_mode, transporteur_ref, carrier_name')
-      .eq('status', 'active')
       .gte('departure_date', today)
       .order('departure_date', { ascending: true })
       .limit(20);
+
 
     if (manual?.length) {
       const refs = manual.map(m => m.transporteur_ref).filter(Boolean) as string[];
