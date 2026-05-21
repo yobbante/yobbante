@@ -219,6 +219,9 @@ export function FinancesTab() {
         )}
       </section>
 
+      {/* ============ Monthly chart ============ */}
+      <MonthlyChartSection />
+
       {paying && (
         <PayDialog
           open={!!paying}
@@ -235,6 +238,7 @@ export function FinancesTab() {
     </div>
   );
 }
+
 
 // ============================================================================
 
