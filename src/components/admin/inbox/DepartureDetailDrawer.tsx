@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { MessageCircle, ExternalLink, Phone, User, Package } from 'lucide-react';
+import { MessageCircle, ExternalLink, Phone, User, Package, Copy, Send, Link2 } from 'lucide-react';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
