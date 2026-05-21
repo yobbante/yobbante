@@ -361,7 +361,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // ── Submit ──────────────────────────────────────────────────────
   async function submit() {
-    if (!step3Ok || !originCity || !destCity || !goodsType) {
+    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk) {
       toast.error('Étapes incomplètes', { description: 'Vérifiez les informations avant de confirmer.' });
       return;
     }
