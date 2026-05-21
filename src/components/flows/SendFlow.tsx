@@ -829,7 +829,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               lines={[
                 `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}`,
                 pickupAddress,
-                userRole !== 'sender' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
+                userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
               ].filter(Boolean) as string[]}
               onEdit={() => setEditingStep(1)}
             />
