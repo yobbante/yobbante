@@ -1025,8 +1025,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })()}
       </FlowSection>
 
-        })()}
-      </FlowSection>
+
 
       {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
