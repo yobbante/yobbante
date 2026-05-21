@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -71,16 +71,35 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  // Re-expand when switching mode so the user sees the inputs
-  useEffect(() => { setExpanded(true); }, [mode]);
+  // Re-expand when switching mode so the user sees the inputs (skip first render)
+  const firstModeRender = useRef(true);
+  useEffect(() => { if (firstModeRender.current) { firstModeRender.current = false; return; } setExpanded(true); }, [mode]);
 
   // ── Envoyer state ────────────────────────────────────────────────
   const DAKAR = 'Dakar, Sénégal';
-  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
-  const [origin, setOrigin] = useState(DAKAR);
-  const [destination, setDestination] = useState('');
-  const [weight, setWeight] = useState('');
-  const [transport, setTransport] = useState<'AIR' | 'SEA' | 'ROAD'>('AIR');
+  // Hydrate previous preset so the choice persists across reloads / nav
+  const hydratedSend = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try { const raw = sessionStorage.getItem(SEND_PRESET_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  }, []);
+  const buildCityLabel = (city?: string, country?: string) => {
+    if (!city) return '';
+    if (city === 'Dakar') return DAKAR;
+    const m = ALL_CITIES.find(c => c.city === city && (!country || c.country === country));
+    return m ? `${m.city}, ${m.countryLabel}` : city;
+  };
+  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
+    hydratedSend?.origin === 'SN' ? 'from_dakar' : hydratedSend?.destination === 'SN' ? 'to_dakar' : 'from_dakar'
+  );
+  const [origin, setOrigin] = useState(buildCityLabel(hydratedSend?.origin_city, hydratedSend?.origin) || DAKAR);
+  const [destination, setDestination] = useState(buildCityLabel(hydratedSend?.destination_city, hydratedSend?.destination));
+  const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
+  const [transport, setTransport] = useState<'AIR' | 'SEA' | 'ROAD'>(hydratedSend?.transport ?? 'AIR');
+  // Auto-collapse on mount when a complete preset already exists
+  useEffect(() => {
+    if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const swapDirection = () => {
     if (origin && destination) {
       const prev = origin;
