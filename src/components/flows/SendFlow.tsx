@@ -835,12 +835,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   {userRole === 'third'     && 'Vos coordonnées (intermédiaire)'}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <TextField label="Nom complet *" value={identityName} onChange={setIdentityName} placeholder="Votre nom" />
+                  <TextField label="Nom complet *" value={identityName} onChange={setIdentityName} placeholder="Votre nom"
+                    invalid={fieldErrors.identityName} />
                   <TextField
                     label={`Téléphone * (${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix})`}
                     value={identityPhone} onChange={setIdentityPhone}
                     placeholder={`${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix} · · · · · ·`}
-                    type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                    type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                    invalid={fieldErrors.identityPhone} />
                 </div>
                 {identityName.trim() && identityPhone.trim() && (
                   <button type="button" onClick={() => setIdentityCollapsed(true)}
