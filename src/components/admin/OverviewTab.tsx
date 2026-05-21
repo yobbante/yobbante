@@ -162,6 +162,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
       const isSourcing = d.needs_sourcing || d.dossier_type === 'business_sourcing' || ['SOURCING', 'PROCURED'].includes(d.status);
       rows.push({
         id: `d-${d.id}`,
+        rawId: d.id,
         service: isSourcing ? 'sourcing' : 'expedier',
         ref: d.tracking_id || d.reference,
         title: d.product_description || '—',
@@ -175,6 +176,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
     for (const r of data.receptions) {
       rows.push({
         id: `r-${r.id}`,
+        rawId: r.id,
         service: 'reception',
         ref: r.reference,
         title: `${r.merchant_name} · ${r.order_description || ''}`.trim(),
@@ -185,6 +187,18 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
     }
     return rows.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()).slice(0, 12);
   }, [data]);
+
+  const openActivity = (row: { service: 'expedier' | 'sourcing' | 'reception'; rawId: string }) => {
+    const target: AdminSection =
+      row.service === 'sourcing' ? 'sourcing'
+      : row.service === 'reception' ? 'reception'
+      : 'requests';
+    onJump(target);
+    // dispatch on next tick so target tab is mounted and listening
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('admin:focus', { detail: { service: row.service, id: row.rawId } }));
+    }, 50);
+  };
 
   if (isLoading || !data || !m) {
     return (
