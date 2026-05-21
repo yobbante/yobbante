@@ -197,6 +197,7 @@ export default function AdminPage() {
               {section === 'tracking'   && <TrackingTab />}
               {section === 'clients'    && <ClientsTab />}
               {section === 'enterprise' && <EnterpriseQuotesTab />}
+              {section === 'manual-quotes' && <ManualQuotesTab />}
               {section === 'settings'   && <SettingsTab />}
             </>
           )}
