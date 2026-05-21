@@ -343,6 +343,20 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     return () => window.removeEventListener('yobbante:receive-flow:goto', handler);
   }, []);
 
+  /* Auto-scroll vers la section tarifs/tracking si #tarifs dans l'URL
+     (déclenché depuis le CTA "Obtenir mon prix" du landing). */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#tarifs') return;
+    if (step === 'ask') setStep(hub ? 'tracking' : 'pre-order');
+    const t = setTimeout(() => {
+      const el = document.getElementById('tarifs');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hub]);
+
   /* ── Handlers — ASK step ── */
   function chooseOrdered(value: 'yes' | 'no') {
     saveSession({ ordered: value });
