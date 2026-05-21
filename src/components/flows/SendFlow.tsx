@@ -624,9 +624,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         {/* Recap */}
         <section className="mt-4 mb-20 rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3 text-sm">
           <h3 className="text-base font-semibold tracking-tight">Récapitulatif</h3>
-          <RecapRow label="Expéditeur" value={`${senderName} · ${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
-          <RecapRow label="Collecte"   value={`${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'} · ${pickupAddress}`} />
-          <RecapRow label="Destinataire" value={`${recipientName} · ${destProfile.flag} ${destCity?.city}, ${destProfile.name}`} />
+          <RecapRow label="Trajet"       value={`${originProfile.flag} ${originCity?.city} → ${destProfile.flag} ${destCity?.city}`} />
+          <RecapRow label="Expéditeur"   value={`${senderName} · ${senderPhone} · ${originCity?.city}`} />
+          <RecapRow label="Collecte"     value={`${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'} · ${pickupAddress}`} />
+          <RecapRow label="Destinataire" value={`${recipientName} · ${recipientPhone} · ${destCity?.city}`} />
+
           <RecapRow label="Article"    value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label} — ${description}`} />
           <RecapRow label="Poids"      value={`${weight} kg · ${parcelCount} colis`} />
           <RecapRow label="Transport"  value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
