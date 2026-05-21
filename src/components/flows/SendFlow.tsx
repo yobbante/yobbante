@@ -1061,7 +1061,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <LiveSummaryBar
-        visible={step7Ok}
+        visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
