@@ -92,6 +92,25 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
 }) {
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCount() {
+      const { count } = await supabase
+        .from('whatsapp_inbound_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+      if (mounted) setUnread(count ?? 0);
+    }
+    loadCount();
+    const ch = supabase
+      .channel('sidebar-wa-unread')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(ch); };
+  }, []);
+
   return (
     <nav
       className="flex flex-col gap-1 p-2"
