@@ -727,20 +727,41 @@ POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
       return new Response('ok', { headers: corsHeaders });
     }
 
-    let amountXof: number | null = null;
-    try {
-      const { data: quote } = await supa.rpc('calculate_quote', {
-        p_origin_country: 'FR',
-        p_destination_country: dossier.destination_country || 'SN',
-        p_weight_kg: weight,
-        p_transport_type: 'air',
-        p_priority: 'normal',
-      });
-      const row = Array.isArray(quote) ? quote[0] : quote;
-      const eur = row?.price_eur;
-      if (typeof eur === 'number') amountXof = Math.round(eur * 655.957);
-    } catch (e) {
-      console.error('WA_ERROR pricing', e);
+    let amountXof: number | null = (prior.amountXof as number | undefined) ?? null;
+    if (amountXof === null) {
+      try {
+        const { data: quote } = await supa.rpc('calculate_quote', {
+          p_origin_country: 'FR',
+          p_destination_country: dossier.destination_country || 'SN',
+          p_weight_kg: weight,
+          p_transport_type: 'air',
+          p_priority: 'normal',
+        });
+        const row = Array.isArray(quote) ? quote[0] : quote;
+        const eur = row?.price_eur;
+        if (typeof eur === 'number') amountXof = Math.round(eur * 655.957);
+      } catch (e) {
+        console.error('WA_ERROR pricing', e);
+      }
+    }
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('poids', { tracking, weight, amountXof, awaiting_confirm: true });
+      await reply(`Poids ${weight}kg pour ${dossier.tracking_id}.
+${amountXof ? `Montant final : ${amountXof.toLocaleString('fr-FR')} XOF` : `Montant final en cours de calcul.`}
+
+Repondez OUI pour valider et notifier le client, NON pour annuler.`, 'poids_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'poids_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider le poids ou NON pour annuler.`, 'poids_confirm');
+      return new Response('ok', { headers: corsHeaders });
     }
 
     const updates: Record<string, any> = {
