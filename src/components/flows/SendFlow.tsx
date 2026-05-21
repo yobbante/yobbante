@@ -994,6 +994,74 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               ) : (
                 <>
+                  {/* ── Choix du départ — affiché dès qu'on a 1+ départ Konnekt ── */}
+                  {options.length >= 1 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {options.length > 1 ? `${options.length} départs disponibles` : 'Départ disponible'}
+                        </p>
+                        {chosen && <span className="text-[10px] text-muted-foreground">Cliquez pour changer</span>}
+                      </div>
+                      <div className={cn('grid gap-2.5', options.length > 1 ? 'sm:grid-cols-2' : '')}>
+                        {options.map((opt) => {
+                          const active = chosen?.id === opt.id;
+                          const dep = opt.departure_date
+                            ? new Date(opt.departure_date + 'T00:00:00')
+                            : null;
+                          // Estimate arrival date from eta_days "3-7 jours" → take upper bound
+                          const etaMaxMatch = /(\d+)\s*[–-]\s*(\d+)/.exec(opt.eta_days);
+                          const etaMaxDays = etaMaxMatch ? Number(etaMaxMatch[2]) : Number((opt.eta_days.match(/\d+/) || [0])[0]);
+                          const arr = dep && etaMaxDays
+                            ? new Date(dep.getTime() + etaMaxDays * 86_400_000)
+                            : null;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setChosen(opt)}
+                              className={cn(
+                                'text-left rounded-2xl border-2 p-4 transition-all relative',
+                                active
+                                  ? 'border-foreground bg-foreground text-background shadow-md'
+                                  : 'border-border bg-card hover:border-foreground/40'
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
+                                  <p className="text-sm font-bold truncate">{opt.label}</p>
+                                </div>
+                                {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                              </div>
+                              <div className="mt-2.5 grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Départ</p>
+                                  <p className="font-semibold mt-0.5">
+                                    {dep ? dep.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Arrivée estimée</p>
+                                  <p className="font-semibold mt-0.5">
+                                    {arr ? arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : opt.eta_days}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className={cn('mt-2 text-[11px]', active ? 'text-background/70' : 'text-muted-foreground')}>
+                                Délai · {opt.eta_days}
+                              </p>
+                              <p className="mt-2 text-base font-bold tabular-nums">
+                                {formatLocalAmount(Math.round(opt.price_eur), originProfile)}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+
                   <div className="grid sm:grid-cols-2 gap-3">
                     {cards.map(c => {
                       const active = priority === c.id;
