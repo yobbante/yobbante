@@ -917,7 +917,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <input
                     type="date" value={pickupDate} min={localCalendarMin}
                     onChange={(e) => setPickupDate(e.target.value)}
-                    className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all"
+                    aria-invalid={fieldErrors.pickupDate || undefined}
+                    className={cn(
+                      'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card focus:outline-none transition-all',
+                      fieldErrors.pickupDate ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+                    )}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Délai min {coverage.minLeadHours}h selon votre zone.
