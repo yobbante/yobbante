@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Package, Search, Inbox, ArrowRightLeft, MapPin, Pencil, ChevronDown, ChevronUp,
+  Package, Search, Inbox, ArrowRightLeft, MapPin, Pencil, ArrowLeft, ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
