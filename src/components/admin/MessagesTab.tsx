@@ -402,25 +402,26 @@ export function MessagesTab() {
 
   // ---------- Render ----------
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
-      <header className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full min-h-[500px] w-full">
+      <header className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card/30">
         <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
+          <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
             Messages WhatsApp
             {unreadTotal > 0 && (
-              <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
+              <span className="text-[10px] bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
                 {unreadTotal} non lu{unreadTotal > 1 ? 's' : ''}
               </span>
             )}
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Clients : 607 · GP : 122</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Clients : 607 · GP : 122</p>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex flex-1 min-h-0 bg-card overflow-hidden">
         {/* ===== LEFT — conversations ===== */}
-        <aside className={cn('w-full md:w-[340px] flex-shrink-0 border-r border-border flex flex-col', openPhone && 'hidden md:flex')}>
+        <aside className={cn('w-full md:w-[320px] flex-shrink-0 border-r border-border flex flex-col', openPhone && 'hidden md:flex')}>
+
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
