@@ -4,6 +4,7 @@ import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ecommerce } from '@/lib/analytics';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -55,7 +56,23 @@ export default function CheckoutPage() {
       description: 'Finalisez votre commande Dëkk. Livraison incluse au Sénégal, paiement Wave, Orange Money ou carte.',
       type: 'website',
     });
+    if (c.length > 0) {
+      const value = c.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
+      ecommerce.initiateCheckout(
+        c.map(i => ({ id: i.product.id, name: i.product.name, price: i.product.price_eur, quantity: i.qty })),
+        { value, currency: 'EUR' },
+      );
+    }
   }, [nav]);
+
+  // Fire AddPaymentInfo once user reaches the payment step
+  useEffect(() => {
+    if (step === 'payment' && cart.length > 0) {
+      const value = cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
+      ecommerce.addPaymentInfo(payment, { value, currency: 'EUR' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, payment]);
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
