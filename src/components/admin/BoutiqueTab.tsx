@@ -14,6 +14,7 @@ type Product = {
   price_fcfa: number;
   origin_country: string;
   stock_mode: string;
+  stock_qty: number | null;
   delivery_days: number | null;
   status: string;
   image_url: string | null;
