@@ -63,7 +63,118 @@ function GlobalNotifiers() {
   return null;
 }
 
-const App = () => (
+const DekkRoutes = () => (
+  <Routes>
+    {/* Boutique = home sur le sous-domaine */}
+    <Route path="/" element={<DekkLayout><BoutiquePage /></DekkLayout>} />
+    <Route path="/boutique" element={<Navigate to="/" replace />} />
+    <Route path="/boutique/:id" element={<DekkLayout><ProductDetailPage /></DekkLayout>} />
+    {/* Alias SEO-friendly futur */}
+    <Route path="/produit/:id" element={<DekkLayout><ProductDetailPage /></DekkLayout>} />
+    <Route path="/panier" element={<DekkLayout><CartPage /></DekkLayout>} />
+    <Route path="/panier/checkout" element={<DekkLayout><CheckoutPage /></DekkLayout>} />
+    <Route path="/panier/confirmation/:reference" element={<DekkLayout><OrderConfirmationPage /></DekkLayout>} />
+
+    {/* Compte client mutualisé */}
+    <Route path="/auth" element={<Auth />} />
+    <Route path="/mon-compte" element={<Index />} />
+    <Route path="/app" element={<Index />} />
+    <Route path="/app/dossier/:id" element={<DossierDetail />} />
+
+    {/* Suivi colis partagé */}
+    <Route path="/suivre" element={<SuivreEntry />} />
+    <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
+    <Route path="/track" element={<TrackPage />} />
+    <Route path="/track/:id" element={<TrackPage />} />
+    <Route path="/avis/:trackingId" element={<AvisPage />} />
+    <Route path="/pay/:trackingId" element={<PayPage />} />
+
+    {/* Admin accessible des deux côtés (session partagée) */}
+    <Route path="/admin" element={<AdminPage />} />
+    <Route path="/admin/inbox/import" element={<InboxImportPage />} />
+    <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
+    <Route path="/admin/:section" element={<AdminPage />} />
+
+    {/* Pages légales mutualisées */}
+    <Route path="/confidentialite" element={<ConfidentialitePage />} />
+    <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+    <Route path="/cgu" element={<CguPage />} />
+    <Route path="/cgv" element={<CgvPage />} />
+    <Route path="/cookies" element={<CookiesPage />} />
+
+    {/* Toute autre URL renvoie vers le site principal */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
+const MainRoutes = () => (
+  <Routes>
+    <Route path="/" element={<LandingPage />} />
+    {/* New 2-CTAs entry points */}
+    <Route path="/expedier" element={<ExpedierPage />} />
+    <Route path="/expedier/:mode" element={<ExpedierPage />} />
+    {/* Sourcing — canonical URL. /acheter kept as alias for the merchant-mode selection page only when ?mode=recevoir is needed. */}
+    <Route path="/sourcing" element={<SourcingPage />} />
+    <Route path="/acheter" element={<Navigate to="/sourcing" replace />} />
+    <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
+    <Route path="/acheter/recevoir" element={<AcheterPage />} />
+    <Route path="/tarifs" element={<TarifsPage />} />
+    <Route path="/devis" element={<DevisPage />} />
+    <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
+    <Route path="/track" element={<TrackPage />} />
+    <Route path="/track/:id" element={<TrackPage />} />
+    {/* Boutique : en prod redirige vers dekk.yobbante.com, sinon rend en local */}
+    <Route path="/boutique" element={<DekkBoutiqueRedirect><DekkLayout><BoutiquePage /></DekkLayout></DekkBoutiqueRedirect>} />
+    <Route path="/boutique/:id" element={<DekkBoutiqueRedirect><DekkLayout><ProductDetailPage /></DekkLayout></DekkBoutiqueRedirect>} />
+    <Route path="/panier" element={<DekkBoutiqueRedirect><DekkLayout><CartPage /></DekkLayout></DekkBoutiqueRedirect>} />
+    <Route path="/panier/checkout" element={<DekkBoutiqueRedirect><DekkLayout><CheckoutPage /></DekkLayout></DekkBoutiqueRedirect>} />
+    <Route path="/panier/confirmation/:reference" element={<DekkBoutiqueRedirect><DekkLayout><OrderConfirmationPage /></DekkLayout></DekkBoutiqueRedirect>} />
+    {/* Spec route aliases → existing pages */}
+    <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
+    <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
+    <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
+    <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
+    {/* Legacy public URLs → folded into the 2 user-facing flows */}
+    <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
+    <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
+    <Route path="/services" element={<Navigate to="/" replace />} />
+    <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
+    {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
+    <Route path="/entreprises" element={<EnterprisesPage />} />
+    <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
+    <Route path="/auth" element={<Auth />} />
+    <Route path="/app" element={<Index />} />
+    <Route path="/app/dossier/:id" element={<DossierDetail />} />
+    <Route path="/admin" element={<AdminPage />} />
+    <Route path="/admin/inbox/import" element={<InboxImportPage />} />
+    <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
+    <Route path="/admin/:section" element={<AdminPage />} />
+    {/* Canonical tracking URL — /suivre redirects to /track */}
+    <Route path="/suivre" element={<SuivreEntry />} />
+    <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
+    {/* Public review + payment pages (WhatsApp deep links) */}
+    <Route path="/avis/:trackingId" element={<AvisPage />} />
+    <Route path="/pay/:trackingId" element={<PayPage />} />
+    <Route path="/business" element={<BusinessPage />} />
+    <Route path="/business/join" element={<BusinessJoinPage />} />
+    <Route path="/business/pricing" element={<BusinessPricingPage />} />
+    {/* Legal pages */}
+    <Route path="/confidentialite" element={<ConfidentialitePage />} />
+    <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+    <Route path="/cgu" element={<CguPage />} />
+    <Route path="/cgv" element={<CgvPage />} />
+    <Route path="/cookies" element={<CookiesPage />} />
+    {/* Legacy legal aliases */}
+    <Route path="/legal/cgu" element={<Navigate to="/cgu" replace />} />
+    <Route path="/legal/confidentialite" element={<Navigate to="/confidentialite" replace />} />
+    <Route path="/legal/mentions" element={<Navigate to="/mentions-legales" replace />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
+const App = () => {
+  const dekkMode = isDekkSubdomain();
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -73,76 +184,15 @@ const App = () => (
         <MaintenanceGate>
           <GlobalNotifiers />
           <AdminOnlyGuard />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            {/* New 2-CTAs entry points */}
-            <Route path="/expedier" element={<ExpedierPage />} />
-            <Route path="/expedier/:mode" element={<ExpedierPage />} />
-            {/* Sourcing — canonical URL. /acheter kept as alias for the merchant-mode selection page only when ?mode=recevoir is needed. */}
-            <Route path="/sourcing" element={<SourcingPage />} />
-            <Route path="/acheter" element={<Navigate to="/sourcing" replace />} />
-            <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
-            <Route path="/acheter/recevoir" element={<AcheterPage />} />
-            <Route path="/tarifs" element={<TarifsPage />} />
-            <Route path="/devis" element={<DevisPage />} />
-            <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
-            <Route path="/track" element={<TrackPage />} />
-            <Route path="/track/:id" element={<TrackPage />} />
-            <Route path="/boutique" element={<BoutiquePage />} />
-            <Route path="/boutique/:id" element={<ProductDetailPage />} />
-            <Route path="/panier" element={<CartPage />} />
-            <Route path="/panier/checkout" element={<CheckoutPage />} />
-            <Route path="/panier/confirmation/:reference" element={<OrderConfirmationPage />} />
-            {/* Spec route aliases → existing pages */}
-            <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
-            <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
-            <Route path="/sourcing" element={<Navigate to="/acheter" replace />} />
-            <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
-            <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
-            {/* Legacy admin alias removed — handled by /admin/:section below */}
-            {/* Legacy public URLs → folded into the 2 user-facing flows */}
-            <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
-            <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
-            <Route path="/services" element={<Navigate to="/" replace />} />
-            <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
-            {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
-            <Route path="/entreprises" element={<EnterprisesPage />} />
-            <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/app" element={<Index />} />
-            <Route path="/app/dossier/:id" element={<DossierDetail />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/admin/inbox/import" element={<InboxImportPage />} />
-            <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
-            <Route path="/admin/:section" element={<AdminPage />} />
-            {/* Canonical tracking URL — /suivre redirects to /track */}
-            <Route path="/suivre" element={<SuivreEntry />} />
-            <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
-            {/* Public review + payment pages (WhatsApp deep links) */}
-            <Route path="/avis/:trackingId" element={<AvisPage />} />
-            <Route path="/pay/:trackingId" element={<PayPage />} />
-            <Route path="/business" element={<BusinessPage />} />
-            <Route path="/business/join" element={<BusinessJoinPage />} />
-            <Route path="/business/pricing" element={<BusinessPricingPage />} />
-            {/* Legal pages */}
-            <Route path="/confidentialite" element={<ConfidentialitePage />} />
-            <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
-            <Route path="/cgu" element={<CguPage />} />
-            <Route path="/cgv" element={<CgvPage />} />
-            <Route path="/cookies" element={<CookiesPage />} />
-            {/* Legacy legal aliases */}
-            <Route path="/legal/cgu" element={<Navigate to="/cgu" replace />} />
-            <Route path="/legal/confidentialite" element={<Navigate to="/confidentialite" replace />} />
-            <Route path="/legal/mentions" element={<Navigate to="/mentions-legales" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <FloatingWhatsApp />
+          {dekkMode ? <DekkRoutes /> : <MainRoutes />}
+          {!dekkMode && <FloatingWhatsApp />}
           <CookieBanner />
           <InstallAppPrompt />
         </MaintenanceGate>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
