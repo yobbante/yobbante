@@ -230,7 +230,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       {/* Top toolbar */}
       <div className="flex items-center justify-between mb-1.5">
         <button
-          type="button" onClick={() => navigate('/')}
+          type="button" onClick={() => navigate(getHomeHref())}
           className={cn(
             'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-medium transition-opacity',
             isDark ? 'text-white/55 hover:text-white' : 'text-muted-foreground hover:text-foreground',
