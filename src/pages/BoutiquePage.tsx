@@ -7,6 +7,7 @@ import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
+import { ecommerce } from '@/lib/analytics';
 
 type Product = {
   id: string;
@@ -95,6 +96,14 @@ export default function BoutiquePage() {
       setLoading(false);
     })();
   }, []);
+
+  // Debounced Search event (Meta Pixel + GA4)
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 2) return;
+    const t = setTimeout(() => ecommerce.search(q), 600);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const toggleWish = (id: string) => wishlist.toggle(id);
   const addToCart = (p: Product) => {
