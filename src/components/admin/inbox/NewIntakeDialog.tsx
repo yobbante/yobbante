@@ -198,15 +198,38 @@ function DepartureStep({ data, update }: { data: IntakeData; update: (p: Partial
           <div className="flex-1">
             <div className="text-sm font-medium">Aucun départ ne convient — j'ai un GP en tête</div>
             {data.departure_mode === 'gp' && (
-              <Input
-                className="mt-2"
-                placeholder="Réf transporteur (4 chiffres) ou nom"
-                value={data.selected_transporteur_ref}
-                onChange={e => update({ selected_transporteur_ref: e.target.value })}
-              />
+              <div className="mt-2">
+                <TransporteurReferenceLookup
+                  value={data.selected_transporteur_ref}
+                  onChange={(ref) => update({ selected_transporteur_ref: ref })}
+                  onMatch={async (t) => {
+                    if (!t) return;
+                    const { data: extra } = await supabase
+                      .from('transporteurs' as any)
+                      .select('adresse_collecte_dakar, adresses_remise')
+                      .eq('id', t.id)
+                      .maybeSingle();
+                    const e = extra as unknown as { adresse_collecte_dakar: string | null; adresses_remise: Record<string, string> | null } | null;
+                    if (!e) return;
+                    const remiseKey = (data.destination_city || '').trim().toLowerCase();
+                    const remise = e.adresses_remise
+                      ? Object.entries(e.adresses_remise).find(([k]) => k.toLowerCase() === remiseKey)?.[1]
+                      : null;
+                    const lines: string[] = [];
+                    if (e.adresse_collecte_dakar) lines.push(`📍 Collecte Dakar (GP ${t.reference}): ${e.adresse_collecte_dakar}`);
+                    if (remise) lines.push(`📍 Remise ${data.destination_city} (GP ${t.reference}): ${remise}`);
+                    if (lines.length === 0) return;
+                    const block = lines.join('\n');
+                    if ((data.intake_notes || '').includes(block)) return;
+                    update({ intake_notes: [data.intake_notes, block].filter(Boolean).join('\n\n') });
+                    toast.success('Adresses GP pré-remplies dans les notes');
+                  }}
+                />
+              </div>
             )}
           </div>
         </label>
+
 
         <label className="flex items-start gap-2 cursor-pointer p-2 rounded border border-border hover:border-primary/50">
           <RadioGroupItem value="skip" className="mt-0.5" />
