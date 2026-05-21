@@ -23,6 +23,7 @@ export type AdminSection =
   | 'enterprise'
   | 'manual-quotes'
   | 'gp-operations'
+  | 'finances'
   | 'settings';
 
 type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean };
