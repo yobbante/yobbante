@@ -570,14 +570,14 @@ export function MessagesTab() {
                       )}
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
-                      {activeConv.channel === 'gp' && t.kind === 'in' && (t.m as InboundMsg).bot_intent && (
-                        <div className="text-[10px] font-bold text-emerald-600 mb-1">🤖 {(t.m as InboundMsg).bot_intent}</div>
-                      )}
                       {t.body}
                       <div className={cn('text-[9px] mt-1 opacity-60', t.kind === 'out' ? 'text-black/60' : 'text-muted-foreground')}>
                         {formatTime(t.at)}
                       </div>
                     </div>
+                    {activeConv.channel === 'gp' && t.kind === 'in' && (t.m as InboundMsg).bot_intent && (
+                      <div className="mt-1">{intentPill((t.m as InboundMsg).bot_intent)}</div>
+                    )}
                     {activeConv.channel === 'gp' && t.kind === 'in' && t.body && t.body.length > 8 && !((t.m as InboundMsg).bot_intent) && (
                       <div className="flex gap-1 mt-1 flex-wrap">
                         <button
