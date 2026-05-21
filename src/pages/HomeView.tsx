@@ -90,11 +90,12 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
         onOpenChange={setSmartOpen}
         onConfideDossier={(p) => {
           setSmartOpen(false);
-          navigate('/acheter', {
-            state: {
-              preset: { product: p.product, estimatedWeight: String(p.weight), origin: p.origin, destination: p.destination, estimatedCost: p.estimatedCost },
-            },
-          });
+          // Direct route to canonical /sourcing with URL params so the flow
+          // hydrates even after a refresh (state would be lost via /acheter redirect).
+          const sp = new URLSearchParams();
+          if (p.product) sp.set('q', p.product);
+          if (p.origin) sp.set('origin', p.origin);
+          navigate(`/sourcing${sp.toString() ? `?${sp}` : ''}`);
         }}
       />
     </div>
