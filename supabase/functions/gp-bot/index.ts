@@ -522,6 +522,10 @@ A traiter manuellement.`);
   //  Handlers d'intent
   // =================================================================
 
+  function isYes(t: string) { return /^(oui|ok|yes|valider?|valide|confirm(e|er)?|c'est ca|cest ca|exact)\b/i.test(t.trim()); }
+  function isNo(t: string)  { return /^(non|no|annul(e|er)?|cancel|stop)\b/i.test(t.trim()); }
+
+
   async function handleDep(text: string, prior: Record<string, any>) {
     // Strip keyword
     const cleaned = text.replace(/\b(dep|depart|départ|departure|trajet)\b\s*/i, '').trim();
