@@ -334,6 +334,44 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          dossier_id: string
+          id: string
+          ip_address: string | null
+          rating: number
+          would_recommend: boolean | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          dossier_id: string
+          id?: string
+          ip_address?: string | null
+          rating: number
+          would_recommend?: boolean | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          dossier_id?: string
+          id?: string
+          ip_address?: string | null
+          rating?: number
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_reviews_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: true
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dekk_order_events: {
         Row: {
           created_at: string
@@ -589,6 +627,7 @@ export type Database = {
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          payment_status: string
           product_description: string
           quantity: number | null
           reference: string
@@ -600,6 +639,8 @@ export type Database = {
           supplier_contact: string | null
           supplier_country: string | null
           supplier_name: string | null
+          tracking_id: string | null
+          tracking_id_format: string
           unit: string | null
           updated_at: string
           user_id: string
@@ -637,6 +678,7 @@ export type Database = {
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          payment_status?: string
           product_description: string
           quantity?: number | null
           reference?: string
@@ -648,6 +690,8 @@ export type Database = {
           supplier_contact?: string | null
           supplier_country?: string | null
           supplier_name?: string | null
+          tracking_id?: string | null
+          tracking_id_format?: string
           unit?: string | null
           updated_at?: string
           user_id: string
@@ -685,6 +729,7 @@ export type Database = {
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          payment_status?: string
           product_description?: string
           quantity?: number | null
           reference?: string
@@ -696,6 +741,8 @@ export type Database = {
           supplier_contact?: string | null
           supplier_country?: string | null
           supplier_name?: string | null
+          tracking_id?: string | null
+          tracking_id_format?: string
           unit?: string | null
           updated_at?: string
           user_id?: string
@@ -2179,6 +2226,7 @@ export type Database = {
       }
       generate_reception_reference: { Args: never; Returns: string }
       generate_shipment_tracking_number: { Args: never; Returns: string }
+      generate_tracking_id_v2: { Args: never; Returns: string }
       generate_unique_short_ref: { Args: never; Returns: string }
       get_user_contact: {
         Args: { _user_id: string }
@@ -2204,6 +2252,21 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      lookup_dossier_public: {
+        Args: { p_tracking: string }
+        Returns: {
+          created_at: string
+          destination_country: string
+          estimated_cost: number
+          estimated_delivery_date: string
+          estimated_weight: number
+          origin_country: string
+          payment_status: string
+          reference: string
+          status: Database["public"]["Enums"]["dossier_status"]
+          tracking_id: string
+        }[]
+      }
       mark_overdue_invoices: { Args: never; Returns: number }
       monitor_shipment_etas: { Args: never; Returns: number }
       recompute_departure_reserved_capacity: {
@@ -2212,6 +2275,10 @@ export type Database = {
       }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
+      review_exists_for_tracking: {
+        Args: { p_tracking: string }
+        Returns: boolean
+      }
       score_departure: {
         Args: {
           d_departure_date: string
