@@ -977,9 +977,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })()}
       </FlowSection>
 
-      {/* ─── Step 8 — Insurance (conditional) ─── */}
+      {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
-        <FlowSection revealed={step7Ok} step={8} total={10} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
+        <FlowSection revealed step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
               { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
