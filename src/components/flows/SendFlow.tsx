@@ -180,6 +180,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // 'recipient' = je suis dans la ville de destination (je recevrai)
   // 'third'  = je remplis pour quelqu'un d'autre
   const [userRole, setUserRole] = useState<'sender' | 'recipient' | 'third'>('sender');
+  const [identityCollapsed, setIdentityCollapsed] = useState(false);
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
