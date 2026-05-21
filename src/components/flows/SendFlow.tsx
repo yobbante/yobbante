@@ -1053,39 +1053,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </FlowSection>
       )}
 
-      {/* ─── Step 7 — Recap & payment ─── */}
-      <FlowSection revealed={routeOk} step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
+      {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      <FlowSection revealed={routeOk} step={7} total={7} title="Coordonnées, paiement & récapitulatif" hint="Renseignez l'expéditeur, choisissez votre paiement et vérifiez le résumé.">
         <div className="space-y-5 max-w-2xl">
-          <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
-            <RecapRow label="Expéditeur"   value={`${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
-            <RecapRow label="Collecte"     value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
-            <RecapRow label="Destinataire" value={destCity ? `${recipientName || '—'} · ${destProfile.flag} ${destCity.city}, ${destProfile.name}` : '—'} />
-            <RecapRow label="Article"      value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
-            <RecapRow label="Poids"        value={`${weight} kg · ${parcelCount} colis`} />
-            <RecapRow label="Transport"    value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
-            <RecapRow label="Assurance"    value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
-            <div className="pt-3 mt-2 border-t border-border space-y-1.5">
-              <RecapRow label="Collecte"  value="Incluse" />
-              <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
-              {priorityCostEur > 0 && <RecapRow label="Express" value={`+ ${formatLocalAmount(priorityCostEur, originProfile)}`} />}
-              {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
-            </div>
-            <div className="pt-3 border-t-2 border-foreground/10">
-              <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
+
+          {/* ── Coordonnées expéditeur ── */}
+          <div className="rounded-xl border border-border bg-secondary/40 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Coordonnées de l'expéditeur
+                {userRole === 'sender' && <span className="ml-1.5 text-foreground normal-case">· c'est vous</span>}
               </p>
+              {userRole !== 'sender' && recipientName && (
+                <button type="button"
+                  onClick={() => { setSenderName(recipientName); setSenderPhone(recipientPhone); }}
+                  className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                  Copier depuis le destinataire
+                </button>
+              )}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
+              <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
             </div>
           </div>
 
-          <DoorToDoorBanner
-            origin={originCoverageCheck}
-            destination={destCoverageCheck}
-            detailed
-          />
-
+          {/* ── Mode de paiement (avant récapitulatif) ── */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Mode de paiement</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mode de paiement</p>
             <div className="grid grid-cols-3 gap-2.5">
               {PAYMENT_METHODS.map(m => (
                 <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
@@ -1099,16 +1095,52 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-secondary/40 p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vos coordonnées d'expéditeur</p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
-              <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+          <DoorToDoorBanner
+            origin={originCoverageCheck}
+            destination={destCoverageCheck}
+            detailed
+          />
+
+          {/* ── Récapitulatif (en dernier) ── */}
+          <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Récapitulatif</p>
+            <RecapRow label="Trajet" value={originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'} />
+            <RecapRow
+              label="Expéditeur"
+              value={senderName || senderPhone
+                ? `${senderName || '—'}${senderPhone ? ` · ${senderPhone}` : ''} · ${originCity?.city ?? '—'}`
+                : '— (à renseigner)'}
+            />
+            <RecapRow
+              label="Collecte"
+              value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}${pickupAddress ? ` · ${pickupAddress}` : ''}` : '—'}
+            />
+            <RecapRow
+              label="Destinataire"
+              value={recipientName || recipientPhone
+                ? `${recipientName || '—'}${recipientPhone ? ` · ${recipientPhone}` : ''} · ${destCity?.city ?? '—'}${deliveryAddress ? ` · ${deliveryAddress}` : ''}`
+                : '— (à renseigner)'}
+            />
+            <RecapRow label="Article"   value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
+            <RecapRow label="Poids"     value={`${weight} kg · ${parcelCount} colis`} />
+            <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
+            <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
+            <RecapRow label="Paiement"  value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
+            <div className="pt-3 mt-2 border-t border-border space-y-1.5">
+              <RecapRow label="Collecte"  value="Incluse" />
+              <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
+              {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
+            </div>
+            <div className="pt-3 border-t-2 border-foreground/10">
+              <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
+              </p>
             </div>
           </div>
         </div>
       </FlowSection>
+
 
       <LiveSummaryBar
         visible={routeOk}
