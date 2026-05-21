@@ -150,6 +150,7 @@ export function BoutiqueTab() {
       price_eur: price,
       origin_country: form.origin_country,
       stock_mode: form.stock_mode,
+      stock_qty: form.stock_qty === '' ? null : Math.max(0, Number(form.stock_qty) || 0),
       delivery_days: form.stock_mode === 'commande' ? Number(form.delivery_days) || 7 : null,
       image_url,
       source_type: editingId ? undefined : 'manual',
