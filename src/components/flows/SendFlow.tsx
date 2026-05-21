@@ -837,8 +837,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <div className="mt-2 space-y-4 max-w-xl">
               <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
 
-              {/* Sender contact (only when user is NOT the sender) */}
-              {userRole !== 'sender' && (
+              {/* Sender contact (only when user is the recipient — identity already covers sender/third) */}
+              {userRole === 'recipient' && (
                 <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
                   <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                     Coordonnées de l'expéditeur à {originCity.city}
@@ -851,6 +851,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   </div>
                 </div>
               )}
+
 
               <AddressField
                 label={`Adresse de collecte à ${originCity.city} *`}
