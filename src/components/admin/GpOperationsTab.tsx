@@ -57,11 +57,61 @@ export function GpOperationsTab() {
 
       {section === 'departures' && <DeparturesToday />}
       {section === 'pending' && <PendingCollects />}
+      {section === 'weighing' && <WeighingQueue />}
       {section === 'transit' && <InTransit />}
       {section === 'unknown_intent' && <UnknownIntent />}
       {section === 'unknown_contacts' && <UnknownContacts />}
       {section === 'onboarding' && <OnboardingGp />}
     </div>
+  );
+}
+
+// ---------------- Section : pesée ----------------
+function WeighingQueue() {
+  const qc = useQueryClient();
+  const [picked, setPicked] = useState<WeighingDossier | null>(null);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['gp-ops-weighing'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, reference, buyer_name, contact_phone, estimated_weight, estimated_cost, destination_country, user_id, collected_at')
+        .eq('status', 'COLLECTED')
+        .order('collected_at', { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucun colis à peser" />;
+
+  return (
+    <>
+      <div className="space-y-2">
+        {data.map((d) => (
+          <div key={d.id} className="border border-border rounded-lg p-3 bg-card flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-medium">{d.tracking_id || d.reference}</div>
+              <div className="text-xs text-muted-foreground">
+                {d.buyer_name} · est. {d.estimated_weight ?? '—'}kg → {d.destination_country}
+              </div>
+            </div>
+            <Button size="sm" onClick={() => setPicked(d as WeighingDossier)} className="bg-[#F5C518] text-black hover:bg-[#e4b614]">
+              <Scale className="w-3.5 h-3.5 mr-1" /> Peser
+            </Button>
+          </div>
+        ))}
+      </div>
+      <WeighingDialog
+        dossier={picked}
+        open={!!picked}
+        onClose={() => setPicked(null)}
+        onDone={() => { refetch(); qc.invalidateQueries({ queryKey: ['gp-ops-in-transit'] }); }}
+      />
+    </>
   );
 }
 
