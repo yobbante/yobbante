@@ -765,9 +765,14 @@ export type Database = {
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
           last_client_contact: string | null
+          last_payment_reminder_at: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          paid_at: string | null
+          payment_method: string | null
+          payment_provider_ref: string | null
+          payment_reminders_count: number
           payment_status: string
           product_description: string
           quantity: number | null
@@ -785,7 +790,9 @@ export type Database = {
           unit: string | null
           updated_at: string
           user_id: string
+          weigh_location: string | null
           weighed_at: string | null
+          weighed_by: string | null
         }
         Insert: {
           actual_weight_kg?: number | null
@@ -822,9 +829,14 @@ export type Database = {
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
+          last_payment_reminder_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_provider_ref?: string | null
+          payment_reminders_count?: number
           payment_status?: string
           product_description: string
           quantity?: number | null
@@ -842,7 +854,9 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           user_id: string
+          weigh_location?: string | null
           weighed_at?: string | null
+          weighed_by?: string | null
         }
         Update: {
           actual_weight_kg?: number | null
@@ -879,9 +893,14 @@ export type Database = {
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
+          last_payment_reminder_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_provider_ref?: string | null
+          payment_reminders_count?: number
           payment_status?: string
           product_description?: string
           quantity?: number | null
@@ -899,7 +918,9 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           user_id?: string
+          weigh_location?: string | null
           weighed_at?: string | null
+          weighed_by?: string | null
         }
         Relationships: [
           {
@@ -2289,6 +2310,44 @@ export type Database = {
         }
         Relationships: []
       }
+      weight_logs: {
+        Row: {
+          dossier_id: string
+          id: string
+          location: string | null
+          measured_at: string
+          measured_by: string | null
+          notes: string | null
+          weight_kg: number
+        }
+        Insert: {
+          dossier_id: string
+          id?: string
+          location?: string | null
+          measured_at?: string
+          measured_by?: string | null
+          notes?: string | null
+          weight_kg: number
+        }
+        Update: {
+          dossier_id?: string
+          id?: string
+          location?: string | null
+          measured_at?: string
+          measured_by?: string | null
+          notes?: string | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weight_logs_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_inbound_messages: {
         Row: {
           bot_intent: string | null
@@ -2665,16 +2724,22 @@ export type Database = {
       lookup_dossier_public: {
         Args: { p_tracking: string }
         Returns: {
+          actual_weight_kg: number
+          assigned_transporteur_ref: string
+          cash_on_delivery: boolean
           created_at: string
           destination_country: string
           estimated_cost: number
           estimated_delivery_date: string
           estimated_weight: number
+          final_amount_xof: number
           origin_country: string
+          paid_at: string
           payment_status: string
           reference: string
           status: Database["public"]["Enums"]["dossier_status"]
           tracking_id: string
+          weighed_at: string
         }[]
       }
       mark_overdue_invoices: { Args: never; Returns: number }
