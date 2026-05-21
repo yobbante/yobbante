@@ -813,6 +813,26 @@ Client notifie pour paiement.`, 'poids_ok');
       return new Response('ok', { headers: corsHeaders });
     }
 
+    const destLabel = dossier.destination_city ?? dossier.destination_country ?? '—';
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('livre', { tracking, awaiting_confirm: true });
+      await reply(`Confirmer la livraison de ${dossier.tracking_id} a ${destLabel} ?
+
+Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'livre_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider la livraison ou NON pour annuler.`, 'livre_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
     const { error } = await supa
       .from('dossiers')
       .update({ status: 'DELIVERED', delivered_at: new Date().toISOString() })
