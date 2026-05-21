@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +60,21 @@ export function RequestsTab() {
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Open + scroll to a row from dashboard "Activité récente" deep-link
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { service?: string; id?: string };
+      if (detail?.service !== 'expedier' || !detail.id) return;
+      setExpandedId(detail.id);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-dossier-id="${detail.id}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    };
+    window.addEventListener('admin:focus', handler);
+    return () => window.removeEventListener('admin:focus', handler);
+  }, []);
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   const { data: dossiers = [], isLoading } = useQuery({
@@ -173,7 +188,7 @@ export function RequestsTab() {
             const k = getKind(d);
             const isOpen = expandedId === d.id;
             return (
-              <li key={d.id}>
+              <li key={d.id} data-dossier-id={d.id}>
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}

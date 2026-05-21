@@ -152,7 +152,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
   const activity = useMemo(() => {
     if (!data) return [];
     type Row = {
-      id: string; service: 'expedier' | 'sourcing' | 'reception';
+      id: string; rawId: string; service: 'expedier' | 'sourcing' | 'reception';
       ref: string; title: string; status: string; statusLabel: string;
       ts: string; flag?: string; meta?: string;
     };
@@ -162,6 +162,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
       const isSourcing = d.needs_sourcing || d.dossier_type === 'business_sourcing' || ['SOURCING', 'PROCURED'].includes(d.status);
       rows.push({
         id: `d-${d.id}`,
+        rawId: d.id,
         service: isSourcing ? 'sourcing' : 'expedier',
         ref: d.tracking_id || d.reference,
         title: d.product_description || '—',
@@ -175,6 +176,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
     for (const r of data.receptions) {
       rows.push({
         id: `r-${r.id}`,
+        rawId: r.id,
         service: 'reception',
         ref: r.reference,
         title: `${r.merchant_name} · ${r.order_description || ''}`.trim(),
@@ -185,6 +187,18 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
     }
     return rows.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()).slice(0, 12);
   }, [data]);
+
+  const openActivity = (row: { service: 'expedier' | 'sourcing' | 'reception'; rawId: string }) => {
+    const target: AdminSection =
+      row.service === 'sourcing' ? 'sourcing'
+      : row.service === 'reception' ? 'reception'
+      : 'requests';
+    onJump(target);
+    // dispatch on next tick so target tab is mounted and listening
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('admin:focus', { detail: { service: row.service, id: row.rawId } }));
+    }, 50);
+  };
 
   if (isLoading || !data || !m) {
     return (
@@ -421,22 +435,29 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
           ) : (
             <ul className="divide-y divide-border">
               {activity.map(row => (
-                <li key={row.id} className="px-5 py-2.5 flex items-center gap-3 text-sm hover:bg-secondary/40 transition-colors">
-                  <ServiceBadge service={row.service} />
-                  {row.flag && <span className="text-sm">{row.flag}</span>}
-                  <span className="font-mono text-[10.5px] text-muted-foreground w-24 truncate">{row.ref}</span>
-                  <span className="flex-1 truncate text-foreground text-[13px]">{row.title}</span>
-                  {row.meta && (
-                    <span className="hidden md:inline text-[10px] px-1.5 py-0.5 rounded bg-[hsl(var(--success-soft))] text-[hsl(var(--success-soft-foreground))] font-medium">
-                      {row.meta}
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => openActivity(row)}
+                    className="w-full px-5 py-2.5 flex items-center gap-3 text-sm text-left hover:bg-secondary/40 transition-colors"
+                  >
+                    <ServiceBadge service={row.service} />
+                    {row.flag && <span className="text-sm">{row.flag}</span>}
+                    <span className="font-mono text-[10.5px] text-muted-foreground w-24 truncate">{row.ref}</span>
+                    <span className="flex-1 truncate text-foreground text-[13px]">{row.title}</span>
+                    {row.meta && (
+                      <span className="hidden md:inline text-[10px] px-1.5 py-0.5 rounded bg-[hsl(var(--success-soft))] text-[hsl(var(--success-soft-foreground))] font-medium">
+                        {row.meta}
+                      </span>
+                    )}
+                    <span className="hidden sm:inline text-[10.5px] px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
+                      {row.statusLabel}
                     </span>
-                  )}
-                  <span className="hidden sm:inline text-[10.5px] px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
-                    {row.statusLabel}
-                  </span>
-                  <span className="text-[10.5px] text-muted-foreground tabular-nums">
-                    {new Date(row.ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                  </span>
+                    <span className="text-[10.5px] text-muted-foreground tabular-nums">
+                      {new Date(row.ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  </button>
                 </li>
               ))}
             </ul>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Inbox, Package, CheckCircle2, Truck, MapPin, Camera, Save, X, Calculator } from 'lucide-react';
@@ -84,6 +84,19 @@ export function ReceptionKanbanTab() {
   }, [orders]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin-reception-orders'] });
+
+  // Open detail from dashboard "Activité récente" deep-link
+  useEffect(() => {
+    if (!orders.length) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { service?: string; id?: string };
+      if (detail?.service !== 'reception' || !detail.id) return;
+      const found = orders.find(o => o.id === detail.id);
+      if (found) setSelected(found);
+    };
+    window.addEventListener('admin:focus', handler);
+    return () => window.removeEventListener('admin:focus', handler);
+  }, [orders]);
 
   return (
     <div className="space-y-5">
