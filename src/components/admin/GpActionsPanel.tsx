@@ -36,12 +36,14 @@ export function GpActionsPanel({
           <ActionButton icon={ListChecks} label="Voir les missions de ce GP" onClick={() => setAction('missions')} />
           <ActionButton icon={Send} label="Envoyer un message au GP" onClick={() => setAction('message')} />
           <ActionButton icon={Bot} label="Simuler une commande bot" onClick={() => setAction('simulate')} />
+          <ActionButton icon={History} label="Historique conversations WhatsApp" onClick={() => setAction('history')} />
         </div>
 
         {action === 'depart' && <CreateDepartDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'missions' && <GpMissionsDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'message' && <SendMessageDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'simulate' && <SimulateBotDialog gp={gp} onClose={() => setAction(null)} />}
+        {action === 'history' && <GpHistoryDialog gp={gp} onClose={() => setAction(null)} />}
       </SheetContent>
     </Sheet>
   );
