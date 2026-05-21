@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
 import { PublicNav } from '@/components/PublicNav';
+import { getHomeHref } from '@/lib/homeHref';
 
 /* =========================================================================
    Continuous-flow primitives — Apple-grade.
