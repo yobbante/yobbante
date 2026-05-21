@@ -225,13 +225,13 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
         });
         if (notifyData && notifyData.sent === false) {
           toast.warning(
-            `⚠️ Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+            `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
             { duration: 8000 },
           );
         }
       } catch {
         toast.warning(
-          `⚠️ Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+          `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
           { duration: 8000 },
         );
       }
@@ -239,10 +239,10 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
       // 4) Confirmation feedback
       if (wasNew) {
         toast.success(
-          `📋 Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
+          `Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
         );
       } else if (wasEdited) {
-        toast.success(`📋 Infos transporteur Réf. ${tRef} mises à jour.`);
+        toast.success(`Infos transporteur Réf. ${tRef} mises à jour.`);
       } else {
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
       }
@@ -288,7 +288,7 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
               <div>
                 <Label>Téléphone principal *</Label>
                 <Input value={tTel1} onChange={(e) => { setTTel1(e.target.value); markEditedIf(matched?.telephone_1, e.target.value); }} placeholder="+221 77 ..." />
-                <p className="text-[11px] text-muted-foreground mt-1">ℹ️ Utilisé pour la notification WhatsApp automatique</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Utilisé pour la notification WhatsApp automatique</p>
               </div>
               <div>
                 <Label>Téléphone secondaire</Label>
@@ -335,9 +335,9 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
               <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="air">✈️ Air</SelectItem>
-                  <SelectItem value="sea_lcl">🚢 Mer (LCL)</SelectItem>
-                  <SelectItem value="road">🚛 Route</SelectItem>
+                  <SelectItem value="air">Air</SelectItem>
+                  <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
+                  <SelectItem value="road">Route</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -397,10 +397,10 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
             <Select value={status} onValueChange={(v) => setStatus(v as DepartureStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">🟡 Brouillon</SelectItem>
-                <SelectItem value="active">🟢 Actif</SelectItem>
-                <SelectItem value="full">🔴 Complet</SelectItem>
-                <SelectItem value="cancelled">⚫ Annulé</SelectItem>
+                <SelectItem value="draft">Brouillon</SelectItem>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="full">Complet</SelectItem>
+                <SelectItem value="cancelled">Annulé</SelectItem>
               </SelectContent>
             </Select>
           </Section>

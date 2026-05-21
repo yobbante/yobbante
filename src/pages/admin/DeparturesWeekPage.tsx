@@ -132,8 +132,37 @@ export default function DeparturesWeekPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(`Réf #${d.short_ref} marqué comme publié`);
     qc.invalidateQueries({ queryKey: ['manual_departures'] });
+
+    // Notify GP via WhatsApp (best-effort)
+    const phone = (d.carrier_contact ?? '').replace(/\D/g, '');
+    if (phone) {
+      const date = new Date(d.departure_date).toLocaleDateString('fr-FR', {
+        weekday: 'long', day: 'numeric', month: 'long',
+      });
+      const mode = MODE_LABEL[d.transport_mode] ?? d.transport_mode;
+      const message =
+        `Bonjour ${d.carrier_name ?? ''},\n\n` +
+        `Votre départ Yobbanté Réf #${d.short_ref ?? '----'} vient d'être publié.\n` +
+        `Route : ${d.origin_city} → ${d.destination_city}\n` +
+        `Mode : ${mode}\n` +
+        `Date : ${date}\n` +
+        `Capacité : ${d.total_capacity_kg} kg\n\n` +
+        `Nous vous transmettrons les colis attribués au fur et à mesure.\n— Yobbanté`;
+      try {
+        const { error: waErr } = await supabase.functions.invoke('send-whatsapp', {
+          body: { recipient_phone: phone, message },
+        });
+        if (waErr) throw waErr;
+        toast.success(`Réf #${d.short_ref} publié · GP notifié sur WhatsApp`);
+      } catch {
+        toast.success(`Réf #${d.short_ref} publié`);
+        toast.warning(`Notification WhatsApp non envoyée — contactez ${d.carrier_contact} manuellement.`);
+      }
+    } else {
+      toast.success(`Réf #${d.short_ref} publié`);
+      toast.warning('Aucun numéro WhatsApp pour ce GP — notification manuelle requise.');
+    }
   }
 
   return (

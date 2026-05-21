@@ -17,7 +17,7 @@ import { useManualDepartures, type ManualDeparture, type DepartureStatus } from 
 import { ManualDepartureForm } from './ManualDepartureForm';
 import { cn } from '@/lib/utils';
 
-const MODE_LABEL: Record<string, string> = { air: '✈️ Air', sea_lcl: '🚢 Mer (LCL)', road: '🚛 Route' };
+const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer (LCL)', road: 'Route' };
 
 const STATUS_BADGE: Record<DepartureStatus, { label: string; variant: 'success' | 'danger' | 'secondary' | 'warning' }> = {
   active:    { label: 'Actif',     variant: 'success' },

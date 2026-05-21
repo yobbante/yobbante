@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { MessageCircle, ExternalLink, Phone, User, Package } from 'lucide-react';
+import { MessageCircle, ExternalLink, Phone, User, Package, Copy, Send, Link2 } from 'lucide-react';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -48,6 +48,7 @@ function buildGpRecap(d: ManualDeparture, dossiers: any[]): string {
 
 export function DepartureDetailDrawer({ departure, onClose }: Props) {
   const open = !!departure;
+  const qc = useQueryClient();
 
   const { data: dossiers = [], isLoading } = useQuery({
     enabled: !!departure?.id,
@@ -79,6 +80,44 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
     window.open(`https://wa.me/${raw}?text=${text}`, '_blank');
   }
 
+  async function copyRef() {
+    if (!departure?.short_ref) return;
+    try {
+      await navigator.clipboard.writeText(`#${departure.short_ref}`);
+      toast.success(`Réf #${departure.short_ref} copiée`);
+    } catch { toast.error('Copie impossible'); }
+  }
+
+  async function copyGpRecap() {
+    if (!departure) return;
+    try {
+      await navigator.clipboard.writeText(buildGpRecap(departure, dossiers));
+      toast.success('Récap GP copié');
+    } catch { toast.error('Copie impossible'); }
+  }
+
+  async function markPublished() {
+    if (!departure) return;
+    const { error } = await supabase
+      .from('manual_departures')
+      .update({ publication_status: 'published', published_at: new Date().toISOString() })
+      .eq('id', departure.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ['manual_departures'] });
+    toast.success(`Réf #${departure.short_ref} publié`);
+  }
+
+  async function detachDossier(id: string, reference: string) {
+    const { error } = await supabase
+      .from('dossiers')
+      .update({ assigned_departure_id: null })
+      .eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ['departure_dossiers', departure?.id] });
+    qc.invalidateQueries({ queryKey: ['manual_departures'] });
+    toast.success(`${reference} détaché du départ`);
+  }
+
   if (!departure) return null;
 
   return (
@@ -104,6 +143,31 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Quick actions */}
+          <section className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Button variant="outline" size="sm" onClick={copyRef} className="gap-1.5">
+              <Copy className="w-3.5 h-3.5" /> Réf
+            </Button>
+            <Button variant="outline" size="sm" onClick={copyGpRecap} className="gap-1.5">
+              <Link2 className="w-3.5 h-3.5" /> Récap
+            </Button>
+            <Button
+              variant="outline" size="sm" onClick={markPublished}
+              disabled={(departure.publication_status ?? 'draft') === 'published'}
+              className="gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {(departure.publication_status ?? 'draft') === 'published' ? 'Publié' : 'Publier'}
+            </Button>
+            <Button
+              variant="outline" size="sm" onClick={notifyGp}
+              disabled={!departure.carrier_contact}
+              className="gap-1.5"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </Button>
+          </section>
+
           {/* GP card */}
           <section className="rounded-xl border border-border p-4 bg-card">
             <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Transporteur (GP)</h3>
@@ -174,13 +238,22 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                         {d.estimated_weight ?? '?'}kg · {d.contact_phone ?? d.contact_email ?? ''}
                       </div>
                     </div>
-                    <Link
-                      to={`/admin/dossiers/${d.id}`}
-                      onClick={onClose}
-                      className="text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => detachDossier(d.id, d.reference)}
+                        className="text-[11px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-secondary"
+                        title="Détacher du départ"
+                      >
+                        Détacher
+                      </button>
+                      <Link
+                        to={`/admin/dossiers/${d.id}`}
+                        onClick={onClose}
+                        className="text-muted-foreground hover:text-foreground p-1"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>

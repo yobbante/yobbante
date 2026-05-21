@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { PublicNav } from '@/components/PublicNav';
@@ -59,6 +59,57 @@ export default function LandingPage() {
   };
   const goReceiveWithHub = () => navigate('/expedier/recevoir');
   const selectedHubMeta = selectedHub ? WORLD_HUBS.find(h => h.id === selectedHub) : null;
+
+  // ── Smart auto-swipe for the testimonials snap-scroller (mobile).
+  // Cycles every 5s, pauses on user touch/hover and when the section is off-screen
+  // or the tab is hidden. Falls back to no-op if reduced-motion is requested.
+  const testimonialsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = testimonialsRef.current;
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+
+    let timer: number | undefined;
+    let paused = false;
+    let visible = false;
+
+    const tick = () => {
+      if (paused || !visible || document.hidden) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return; // nothing to swipe (desktop grid)
+      const next = el.scrollLeft + el.clientWidth * 0.9;
+      el.scrollTo({ left: next > max - 8 ? 0 : next, behavior: 'smooth' });
+    };
+    const start = () => { window.clearInterval(timer); timer = window.setInterval(tick, 5000); };
+    const stop = () => { window.clearInterval(timer); timer = undefined; };
+
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      visible ? start() : stop();
+    }, { threshold: 0.4 });
+    io.observe(el);
+
+    const onEnter = () => { paused = true; };
+    const onLeave = () => { paused = false; };
+    el.addEventListener('pointerdown', onEnter);
+    el.addEventListener('pointerup', onLeave);
+    el.addEventListener('pointercancel', onLeave);
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+    document.addEventListener('visibilitychange', tick);
+
+    return () => {
+      stop();
+      io.disconnect();
+      el.removeEventListener('pointerdown', onEnter);
+      el.removeEventListener('pointerup', onLeave);
+      el.removeEventListener('pointercancel', onLeave);
+      el.removeEventListener('mouseenter', onEnter);
+      el.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -194,7 +245,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 md:py-16">
           <p className="text-label text-center mb-2">Ils nous font confiance</p>
           <h2 className="text-center text-[22px] md:text-[28px] mb-6 md:mb-8">Ce que disent nos clients.</h2>
-          <div className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5">
+          <div ref={testimonialsRef} className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5 scroll-smooth">
             <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-3 min-w-max md:min-w-0 pb-2">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div
