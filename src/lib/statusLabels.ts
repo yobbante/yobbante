@@ -27,10 +27,18 @@ const STATUS_FR: Record<string, string> = {
 
   // Dossier
   SUBMITTED: 'Soumis',
+  AWAITING_CLIENT: 'En attente client',
   IN_REVIEW: 'En analyse',
   SOURCING: 'Sourcing',
   PROCURED: 'Acheté',
+  EN_RECHERCHE_DEPART: 'Recherche départ',
+  ASSIGNED: 'GP assigné',
+  COLLECTED: 'Collecté',
+  WEIGHED: 'Pesé - En attente de paiement',
+  ARRIVED_HUB: 'Arrivé au hub',
   CLOSED: 'Clôturé',
+  STALE: 'Sans réponse',
+  ARCHIVED: 'Archivé',
 };
 
 const EVENT_FR: Record<string, string> = {
