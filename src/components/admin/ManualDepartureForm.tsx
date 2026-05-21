@@ -335,9 +335,9 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
               <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="air">✈️ Air</SelectItem>
-                  <SelectItem value="sea_lcl">🚢 Mer (LCL)</SelectItem>
-                  <SelectItem value="road">🚛 Route</SelectItem>
+                  <SelectItem value="air">Air</SelectItem>
+                  <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
+                  <SelectItem value="road">Route</SelectItem>
                 </SelectContent>
               </Select>
             </div>
