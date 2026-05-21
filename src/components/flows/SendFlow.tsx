@@ -934,6 +934,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             },
           ];
 
+          const hasInstantDeparture = options.length > 0;
+          const noInstant = !matching && !hasInstantDeparture && originCity && destCity && weightTouched;
+
           return (
             <div className="space-y-4">
               <DoorToDoorBanner
@@ -941,81 +944,87 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 destination={destCoverageCheck}
                 variant="subtle"
               />
-              <div className="grid sm:grid-cols-2 gap-3">
-                {cards.map(c => {
-                  const active = priority === c.id;
-                  return (
-                    <button key={c.id} type="button"
-                      onClick={() => {
-                        setPriority(c.id);
-                        // Auto-pick transport: Express -> AIR, Standard -> keep (or AIR by default).
-                        if (c.id === 'express') setTransportMode('AIR');
-                      }}
-                      className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
-                        active
-                          ? 'border-foreground bg-foreground text-background shadow-md'
-                          : 'border-border bg-card hover:border-foreground/40'
-                      }`}>
-                      {c.recommended && !active && (
-                        <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
-                          Recommandé
-                        </span>
-                      )}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {c.icon}
-                          <p className="text-base font-bold truncate">{c.label}</p>
-                        </div>
-                        {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-                      </div>
-                      <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
-
-                      <div className="mt-4">
-                        <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
-                          {formatLocalAmount(c.price, originProfile)}
-                        </span>
-                      </div>
-                      <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
-                        Livraison estimée · {c.eta}
-                      </p>
-
-                      <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
-                        {c.perks.map(p => (
-                          <li key={p} className="flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
-                          </li>
-                        ))}
-                      </ul>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {weight >= 30 && priority === 'express' && (
-                <p className="text-[11px] text-muted-foreground">
-                  💡 Pour {weight} kg, le mode Standard peut diviser le coût par 2.
-                </p>
-              )}
-
-              {!matching && options.length === 0 && originCity && destCity && weightTouched && (
-                <div className="rounded-2xl border border-border bg-card p-5 space-y-3 max-w-md">
+              {noInstant ? (
+                <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="shrink-0 w-10 h-10 rounded-full bg-secondary grid place-items-center"><Search className="w-4 h-4" /></div>
                     <div>
-                      <p className="text-sm font-semibold">Aucun départ instantané — devis sur mesure</p>
-                      <p className="text-xs text-muted-foreground">Réponse personnalisée sous 2 h ouvrées.</p>
+                      <p className="text-sm font-semibold">Aucun départ instantané sur ce trajet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pas de tarif instantané affiché. Notre équipe vous propose un devis personnalisé sous 2 h ouvrées.
+                      </p>
                     </div>
                   </div>
                   <button type="button" onClick={() => setManualQuoteOpen(true)}
                     className="w-full inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
-                    Demander un devis
+                    Demander un devis sur mesure
                   </button>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {cards.map(c => {
+                      const active = priority === c.id;
+                      return (
+                        <button key={c.id} type="button"
+                          onClick={() => {
+                            setPriority(c.id);
+                            if (c.id === 'express') setTransportMode('AIR');
+                          }}
+                          className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
+                            active
+                              ? 'border-foreground bg-foreground text-background shadow-md'
+                              : 'border-border bg-card hover:border-foreground/40'
+                          }`}>
+                          {c.recommended && !active && (
+                            <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
+                              Recommandé
+                            </span>
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {c.icon}
+                              <p className="text-base font-bold truncate">{c.label}</p>
+                            </div>
+                            {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                          </div>
+                          <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
 
-              <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                          <div className="mt-4">
+                            <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
+                              {formatLocalAmount(c.price, originProfile)}
+                            </span>
+                          </div>
+                          <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+                            Livraison estimée · {c.eta}
+                          </p>
+
+                          <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
+                            {c.perks.map(p => (
+                              <li key={p} className="flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {weight >= 30 && priority === 'express' && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Pour {weight} kg, le mode Standard peut diviser le coût par 2.
+                    </p>
+                  )}
+
+                  <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                </>
+              )}
             </div>
           );
+        })()}
+      </FlowSection>
+
         })()}
       </FlowSection>
 
