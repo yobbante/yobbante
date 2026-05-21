@@ -19,16 +19,13 @@ export default function RejoindreKonnektPage() {
     [ref],
   );
 
+  useEffect(() => {
+    document.title = 'Rejoindre Konnekt · Yobbanté';
+  }, []);
+
   return (
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-5 py-10">
-      <Helmet>
-        <title>Rejoindre Konnekt · Yobbanté</title>
-        <meta
-          name="description"
-          content="Finalisez votre inscription transporteur Yobbanté sur Konnekt et recevez vos missions directement sur votre téléphone."
-        />
-        <meta name="robots" content="noindex,nofollow" />
-      </Helmet>
+
 
       <section className="w-full max-w-md rounded-2xl border border-border bg-card p-7 shadow-xl">
         <div className="flex items-center justify-center gap-3 mb-6">
