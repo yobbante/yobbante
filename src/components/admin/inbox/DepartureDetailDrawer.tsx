@@ -143,6 +143,31 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Quick actions */}
+          <section className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Button variant="outline" size="sm" onClick={copyRef} className="gap-1.5">
+              <Copy className="w-3.5 h-3.5" /> Réf
+            </Button>
+            <Button variant="outline" size="sm" onClick={copyGpRecap} className="gap-1.5">
+              <Link2 className="w-3.5 h-3.5" /> Récap
+            </Button>
+            <Button
+              variant="outline" size="sm" onClick={markPublished}
+              disabled={(departure.publication_status ?? 'draft') === 'published'}
+              className="gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {(departure.publication_status ?? 'draft') === 'published' ? 'Publié' : 'Publier'}
+            </Button>
+            <Button
+              variant="outline" size="sm" onClick={notifyGp}
+              disabled={!departure.carrier_contact}
+              className="gap-1.5"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </Button>
+          </section>
+
           {/* GP card */}
           <section className="rounded-xl border border-border p-4 bg-card">
             <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Transporteur (GP)</h3>
