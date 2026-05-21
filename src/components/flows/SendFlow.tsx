@@ -699,8 +699,45 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </section>
 
+      {/* ─── Identity selector — qui complète ce formulaire ? ─── */}
+      {routeOk && (
+        <section className="mt-5">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2.5">
+              Qui complète ce formulaire ?
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {([
+                { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: 'J\'expédie le colis' },
+                { id: 'recipient' as const, label: `Je suis à ${destCity?.city}`,    sub: 'Je recevrai le colis' },
+                { id: 'third'     as const, label: 'Je suis intermédiaire',          sub: 'Je remplis pour un tiers' },
+              ]).map(opt => {
+                const active = userRole === opt.id;
+                return (
+                  <button key={opt.id} type="button" onClick={() => setUserRole(opt.id)}
+                    className={`text-left rounded-xl border-2 px-3.5 py-2.5 transition-all ${
+                      active
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border bg-card hover:border-foreground/40'
+                    }`}>
+                    <p className="text-sm font-semibold leading-tight">{opt.label}</p>
+                    <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.sub}</p>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {userRole === 'sender' && 'Vos coordonnées seront utilisées comme expéditeur. Renseignez le destinataire ci-dessous.'}
+              {userRole === 'recipient' && 'Vos coordonnées seront utilisées comme destinataire. Renseignez l\'expéditeur ci-dessous.'}
+              {userRole === 'third' && 'Renseignez séparément les coordonnées de l\'expéditeur et du destinataire.'}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* ─── Step 1 — Collecte ─── */}
       <FlowSection revealed={routeOk} step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+
         {originCity ? (
           <div className="mt-2 space-y-4 max-w-xl">
             <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
