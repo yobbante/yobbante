@@ -108,11 +108,15 @@ function OnboardingGp() {
     qc.invalidateQueries({ queryKey: ['transporteurs'] });
   }
 
-  function openWa(t: any) {
+  async function openWa(t: any) {
     const prenom = (t.prenom?.trim() || t.nom.split(' ')[0] || 'cher partenaire');
-    const phone = (t.telephone_1 || '').replace(/\D/g, '');
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildInviteMessage(prenom))}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const res = await sendGpMessage({
+      phone: t.telephone_1,
+      message: buildInviteMessage(prenom),
+      transporteur_id: t.id,
+      trigger_type: 'admin_onboard_bot',
+    });
+    if (res.ok) toast.success('Invitation envoyée');
     markSent(t.id);
   }
 
