@@ -732,8 +732,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
 
-      {/* ─── Step 4 — Recipient ─── */}
-      <FlowSection revealed={step3Ok} step={4} total={10} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
+      {/* ─── Step 2 — Recipient ─── */}
+      <FlowSection revealed step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
             <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
