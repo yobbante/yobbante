@@ -1472,10 +1472,42 @@ function RecapRow({ label, value, strong }: { label: string; value: string; stro
   return (
     <div className="flex items-baseline justify-between gap-4">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={strong ? 'text-base font-bold tabular-nums' : 'font-medium text-right'}>{value}</span>
+      <span className={strong ? 'text-base font-bold tabular-nums' : 'font-medium text-right text-sm'}>{value}</span>
     </div>
   );
 }
+
+function RecapGroup({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="px-5 py-4 border-t border-border space-y-1.5">
+      <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
+        {icon} {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[]; onEdit: () => void }) {
+  return (
+    <button type="button" onClick={onEdit}
+      className="w-full text-left rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/50 transition-colors px-4 py-3 flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <p className="text-sm font-semibold text-foreground truncate">{title}</p>
+        </div>
+        {lines.length > 0 && (
+          <p className="mt-1 text-[11.5px] text-muted-foreground line-clamp-2 pl-5">
+            {lines.join(' · ')}
+          </p>
+        )}
+      </div>
+      <span className="text-[11px] underline underline-offset-2 text-muted-foreground shrink-0">Modifier</span>
+    </button>
+  );
+}
+
 
 function AddressField({
   label, value, onChange, placeholder,
