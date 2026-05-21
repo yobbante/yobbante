@@ -735,10 +735,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </section>
 
-      {/* ─── Identity + sender coordinates ─── */}
+      {/* ─── Identity block — adaptive to userRole ─── */}
       {routeOk && (
         <section className="mt-5">
-          {identityCollapsed && senderName.trim() && senderPhone.trim() ? (
+          {identityCollapsed && identityName.trim() && identityPhone.trim() ? (
             <button
               type="button"
               onClick={() => setIdentityCollapsed(false)}
@@ -746,10 +746,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             >
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  {userRole === 'sender' ? 'Vous expédiez' : userRole === 'recipient' ? 'Vous recevrez' : 'Vous remplissez pour un tiers'}
+                  {userRole === 'sender'    && `Vous expédiez depuis ${originCity?.city}`}
+                  {userRole === 'recipient' && `Vous recevrez à ${destCity?.city}`}
+                  {userRole === 'third'     && `Vous remplissez pour un tiers`}
                 </p>
                 <p className="text-sm font-semibold text-foreground truncate mt-0.5">
-                  {senderName} · {senderPhone}
+                  {identityName} · {identityPhone}
                 </p>
               </div>
               <span className="text-[11px] underline underline-offset-2 text-muted-foreground shrink-0">Modifier</span>
@@ -762,18 +764,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
-                    { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: 'J\'expédie le colis' },
+                    { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: "J'expédie le colis" },
                     { id: 'recipient' as const, label: `Je suis à ${destCity?.city}`,    sub: 'Je recevrai le colis' },
                     { id: 'third'     as const, label: 'Je suis intermédiaire',          sub: 'Je remplis pour un tiers' },
                   ]).map(opt => {
                     const active = userRole === opt.id;
                     return (
                       <button key={opt.id} type="button"
-                        onClick={() => {
-                          setUserRole(opt.id);
-                          // Auto-collapse if sender info already filled
-                          if (senderName.trim() && senderPhone.trim()) setIdentityCollapsed(true);
-                        }}
+                        onClick={() => setUserRole(opt.id)}
                         className={`text-left rounded-xl border-2 px-3.5 py-2.5 transition-all ${
                           active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'
                         }`}>
@@ -785,27 +783,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               </div>
 
-              {/* Sender coordinates — affichées ici, plus dans l'étape finale */}
               <div className="border-t border-border pt-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Coordonnées de l'expéditeur
-                    {userRole === 'sender' && <span className="ml-1.5 text-foreground normal-case">· c'est vous</span>}
-                  </p>
-                  {userRole !== 'sender' && recipientName && (
-                    <button type="button"
-                      onClick={() => { setSenderName(recipientName); setSenderPhone(recipientPhone); }}
-                      className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                      Copier depuis le destinataire
-                    </button>
-                  )}
-                </div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {userRole === 'sender'    && 'Vos coordonnées (expéditeur)'}
+                  {userRole === 'recipient' && 'Vos coordonnées (destinataire)'}
+                  {userRole === 'third'     && 'Vos coordonnées (intermédiaire)'}
+                </p>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
-                  <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                    placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                  <TextField label="Nom complet *" value={identityName} onChange={setIdentityName} placeholder="Votre nom" />
+                  <TextField
+                    label={`Téléphone * (${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix})`}
+                    value={identityPhone} onChange={setIdentityPhone}
+                    placeholder={`${isRecipientRole ? destProfile.phonePrefix : originProfile.phonePrefix} · · · · · ·`}
+                    type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
                 </div>
-                {senderName.trim() && senderPhone.trim() && (
+                {identityName.trim() && identityPhone.trim() && (
                   <button type="button" onClick={() => setIdentityCollapsed(true)}
                     className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
                     Replier ce bloc
@@ -816,6 +808,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           )}
         </section>
       )}
+
 
 
       {/* ─── Step 1 — Collecte ─── */}
