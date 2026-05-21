@@ -18,6 +18,10 @@ import {
   PAYMENT_METHOD_LABELS, formatXof, marginPercent, suggestedGpAmount,
   type PaymentMethod,
 } from '@/lib/gpFinance';
+import {
+  Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
+} from 'recharts';
 
 type DossierFin = {
   id: string;
@@ -561,10 +565,8 @@ function PayDialog({
 // ============================================================================
 // Monthly bar chart — revenue vs GP cost + margin line, last 6 months
 // ============================================================================
-import {
-  Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer,
-  Tooltip, XAxis, YAxis,
-} from 'recharts';
+
+
 
 function MonthlyChartSection() {
   const sinceISO = useMemo(() => {
