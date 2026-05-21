@@ -515,8 +515,7 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
   await notifyAdmin(`Commande non comprise de ${prenom} (Ref ${transporteur.reference}) :
 "${rawMsg.slice(0, 150)}"
 A traiter manuellement.`);
-  await reply(`Je n'ai pas compris votre message. 🤔
-Tapez AIDE pour voir toutes les commandes disponibles.`, 'unknown');
+  await reply(FALLBACK_TEXT, 'unknown');
   return new Response('ok', { headers: corsHeaders });
 
   // =================================================================
