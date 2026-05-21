@@ -21,6 +21,7 @@ import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
 import { TransporteursTab } from '@/components/admin/TransporteursTab';
 import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
+import { ManualQuotesTab } from '@/components/admin/ManualQuotesTab';
 import { InboxTab } from '@/components/admin/inbox/InboxTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
