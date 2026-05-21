@@ -168,6 +168,11 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 truncate">{label}</span>
+                  {id === 'messages' && unread > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
+                      {unread > 99 ? '99+' : unread}
+                    </span>
+                  )}
                   {!live && (
                     <span
                       className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
