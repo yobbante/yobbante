@@ -517,3 +517,85 @@ function cnHist(kind: 'in' | 'out') {
     ? 'rounded-lg border border-border bg-muted/30 p-2'
     : 'rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-2';
 }
+
+// ============================================================================
+// GP Payments History — list of confirmed payments for this GP
+// ============================================================================
+function GpPaymentsHistoryDialog({ gp, onClose }: { gp: Transporteur; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['gp-payments-history', gp.reference],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, reference, destination_city, destination_country, actual_weight_kg, estimated_weight, gp_amount, gp_paid_at, gp_payment_method, gp_payment_ref, gp_receipt_path')
+        .eq('assigned_transporteur_ref', gp.reference)
+        .eq('gp_paid', true)
+        .order('gp_paid_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  async function openReceipt(path: string) {
+    const { data, error } = await supabase.storage.from('gp-receipts').createSignedUrl(path, 60 * 5);
+    if (error || !data?.signedUrl) {
+      toast.error('Reçu indisponible');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
+  const total = (data ?? []).reduce((s, d) => s + Number(d.gp_amount ?? 0), 0);
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Historique paiements — {gp.prenom ?? ''} {gp.nom}</DialogTitle>
+          <DialogDescription>
+            {data?.length ?? 0} paiement{(data?.length ?? 0) > 1 ? 's' : ''} · total {formatXof(total)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          {isLoading ? (
+            <div className="py-8 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+          ) : !data || data.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-8">Aucun paiement enregistré</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {data.map((d) => (
+                <div key={d.id} className="py-3 flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-xs text-muted-foreground">{d.tracking_id || d.reference}</div>
+                    <div className="text-foreground truncate">
+                      {d.destination_city || d.destination_country || '—'} · {d.actual_weight_kg ?? d.estimated_weight ?? '?'}kg
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {d.gp_paid_at ? new Date(d.gp_paid_at).toLocaleString('fr-FR') : '—'}
+                      {d.gp_payment_method && <> · {PAYMENT_METHOD_LABELS[d.gp_payment_method as PaymentMethod] ?? d.gp_payment_method}</>}
+                      {d.gp_payment_ref && <> · réf {d.gp_payment_ref}</>}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-[#F5C518]">{formatXof(Number(d.gp_amount ?? 0))}</div>
+                    {d.gp_receipt_path && (
+                      <Button size="sm" variant="ghost" className="h-7 px-2 mt-1" onClick={() => openReceipt(d.gp_receipt_path)}>
+                        <FileDown className="w-3 h-3 mr-1" /> Reçu PDF
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="outline">Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
