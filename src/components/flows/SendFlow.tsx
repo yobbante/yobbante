@@ -1073,6 +1073,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               placeholder={originProfile.currency === 'XOF' ? '85 000' : '120'}
               suffix={originProfile.currencySymbol}
               type="number"
+              invalid={fieldErrors.declaredLocal}
             />
             <div className="flex items-end">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
