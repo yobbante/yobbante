@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { gpWhatsappLink } from '@/lib/contact';
 
 const KONNEKT_BASE = 'https://usekonnekt.com/beta';
