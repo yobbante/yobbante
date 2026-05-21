@@ -331,16 +331,13 @@ function InTransit() {
     if (!ref) return;
     const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
     if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: gp.telephone_1,
-        recipient_type: 'gp',
-        message: `Bonjour, ou en est la livraison de ${tracking} ? La date prevue est depassee.`,
-        transporteur_id: gp.id,
-        trigger_type: 'admin_late_delivery',
-      },
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: `Bonjour, ou en est la livraison de ${tracking} ? La date prevue est depassee.`,
+      transporteur_id: gp.id,
+      trigger_type: 'admin_late_delivery',
     });
-    toast.success('GP contacte');
+    if (res.ok) toast.success('GP contacte');
   }
 
   if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
