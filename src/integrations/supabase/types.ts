@@ -2192,6 +2192,8 @@ export type Database = {
           actif: boolean
           adresse_1: string
           adresse_2: string | null
+          adresse_collecte_dakar: string | null
+          adresses_remise: Json
           beta_invite_sent_at: string | null
           bot_paused_until: string | null
           created_at: string
@@ -2215,6 +2217,8 @@ export type Database = {
           actif?: boolean
           adresse_1: string
           adresse_2?: string | null
+          adresse_collecte_dakar?: string | null
+          adresses_remise?: Json
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
@@ -2238,6 +2242,8 @@ export type Database = {
           actif?: boolean
           adresse_1?: string
           adresse_2?: string | null
+          adresse_collecte_dakar?: string | null
+          adresses_remise?: Json
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
