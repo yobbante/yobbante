@@ -771,6 +771,9 @@ export type Database = {
           intake_by: string | null
           intake_method: string
           intake_notes: string | null
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          invoice_url: string | null
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
           last_client_contact: string | null
@@ -845,6 +848,9 @@ export type Database = {
           intake_by?: string | null
           intake_method?: string
           intake_notes?: string | null
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          invoice_url?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
@@ -919,6 +925,9 @@ export type Database = {
           intake_by?: string | null
           intake_method?: string
           intake_notes?: string | null
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          invoice_url?: string | null
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
@@ -2802,6 +2811,7 @@ export type Database = {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }
         Returns: string
       }
+      generate_invoice_number: { Args: never; Returns: string }
       generate_reception_reference: { Args: never; Returns: string }
       generate_shipment_tracking_number: { Args: never; Returns: string }
       generate_tracking_id_v2: { Args: never; Returns: string }
