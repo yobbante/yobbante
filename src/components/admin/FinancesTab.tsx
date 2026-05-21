@@ -561,10 +561,8 @@ function PayDialog({
 // ============================================================================
 // Monthly bar chart — revenue vs GP cost + margin line, last 6 months
 // ============================================================================
-import {
-  Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer,
-  Tooltip, XAxis, YAxis,
-} from 'recharts';
+
+
 
 function MonthlyChartSection() {
   const sinceISO = useMemo(() => {
