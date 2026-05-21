@@ -755,7 +755,16 @@ export type Database = {
           estimated_delivery_date: string | null
           estimated_weight: number | null
           final_amount_xof: number | null
+          gp_amount: number | null
+          gp_amount_set_at: string | null
+          gp_amount_set_by: string | null
           gp_id: string | null
+          gp_paid: boolean
+          gp_paid_at: string | null
+          gp_payment_method: string | null
+          gp_payment_note: string | null
+          gp_payment_ref: string | null
+          gp_receipt_path: string | null
           hs_code: string | null
           id: string
           incoterm: string | null
@@ -793,6 +802,7 @@ export type Database = {
           weigh_location: string | null
           weighed_at: string | null
           weighed_by: string | null
+          yobbante_margin: number | null
         }
         Insert: {
           actual_weight_kg?: number | null
@@ -819,7 +829,16 @@ export type Database = {
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           final_amount_xof?: number | null
+          gp_amount?: number | null
+          gp_amount_set_at?: string | null
+          gp_amount_set_by?: string | null
           gp_id?: string | null
+          gp_paid?: boolean
+          gp_paid_at?: string | null
+          gp_payment_method?: string | null
+          gp_payment_note?: string | null
+          gp_payment_ref?: string | null
+          gp_receipt_path?: string | null
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -857,6 +876,7 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          yobbante_margin?: number | null
         }
         Update: {
           actual_weight_kg?: number | null
@@ -883,7 +903,16 @@ export type Database = {
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
           final_amount_xof?: number | null
+          gp_amount?: number | null
+          gp_amount_set_at?: string | null
+          gp_amount_set_by?: string | null
           gp_id?: string | null
+          gp_paid?: boolean
+          gp_paid_at?: string | null
+          gp_payment_method?: string | null
+          gp_payment_note?: string | null
+          gp_payment_ref?: string | null
+          gp_receipt_path?: string | null
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -921,6 +950,7 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          yobbante_margin?: number | null
         }
         Relationships: [
           {
@@ -2218,6 +2248,8 @@ export type Database = {
           beta_invite_sent_at: string | null
           bot_paused_until: string | null
           created_at: string
+          default_rate_per_kg: number | null
+          default_routes: Json
           destinations: string[] | null
           id: string
           invitation_bot_sent_at: string | null
@@ -2244,6 +2276,8 @@ export type Database = {
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
+          default_rate_per_kg?: number | null
+          default_routes?: Json
           destinations?: string[] | null
           id?: string
           invitation_bot_sent_at?: string | null
@@ -2270,6 +2304,8 @@ export type Database = {
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
+          default_rate_per_kg?: number | null
+          default_routes?: Json
           destinations?: string[] | null
           id?: string
           invitation_bot_sent_at?: string | null
