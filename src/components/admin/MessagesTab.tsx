@@ -274,6 +274,121 @@ export function MessagesTab() {
     toast.success('Conversation marquée comme traitée');
   }
 
+  // ---------- Load linked dossier + transporteur for active GP conversation ----------
+  useEffect(() => {
+    setLinkedDossier(null);
+    setTransporteurInfo(null);
+    setGpText('');
+    if (!openPhone) return;
+    const conv = inbound.find((m) => m.from_phone === openPhone);
+    if (!conv) return;
+
+    (async () => {
+      if (conv.dossier_id) {
+        const { data } = await supabase
+          .from('dossiers')
+          .select('id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date')
+          .eq('id', conv.dossier_id)
+          .maybeSingle();
+        if (data) setLinkedDossier(data as unknown as LinkedDossier);
+      }
+      if (conv.channel === 'gp') {
+        const tid = conv.transporteur_id;
+        if (tid) {
+          const { data } = await supabase
+            .from('transporteurs' as any)
+            .select('id, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .eq('id', tid)
+            .maybeSingle();
+          if (data) setTransporteurInfo({
+            ...(data as any),
+            adresses_remise: ((data as any).adresses_remise ?? {}) as Record<string, string>,
+          });
+        }
+      }
+    })();
+  }, [openPhone, inbound]);
+
+  // ---------- Pause/resume GP bot ----------
+  const pauseBot = useCallback(async (minutes = 5) => {
+    if (!transporteurInfo) return;
+    const until = new Date(Date.now() + minutes * 60_000).toISOString();
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: until }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: until } : prev);
+  }, [transporteurInfo]);
+
+  const onGpTyping = (v: string) => {
+    setGpText(v);
+    if (pauseTimerRef.current) window.clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = window.setTimeout(() => { pauseBot(5); }, 400);
+  };
+
+  const resumeBot = async () => {
+    if (!transporteurInfo) return;
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: null }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: null } : prev);
+    toast.success('Bot GP reactive');
+  };
+
+  async function sendGpFree(text: string) {
+    if (!openPhone || !text.trim()) return;
+    setSending(true);
+    try {
+      await pauseBot(5);
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { recipient_phone: openPhone, recipient_type: 'gp', message: text, trigger_type: 'admin_free_text', transporteur_id: transporteurInfo?.id ?? null },
+      });
+      if (error) throw error;
+      toast.success('Message envoye au GP');
+      setGpText('');
+    } catch (e) {
+      toast.error('Echec envoi', { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const gpCtx = useMemo(() => {
+    const prenom = transporteurInfo?.prenom || activeConv?.name?.split(' ')[0] || 'GP';
+    const dest = linkedDossier?.destination_country || 'destination';
+    const orig = linkedDossier?.origin_country || 'origine';
+    return {
+      gp_prenom: prenom,
+      route: `${orig} - ${dest}`,
+      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      destination: dest,
+      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '',
+      date: linkedDossier?.estimated_delivery_date || 'bientot',
+      departure_date: linkedDossier?.estimated_delivery_date || 'bientot',
+    };
+  }, [transporteurInfo, linkedDossier, activeConv]);
+
+  async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
+    if (!transporteurInfo) {
+      toast.error('Transporteur introuvable');
+      return;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    try {
+      if (kind === 'collecte') {
+        await supabase.from('transporteurs' as any).update({ adresse_collecte_dakar: trimmed }).eq('id', transporteurInfo.id);
+        setTransporteurInfo((prev) => prev ? { ...prev, adresse_collecte_dakar: trimmed } : prev);
+        toast.success('Adresse de collecte Dakar sauvegardee');
+      } else {
+        const c = (city || linkedDossier?.destination_country || 'Autre').trim();
+        const next = { ...(transporteurInfo.adresses_remise ?? {}), [c]: trimmed };
+        await supabase.from('transporteurs' as any).update({ adresses_remise: next }).eq('id', transporteurInfo.id);
+        setTransporteurInfo((prev) => prev ? { ...prev, adresses_remise: next } : prev);
+        toast.success(`Adresse remise ${c} sauvegardee`);
+      }
+    } catch (e) {
+      toast.error('Echec sauvegarde', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const botPaused = !!(transporteurInfo?.bot_paused_until && new Date(transporteurInfo.bot_paused_until) > new Date());
+
   // ---------- Render ----------
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
