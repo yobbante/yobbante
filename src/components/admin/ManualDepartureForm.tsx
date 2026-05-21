@@ -397,10 +397,10 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
             <Select value={status} onValueChange={(v) => setStatus(v as DepartureStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">🟡 Brouillon</SelectItem>
-                <SelectItem value="active">🟢 Actif</SelectItem>
-                <SelectItem value="full">🔴 Complet</SelectItem>
-                <SelectItem value="cancelled">⚫ Annulé</SelectItem>
+                <SelectItem value="draft">Brouillon</SelectItem>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="full">Complet</SelectItem>
+                <SelectItem value="cancelled">Annulé</SelectItem>
               </SelectContent>
             </Select>
           </Section>
