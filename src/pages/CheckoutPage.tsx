@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote, Tag, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
 
