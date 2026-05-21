@@ -400,27 +400,53 @@ export function MessagesTab() {
 
   const botPaused = !!(transporteurInfo?.bot_paused_until && new Date(transporteurInfo.bot_paused_until) > new Date());
 
+  function intentPill(intent: string | null) {
+    if (!intent) return null;
+    const i = intent.toLowerCase();
+    const map: Array<{ test: (s: string) => boolean; label: string; cls: string }> = [
+      { test: (s) => s.startsWith('dep'), label: '🟢 Départ enregistré', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+      { test: (s) => s.startsWith('collecte'), label: '🔵 Collecte confirmée', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+      { test: (s) => s.startsWith('poids'), label: '🟡 Poids enregistré', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+      { test: (s) => s.startsWith('livre'), label: '✅ Livraison confirmée', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+      { test: (s) => s === 'unknown', label: '❓ Non compris', cls: 'bg-red-500/15 text-red-400 border-red-500/30' },
+      { test: (s) => s.startsWith('mes_') || s === 'help' || s === 'start' || s === 'cancel', label: '⚙️ Commande bot', cls: 'bg-muted text-muted-foreground border-border' },
+      { test: (s) => s.startsWith('address'), label: '📍 Adresse', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+    ];
+    const m = map.find((x) => x.test(i));
+    if (!m) return <span className="text-[9px] px-2 py-0.5 rounded-full border border-border bg-muted/40 text-muted-foreground">🤖 {intent}</span>;
+    return <span className={cn('text-[9px] px-2 py-0.5 rounded-full border font-semibold', m.cls)}>{m.label}</span>;
+  }
+
+  async function takeOver() {
+    if (!transporteurInfo) return;
+    const until = new Date(Date.now() + 60 * 60_000).toISOString();
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: until }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: until } : prev);
+    toast.success('Bot en pause pour 1 heure');
+  }
+
   // ---------- Render ----------
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
-      <header className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full min-h-[500px] w-full">
+      <header className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card/30">
         <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
+          <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
             Messages WhatsApp
             {unreadTotal > 0 && (
-              <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
+              <span className="text-[10px] bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
                 {unreadTotal} non lu{unreadTotal > 1 ? 's' : ''}
               </span>
             )}
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Clients : 607 · GP : 122</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Clients : 607 · GP : 122</p>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex flex-1 min-h-0 bg-card overflow-hidden">
         {/* ===== LEFT — conversations ===== */}
-        <aside className={cn('w-full md:w-[340px] flex-shrink-0 border-r border-border flex flex-col', openPhone && 'hidden md:flex')}>
+        <aside className={cn('w-full md:w-[320px] flex-shrink-0 border-r border-border flex flex-col', openPhone && 'hidden md:flex')}>
+
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -544,14 +570,14 @@ export function MessagesTab() {
                       )}
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
-                      {activeConv.channel === 'gp' && t.kind === 'in' && (t.m as InboundMsg).bot_intent && (
-                        <div className="text-[10px] font-bold text-emerald-600 mb-1">🤖 {(t.m as InboundMsg).bot_intent}</div>
-                      )}
                       {t.body}
                       <div className={cn('text-[9px] mt-1 opacity-60', t.kind === 'out' ? 'text-black/60' : 'text-muted-foreground')}>
                         {formatTime(t.at)}
                       </div>
                     </div>
+                    {activeConv.channel === 'gp' && t.kind === 'in' && (t.m as InboundMsg).bot_intent && (
+                      <div className="mt-1">{intentPill((t.m as InboundMsg).bot_intent)}</div>
+                    )}
                     {activeConv.channel === 'gp' && t.kind === 'in' && t.body && t.body.length > 8 && !((t.m as InboundMsg).bot_intent) && (
                       <div className="flex gap-1 mt-1 flex-wrap">
                         <button
@@ -605,15 +631,18 @@ export function MessagesTab() {
               ) : (
                 <div className="border-t border-border bg-card">
                   {/* Bot status bar */}
-                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50">
-                    <span className={cn('flex items-center gap-1', botPaused ? 'text-amber-500' : 'text-emerald-500')}>
-                      <PauseCircle className="w-3 h-3" />
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2">
+                    <span className={cn('flex items-center gap-1 font-semibold', botPaused ? 'text-amber-400' : 'text-emerald-400')}>
                       {botPaused
-                        ? `Bot en pause jusqu'a ${formatTime(transporteurInfo!.bot_paused_until!)}`
-                        : 'Bot actif — il repond automatiquement'}
+                        ? <>⏸️ Bot en pause jusqu'à {formatTime(transporteurInfo!.bot_paused_until!)}</>
+                        : <>🤖 Bot actif</>}
                     </span>
-                    {botPaused && (
-                      <button onClick={resumeBot} className="text-primary hover:underline">Reprendre le bot</button>
+                    {botPaused ? (
+                      <button onClick={resumeBot} className="text-primary hover:underline font-medium">Réactiver le bot</button>
+                    ) : (
+                      <button onClick={takeOver} className="text-[#F5C518] hover:underline font-medium flex items-center gap-1">
+                        <PauseCircle className="w-3 h-3" /> Prendre le relais (1h)
+                      </button>
                     )}
                   </div>
                   {/* Mode switch */}
