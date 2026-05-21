@@ -821,9 +821,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 6 — Goods type (skipped when AI is confident) ─── */}
+      {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
-        <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+        <FlowSection revealed step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
