@@ -82,6 +82,46 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
+  const discount = promo?.discount_eur ?? 0;
+  const total = Math.max(0, subtotal - discount);
+
+  // Recompute discount when subtotal changes (re-validate against the rules)
+  useEffect(() => {
+    if (!promo) return;
+    void validatePromo(promo.code, /* silent */ true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
+  async function validatePromo(rawCode: string, silent = false) {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) { setPromoError('Entrez un code.'); return; }
+    if (!silent) setPromoApplying(true);
+    setPromoError(null);
+    try {
+      const { data, error } = await supabase
+        .from('dekk_promo_codes' as any)
+        .select('id, code, discount_type, discount_value, min_subtotal_eur, max_uses, used_count, expires_at, active')
+        .ilike('code', code)
+        .maybeSingle();
+      if (error || !data) throw new Error('Code inconnu.');
+      const p: any = data;
+      if (!p.active) throw new Error('Ce code n\'est plus actif.');
+      if (p.expires_at && new Date(p.expires_at) < new Date()) throw new Error('Ce code a expiré.');
+      if (p.max_uses != null && p.used_count >= p.max_uses) throw new Error('Ce code a atteint sa limite d\'utilisation.');
+      if (subtotal < (p.min_subtotal_eur ?? 0)) {
+        throw new Error(`Minimum d'achat : ${p.min_subtotal_eur} €.`);
+      }
+      const d = p.discount_type === 'percent'
+        ? Math.min(subtotal, Math.floor(subtotal * p.discount_value / 100))
+        : Math.min(subtotal, p.discount_value);
+      setPromo({ id: p.id, code: p.code, discount_eur: d });
+    } catch (e: any) {
+      setPromo(null);
+      setPromoError(e?.message || 'Code invalide.');
+    } finally {
+      setPromoApplying(false);
+    }
+  }
 
   const deliveryValid = name.trim().length >= 2 && phone.trim().length >= 6 && city && address.trim().length >= 4;
 
@@ -96,33 +136,53 @@ export default function CheckoutPage() {
       payment_method: payment,
       items: cart,
       subtotal_eur: subtotal,
-      total_eur: subtotal,
-      total_fcfa: subtotal * 655,
+      discount_eur: discount,
+      promo_code: promo?.code ?? null,
+      total_eur: total,
+      total_fcfa: total * 655,
       status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
     };
     try {
-      // Persist to backend
       const { data: { session } } = await supabase.auth.getSession();
-      await supabase.from('dekk_orders' as any).insert({
-        reference,
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email || null,
-        city,
-        address,
-        note: note || null,
-        payment_method: payment,
-        items: cart,
-        subtotal_eur: Math.round(subtotal),
-        total_eur: Math.round(subtotal),
-        total_fcfa: Math.round(subtotal * 655),
-        status: order.status,
-        user_id: session?.user?.id ?? null,
-      });
-      // Cache for confirmation page (offline fallback)
+      const { data: inserted, error: insertErr } = await supabase
+        .from('dekk_orders' as any)
+        .insert({
+          reference,
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email || null,
+          city,
+          address,
+          note: note || null,
+          payment_method: payment,
+          items: cart,
+          subtotal_eur: Math.round(subtotal),
+          total_eur: Math.round(total),
+          total_fcfa: Math.round(total * 655),
+          status: order.status,
+          user_id: session?.user?.id ?? null,
+        })
+        .select('id')
+        .single();
+      if (insertErr) throw insertErr;
+      const orderId = (inserted as any)?.id as string | undefined;
+
+      // Atomically consume the promo (server-side: validates + decrements + records)
+      if (promo && orderId) {
+        const { error: promoErr } = await supabase.rpc('dekk_consume_promo' as any, {
+          p_code: promo.code,
+          p_order_id: orderId,
+          p_subtotal_eur: Math.round(subtotal),
+        });
+        if (promoErr) {
+          // Non-blocking: keep the order, log the failure
+          console.warn('Promo consume failed', promoErr);
+        }
+      }
+
       localStorage.setItem(`dekk_order_${reference}`, JSON.stringify(order));
       const hist = JSON.parse(localStorage.getItem('dekk_orders') || '[]');
-      hist.unshift({ reference, total_eur: subtotal, created_at: order.created_at });
+      hist.unshift({ reference, total_eur: total, created_at: order.created_at });
       localStorage.setItem('dekk_orders', JSON.stringify(hist.slice(0, 20)));
       localStorage.setItem('dekk_cart', '[]'); window.dispatchEvent(new Event('dekk:cart'));
     } catch (e) {
