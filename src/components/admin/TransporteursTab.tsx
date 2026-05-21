@@ -601,29 +601,58 @@ function BotBlastDialog({
             Tous les GP actifs sont déjà onboardés sur le bot 🎉
           </div>
         ) : (
-          <div className="max-h-[360px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
-            {eligible.map((g) => (
-              <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">
-                    {formatTransporteurName(g.prenom, g.nom)}
-                    <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filtrer par nom ou téléphone"
+                className="pl-9"
+              />
+            </div>
+            <div className="max-h-[360px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+              {filteredEligible.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">Aucun résultat</div>
+              ) : filteredEligible.map((g) => {
+                const lastSent = g.invitation_bot_sent_at;
+                const initials = formatTransporteurName(g.prenom, g.nom)
+                  .split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="shrink-0 h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-[11px] font-bold">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">
+                          {formatTransporteurName(g.prenom, g.nom)}
+                          <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+                        </div>
+                        <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {g.ville}</div>
+                        {lastSent && (
+                          <div className="text-[11px] text-amber-500 mt-0.5">
+                            Déjà invité le {new Date(lastSent).toLocaleDateString('fr-FR')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onSent(g)}
+                      className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1.5" />
+                      {lastSent ? 'Renvoyer' : 'Envoyer'}
+                    </Button>
                   </div>
-                  <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {g.ville}</div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onSent(g)}
-                  className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
-                >
-                  <Send className="w-3.5 h-3.5 mr-1.5" />
-                  Envoyer
-                </Button>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
+
 
         <DialogFooter className="gap-2">
           {!sequential && !blasting && eligible.length > 0 && blastProgress.done === 0 && (
