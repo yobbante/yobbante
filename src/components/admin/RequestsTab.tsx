@@ -188,7 +188,7 @@ export function RequestsTab() {
             const k = getKind(d);
             const isOpen = expandedId === d.id;
             return (
-              <li key={d.id}>
+              <li key={d.id} data-dossier-id={d.id}>
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}
