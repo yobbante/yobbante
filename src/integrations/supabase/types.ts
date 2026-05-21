@@ -467,6 +467,87 @@ export type Database = {
         }
         Relationships: []
       }
+      dekk_promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          min_subtotal_eur: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_subtotal_eur?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_subtotal_eur?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
+      dekk_promo_redemptions: {
+        Row: {
+          created_at: string
+          discount_eur: number
+          id: string
+          order_id: string | null
+          promo_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_eur: number
+          id?: string
+          order_id?: string | null
+          promo_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_eur?: number
+          id?: string
+          order_id?: string | null
+          promo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dekk_promo_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "dekk_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dekk_promo_redemptions_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "dekk_promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_customs_documents: {
         Row: {
           created_at: string
@@ -1412,6 +1493,7 @@ export type Database = {
           source_type: string
           status: string
           stock_mode: string
+          stock_qty: number | null
           updated_at: string
           verified: boolean
         }
@@ -1429,6 +1511,7 @@ export type Database = {
           source_type?: string
           status?: string
           stock_mode?: string
+          stock_qty?: number | null
           updated_at?: string
           verified?: boolean
         }
@@ -1446,6 +1529,7 @@ export type Database = {
           source_type?: string
           status?: string
           stock_mode?: string
+          stock_qty?: number | null
           updated_at?: string
           verified?: boolean
         }

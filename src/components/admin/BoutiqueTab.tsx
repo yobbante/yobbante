@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
+import { BoutiqueStatsPanel } from './BoutiqueStatsPanel';
+import { BoutiquePromosPanel } from './BoutiquePromosPanel';
 
 type Product = {
   id: string;
@@ -12,6 +14,7 @@ type Product = {
   price_fcfa: number;
   origin_country: string;
   stock_mode: string;
+  stock_qty: number | null;
   delivery_days: number | null;
   status: string;
   image_url: string | null;
@@ -58,6 +61,7 @@ const emptyForm = {
   price_eur: 0,
   origin_country: 'CN',
   stock_mode: 'stock' as 'stock' | 'commande',
+  stock_qty: '' as string,
   delivery_days: 7,
   image_url: '',
   verified: false,
@@ -65,7 +69,7 @@ const emptyForm = {
 };
 
 export function BoutiqueTab() {
-  const [view, setView] = useState<'products' | 'orders'>('products');
+  const [view, setView] = useState<'products' | 'orders' | 'promos' | 'stats'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [showForm, setShowForm] = useState(false);
@@ -119,6 +123,7 @@ export function BoutiqueTab() {
       price_eur: p.price_eur,
       origin_country: p.origin_country,
       stock_mode: (p.stock_mode === 'commande' ? 'commande' : 'stock'),
+      stock_qty: p.stock_qty == null ? '' : String(p.stock_qty),
       delivery_days: p.delivery_days || 7,
       image_url: p.image_url || '',
       verified: !!p.verified,
@@ -145,6 +150,7 @@ export function BoutiqueTab() {
       price_eur: price,
       origin_country: form.origin_country,
       stock_mode: form.stock_mode,
+      stock_qty: form.stock_qty === '' ? null : Math.max(0, Number(form.stock_qty) || 0),
       delivery_days: form.stock_mode === 'commande' ? Number(form.delivery_days) || 7 : null,
       image_url,
       source_type: editingId ? undefined : 'manual',
@@ -174,7 +180,10 @@ export function BoutiqueTab() {
             DËKK · BOUTIQUE
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>
-            {view === 'products' ? 'Gestion des produits' : 'Commandes & suivi'}
+            {view === 'products' ? 'Gestion des produits'
+              : view === 'orders' ? 'Commandes & suivi'
+              : view === 'promos' ? 'Codes promo'
+              : 'Statistiques boutique'}
           </h2>
         </div>
         {view === 'products' && (
@@ -191,9 +200,14 @@ export function BoutiqueTab() {
       <div className="flex gap-1 mb-5" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
         <TabBtn active={view === 'products'} onClick={() => setView('products')}>Produits</TabBtn>
         <TabBtn active={view === 'orders'}   onClick={() => setView('orders')}>Commandes</TabBtn>
+        <TabBtn active={view === 'promos'}   onClick={() => setView('promos')}>Codes promo</TabBtn>
+        <TabBtn active={view === 'stats'}    onClick={() => setView('stats')}>Statistiques</TabBtn>
       </div>
 
-      {view === 'orders' ? <BoutiqueOrdersPanel /> : (<>
+      {view === 'orders' ? <BoutiqueOrdersPanel />
+        : view === 'promos' ? <BoutiquePromosPanel />
+        : view === 'stats' ? <BoutiqueStatsPanel />
+        : (<>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
@@ -417,6 +431,20 @@ function ProductFormSheet({
               value={String(form.delivery_days)}
               onChange={v => setForm({ ...form, delivery_days: Math.max(1, Number(v) || 1) })}
             />
+          </Field>
+        )}
+
+        {form.stock_mode === 'stock' && (
+          <Field label="Quantité en stock (vide = illimité)">
+            <Input
+              type="number"
+              mono
+              value={form.stock_qty}
+              onChange={v => setForm({ ...form, stock_qty: v.replace(/[^0-9]/g, '') })}
+            />
+            <div style={{ marginTop: 4, fontSize: 11, color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>
+              {form.stock_qty === '' ? 'Stock illimité' : Number(form.stock_qty) === 0 ? '⚠️ Rupture — produit masqué de la boutique' : `${form.stock_qty} unité${Number(form.stock_qty) > 1 ? 's' : ''} disponible${Number(form.stock_qty) > 1 ? 's' : ''}`}
+            </div>
           </Field>
         )}
 
