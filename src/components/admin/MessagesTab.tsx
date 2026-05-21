@@ -631,15 +631,18 @@ export function MessagesTab() {
               ) : (
                 <div className="border-t border-border bg-card">
                   {/* Bot status bar */}
-                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50">
-                    <span className={cn('flex items-center gap-1', botPaused ? 'text-amber-500' : 'text-emerald-500')}>
-                      <PauseCircle className="w-3 h-3" />
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2">
+                    <span className={cn('flex items-center gap-1 font-semibold', botPaused ? 'text-amber-400' : 'text-emerald-400')}>
                       {botPaused
-                        ? `Bot en pause jusqu'a ${formatTime(transporteurInfo!.bot_paused_until!)}`
-                        : 'Bot actif — il repond automatiquement'}
+                        ? <>⏸️ Bot en pause jusqu'à {formatTime(transporteurInfo!.bot_paused_until!)}</>
+                        : <>🤖 Bot actif</>}
                     </span>
-                    {botPaused && (
-                      <button onClick={resumeBot} className="text-primary hover:underline">Reprendre le bot</button>
+                    {botPaused ? (
+                      <button onClick={resumeBot} className="text-primary hover:underline font-medium">Réactiver le bot</button>
+                    ) : (
+                      <button onClick={takeOver} className="text-[#F5C518] hover:underline font-medium flex items-center gap-1">
+                        <PauseCircle className="w-3 h-3" /> Prendre le relais (1h)
+                      </button>
                     )}
                   </div>
                   {/* Mode switch */}
