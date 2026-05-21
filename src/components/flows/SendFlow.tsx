@@ -174,6 +174,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
+  // Identité de la personne qui remplit le formulaire
+  // 'sender' = je suis dans la ville d'origine (j'expédie)
+  // 'recipient' = je suis dans la ville de destination (je recevrai)
+  // 'third'  = je remplis pour quelqu'un d'autre
+  const [userRole, setUserRole] = useState<'sender' | 'recipient' | 'third'>('sender');
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
