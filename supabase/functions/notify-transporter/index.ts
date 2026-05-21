@@ -51,7 +51,7 @@ Confirmez votre disponibilité en répondant à ce message.`;
 ────────────────────────────
 🚀 Nouveau : Rejoignez Konnekt
 Recevez encore plus de missions directement sur votre téléphone.
-👉 konnekt.app/beta?ref=GP${transporteurRef}`
+👉 yobbante.com/rejoindre-konnekt?ref=GP${transporteurRef}`
     : '';
 
   return `${base}${beta}
