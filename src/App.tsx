@@ -30,6 +30,8 @@ import AdminPage from "./pages/AdminPage";
 import InboxImportPage from "./pages/admin/InboxImportPage";
 import DeparturesWeekPage from "./pages/admin/DeparturesWeekPage";
 import SuivreEntry from "./pages/SuivreEntry";
+import AvisPage from "./pages/AvisPage";
+import PayPage from "./pages/PayPage";
 import BusinessPage from "./pages/BusinessPage";
 import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
@@ -113,6 +115,9 @@ const App = () => (
             {/* Canonical tracking URL — /suivre redirects to /track */}
             <Route path="/suivre" element={<SuivreEntry />} />
             <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
+            {/* Public review + payment pages (WhatsApp deep links) */}
+            <Route path="/avis/:trackingId" element={<AvisPage />} />
+            <Route path="/pay/:trackingId" element={<PayPage />} />
             <Route path="/business" element={<BusinessPage />} />
             <Route path="/business/join" element={<BusinessJoinPage />} />
             <Route path="/business/pricing" element={<BusinessPricingPage />} />
