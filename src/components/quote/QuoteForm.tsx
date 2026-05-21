@@ -6,6 +6,25 @@ import {
   saveDraft,
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
+import { ALL_CITIES } from '@/lib/worldCities';
+
+const SEND_PRESET_KEY = 'send-flow:preset';
+
+function resolveCityToCountry(label: string): { country: string; city: string } | null {
+  if (!label) return null;
+  if (label === 'Dakar, Sénégal' || label === 'Dakar') return { country: 'SN', city: 'Dakar' };
+  const m = ALL_CITIES.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
+  return m ? { country: m.country, city: m.city } : null;
+}
+
+function sourcingCountryToCode(label: string): 'CN' | 'FR' | 'AE' | 'US' {
+  switch (label) {
+    case 'Chine': return 'CN';
+    case 'USA': return 'US';
+    case 'Europe': return 'FR';
+    default: return 'CN';
+  }
+}
 
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
