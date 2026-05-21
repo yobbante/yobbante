@@ -653,6 +653,44 @@ export type Database = {
           },
         ]
       }
+      dossier_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dossier_id: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          visible_to_client: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dossier_id: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          visible_to_client?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dossier_id?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          visible_to_client?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_events_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_messages: {
         Row: {
           author_id: string
@@ -693,6 +731,7 @@ export type Database = {
       }
       dossiers: {
         Row: {
+          actual_weight_kg: number | null
           admin_notes: string | null
           app_source: string
           assigned_departure_id: string | null
@@ -702,16 +741,20 @@ export type Database = {
           buyer_contact: string | null
           buyer_country: string | null
           buyer_name: string | null
+          cash_on_delivery: boolean
+          collected_at: string | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
           currency: string | null
           declared_value: number | null
+          delivered_at: string | null
           destination_country: string
           dossier_type: Database["public"]["Enums"]["dossier_type"]
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
+          final_amount_xof: number | null
           gp_id: string | null
           hs_code: string | null
           id: string
@@ -742,8 +785,10 @@ export type Database = {
           unit: string | null
           updated_at: string
           user_id: string
+          weighed_at: string | null
         }
         Insert: {
+          actual_weight_kg?: number | null
           admin_notes?: string | null
           app_source?: string
           assigned_departure_id?: string | null
@@ -753,16 +798,20 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cash_on_delivery?: boolean
+          collected_at?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           currency?: string | null
           declared_value?: number | null
+          delivered_at?: string | null
           destination_country?: string
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          final_amount_xof?: number | null
           gp_id?: string | null
           hs_code?: string | null
           id?: string
@@ -793,8 +842,10 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           user_id: string
+          weighed_at?: string | null
         }
         Update: {
+          actual_weight_kg?: number | null
           admin_notes?: string | null
           app_source?: string
           assigned_departure_id?: string | null
@@ -804,16 +855,20 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cash_on_delivery?: boolean
+          collected_at?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           currency?: string | null
           declared_value?: number | null
+          delivered_at?: string | null
           destination_country?: string
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          final_amount_xof?: number | null
           gp_id?: string | null
           hs_code?: string | null
           id?: string
@@ -844,6 +899,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           user_id?: string
+          weighed_at?: string | null
         }
         Relationships: [
           {
@@ -2147,6 +2203,153 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_inbound_messages: {
+        Row: {
+          bot_intent: string | null
+          bot_response: string | null
+          channel: string
+          dossier_id: string | null
+          from_name: string | null
+          from_phone: string
+          id: string
+          is_read: boolean
+          media_url: string | null
+          message_body: string | null
+          message_type: string
+          received_at: string
+          replied_at: string | null
+          replied_by: string | null
+          reply_template: string | null
+          to_number: string | null
+          transporteur_id: string | null
+          wamid: string | null
+        }
+        Insert: {
+          bot_intent?: string | null
+          bot_response?: string | null
+          channel?: string
+          dossier_id?: string | null
+          from_name?: string | null
+          from_phone: string
+          id?: string
+          is_read?: boolean
+          media_url?: string | null
+          message_body?: string | null
+          message_type?: string
+          received_at?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_template?: string | null
+          to_number?: string | null
+          transporteur_id?: string | null
+          wamid?: string | null
+        }
+        Update: {
+          bot_intent?: string | null
+          bot_response?: string | null
+          channel?: string
+          dossier_id?: string | null
+          from_name?: string | null
+          from_phone?: string
+          id?: string
+          is_read?: boolean
+          media_url?: string | null
+          message_body?: string | null
+          message_type?: string
+          received_at?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_template?: string | null
+          to_number?: string | null
+          transporteur_id?: string | null
+          wamid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_inbound_messages_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_inbound_messages_transporteur_id_fkey"
+            columns: ["transporteur_id"]
+            isOneToOne: false
+            referencedRelation: "transporteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_outbound_messages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dossier_id: string | null
+          error_message: string | null
+          from_number: string | null
+          id: string
+          message_body: string | null
+          recipient_type: string
+          status: string
+          template_name: string | null
+          template_params: Json | null
+          to_phone: string
+          transporteur_id: string | null
+          trigger_type: string | null
+          wamid: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dossier_id?: string | null
+          error_message?: string | null
+          from_number?: string | null
+          id?: string
+          message_body?: string | null
+          recipient_type?: string
+          status?: string
+          template_name?: string | null
+          template_params?: Json | null
+          to_phone: string
+          transporteur_id?: string | null
+          trigger_type?: string | null
+          wamid?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dossier_id?: string | null
+          error_message?: string | null
+          from_number?: string | null
+          id?: string
+          message_body?: string | null
+          recipient_type?: string
+          status?: string
+          template_name?: string | null
+          template_params?: Json | null
+          to_phone?: string
+          transporteur_id?: string | null
+          trigger_type?: string | null
+          wamid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_outbound_messages_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_outbound_messages_transporteur_id_fkey"
+            columns: ["transporteur_id"]
+            isOneToOne: false
+            referencedRelation: "transporteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zone_pricing: {
         Row: {
           active: boolean
@@ -2444,6 +2647,13 @@ export type Database = {
         | "CONFIRMED"
         | "STALE"
         | "EN_RECHERCHE_DEPART"
+        | "ASSIGNED"
+        | "COLLECTED"
+        | "WEIGHED"
+        | "ARRIVED_HUB"
+        | "OUT_FOR_DELIVERY"
+        | "CANCELLED"
+        | "ARCHIVED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -2638,6 +2848,13 @@ export const Constants = {
         "CONFIRMED",
         "STALE",
         "EN_RECHERCHE_DEPART",
+        "ASSIGNED",
+        "COLLECTED",
+        "WEIGHED",
+        "ARRIVED_HUB",
+        "OUT_FOR_DELIVERY",
+        "CANCELLED",
+        "ARCHIVED",
       ],
       dossier_type: [
         "individual",
