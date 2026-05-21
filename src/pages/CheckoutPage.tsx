@@ -128,6 +128,10 @@ export default function CheckoutPage() {
 
   const handleConfirm = async () => {
     if (!deliveryValid) return;
+    if (promoApplying) {
+      toast.info('Vérification du code promo en cours…');
+      return;
+    }
     setSubmitting(true);
     const reference = genReference();
     const order = {
@@ -143,6 +147,7 @@ export default function CheckoutPage() {
       total_fcfa: total * 655,
       status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
     };
+    let orderId: string | undefined;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const { data: inserted, error: insertErr } = await supabase
@@ -166,9 +171,10 @@ export default function CheckoutPage() {
         .select('id')
         .single();
       if (insertErr) throw insertErr;
-      const orderId = (inserted as any)?.id as string | undefined;
+      orderId = (inserted as any)?.id as string | undefined;
 
-      // Atomically consume the promo (server-side: validates + decrements + records)
+      // Atomically consume the promo (server-side: validates + decrements + records).
+      // If this fails, we cancel the order to avoid charging a discount that wasn't applied.
       if (promo && orderId) {
         const { error: promoErr } = await supabase.rpc('dekk_consume_promo' as any, {
           p_code: promo.code,
@@ -176,8 +182,14 @@ export default function CheckoutPage() {
           p_subtotal_eur: Math.round(subtotal),
         });
         if (promoErr) {
-          // Non-blocking: keep the order, log the failure
           console.warn('Promo consume failed', promoErr);
+          // Roll back the order so the discount is not silently kept.
+          await supabase.from('dekk_orders' as any).delete().eq('id', orderId);
+          setPromo(null);
+          setPromoError('Ce code promo n\'est plus valide. Réessayez sans code.');
+          toast.error('Code promo invalide', { description: 'La commande n\'a pas été enregistrée. Retirez ou changez le code.' });
+          setSubmitting(false);
+          return;
         }
       }
 
@@ -188,6 +200,9 @@ export default function CheckoutPage() {
       localStorage.setItem('dekk_cart', '[]'); window.dispatchEvent(new Event('dekk:cart'));
     } catch (e) {
       console.error('Order persist failed', e);
+      toast.error('Erreur', { description: 'Impossible d\'enregistrer la commande. Réessayez.' });
+      setSubmitting(false);
+      return;
     }
     setTimeout(() => nav(`/panier/confirmation/${reference}`, { replace: true }), 600);
   };
