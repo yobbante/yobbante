@@ -650,3 +650,161 @@ function MonthlyChartSection() {
     </section>
   );
 }
+
+// ============================================================================
+// Factures émises — liste des factures clients
+// ============================================================================
+type InvoiceRow = {
+  id: string;
+  invoice_number: string;
+  invoice_url: string;
+  invoice_generated_at: string;
+  tracking_id: string | null;
+  reference: string;
+  buyer_name: string | null;
+  final_amount_xof: number | null;
+  payment_method: string | null;
+  paid_at: string | null;
+  user_id: string | null;
+};
+
+function InvoicesSection() {
+  const [month, setMonth] = useState<string>('all');
+  const [search, setSearch] = useState('');
+
+  const { data: invoices = [], isLoading } = useQuery({
+    queryKey: ['admin-invoices'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id,invoice_number,invoice_url,invoice_generated_at,tracking_id,reference,buyer_name,final_amount_xof,payment_method,paid_at,user_id')
+        .not('invoice_number', 'is', null)
+        .order('invoice_generated_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as InvoiceRow[];
+    },
+  });
+
+  const months = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach(i => {
+      if (i.invoice_generated_at) {
+        const d = new Date(i.invoice_generated_at);
+        set.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+      }
+    });
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
+  const filtered = useMemo(() => {
+    return invoices.filter(i => {
+      if (month !== 'all') {
+        const d = new Date(i.invoice_generated_at);
+        const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        if (k !== month) return false;
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        return [i.invoice_number, i.tracking_id, i.reference, i.buyer_name]
+          .filter(Boolean).some(s => String(s).toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [invoices, month, search]);
+
+  function exportCsv() {
+    const headers = ['Numero','Date','Client','Tracking','Montant XOF','Methode','URL'];
+    const rows = filtered.map(i => [
+      i.invoice_number,
+      i.invoice_generated_at ? new Date(i.invoice_generated_at).toLocaleDateString('fr-FR') : '',
+      i.buyer_name ?? '',
+      i.tracking_id ?? i.reference,
+      String(i.final_amount_xof ?? ''),
+      i.payment_method ?? '',
+      i.invoice_url,
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `factures-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+          Factures émises ({filtered.length})
+        </h2>
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            placeholder="Rechercher…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="h-9 w-44"
+          />
+          <select
+            value={month}
+            onChange={e => setMonth(e.target.value)}
+            className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+          >
+            <option value="all">Tous les mois</option>
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!filtered.length}>
+            <FileDown className="w-3.5 h-3.5 mr-1" /> CSV
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {isLoading ? (
+          <div className="p-4"><Skeleton className="h-24 w-full" /></div>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Aucune facture émise.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Numéro</th>
+                  <th className="text-left px-3 py-2 font-medium">Client</th>
+                  <th className="text-left px-3 py-2 font-medium">Tracking</th>
+                  <th className="text-right px-3 py-2 font-medium">Montant</th>
+                  <th className="text-left px-3 py-2 font-medium">Date</th>
+                  <th className="text-left px-3 py-2 font-medium">Méthode</th>
+                  <th className="text-right px-3 py-2 font-medium">PDF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(i => (
+                  <tr key={i.id} className="border-t border-border">
+                    <td className="px-3 py-2 font-mono text-xs">{i.invoice_number}</td>
+                    <td className="px-3 py-2">{i.buyer_name ?? '—'}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{i.tracking_id ?? i.reference}</td>
+                    <td className="px-3 py-2 text-right font-medium">{formatXof(Number(i.final_amount_xof ?? 0))}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {i.invoice_generated_at ? new Date(i.invoice_generated_at).toLocaleDateString('fr-FR') : '—'}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground capitalize">{i.payment_method ?? '—'}</td>
+                    <td className="px-3 py-2 text-right">
+                      {i.invoice_url ? (
+                        <a href={i.invoice_url} target="_blank" rel="noreferrer"
+                           className="text-primary hover:underline text-xs inline-flex items-center gap-1">
+                          <FileDown className="w-3 h-3" /> Ouvrir
+                        </a>
+                      ) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
