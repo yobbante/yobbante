@@ -35,8 +35,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Demandes entrantes',
     items: [
-      { id: 'requests',   label: 'Particuliers',     icon: Inbox,     live: true },
-      { id: 'enterprise', label: 'Entreprises',      icon: Building2, live: true },
+      { id: 'requests',     label: 'Particuliers', icon: Inbox,     live: true },
+      { id: 'manual-quotes',label: 'Devis manuels',icon: Search,    live: true },
+      { id: 'enterprise',   label: 'Entreprises',  icon: Building2, live: true },
     ],
   },
   {
