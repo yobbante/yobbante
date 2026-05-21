@@ -275,10 +275,10 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
     .limit(1)
     .maybeSingle();
 
-  // Session vieille de plus de 10 min → expirée
+  // Session vieille de plus de 30 min → expirée
   const sessionActive = session
     && session.pending_intent
-    && (Date.now() - new Date(session.updated_at).getTime()) < 10 * 60 * 1000;
+    && (Date.now() - new Date(session.updated_at).getTime()) < 30 * 60 * 1000;
 
   async function clearSession() {
     if (session?.id) {
