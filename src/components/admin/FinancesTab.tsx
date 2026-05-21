@@ -18,6 +18,10 @@ import {
   PAYMENT_METHOD_LABELS, formatXof, marginPercent, suggestedGpAmount,
   type PaymentMethod,
 } from '@/lib/gpFinance';
+import {
+  Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
+} from 'recharts';
 
 type DossierFin = {
   id: string;
