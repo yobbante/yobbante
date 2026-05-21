@@ -1136,29 +1136,27 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
                 {GOODS_TYPES.map(g => {
                   const active = goodsType === g.id;
-                  const riskColor = g.risk === 'high' ? 'text-amber-500' : g.risk === 'medium' ? 'text-blue-500' : 'text-emerald-500';
+                  const dotColor = g.risk === 'high' ? 'bg-amber-400' : g.risk === 'medium' ? 'bg-blue-400' : 'bg-emerald-400';
                   return (
                     <button key={g.id} type="button"
+                      title={g.desc}
                       onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); setEditingStep(null); }}
                       className={cn(
-                        'group relative text-left rounded-xl border-2 p-3 transition-all overflow-hidden',
+                        'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
-                          ? 'border-foreground bg-foreground text-background'
+                          ? 'border-foreground bg-foreground text-background shadow-sm'
                           : 'border-border bg-card hover:border-foreground/40',
                       )}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-[13px] font-semibold leading-tight">{g.label}</p>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[12px] font-semibold leading-tight truncate">{g.label}</span>
                         <span className={cn(
-                          'shrink-0 w-1.5 h-1.5 rounded-full mt-1.5',
-                          active ? 'bg-background/70' : g.risk === 'high' ? 'bg-amber-400' : g.risk === 'medium' ? 'bg-blue-400' : 'bg-emerald-400',
+                          'shrink-0 w-1.5 h-1.5 rounded-full',
+                          active ? 'bg-background/70' : dotColor,
                         )} />
                       </div>
-                      <p className={cn('mt-1 text-[10.5px] leading-snug',
-                        active ? 'text-background/70' : 'text-muted-foreground',
-                      )}>{g.desc}</p>
                     </button>
                   );
                 })}
