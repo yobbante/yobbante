@@ -23,6 +23,7 @@ export type AdminSection =
   | 'enterprise'
   | 'manual-quotes'
   | 'gp-operations'
+  | 'finances'
   | 'settings';
 
 type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean };
@@ -76,6 +77,12 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'CRM',
     items: [
       { id: 'clients', label: 'Clients', icon: Users, live: true },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      { id: 'finances', label: 'Finances GP', icon: Wallet, live: true, adminOnly: true },
     ],
   },
   {

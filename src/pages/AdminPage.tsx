@@ -25,6 +25,7 @@ import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { ManualQuotesTab } from '@/components/admin/ManualQuotesTab';
 import { InboxTab } from '@/components/admin/inbox/InboxTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
+import { FinancesTab } from '@/components/admin/FinancesTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
@@ -202,6 +203,7 @@ export default function AdminPage() {
               {section === 'clients'    && <ClientsTab />}
               {section === 'enterprise' && <EnterpriseQuotesTab />}
               {section === 'manual-quotes' && <ManualQuotesTab />}
+              {section === 'finances' && isAdmin && <FinancesTab />}
               {section === 'settings'   && <SettingsTab />}
             </>
           )}
