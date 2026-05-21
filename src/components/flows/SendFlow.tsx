@@ -750,8 +750,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 5 — Package description ─── */}
-      <FlowSection revealed={step3Ok} step={5} total={10} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+      {/* ─── Step 3 — Package description ─── */}
+      <FlowSection revealed step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
