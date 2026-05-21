@@ -6,27 +6,18 @@ import { ExpedierSearchBar, type ExpedierMode } from '@/components/expedier/Expe
 import { useSeo } from '@/hooks/useSeo';
 
 /**
- * /expedier  → barre de recherche unifiée (Envoyer / Sourcing / Réception)
+ * /expedier — barre de recherche unifiée (Envoyer / Sourcing / Réception)
  * toujours visible en haut + flow correspondant en-dessous.
  *
- * - /expedier         → mode 'envoyer' par défaut
- * - /expedier/envoyer | /expedier/recevoir → deep links, barre + flow déjà
- *   pré-sélectionné. Sourcing route vers /sourcing (page dédiée).
- * - Au "Continuer" de la barre, le préréglage est écrit dans le store
- *   lu par le flow (sessionStorage send-flow:preset ou localStorage
- *   yobbante.landing.preferredHub + URL ?origin=) et le flow est
- *   remonté via `flowKey` pour consommer le préréglage.
+ * Tab Sourcing → redirige vers /sourcing (page dédiée qui monte la même barre).
  */
 export default function ExpedierPage() {
-  const { mode: urlMode } = useParams<{ mode?: ExpedierMode }>();
+  const { mode: urlMode } = useParams<{ mode?: 'envoyer' | 'recevoir' }>();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<ExpedierMode>((urlMode as ExpedierMode) ?? 'envoyer');
+  const [mode, setMode] = useState<'envoyer' | 'recevoir'>(urlMode ?? 'envoyer');
   const [flowKey, setFlowKey] = useState(0);
 
-  useEffect(() => {
-    const next = (urlMode as ExpedierMode) ?? 'envoyer';
-    setMode(next);
-  }, [urlMode]);
+  useEffect(() => { setMode(urlMode ?? 'envoyer'); }, [urlMode]);
 
   useSeo(
     mode === 'recevoir'
@@ -43,6 +34,7 @@ export default function ExpedierPage() {
   );
 
   const handleModeChange = (next: ExpedierMode) => {
+    if (next === 'sourcing') { navigate('/sourcing'); return; }
     setMode(next);
     navigate(`/expedier/${next}`, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
