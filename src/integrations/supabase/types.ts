@@ -2882,6 +2882,7 @@ export type Database = {
           route_score: number
         }[]
       }
+      set_dossier_cod_public: { Args: { p_tracking: string }; Returns: boolean }
       shipment_status_message: {
         Args: { _status: string; _tracking: string }
         Returns: string

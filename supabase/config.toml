@@ -32,3 +32,16 @@ verify_jwt = false
 
 [functions.gp-bot]
 verify_jwt = false
+
+[functions.create-wave-payment]
+verify_jwt = false
+
+[functions.create-om-payment]
+verify_jwt = false
+
+[functions.webhook-wave]
+verify_jwt = false
+
+[functions.webhook-orange-money]
+verify_jwt = false
+
