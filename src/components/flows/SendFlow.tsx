@@ -807,7 +807,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
           </div>
           <AddressField
-            label={destIsSenegal ? 'Adresse / Quartier (optionnel)' : 'Adresse complète *'}
+            label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
             value={deliveryAddress} onChange={setDelivery}
             placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
           />
