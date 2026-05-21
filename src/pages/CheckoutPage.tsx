@@ -304,11 +304,55 @@ export default function CheckoutPage() {
             <div style={{ borderTop: `0.5px solid ${DEKK.line}`, paddingTop: 12 }}>
               <SummaryRow label="Sous-total" value={fmtEur(subtotal)} />
               <SummaryRow label="Livraison" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>Incluse</span>} />
+
+              {/* Promo code */}
+              <div style={{ marginTop: 10, marginBottom: 10 }}>
+                {promo ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, background: '#ECF7F0', border: '1px solid #C7E5D2' }}>
+                    <Tag size={13} color="#0E7A4F" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#0E7A4F', fontFamily: '"DM Mono", monospace', letterSpacing: '0.04em' }}>{promo.code}</div>
+                      <div style={{ fontSize: 11, color: DEKK.muted }}>−{fmtEur(promo.discount_eur)} appliqués</div>
+                    </div>
+                    <button type="button" onClick={() => { setPromo(null); setPromoInput(''); setPromoError(null); }}
+                      aria-label="Retirer le code"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: DEKK.muted, padding: 4 }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        value={promoInput}
+                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void validatePromo(promoInput); } }}
+                        placeholder="Code promo"
+                        style={{ ...inputStyle, height: 36, fontSize: 12, fontFamily: '"DM Mono", monospace', letterSpacing: '0.04em', textTransform: 'uppercase' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void validatePromo(promoInput)}
+                        disabled={promoApplying || !promoInput.trim()}
+                        style={{ height: 36, padding: '0 14px', background: DEKK.ink, color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: promoApplying || !promoInput.trim() ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        {promoApplying ? <Loader2 size={12} className="animate-spin" /> : 'Appliquer'}
+                      </button>
+                    </div>
+                    {promoError && <div style={{ fontSize: 11, color: '#B43A3A', marginTop: 6 }}>{promoError}</div>}
+                  </>
+                )}
+              </div>
+
+              {discount > 0 && (
+                <SummaryRow label="Remise" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>−{fmtEur(discount)}</span>} />
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(subtotal)}</div>
-                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtFcfa(subtotal * 655)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(total)}</div>
+                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtFcfa(total * 655)}</div>
                 </div>
               </div>
             </div>
