@@ -1086,7 +1086,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       )}
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      <div id="section-final" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-final'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={7} total={7} title="Coordonnées, paiement & récapitulatif" hint="Renseignez l'expéditeur, choisissez votre paiement et vérifiez le résumé.">
+
         <div className="space-y-5 max-w-2xl">
 
           {/* ── Coordonnées expéditeur ── */}
