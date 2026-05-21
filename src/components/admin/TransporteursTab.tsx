@@ -181,10 +181,16 @@ export function TransporteursTab() {
     [list.data],
   );
 
-  const botEligible = useMemo(
-    () => (list.data ?? []).filter(t => t.actif && !(botActiveIds?.has(t.id)) && !t.invitation_bot_sent_at && !botSentMap[t.id]),
-    [list.data, botActiveIds, botSentMap],
-  );
+  const botEligible = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    return (list.data ?? []).filter(t => {
+      if (!t.actif) return false;
+      if (botActiveIds?.has(t.id)) return false;
+      const lastSent = botSentMap[t.id] ?? t.invitation_bot_sent_at ?? null;
+      if (!lastSent) return true;
+      return new Date(lastSent).getTime() < sevenDaysAgo;
+    });
+  }, [list.data, botActiveIds, botSentMap]);
 
   const botActiveCount = useMemo(
     () => (list.data ?? []).filter(t => botActiveIds?.has(t.id)).length,
