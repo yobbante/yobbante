@@ -26,7 +26,7 @@ export function FloatingWhatsApp() {
             </svg>
           </a>
         </TooltipTrigger>
-        <TooltipContent side="left">Contactez-nous sur WhatsApp</TooltipContent>
+        <TooltipContent side="left">Discuter sur WhatsApp</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
