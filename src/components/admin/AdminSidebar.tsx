@@ -18,6 +18,7 @@ export type AdminSection =
   | 'tracking'
   | 'clients'
   | 'enterprise'
+  | 'manual-quotes'
   | 'settings';
 
 type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean };
