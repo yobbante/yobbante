@@ -321,6 +321,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
+  // When the page is opened with a #tarifs hash (e.g. from the landing
+  // "Obtenir mon prix" CTA), scroll to the pricing step once the route
+  // is ready and the section has been rendered.
+  useEffect(() => {
+    if (location.hash !== '#tarifs') return;
+    if (!originCity || !destCity) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById('tarifs');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [location.hash, originCity?.id, destCity?.id]);
+
   // ── Pricing breakdown (in EUR for internal math)
   // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
   const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
