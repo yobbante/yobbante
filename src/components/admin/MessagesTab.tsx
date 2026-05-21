@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -119,6 +120,7 @@ function formatTime(iso: string) {
 }
 
 export function MessagesTab() {
+  const [searchParams] = useSearchParams();
   const [inbound, setInbound] = useState<InboundMsg[]>([]);
   const [outbound, setOutbound] = useState<OutboundMsg[]>([]);
   const [tab, setTab] = useState<'all' | 'client' | 'gp'>('all');
@@ -172,6 +174,15 @@ export function MessagesTab() {
 
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, []);
+
+  // ---------- Deep-link: ?gp=<transporteur_id> opens that GP conversation ----------
+  useEffect(() => {
+    const gpId = searchParams.get('gp');
+    if (!gpId || inbound.length === 0) return;
+    const msg = inbound.find((m) => m.transporteur_id === gpId);
+    if (msg) setOpenPhone(msg.from_phone);
+  }, [searchParams, inbound]);
+
 
   // ---------- Group inbound by phone ----------
   const conversations: ConversationGroup[] = useMemo(() => {

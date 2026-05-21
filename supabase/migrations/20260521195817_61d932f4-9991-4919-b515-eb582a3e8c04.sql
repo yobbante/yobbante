@@ -1,0 +1,1 @@
+ALTER TABLE public.transporteurs ADD COLUMN IF NOT EXISTS invitation_bot_sent_at TIMESTAMPTZ;
