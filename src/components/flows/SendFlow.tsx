@@ -234,13 +234,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     senderName, senderPhone, chosenId: chosen?.id ?? null,
   };
   useFlowDraft(DRAFT_KEY, draftSnapshot, (d) => {
-    if (d.direction === 'from_dakar' || d.direction === 'to_dakar') setDirection(d.direction);
-    if (d.originCountry) setOriginCountry(d.originCountry);
-    if (d.originCityId) setOriginCity(d.originCityId);
+    // ⚠️ On ne restaure PAS les villes (originCityId / destCityId) ni la
+    // direction depuis un ancien draft. Les villes doivent toujours venir
+    // du choix utilisateur dans la barre de recherche (preset), sinon un
+    // ancien envoi laisse une ville (ex. "Casablanca") coller à toutes les sessions.
     if (d.pickupAddress) setPickup(d.pickupAddress);
     if (d.pickupDate) setPickupDate(d.pickupDate);
     if (d.pickupSlot) setPickupSlot(d.pickupSlot);
-    if (d.destCityId) setDestCity(d.destCityId);
     if (d.recipientName) setRecipientName(d.recipientName);
     if (d.recipientPhone) setRecipientPhone(d.recipientPhone);
     if (d.recipientEmail) setRecipientEmail(d.recipientEmail);
