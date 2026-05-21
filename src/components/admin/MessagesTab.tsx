@@ -400,6 +400,31 @@ export function MessagesTab() {
 
   const botPaused = !!(transporteurInfo?.bot_paused_until && new Date(transporteurInfo.bot_paused_until) > new Date());
 
+  function intentPill(intent: string | null) {
+    if (!intent) return null;
+    const i = intent.toLowerCase();
+    const map: Array<{ test: (s: string) => boolean; label: string; cls: string }> = [
+      { test: (s) => s.startsWith('dep'), label: '🟢 Départ enregistré', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+      { test: (s) => s.startsWith('collecte'), label: '🔵 Collecte confirmée', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+      { test: (s) => s.startsWith('poids'), label: '🟡 Poids enregistré', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+      { test: (s) => s.startsWith('livre'), label: '✅ Livraison confirmée', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+      { test: (s) => s === 'unknown', label: '❓ Non compris', cls: 'bg-red-500/15 text-red-400 border-red-500/30' },
+      { test: (s) => s.startsWith('mes_') || s === 'help' || s === 'start' || s === 'cancel', label: '⚙️ Commande bot', cls: 'bg-muted text-muted-foreground border-border' },
+      { test: (s) => s.startsWith('address'), label: '📍 Adresse', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+    ];
+    const m = map.find((x) => x.test(i));
+    if (!m) return <span className="text-[9px] px-2 py-0.5 rounded-full border border-border bg-muted/40 text-muted-foreground">🤖 {intent}</span>;
+    return <span className={cn('text-[9px] px-2 py-0.5 rounded-full border font-semibold', m.cls)}>{m.label}</span>;
+  }
+
+  async function takeOver() {
+    if (!transporteurInfo) return;
+    const until = new Date(Date.now() + 60 * 60_000).toISOString();
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: until }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: until } : prev);
+    toast.success('Bot en pause pour 1 heure');
+  }
+
   // ---------- Render ----------
   return (
     <div className="flex flex-col h-full min-h-[500px] w-full">
