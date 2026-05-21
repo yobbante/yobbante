@@ -1,25 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ListChecks, Home } from 'lucide-react';
 import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
-import { FlowCompactHeader } from '@/components/flows/FlowPrimitives';
+import { ExpedierSearchBar, type ExpedierMode } from '@/components/expedier/ExpedierSearchBar';
 import { useSeo } from '@/hooks/useSeo';
 
-type Mode = 'envoyer' | 'recevoir';
-
 /**
- * /expedier  → écran fusionné : sélection en haut + flow inline dessous.
- * /expedier/envoyer & /expedier/recevoir restent valides (deep links) et
- * ouvrent directement le flow correspondant.
+ * /expedier  → barre de recherche unifiée (Envoyer / Sourcing / Réception)
+ * toujours visible en haut + flow correspondant en-dessous.
+ *
+ * - /expedier         → mode 'envoyer' par défaut
+ * - /expedier/envoyer | /expedier/recevoir → deep links, barre + flow déjà
+ *   pré-sélectionné. Sourcing route vers /sourcing (page dédiée).
+ * - Au "Continuer" de la barre, le préréglage est écrit dans le store
+ *   lu par le flow (sessionStorage send-flow:preset ou localStorage
+ *   yobbante.landing.preferredHub + URL ?origin=) et le flow est
+ *   remonté via `flowKey` pour consommer le préréglage.
  */
 export default function ExpedierPage() {
-  const { mode: urlMode } = useParams<{ mode?: Mode }>();
+  const { mode: urlMode } = useParams<{ mode?: ExpedierMode }>();
   const navigate = useNavigate();
-  // No more selection screen: /expedier defaults directly to "envoyer".
-  const [mode, setMode] = useState<Mode>((urlMode as Mode) ?? 'envoyer');
+  const [mode, setMode] = useState<ExpedierMode>((urlMode as ExpedierMode) ?? 'envoyer');
+  const [flowKey, setFlowKey] = useState(0);
 
-  useEffect(() => { setMode((urlMode as Mode) ?? 'envoyer'); }, [urlMode]);
+  useEffect(() => {
+    const next = (urlMode as ExpedierMode) ?? 'envoyer';
+    setMode(next);
+  }, [urlMode]);
 
   useSeo(
     mode === 'recevoir'
@@ -35,46 +42,22 @@ export default function ExpedierPage() {
         }
   );
 
-  function selectMode(m: Mode) {
-    setMode(m);
-    // sync URL without reload, for shareable deep links
-    window.history.replaceState({}, '', `/expedier/${m}`);
-  }
-  function swapMode() {
-    const next: Mode = mode === 'envoyer' ? 'recevoir' : 'envoyer';
+  const handleModeChange = (next: ExpedierMode) => {
     setMode(next);
-    window.history.replaceState({}, '', `/expedier/${next}`);
+    navigate(`/expedier/${next}`, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  };
 
-  // ─────────── FLOW MODE: render dedicated flow with compact header ───────────
-  const header = (
-    <FlowCompactHeader
-      eyebrow={mode === 'envoyer' ? 'Expédier · Envoyer' : 'Expédier · Recevoir'}
-      title={mode === 'envoyer' ? 'Envoyer un colis' : 'Recevoir une commande'}
-      onSwap={swapMode}
-      swapLabel={mode === 'envoyer' ? 'Recevoir plutôt' : 'Envoyer plutôt'}
-      theme={mode === 'envoyer' ? 'light' : 'dark'}
-      secondaryAction={
-        mode === 'recevoir'
-          ? {
-              label: 'Mes commandes',
-              icon: <ListChecks className="w-3.5 h-3.5" />,
-              variant: 'accent',
-              onClick: () =>
-                window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } })),
-            }
-          : {
-              label: 'Accueil',
-              icon: <Home className="w-3.5 h-3.5" />,
-              variant: 'ghost',
-              onClick: () => navigate('/'),
-            }
-      }
+  const bar = (
+    <ExpedierSearchBar
+      mode={mode}
+      onModeChange={handleModeChange}
+      onApply={() => setFlowKey(k => k + 1)}
+      defaultExpanded
     />
   );
-  return mode === 'envoyer'
-    ? <SendFlow compactHeader={header} />
-    : <ReceiveFlow compactHeader={header} />;
-}
 
+  return mode === 'envoyer'
+    ? <SendFlow key={`send-${flowKey}`} compactHeader={bar} />
+    : <ReceiveFlow key={`receive-${flowKey}`} compactHeader={bar} />;
+}
