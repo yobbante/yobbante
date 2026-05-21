@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink, Download, RefreshCw, Receipt } from 'lucide-react';
 
 const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 import { supabase } from '@/integrations/supabase/client';
