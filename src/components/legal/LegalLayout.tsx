@@ -116,6 +116,7 @@ export const COMPANY_INFO = {
   rccm: 'À renseigner',
   email: 'contact@yobbante.com',
   phone: '+221 78 607 80 80',
+  phoneGp: '+221 78 122 18 91',
   site: 'https://yobbante.com',
   host: 'Lovable / Vercel (à confirmer)',
 };
