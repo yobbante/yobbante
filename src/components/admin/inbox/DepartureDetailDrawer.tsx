@@ -238,13 +238,22 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                         {d.estimated_weight ?? '?'}kg · {d.contact_phone ?? d.contact_email ?? ''}
                       </div>
                     </div>
-                    <Link
-                      to={`/admin/dossiers/${d.id}`}
-                      onClick={onClose}
-                      className="text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => detachDossier(d.id, d.reference)}
+                        className="text-[11px] text-muted-foreground hover:text-destructive px-2 py-1 rounded hover:bg-secondary"
+                        title="Détacher du départ"
+                      >
+                        Détacher
+                      </button>
+                      <Link
+                        to={`/admin/dossiers/${d.id}`}
+                        onClick={onClose}
+                        className="text-muted-foreground hover:text-foreground p-1"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>
