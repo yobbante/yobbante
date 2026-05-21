@@ -343,18 +343,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return () => clearTimeout(handle);
   }, [description, declaredEur, goodsManualOverride]);
 
-  // ── Reveal logic per step
-  const step1Ok = !!senderKind && !!direction;
-  const step2Ok = step1Ok && !!originCity && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
-  const step3Ok = step2Ok && !!destCity;
-  const step4Ok = step3Ok && !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
-  const step5Ok = step4Ok && !!description.trim() && !!declaredLocal && weightTouched;
+  // ── Validation (sections are all visible, gates only block submit)
+  const routeOk = !!originCity && !!destCity;
+  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
+  const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
+  const packageOk = !!description.trim() && !!declaredLocal && weightTouched;
   const goodsAutoConfident = !!goodsAutoDetected && (goodsAutoDetected.confidence === 'high' || goodsAutoDetected.confidence === 'medium') && !goodsManualOverride;
   const skipGoodsStep = goodsAutoConfident && !!goodsType;
-  const step6Ok = step5Ok && !!goodsType;
-  const step7Ok = step6Ok;
-  const step8Ok = step7Ok && (!showInsuranceStep || true);
-  const allReady = step8Ok && !!senderName.trim() && !!senderPhone.trim();
+  const goodsOk = !!goodsType;
+  const allReady = routeOk && collecteOk && recipientOk && packageOk && goodsOk && !!senderName.trim() && !!senderPhone.trim();
 
   const summary = originCity && destCity
     ? `${originCity.city} → ${destCity.city}${transportMode ? ` · ${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}` : ''} · ${formatLocalAmount(totalEur, originProfile)}`
@@ -364,7 +361,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // ── Submit ──────────────────────────────────────────────────────
   async function submit() {
-    if (!step3Ok || !originCity || !destCity || !goodsType) {
+    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk) {
       toast.error('Étapes incomplètes', { description: 'Vérifiez les informations avant de confirmer.' });
       return;
     }
@@ -665,51 +662,46 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </motion.div>
       )}
 
-      {/* ─── Step 1 — Sens du trajet ─── */}
-      <FlowSection revealed step={1} total={10} title="Sens du trajet" hint="Yobbanté opère entre Dakar et 36 villes internationales.">
-        <div className="mt-5 max-w-md">
-          <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-            <Globe2 className="w-3 h-3" /> Sens du trajet *
-          </span>
-          <ChipGroup
-            options={[
-              { id: 'to_dakar'   as const, label: 'Vers Dakar',    desc: 'Depuis l\'étranger → Dakar' },
-              { id: 'from_dakar' as const, label: 'Depuis Dakar',  desc: 'Dakar → ville étrangère' },
-            ]}
-            value={direction}
-            onChange={(v) => {
-              setDirection(v);
-              // Reset cities lorsque le sens change pour éviter incohérences.
-              setOriginCity(null);
-              setDestCity(null);
-              setOriginCountry(v === 'from_dakar' ? 'SN' : 'FR');
-            }}
-          />
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Yobbanté opère uniquement entre <strong>Dakar</strong> et l'une des 36 villes desservies.
-          </p>
+      {/* ─── Route summary banner — réseau Dakar + 36 villes ─── */}
+      <section className="py-6 border-b border-border">
+        <div className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/30 px-4 py-3.5">
+          <Globe2 className="w-4 h-4 text-foreground shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {originCity && destCity
+                ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}`
+                : 'Choisissez votre itinéraire dans la barre ci-dessus'}
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Yobbanté opère entre <strong>Dakar</strong> et 36 villes internationales — l'une des deux extrémités est toujours Dakar.
+            </p>
+          </div>
+          {originCity && destCity && (
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Modifier
+            </button>
+          )}
         </div>
-      </FlowSection>
-
-      {/* ─── Step 2 — Origine + collecte ─── */}
-      <FlowSection revealed={step1Ok} step={2} total={10} title="D'où part le colis ?" hint="Adresse de collecte + créneau souhaité.">
-        {direction === 'from_dakar' ? (
-          <DakarHubLock role="origin" />
-        ) : (
-          <CitySelector
-            cities={ORIGIN_CITIES}
-            value={originCityId}
-            onChange={setOriginCity}
-            placeholder="Ex. Paris, Marseille, Bruxelles…"
-            popularIds={POPULAR_ORIGIN_IDS}
-          />
+        {!routeOk && (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            Renseignez origine, destination et poids dans la barre de recherche pour démarrer.
+          </div>
         )}
-        {originCity && (
-          <div className="mt-4 space-y-4 max-w-xl">
+      </section>
+
+      {/* ─── Step 1 — Collecte ─── */}
+      <FlowSection revealed step={1} total={7} title="Collecte du colis" hint="Adresse + créneau souhaité pour la prise en charge.">
+        {originCity ? (
+          <div className="mt-2 space-y-4 max-w-xl">
             <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
 
             <AddressField
-              label="Adresse de collecte *"
+              label={`Adresse de collecte à ${originCity.city} *`}
               value={pickupAddress} onChange={setPickup}
               placeholder="N°, rue, quartier, code postal…"
             />
@@ -734,30 +726,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </div>
             </div>
           </div>
-        )}
-      </FlowSection>
-
-      {/* ─── Step 3 — Destination ─── */}
-      <FlowSection revealed={step2Ok} step={3} total={10} title="Où va le colis ?" hint="Destination de la livraison.">
-        {direction === 'to_dakar' ? (
-          <DakarHubLock role="destination" />
         ) : (
-          <CitySelector
-            cities={DESTINATION_CITIES}
-            value={destCityId} onChange={setDestCity}
-            placeholder="Ex. Paris, Abidjan, Dubaï…"
-            popularIds={POPULAR_DEST_IDS}
-          />
-        )}
-        {destCity && originCity && originCity.country === destCity.country && (
-          <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs text-blue-900 inline-flex items-center gap-2">
-            <Truck className="w-3.5 h-3.5" /> Livraison locale détectée — flow simplifié appliqué.
-          </div>
+          <p className="text-sm text-muted-foreground">Sélectionnez l'itinéraire dans la barre pour activer la collecte.</p>
         )}
       </FlowSection>
 
-      {/* ─── Step 4 — Recipient ─── */}
-      <FlowSection revealed={step3Ok} step={4} total={10} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
+
+      {/* ─── Step 2 — Recipient ─── */}
+      <FlowSection revealed step={2} total={7} title="Informations du destinataire" hint={destIsSenegal ? "Au Sénégal, le téléphone fait foi pour la livraison." : "Coordonnées complètes pour la livraison."}>
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
             <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
@@ -774,8 +750,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 5 — Package description ─── */}
-      <FlowSection revealed={step3Ok} step={5} total={10} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+      {/* ─── Step 3 — Package description ─── */}
+      <FlowSection revealed step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
         <div className="space-y-4 max-w-xl">
           <TextField label="Description *" value={description} onChange={setDescription}
             placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
@@ -845,9 +821,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
 
-      {/* ─── Step 6 — Goods type (skipped when AI is confident) ─── */}
+      {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
-        <FlowSection revealed={step5Ok} step={6} total={10} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+        <FlowSection revealed step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {GOODS_TYPES.map(g => (
               <button key={g.id} type="button" onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); }}
@@ -880,8 +856,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       ) : null}
 
-      {/* ─── Step 7 — Transport & priority ─── */}
-      <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
+      {/* ─── Step 5 — Transport & priority ─── */}
+      <FlowSection revealed step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
         {(() => {
           // ── Prix venant directement du moteur (pricing engine v2)
           // Standard et Express sont calculés côté DB via urgency_mult.
@@ -1001,9 +977,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })()}
       </FlowSection>
 
-      {/* ─── Step 8 — Insurance (conditional) ─── */}
+      {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
-        <FlowSection revealed={step7Ok} step={8} total={10} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
+        <FlowSection revealed step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
               { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
@@ -1027,8 +1003,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </FlowSection>
       )}
 
-      {/* ─── Step 9 — Recap & payment ─── */}
-      <FlowSection revealed={step7Ok} step={9} total={10} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
+      {/* ─── Step 7 — Recap & payment ─── */}
+      <FlowSection revealed step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
         <div className="space-y-5 max-w-2xl">
           <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
             <RecapRow label="Expéditeur"   value={`${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
@@ -1085,7 +1061,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
 
       <LiveSummaryBar
-        visible={step7Ok}
+        visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
