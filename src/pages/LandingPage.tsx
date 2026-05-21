@@ -245,7 +245,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 md:py-16">
           <p className="text-label text-center mb-2">Ils nous font confiance</p>
           <h2 className="text-center text-[22px] md:text-[28px] mb-6 md:mb-8">Ce que disent nos clients.</h2>
-          <div className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5">
+          <div ref={testimonialsRef} className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5 scroll-smooth">
             <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-3 min-w-max md:min-w-0 pb-2">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div
