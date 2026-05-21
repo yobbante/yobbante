@@ -1,12 +1,63 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
+
+interface LinkedDossier {
+  id: string;
+  reference: string | null;
+  tracking_id: string | null;
+  status: string;
+  origin_country: string | null;
+  destination_country: string | null;
+  estimated_weight: number | null;
+  assigned_transporteur_ref: string | null;
+  estimated_delivery_date: string | null;
+}
+
+interface GpTemplate {
+  key: string;
+  label: string;
+  build: (ctx: { gp_prenom: string; route: string; poids: string; destination: string; tracking_id: string; date: string; departure_date: string }) => string;
+}
+
+function gpTemplatesForStatus(status: string | undefined): GpTemplate[] {
+  const map: Record<string, GpTemplate[]> = {
+    NEW: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    SUBMITTED: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    CONFIRMED: [
+      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
+      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
+    ],
+    AWAITING_ADDRESS: [
+      { key: 'pickup', label: 'Adresse collecte Dakar', build: () => `C'est quoi ton adresse de collecte a Dakar ?` },
+      { key: 'dropoff', label: 'Adresse remise', build: (c) => `Et l'adresse de remise a ${c.destination} ?` },
+    ],
+    ASSIGNED: [
+      { key: 'confirm', label: 'Confirmer la mission', build: (c) => `Salam ${c.gp_prenom}, je t'amene le colis ${c.tracking_id} le ${c.date}. Confirme-moi que c'est bon.` },
+      { key: 'dep', label: 'Confirmer le depart', build: (c) => `Tu pars bien le ${c.departure_date} ?` },
+    ],
+    COLLECTED: [
+      { key: 'ok', label: 'Collecte ok ?', build: () => `Tout s'est bien passe pour la collecte ?` },
+      { key: 'flight', label: 'Vol confirme ?', build: () => `Tu es parti ? Le vol est confirme ?` },
+    ],
+  };
+  return map[status ?? ''] ?? [
+    { key: 'hello', label: 'Salutation', build: (c) => `Salam ${c.gp_prenom}, comment tu vas ?` },
+  ];
+}
 
 type Channel = 'client' | 'gp';
 
@@ -77,7 +128,12 @@ export function MessagesTab() {
   const [templateKey, setTemplateKey] = useState<WaTemplateKey>('PACKAGE_COLLECTED');
   const [params, setParams] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
+  const [gpMode, setGpMode] = useState<'libre' | 'templates'>('libre');
+  const [gpText, setGpText] = useState('');
+  const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
+  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pauseTimerRef = useRef<number | null>(null);
 
   // ---------- Initial load + realtime subscriptions ----------
   useEffect(() => {
@@ -218,6 +274,121 @@ export function MessagesTab() {
     toast.success('Conversation marquée comme traitée');
   }
 
+  // ---------- Load linked dossier + transporteur for active GP conversation ----------
+  useEffect(() => {
+    setLinkedDossier(null);
+    setTransporteurInfo(null);
+    setGpText('');
+    if (!openPhone) return;
+    const conv = inbound.find((m) => m.from_phone === openPhone);
+    if (!conv) return;
+
+    (async () => {
+      if (conv.dossier_id) {
+        const { data } = await supabase
+          .from('dossiers')
+          .select('id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date')
+          .eq('id', conv.dossier_id)
+          .maybeSingle();
+        if (data) setLinkedDossier(data as unknown as LinkedDossier);
+      }
+      if (conv.channel === 'gp') {
+        const tid = conv.transporteur_id;
+        if (tid) {
+          const { data } = await supabase
+            .from('transporteurs' as any)
+            .select('id, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .eq('id', tid)
+            .maybeSingle();
+          if (data) setTransporteurInfo({
+            ...(data as any),
+            adresses_remise: ((data as any).adresses_remise ?? {}) as Record<string, string>,
+          });
+        }
+      }
+    })();
+  }, [openPhone, inbound]);
+
+  // ---------- Pause/resume GP bot ----------
+  const pauseBot = useCallback(async (minutes = 5) => {
+    if (!transporteurInfo) return;
+    const until = new Date(Date.now() + minutes * 60_000).toISOString();
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: until }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: until } : prev);
+  }, [transporteurInfo]);
+
+  const onGpTyping = (v: string) => {
+    setGpText(v);
+    if (pauseTimerRef.current) window.clearTimeout(pauseTimerRef.current);
+    pauseTimerRef.current = window.setTimeout(() => { pauseBot(5); }, 400);
+  };
+
+  const resumeBot = async () => {
+    if (!transporteurInfo) return;
+    await supabase.from('transporteurs' as any).update({ bot_paused_until: null }).eq('id', transporteurInfo.id);
+    setTransporteurInfo((prev) => prev ? { ...prev, bot_paused_until: null } : prev);
+    toast.success('Bot GP reactive');
+  };
+
+  async function sendGpFree(text: string) {
+    if (!openPhone || !text.trim()) return;
+    setSending(true);
+    try {
+      await pauseBot(5);
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { recipient_phone: openPhone, recipient_type: 'gp', message: text, trigger_type: 'admin_free_text', transporteur_id: transporteurInfo?.id ?? null },
+      });
+      if (error) throw error;
+      toast.success('Message envoye au GP');
+      setGpText('');
+    } catch (e) {
+      toast.error('Echec envoi', { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const gpCtx = useMemo(() => {
+    const prenom = transporteurInfo?.prenom || activeConv?.name?.split(' ')[0] || 'GP';
+    const dest = linkedDossier?.destination_country || 'destination';
+    const orig = linkedDossier?.origin_country || 'origine';
+    return {
+      gp_prenom: prenom,
+      route: `${orig} - ${dest}`,
+      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      destination: dest,
+      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '',
+      date: linkedDossier?.estimated_delivery_date || 'bientot',
+      departure_date: linkedDossier?.estimated_delivery_date || 'bientot',
+    };
+  }, [transporteurInfo, linkedDossier, activeConv]);
+
+  async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
+    if (!transporteurInfo) {
+      toast.error('Transporteur introuvable');
+      return;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    try {
+      if (kind === 'collecte') {
+        await supabase.from('transporteurs' as any).update({ adresse_collecte_dakar: trimmed }).eq('id', transporteurInfo.id);
+        setTransporteurInfo((prev) => prev ? { ...prev, adresse_collecte_dakar: trimmed } : prev);
+        toast.success('Adresse de collecte Dakar sauvegardee');
+      } else {
+        const c = (city || linkedDossier?.destination_country || 'Autre').trim();
+        const next = { ...(transporteurInfo.adresses_remise ?? {}), [c]: trimmed };
+        await supabase.from('transporteurs' as any).update({ adresses_remise: next }).eq('id', transporteurInfo.id);
+        setTransporteurInfo((prev) => prev ? { ...prev, adresses_remise: next } : prev);
+        toast.success(`Adresse remise ${c} sauvegardee`);
+      }
+    } catch (e) {
+      toast.error('Echec sauvegarde', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const botPaused = !!(transporteurInfo?.bot_paused_until && new Date(transporteurInfo.bot_paused_until) > new Date());
+
   // ---------- Render ----------
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
@@ -352,7 +523,7 @@ export function MessagesTab() {
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
                 {thread.map((t) => (
-                  <div key={`${t.kind}-${t.id}`} className={cn('flex', t.kind === 'out' ? 'justify-end' : 'justify-start')}>
+                  <div key={`${t.kind}-${t.id}`} className={cn('flex flex-col', t.kind === 'out' ? 'items-end' : 'items-start')}>
                     <div
                       className={cn(
                         'max-w-[75%] rounded-2xl px-3 py-2 text-xs whitespace-pre-wrap break-words shadow-sm',
@@ -370,6 +541,22 @@ export function MessagesTab() {
                         {formatTime(t.at)}
                       </div>
                     </div>
+                    {activeConv.channel === 'gp' && t.kind === 'in' && t.body && t.body.length > 8 && !((t.m as InboundMsg).bot_intent) && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        <button
+                          onClick={() => saveAddress('collecte', t.body)}
+                          className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-card hover:bg-muted/50 text-muted-foreground flex items-center gap-1"
+                        >
+                          <MapPin className="w-2.5 h-2.5" /> Adr. collecte Dakar
+                        </button>
+                        <button
+                          onClick={() => saveAddress('remise', t.body, linkedDossier?.destination_country || undefined)}
+                          className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-card hover:bg-muted/50 text-muted-foreground flex items-center gap-1"
+                        >
+                          <MapPin className="w-2.5 h-2.5" /> Adr. remise {linkedDossier?.destination_country || ''}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {thread.length === 0 && <p className="text-center text-xs text-muted-foreground py-8">Aucun message</p>}
@@ -405,8 +592,74 @@ export function MessagesTab() {
                   </Button>
                 </div>
               ) : (
-                <div className="border-t border-border p-3 bg-muted/20 text-center text-[11px] text-muted-foreground">
-                  🤖 Conversation gérée automatiquement par le bot GP
+                <div className="border-t border-border bg-card">
+                  {/* Bot status bar */}
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50">
+                    <span className={cn('flex items-center gap-1', botPaused ? 'text-amber-500' : 'text-emerald-500')}>
+                      <PauseCircle className="w-3 h-3" />
+                      {botPaused
+                        ? `Bot en pause jusqu'a ${formatTime(transporteurInfo!.bot_paused_until!)}`
+                        : 'Bot actif — il repond automatiquement'}
+                    </span>
+                    {botPaused && (
+                      <button onClick={resumeBot} className="text-primary hover:underline">Reprendre le bot</button>
+                    )}
+                  </div>
+                  {/* Mode switch */}
+                  <div className="flex gap-1 p-2 border-b border-border/50">
+                    {(['libre', 'templates'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setGpMode(m)}
+                        className={cn(
+                          'flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md transition-colors',
+                          gpMode === m ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {m === 'libre' ? 'Mode libre' : 'Templates GP'}
+                      </button>
+                    ))}
+                  </div>
+                  {gpMode === 'libre' ? (
+                    <div className="p-3 space-y-2">
+                      <Textarea
+                        value={gpText}
+                        onChange={(e) => onGpTyping(e.target.value)}
+                        placeholder="Tapez votre message au GP (envoye depuis le 122)..."
+                        rows={3}
+                        className="text-xs resize-none"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-muted-foreground">Le bot sera mis en pause 5 min</span>
+                        <Button onClick={() => sendGpFree(gpText)} disabled={sending || !gpText.trim()} size="sm">
+                          {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                          Envoyer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 space-y-1.5">
+                      {!linkedDossier && (
+                        <p className="text-[10px] text-muted-foreground text-center pb-1">
+                          Aucun dossier lie — templates generiques affiches
+                        </p>
+                      )}
+                      {gpTemplatesForStatus(linkedDossier?.status).map((tpl) => {
+                        const msg = tpl.build(gpCtx);
+                        return (
+                          <button
+                            key={tpl.key}
+                            onClick={() => sendGpFree(msg)}
+                            disabled={sending}
+                            className="w-full text-left text-[11px] px-2.5 py-2 rounded-md border border-border hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50"
+                          >
+                            <div className="font-semibold text-foreground mb-0.5">{tpl.label}</div>
+                            <div className="text-muted-foreground line-clamp-2">{msg}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </>
