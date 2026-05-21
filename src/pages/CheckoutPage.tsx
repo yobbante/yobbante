@@ -288,9 +288,9 @@ export default function CheckoutPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3 mt-5">
                   <button onClick={() => setStep('delivery')} style={ghostBtn}>← Modifier la livraison</button>
-                  <button onClick={handleConfirm} disabled={submitting}
-                    style={{ ...primaryBtn, flex: 1, opacity: submitting ? 0.6 : 1 }}>
-                    {submitting ? 'Confirmation…' : `Confirmer la commande · ${fmtEur(total)}`}
+                  <button onClick={handleConfirm} disabled={submitting || promoApplying}
+                    style={{ ...primaryBtn, flex: 1, opacity: (submitting || promoApplying) ? 0.6 : 1, cursor: (submitting || promoApplying) ? 'not-allowed' : 'pointer' }}>
+                    {submitting ? 'Confirmation…' : promoApplying ? 'Vérification du code…' : `Confirmer la commande · ${fmtEur(total)}`}
                   </button>
                 </div>
               </section>
