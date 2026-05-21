@@ -123,6 +123,7 @@ export function BoutiqueTab() {
       price_eur: p.price_eur,
       origin_country: p.origin_country,
       stock_mode: (p.stock_mode === 'commande' ? 'commande' : 'stock'),
+      stock_qty: p.stock_qty == null ? '' : String(p.stock_qty),
       delivery_days: p.delivery_days || 7,
       image_url: p.image_url || '',
       verified: !!p.verified,
