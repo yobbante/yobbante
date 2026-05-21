@@ -59,6 +59,16 @@ export function SourcingTab() {
   const [statusFilter, setStatusFilter] = useState<DossierStatus | 'ALL'>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Open detail from dashboard "Activité récente" deep-link
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { service?: string; id?: string };
+      if (detail?.service === 'sourcing' && detail.id) setSelectedId(detail.id);
+    };
+    window.addEventListener('admin:focus', handler);
+    return () => window.removeEventListener('admin:focus', handler);
+  }, []);
+
   const { data: dossiers = [], isLoading } = useQuery({
     queryKey: ['admin-sourcing-dossiers'],
     queryFn: async () => {
