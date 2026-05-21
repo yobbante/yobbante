@@ -112,7 +112,7 @@ export function FlowShell({
             compactHeader
           ) : (
             <Link
-              to="/"
+              to={getHomeHref()}
               className={cn('inline-flex items-center gap-1.5 text-xs hover:opacity-100 transition-opacity mt-6', t.muted)}
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Retour
