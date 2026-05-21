@@ -389,7 +389,7 @@ export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
               <div className="pt-3 border-t border-border">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Par source</p>
                 <ul className="space-y-1.5 text-xs">
-                  {Object.entries(m.reqBySource)
+                  {(Object.entries(m.reqBySource) as [string, number][])
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 5)
                     .map(([src, count]) => (
