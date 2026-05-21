@@ -523,7 +523,7 @@ export function MessagesTab() {
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
                 {thread.map((t) => (
-                  <div key={`${t.kind}-${t.id}`} className={cn('flex', t.kind === 'out' ? 'justify-end' : 'justify-start')}>
+                  <div key={`${t.kind}-${t.id}`} className={cn('flex flex-col', t.kind === 'out' ? 'items-end' : 'items-start')}>
                     <div
                       className={cn(
                         'max-w-[75%] rounded-2xl px-3 py-2 text-xs whitespace-pre-wrap break-words shadow-sm',
@@ -541,6 +541,22 @@ export function MessagesTab() {
                         {formatTime(t.at)}
                       </div>
                     </div>
+                    {activeConv.channel === 'gp' && t.kind === 'in' && t.body && t.body.length > 8 && !((t.m as InboundMsg).bot_intent) && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        <button
+                          onClick={() => saveAddress('collecte', t.body)}
+                          className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-card hover:bg-muted/50 text-muted-foreground flex items-center gap-1"
+                        >
+                          <MapPin className="w-2.5 h-2.5" /> Adr. collecte Dakar
+                        </button>
+                        <button
+                          onClick={() => saveAddress('remise', t.body, linkedDossier?.destination_country || undefined)}
+                          className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-card hover:bg-muted/50 text-muted-foreground flex items-center gap-1"
+                        >
+                          <MapPin className="w-2.5 h-2.5" /> Adr. remise {linkedDossier?.destination_country || ''}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {thread.length === 0 && <p className="text-center text-xs text-muted-foreground py-8">Aucun message</p>}
@@ -576,8 +592,74 @@ export function MessagesTab() {
                   </Button>
                 </div>
               ) : (
-                <div className="border-t border-border p-3 bg-muted/20 text-center text-[11px] text-muted-foreground">
-                  🤖 Conversation gérée automatiquement par le bot GP
+                <div className="border-t border-border bg-card">
+                  {/* Bot status bar */}
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50">
+                    <span className={cn('flex items-center gap-1', botPaused ? 'text-amber-500' : 'text-emerald-500')}>
+                      <PauseCircle className="w-3 h-3" />
+                      {botPaused
+                        ? `Bot en pause jusqu'a ${formatTime(transporteurInfo!.bot_paused_until!)}`
+                        : 'Bot actif — il repond automatiquement'}
+                    </span>
+                    {botPaused && (
+                      <button onClick={resumeBot} className="text-primary hover:underline">Reprendre le bot</button>
+                    )}
+                  </div>
+                  {/* Mode switch */}
+                  <div className="flex gap-1 p-2 border-b border-border/50">
+                    {(['libre', 'templates'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setGpMode(m)}
+                        className={cn(
+                          'flex-1 text-[11px] font-medium px-2 py-1.5 rounded-md transition-colors',
+                          gpMode === m ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {m === 'libre' ? 'Mode libre' : 'Templates GP'}
+                      </button>
+                    ))}
+                  </div>
+                  {gpMode === 'libre' ? (
+                    <div className="p-3 space-y-2">
+                      <Textarea
+                        value={gpText}
+                        onChange={(e) => onGpTyping(e.target.value)}
+                        placeholder="Tapez votre message au GP (envoye depuis le 122)..."
+                        rows={3}
+                        className="text-xs resize-none"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-muted-foreground">Le bot sera mis en pause 5 min</span>
+                        <Button onClick={() => sendGpFree(gpText)} disabled={sending || !gpText.trim()} size="sm">
+                          {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                          Envoyer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 space-y-1.5">
+                      {!linkedDossier && (
+                        <p className="text-[10px] text-muted-foreground text-center pb-1">
+                          Aucun dossier lie — templates generiques affiches
+                        </p>
+                      )}
+                      {gpTemplatesForStatus(linkedDossier?.status).map((tpl) => {
+                        const msg = tpl.build(gpCtx);
+                        return (
+                          <button
+                            key={tpl.key}
+                            onClick={() => sendGpFree(msg)}
+                            disabled={sending}
+                            className="w-full text-left text-[11px] px-2.5 py-2 rounded-md border border-border hover:border-primary hover:bg-muted/50 transition-colors disabled:opacity-50"
+                          >
+                            <div className="font-semibold text-foreground mb-0.5">{tpl.label}</div>
+                            <div className="text-muted-foreground line-clamp-2">{msg}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </>
