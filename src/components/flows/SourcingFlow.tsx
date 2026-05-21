@@ -461,7 +461,7 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
                   quantity,
                 });
                 toast.message('Brief transféré vers « Recevoir »');
-                navigate('/recevoir');
+                navigate('/expedier/recevoir');
               }}
               disabled={!origin || !destination}
               className="text-left rounded-2xl border-2 border-border bg-card p-4 hover:border-foreground/40 transition-all disabled:opacity-50"
