@@ -465,6 +465,8 @@ function UnknownIntent() {
 
 // ---------------- Section 5 : contacts inconnus ----------------
 function UnknownContacts() {
+  const [picked, setPicked] = useState<{ contact: any; parsed: any } | null>(null);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['gp-ops-unknown-contacts'],
     queryFn: async () => {
@@ -484,7 +486,7 @@ function UnknownContacts() {
       followed_up: true,
       followed_up_at: new Date().toISOString(),
     }).eq('id', id);
-    toast.success('Marque traite');
+    toast.success('Marqué traité');
     refetch();
   }
 
@@ -492,22 +494,78 @@ function UnknownContacts() {
   if (!data || data.length === 0) return <Empty label="Aucun nouveau contact" />;
 
   return (
-    <div className="space-y-2">
-      {data.map((c: any) => (
-        <div key={c.id} className="border border-border rounded-lg p-3 bg-card">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <div className="text-sm font-medium">{c.from_name ?? c.phone}</div>
-              <div className="text-xs text-muted-foreground">{c.phone} · {new Date(c.contacted_at).toLocaleString('fr-FR')}</div>
+    <>
+      <div className="space-y-2">
+        {data.map((c: any) => {
+          const parsed = parseDepartureMessage(c.message);
+          const isDeparture = !!parsed;
+          return (
+            <div
+              key={c.id}
+              className={`border rounded-lg p-3 ${
+                isDeparture
+                  ? 'border-[#F5C518]/60 bg-[#F5C518]/5'
+                  : 'border-border bg-card'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  {isDeparture && (
+                    <div className="text-xs font-semibold text-[#F5C518] uppercase tracking-wide mb-1 flex items-center gap-1">
+                      <Plane className="w-3.5 h-3.5" /> Départ potentiel détecté
+                    </div>
+                  )}
+                  <div className="text-sm font-medium">{c.from_name ?? c.phone}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.phone} · {new Date(c.contacted_at).toLocaleString('fr-FR')}
+                  </div>
+                </div>
+              </div>
+
+              {c.message && (
+                <div className="text-sm bg-muted/50 rounded px-2 py-1.5 mt-2 italic">"{c.message}"</div>
+              )}
+
+              {isDeparture && (
+                <div className="text-xs text-muted-foreground mt-2">
+                  Détecté :{' '}
+                  {parsed.origin?.city && <span>de <b>{parsed.origin.city}</b> </span>}
+                  {parsed.destination?.city && <span>vers <b>{parsed.destination.city}</b> </span>}
+                  {parsed.departureDate && (
+                    <span>· le <b>{new Date(parsed.departureDate).toLocaleDateString('fr-FR')}</b></span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 mt-2">
+                {isDeparture && (
+                  <Button
+                    size="sm"
+                    className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
+                    onClick={() => setPicked({ contact: c, parsed })}
+                  >
+                    <UserPlus className="w-3.5 h-3.5 mr-1" /> Ajouter ce GP + Créer le départ
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => markHandled(c.id)}>
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {isDeparture ? 'Ignorer' : 'Marquer traité'}
+                </Button>
+              </div>
             </div>
-          </div>
-          {c.message && <div className="text-sm bg-muted/50 rounded px-2 py-1.5 mt-2 italic">"{c.message}"</div>}
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => markHandled(c.id)}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Marquer traite
-          </Button>
-        </div>
-      ))}
-    </div>
+          );
+        })}
+      </div>
+
+      {picked && (
+        <CreateGpFromContactDialog
+          open={!!picked}
+          onOpenChange={(o) => { if (!o) setPicked(null); }}
+          contact={picked.contact}
+          parsed={picked.parsed}
+          onDone={() => { setPicked(null); refetch(); }}
+        />
+      )}
+    </>
   );
 }
 
