@@ -1,10 +1,13 @@
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
 
 export type AdminSection =
   | 'overview'
   | 'inbox'
+  | 'messages'
   | 'requests'
   | 'shipments'
   | 'orders'
@@ -28,8 +31,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
-      { id: 'inbox',    label: 'Inbox',   icon: MessageSquare,   live: true },
-      { id: 'overview', label: 'Dashboard',  icon: LayoutDashboard, live: true },
+      { id: 'inbox',    label: 'Inbox',     icon: MessageSquare,   live: true },
+      { id: 'messages', label: 'Messages',  icon: MessageCircle,   live: true },
+      { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, live: true },
     ],
   },
   {
@@ -88,6 +92,25 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
 }) {
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCount() {
+      const { count } = await supabase
+        .from('whatsapp_inbound_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+      if (mounted) setUnread(count ?? 0);
+    }
+    loadCount();
+    const ch = supabase
+      .channel('sidebar-wa-unread')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(ch); };
+  }, []);
+
   return (
     <nav
       className="flex flex-col gap-1 p-2"
@@ -145,6 +168,11 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 truncate">{label}</span>
+                  {id === 'messages' && unread > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
+                      {unread > 99 ? '99+' : unread}
+                    </span>
+                  )}
                   {!live && (
                     <span
                       className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"

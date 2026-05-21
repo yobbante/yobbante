@@ -23,6 +23,7 @@ import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { ManualQuotesTab } from '@/components/admin/ManualQuotesTab';
 import { InboxTab } from '@/components/admin/inbox/InboxTab';
+import { MessagesTab } from '@/components/admin/MessagesTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
@@ -184,6 +185,7 @@ export default function AdminPage() {
               <AdminBreadcrumb section={section} />
               {section === 'overview'   && <OverviewTab onJump={setSection} />}
               {section === 'inbox'      && <InboxTab />}
+              {section === 'messages'   && <MessagesTab />}
               {section === 'requests'   && <RequestsTab />}
               {section === 'shipments'  && <ShipmentsWorkflowTab />}
               {section === 'orders'     && <OrdersTab />}

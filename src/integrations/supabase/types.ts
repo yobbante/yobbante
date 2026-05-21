@@ -2455,6 +2455,18 @@ export type Database = {
       }
     }
     Functions: {
+      _wa_send_via_function: {
+        Args: {
+          p_dossier_id: string
+          p_recipient_phone: string
+          p_recipient_type: string
+          p_template_name: string
+          p_template_params: Json
+          p_transporteur_id: string
+          p_trigger_type: string
+        }
+        Returns: undefined
+      }
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       auto_progress_departures: { Args: never; Returns: number }
       calculate_quote: {
