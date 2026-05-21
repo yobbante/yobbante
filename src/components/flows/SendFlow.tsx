@@ -802,7 +802,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
         <div className="space-y-3 max-w-xl">
           <div className="grid sm:grid-cols-2 gap-3">
-            <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder="Ex. Ahmed Diallo" />
+            <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName} placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`} />
             <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
               placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
           </div>
