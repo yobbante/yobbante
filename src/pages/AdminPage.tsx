@@ -166,7 +166,7 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <main className={cn('flex-1 px-4 md:px-8 py-6 md:py-8 max-w-6xl w-full')}>
+        <main className={cn('flex-1 w-full flex flex-col min-h-0', section === 'messages' ? 'p-0 max-w-none' : 'px-4 md:px-8 py-6 md:py-8 max-w-6xl')}>
           {isUnknownSection ? (
             <div className="py-20 text-center">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Erreur 404</p>
@@ -183,7 +183,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-              <AdminBreadcrumb section={section} />
+              {section !== 'messages' && <AdminBreadcrumb section={section} />}
               {section === 'overview'   && <OverviewTab onJump={setSection} />}
               {section === 'inbox'      && <InboxTab />}
               {section === 'messages'   && <MessagesTab />}
