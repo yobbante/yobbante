@@ -159,6 +159,7 @@ const MainRoutes = () => (
     <Route path="/business" element={<BusinessPage />} />
     <Route path="/business/join" element={<BusinessJoinPage />} />
     <Route path="/business/pricing" element={<BusinessPricingPage />} />
+    <Route path="/rejoindre-konnekt" element={<RejoindreKonnektPage />} />
     {/* Legal pages */}
     <Route path="/confidentialite" element={<ConfidentialitePage />} />
     <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
