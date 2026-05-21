@@ -48,6 +48,7 @@ function buildGpRecap(d: ManualDeparture, dossiers: any[]): string {
 
 export function DepartureDetailDrawer({ departure, onClose }: Props) {
   const open = !!departure;
+  const qc = useQueryClient();
 
   const { data: dossiers = [], isLoading } = useQuery({
     enabled: !!departure?.id,
@@ -77,6 +78,44 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
     }
     const text = encodeURIComponent(buildGpRecap(departure, dossiers));
     window.open(`https://wa.me/${raw}?text=${text}`, '_blank');
+  }
+
+  async function copyRef() {
+    if (!departure?.short_ref) return;
+    try {
+      await navigator.clipboard.writeText(`#${departure.short_ref}`);
+      toast.success(`Réf #${departure.short_ref} copiée`);
+    } catch { toast.error('Copie impossible'); }
+  }
+
+  async function copyGpRecap() {
+    if (!departure) return;
+    try {
+      await navigator.clipboard.writeText(buildGpRecap(departure, dossiers));
+      toast.success('Récap GP copié');
+    } catch { toast.error('Copie impossible'); }
+  }
+
+  async function markPublished() {
+    if (!departure) return;
+    const { error } = await supabase
+      .from('manual_departures')
+      .update({ publication_status: 'published', published_at: new Date().toISOString() })
+      .eq('id', departure.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ['manual_departures'] });
+    toast.success(`Réf #${departure.short_ref} publié`);
+  }
+
+  async function detachDossier(id: string, reference: string) {
+    const { error } = await supabase
+      .from('dossiers')
+      .update({ assigned_departure_id: null })
+      .eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ['departure_dossiers', departure?.id] });
+    qc.invalidateQueries({ queryKey: ['manual_departures'] });
+    toast.success(`${reference} détaché du départ`);
   }
 
   if (!departure) return null;
