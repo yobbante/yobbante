@@ -119,6 +119,10 @@ function formatTime(iso: string) {
 }
 
 export function MessagesTab() {
+  const [searchParams] = (typeof window !== 'undefined')
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (require('react-router-dom') as typeof import('react-router-dom')).useSearchParams()
+    : [new URLSearchParams()] as any;
   const [inbound, setInbound] = useState<InboundMsg[]>([]);
   const [outbound, setOutbound] = useState<OutboundMsg[]>([]);
   const [tab, setTab] = useState<'all' | 'client' | 'gp'>('all');
