@@ -3,16 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Search, Phone, MessageCircle, CheckCircle2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Status = 'pending' | 'contacted' | 'quoted' | 'won' | 'lost';
+type Status = 'pending' | 'quoted' | 'confirmed' | 'cancelled';
 const STATUS_LABEL: Record<Status, string> = {
-  pending: 'À contacter', contacted: 'Contacté', quoted: 'Devis envoyé', won: 'Confirmé', lost: 'Perdu',
+  pending: 'À contacter', quoted: 'Devis envoyé', confirmed: 'Confirmé', cancelled: 'Annulé',
 };
 const STATUS_COLOR: Record<Status, string> = {
   pending: 'bg-amber-100 text-amber-900 border-amber-200',
-  contacted: 'bg-blue-100 text-blue-900 border-blue-200',
   quoted: 'bg-violet-100 text-violet-900 border-violet-200',
-  won: 'bg-emerald-100 text-emerald-900 border-emerald-200',
-  lost: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+  confirmed: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+  cancelled: 'bg-zinc-100 text-zinc-700 border-zinc-200',
 };
 
 export function ManualQuotesTab() {
