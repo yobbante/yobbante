@@ -231,6 +231,16 @@ export function TransporteursTab() {
             <Send className="w-4 h-4 mr-2" />
             Inviter tous les GP sur Konnekt
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBotBlastOpen(true)}
+            className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            Onboarder sur le Bot GP
+          </Button>
+
           <Button variant="outline" size="sm" onClick={() => setEditing({
             id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
             adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
