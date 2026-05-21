@@ -30,15 +30,17 @@ function buildBotInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-J'ai mis en place un assistant automatique pour nos colis.
+J ai mis en place un assistant automatique pour gerer nos colis ensemble.
 
 Enregistre ce numero dans tes contacts :
 ${YOBBANTE_BOT_NUMBER}
 Nom : Yobbante GP
 
-Envoie-lui le mot AIDE pour voir comment ca marche.
+Envoie le mot AIDE pour voir comment ca marche.
 
-On continue nos echanges comme avant sur ce numero.`;
+On continue nos echanges comme avant.
+
+A bientot !`;
 }
 
 function buildBotWaUrl(gp: Transporteur) {
@@ -60,7 +62,6 @@ function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | nul
   const nom = collapseDup((nomRaw ?? '').trim()).replace(/[-\s]+$/, '').trim();
   if (!prenom) return nom;
   if (!nom) return prenom;
-  // If nom already starts with prenom (case-insensitive), just use nom.
   if (nom.toLowerCase() === prenom.toLowerCase() ||
       nom.toLowerCase().startsWith(prenom.toLowerCase() + ' ')) {
     return nom;
@@ -68,19 +69,19 @@ function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | nul
   return `${prenom} ${nom}`;
 }
 
-/** Build personalized invite text per GP. */
+/** Build personalized Konnekt invite text per GP (no accents for WhatsApp). */
 function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
-  return `Bonjour ${prenom},
+  return `Salam ${prenom},
 
-Yobbanté vous invite à rejoindre Konnekt — recevez plus de missions directement sur votre téléphone.
+Yobbante vous invite a rejoindre Konnekt, la plateforme officielle de nos transporteurs.
 
-En tant que partenaire Yobbanté, vous avez un accès exclusif :
-👉 https://konnekt.app/beta?ref=${gpRef(gp.reference)}
+Votre profil est deja cree. Activez votre compte ici :
+yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
 
-Inscription en 30 secondes — vos informations sont déjà enregistrées.
+Une fois inscrit, vous recevrez vos missions directement sur votre telephone.
 
-— Équipe Yobbanté`;
+Questions ? Repondez a ce message.`;
 }
 
 function buildWaUrl(gp: Transporteur) {
