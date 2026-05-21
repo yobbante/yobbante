@@ -17,7 +17,7 @@ export function FloatingWhatsApp() {
             href={whatsappLink("Bonjour Yobbanté, j'ai une question sur vos services.")}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Contactez-nous sur WhatsApp"
+            aria-label="Discuter sur WhatsApp"
             className="hidden md:flex fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform"
             style={{ background: '#25D366' }}
           >
@@ -26,7 +26,7 @@ export function FloatingWhatsApp() {
             </svg>
           </a>
         </TooltipTrigger>
-        <TooltipContent side="left">Contactez-nous sur WhatsApp</TooltipContent>
+        <TooltipContent side="left">Discuter sur WhatsApp</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

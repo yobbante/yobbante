@@ -97,7 +97,7 @@ export function PublicFooter() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp · {YOBBANTE_WHATSAPP_DISPLAY}
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp &amp; Téléphone · {YOBBANTE_WHATSAPP_DISPLAY}
               </a>
               <a href="mailto:contact@yobbante.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="w-3.5 h-3.5" /> contact@yobbante.com
@@ -153,7 +153,7 @@ export function PublicFooter() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp · {YOBBANTE_WHATSAPP_DISPLAY}
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp &amp; Téléphone · {YOBBANTE_WHATSAPP_DISPLAY}
             </a>
             <a href="mailto:contact@yobbante.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
               <Mail className="w-3.5 h-3.5" /> contact@yobbante.com

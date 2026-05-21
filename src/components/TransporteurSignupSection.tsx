@@ -100,6 +100,20 @@ export function TransporteurSignupSection() {
             GP express, aérien, maritime, routier — recevez des missions qualifiées,
             sécurisées et payées via la plateforme. Aucun frais d'inscription.
           </p>
+          <a
+            href={`https://wa.me/221781221891?text=${encodeURIComponent('Bonjour, je souhaite devenir transporteur GP avec Yobbanté.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-full transition-opacity hover:opacity-90"
+            style={{
+              background: '#F5C518',
+              color: '#0A0E1A',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            💬 WhatsApp transporteurs · +221 78 122 18 91
+          </a>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
