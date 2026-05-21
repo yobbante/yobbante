@@ -61,6 +61,7 @@ const emptyForm = {
   price_eur: 0,
   origin_country: 'CN',
   stock_mode: 'stock' as 'stock' | 'commande',
+  stock_qty: '' as string,
   delivery_days: 7,
   image_url: '',
   verified: false,
