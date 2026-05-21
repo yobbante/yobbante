@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
-import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote } from 'lucide-react';
+import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote, Tag, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
 
@@ -47,6 +47,12 @@ export default function CheckoutPage() {
   const [note, setNote] = useState('');
   const [payment, setPayment] = useState<typeof PAY_METHODS[number]['id']>('wave');
 
+  // Promo code state
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplying, setPromoApplying] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promo, setPromo] = useState<{ id: string; code: string; discount_eur: number } | null>(null);
+
   useEffect(() => {
     const c = readCart();
     if (c.length === 0) nav('/panier', { replace: true });
@@ -76,6 +82,46 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
+  const discount = promo?.discount_eur ?? 0;
+  const total = Math.max(0, subtotal - discount);
+
+  // Recompute discount when subtotal changes (re-validate against the rules)
+  useEffect(() => {
+    if (!promo) return;
+    void validatePromo(promo.code, /* silent */ true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
+  async function validatePromo(rawCode: string, silent = false) {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) { setPromoError('Entrez un code.'); return; }
+    if (!silent) setPromoApplying(true);
+    setPromoError(null);
+    try {
+      const { data, error } = await supabase
+        .from('dekk_promo_codes' as any)
+        .select('id, code, discount_type, discount_value, min_subtotal_eur, max_uses, used_count, expires_at, active')
+        .ilike('code', code)
+        .maybeSingle();
+      if (error || !data) throw new Error('Code inconnu.');
+      const p: any = data;
+      if (!p.active) throw new Error('Ce code n\'est plus actif.');
+      if (p.expires_at && new Date(p.expires_at) < new Date()) throw new Error('Ce code a expiré.');
+      if (p.max_uses != null && p.used_count >= p.max_uses) throw new Error('Ce code a atteint sa limite d\'utilisation.');
+      if (subtotal < (p.min_subtotal_eur ?? 0)) {
+        throw new Error(`Minimum d'achat : ${p.min_subtotal_eur} €.`);
+      }
+      const d = p.discount_type === 'percent'
+        ? Math.min(subtotal, Math.floor(subtotal * p.discount_value / 100))
+        : Math.min(subtotal, p.discount_value);
+      setPromo({ id: p.id, code: p.code, discount_eur: d });
+    } catch (e: any) {
+      setPromo(null);
+      setPromoError(e?.message || 'Code invalide.');
+    } finally {
+      setPromoApplying(false);
+    }
+  }
 
   const deliveryValid = name.trim().length >= 2 && phone.trim().length >= 6 && city && address.trim().length >= 4;
 
@@ -90,33 +136,53 @@ export default function CheckoutPage() {
       payment_method: payment,
       items: cart,
       subtotal_eur: subtotal,
-      total_eur: subtotal,
-      total_fcfa: subtotal * 655,
+      discount_eur: discount,
+      promo_code: promo?.code ?? null,
+      total_eur: total,
+      total_fcfa: total * 655,
       status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
     };
     try {
-      // Persist to backend
       const { data: { session } } = await supabase.auth.getSession();
-      await supabase.from('dekk_orders' as any).insert({
-        reference,
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email || null,
-        city,
-        address,
-        note: note || null,
-        payment_method: payment,
-        items: cart,
-        subtotal_eur: Math.round(subtotal),
-        total_eur: Math.round(subtotal),
-        total_fcfa: Math.round(subtotal * 655),
-        status: order.status,
-        user_id: session?.user?.id ?? null,
-      });
-      // Cache for confirmation page (offline fallback)
+      const { data: inserted, error: insertErr } = await supabase
+        .from('dekk_orders' as any)
+        .insert({
+          reference,
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email || null,
+          city,
+          address,
+          note: note || null,
+          payment_method: payment,
+          items: cart,
+          subtotal_eur: Math.round(subtotal),
+          total_eur: Math.round(total),
+          total_fcfa: Math.round(total * 655),
+          status: order.status,
+          user_id: session?.user?.id ?? null,
+        })
+        .select('id')
+        .single();
+      if (insertErr) throw insertErr;
+      const orderId = (inserted as any)?.id as string | undefined;
+
+      // Atomically consume the promo (server-side: validates + decrements + records)
+      if (promo && orderId) {
+        const { error: promoErr } = await supabase.rpc('dekk_consume_promo' as any, {
+          p_code: promo.code,
+          p_order_id: orderId,
+          p_subtotal_eur: Math.round(subtotal),
+        });
+        if (promoErr) {
+          // Non-blocking: keep the order, log the failure
+          console.warn('Promo consume failed', promoErr);
+        }
+      }
+
       localStorage.setItem(`dekk_order_${reference}`, JSON.stringify(order));
       const hist = JSON.parse(localStorage.getItem('dekk_orders') || '[]');
-      hist.unshift({ reference, total_eur: subtotal, created_at: order.created_at });
+      hist.unshift({ reference, total_eur: total, created_at: order.created_at });
       localStorage.setItem('dekk_orders', JSON.stringify(hist.slice(0, 20)));
       localStorage.setItem('dekk_cart', '[]'); window.dispatchEvent(new Event('dekk:cart'));
     } catch (e) {
@@ -205,7 +271,7 @@ export default function CheckoutPage() {
                   <button onClick={() => setStep('delivery')} style={ghostBtn}>← Modifier la livraison</button>
                   <button onClick={handleConfirm} disabled={submitting}
                     style={{ ...primaryBtn, flex: 1, opacity: submitting ? 0.6 : 1 }}>
-                    {submitting ? 'Confirmation…' : `Confirmer la commande · ${fmtEur(subtotal)}`}
+                    {submitting ? 'Confirmation…' : `Confirmer la commande · ${fmtEur(total)}`}
                   </button>
                 </div>
               </section>
@@ -238,11 +304,55 @@ export default function CheckoutPage() {
             <div style={{ borderTop: `0.5px solid ${DEKK.line}`, paddingTop: 12 }}>
               <SummaryRow label="Sous-total" value={fmtEur(subtotal)} />
               <SummaryRow label="Livraison" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>Incluse</span>} />
+
+              {/* Promo code */}
+              <div style={{ marginTop: 10, marginBottom: 10 }}>
+                {promo ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, background: '#ECF7F0', border: '1px solid #C7E5D2' }}>
+                    <Tag size={13} color="#0E7A4F" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#0E7A4F', fontFamily: '"DM Mono", monospace', letterSpacing: '0.04em' }}>{promo.code}</div>
+                      <div style={{ fontSize: 11, color: DEKK.muted }}>−{fmtEur(promo.discount_eur)} appliqués</div>
+                    </div>
+                    <button type="button" onClick={() => { setPromo(null); setPromoInput(''); setPromoError(null); }}
+                      aria-label="Retirer le code"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: DEKK.muted, padding: 4 }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        value={promoInput}
+                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void validatePromo(promoInput); } }}
+                        placeholder="Code promo"
+                        style={{ ...inputStyle, height: 36, fontSize: 12, fontFamily: '"DM Mono", monospace', letterSpacing: '0.04em', textTransform: 'uppercase' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void validatePromo(promoInput)}
+                        disabled={promoApplying || !promoInput.trim()}
+                        style={{ height: 36, padding: '0 14px', background: DEKK.ink, color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: promoApplying || !promoInput.trim() ? 0.4 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        {promoApplying ? <Loader2 size={12} className="animate-spin" /> : 'Appliquer'}
+                      </button>
+                    </div>
+                    {promoError && <div style={{ fontSize: 11, color: '#B43A3A', marginTop: 6 }}>{promoError}</div>}
+                  </>
+                )}
+              </div>
+
+              {discount > 0 && (
+                <SummaryRow label="Remise" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>−{fmtEur(discount)}</span>} />
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(subtotal)}</div>
-                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtFcfa(subtotal * 655)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(total)}</div>
+                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtFcfa(total * 655)}</div>
                 </div>
               </div>
             </div>

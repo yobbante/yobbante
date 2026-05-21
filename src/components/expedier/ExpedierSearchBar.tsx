@@ -6,20 +6,20 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
-import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { ALL_CITIES } from '@/lib/worldCities';
 
 /* =========================================================================
-   ExpedierSearchBar
-   Sticky, theme-aware search bar acting as entry point of /expedier.
+   ExpedierSearchBar — sticky, theme-aware, 100% responsive search bar
+   acting as the entry point for /expedier and /sourcing.
+
    - 3 tabs: Envoyer / Sourcing / Réception
-   - Switching Envoyer ↔ Recevoir = inline mode swap (URL synced by parent)
-   - Sourcing tab triggers navigation to /sourcing
-   - On "Continuer" : writes preset stores read by SendFlow / ReceiveFlow
-   - 2 states: 'expanded' (full inputs) and 'collapsed' (summary chips)
+   - Each tab has a true inline mode (no forced navigation away)
+   - Switching to a tab whose canonical page differs from `currentPage`
+     triggers navigation through `onModeChange` (parent resolves the URL).
+   - Sticky bar, collapses to summary chips after submit.
    ========================================================================= */
 
-export type ExpedierMode = 'envoyer' | 'recevoir';
-export type ExpedierTab = ExpedierMode | 'sourcing';
+export type ExpedierMode = 'envoyer' | 'recevoir' | 'sourcing';
 
 const MERCHANTS = ['Amazon', 'AliExpress', 'eBay', 'SHEIN', 'Temu', 'Autre…'];
 const MERCHANT_COUNTRIES: { code: 'US' | 'CN' | 'FR' | 'AE' | 'TR'; label: string; flag: string }[] = [
@@ -29,11 +29,17 @@ const MERCHANT_COUNTRIES: { code: 'US' | 'CN' | 'FR' | 'AE' | 'TR'; label: strin
   { code: 'AE', label: 'Émirats', flag: '🇦🇪' },
   { code: 'TR', label: 'Turquie', flag: '🇹🇷' },
 ];
+const SOURCING_ORIGINS: { code: 'CN' | 'FR' | 'AE' | 'US'; label: string; flag: string }[] = [
+  { code: 'CN', label: 'Chine', flag: '🇨🇳' },
+  { code: 'FR', label: 'France', flag: '🇫🇷' },
+  { code: 'AE', label: 'Dubai', flag: '🇦🇪' },
+  { code: 'US', label: 'USA', flag: '🇺🇸' },
+];
 
-const TABS: { key: ExpedierTab; Icon: typeof Package; label: string; shortLabel: string }[] = [
+const TABS: { key: ExpedierMode; Icon: typeof Package; label: string; shortLabel: string }[] = [
   { key: 'envoyer',   Icon: Package, label: 'Envoyer un colis',  shortLabel: 'Envoyer'   },
-  { key: 'sourcing',  Icon: Search,  label: 'Sourcing',          shortLabel: 'Sourcing'  },
-  { key: 'recevoir',  Icon: Inbox,   label: 'Réception',         shortLabel: 'Réception' },
+  { key: 'sourcing',  Icon: Search,  label: 'Sourcing produit',  shortLabel: 'Sourcing'  },
+  { key: 'recevoir',  Icon: Inbox,   label: 'Recevoir',          shortLabel: 'Recevoir' },
 ];
 
 const SEND_PRESET_KEY = 'send-flow:preset';
@@ -51,7 +57,7 @@ function resolveCityToCountry(cityLabel: string): { country: string; city: strin
 
 interface Props {
   mode: ExpedierMode;
-  /** Called when user clicks Envoyer/Recevoir tab — parent updates URL + remounts flow. */
+  /** Called when the user picks a different tab. Parent navigates & remounts. */
   onModeChange: (next: ExpedierMode) => void;
   /** Called after the user presses "Continuer" so parent can bump the flow key. */
   onApply?: () => void;
@@ -61,8 +67,12 @@ interface Props {
 
 export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded = true }: Props) {
   const navigate = useNavigate();
-  const theme: 'light' | 'dark' = mode === 'envoyer' ? 'light' : 'dark';
+  const theme: 'light' | 'dark' = mode === 'recevoir' ? 'dark' : 'light';
+  const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(defaultExpanded);
+
+  // Re-expand when switching mode so the user sees the inputs
+  useEffect(() => { setExpanded(true); }, [mode]);
 
   // ── Envoyer state ────────────────────────────────────────────────
   const DAKAR = 'Dakar, Sénégal';
@@ -88,7 +98,6 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [recMode, setRecMode] = useState<'AIR' | 'SEA'>('AIR');
   const [estValue, setEstValue] = useState('');
 
-  // Default mapping: most relevant merchant country for merchant
   useEffect(() => {
     const map: Record<string, typeof merchantCountry> = {
       Amazon: 'US', eBay: 'US', AliExpress: 'CN', SHEIN: 'CN', Temu: 'CN',
@@ -96,28 +105,22 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
     if (map[merchant]) setMerchantCountry(map[merchant]);
   }, [merchant]);
 
-  // ── Tab handler ──────────────────────────────────────────────────
-  function handleTab(t: ExpedierTab) {
-    if (t === 'sourcing') {
-      navigate('/sourcing');
-      return;
-    }
-    if (t !== mode) onModeChange(t);
-    setExpanded(true);
-  }
+  // ── Sourcing state ───────────────────────────────────────────────
+  const [productQuery, setProductQuery] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('q') ?? '';
+  });
+  const [srcOrigin, setSrcOrigin] = useState<typeof SOURCING_ORIGINS[number]['code']>('CN');
 
-  // ── Submit (Continuer) ───────────────────────────────────────────
+  // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
     const o = resolveCityToCountry(origin);
     const d = resolveCityToCountry(destination);
     if (!o || !d || !weight) return;
     const preset = {
-      origin: o.country,
-      destination: d.country,
-      origin_city: o.city,
-      destination_city: d.city,
-      transport,
-      weight: Number(weight) || undefined,
+      origin: o.country, destination: d.country,
+      origin_city: o.city, destination_city: d.city,
+      transport, weight: Number(weight) || undefined,
       source: 'expedier-bar',
     };
     try { sessionStorage.setItem(SEND_PRESET_KEY, JSON.stringify(preset)); } catch {}
@@ -131,16 +134,26 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       ...(estValue ? { value: estValue } : {}),
       origin: merchantCountry,
     });
-    // Sync URL so ReceiveFlow.readLandingHub picks it up too.
     window.history.replaceState({}, '', `/expedier/recevoir?${params.toString()}`);
+    setExpanded(false);
+    onApply?.();
+  }
+  function applySourcing() {
+    const q = productQuery.trim();
+    const params = new URLSearchParams({
+      ...(q ? { q } : {}),
+      origin: srcOrigin,
+    });
+    window.history.replaceState({}, '', `/sourcing${params.toString() ? `?${params}` : ''}`);
     setExpanded(false);
     onApply?.();
   }
 
   const canSubmitSend = !!origin && !!destination && !!weight;
   const canSubmitRecv = !!merchant && !!merchantCountry;
+  const canSubmitSrc  = productQuery.trim().length >= 2;
 
-  // ── Summary chips (collapsed view) ───────────────────────────────
+  // ── Summary chips ────────────────────────────────────────────────
   const summaryChips = useMemo(() => {
     if (mode === 'envoyer') {
       return [
@@ -149,30 +162,46 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
         transport === 'AIR' ? 'Air' : transport === 'SEA' ? 'Maritime' : 'Routier',
       ];
     }
+    if (mode === 'sourcing') {
+      return [
+        productQuery.trim() || 'Produit ?',
+        SOURCING_ORIGINS.find(c => c.code === srcOrigin)?.label ?? srcOrigin,
+      ];
+    }
     return [
       merchant,
       MERCHANT_COUNTRIES.find(c => c.code === merchantCountry)?.label ?? merchantCountry,
       recMode === 'AIR' ? 'Aérien' : 'Maritime',
       ...(estValue ? [`${estValue} €`] : []),
     ];
-  }, [mode, origin, destination, weight, transport, merchant, merchantCountry, recMode, estValue]);
+  }, [mode, origin, destination, weight, transport, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);
 
-  const isDark = theme === 'dark';
+  // ── Shared field classes ─────────────────────────────────────────
+  const fieldCls = cn(
+    'w-full rounded-lg px-3 h-10 text-[13px] border outline-none transition-colors',
+    isDark
+      ? 'bg-white/[0.03] border-white/10 text-white placeholder:text-white/30 focus:border-yellow-400/60'
+      : 'bg-card border-border text-foreground placeholder:text-muted-foreground/60 focus:border-foreground/40',
+  );
+  const ctaCls = cn(
+    'w-full rounded-lg h-10 px-3 text-[13px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed',
+    isDark ? 'bg-yellow-400 text-zinc-950 hover:bg-yellow-300' : 'bg-foreground text-background hover:bg-foreground/90',
+  );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
       className={cn(
         'sticky top-0 z-40 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 backdrop-blur-md border-b',
         isDark ? 'bg-zinc-950/90 border-white/10' : 'bg-background/90 border-border',
       )}
     >
-      {/* Top mini-toolbar : back to home + (recevoir only) Mes commandes */}
+      {/* Top toolbar */}
       <div className="flex items-center justify-between mb-1.5">
         <button
           type="button" onClick={() => navigate('/')}
           className={cn(
-            'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-medium transition-opacity hover:opacity-100',
+            'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-medium transition-opacity',
             isDark ? 'text-white/55 hover:text-white' : 'text-muted-foreground hover:text-foreground',
           )}
         >
@@ -182,27 +211,25 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } }))}
-            className={cn(
-              'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-semibold rounded-md px-2 py-1 transition-colors',
-              'bg-yellow-400 text-zinc-950 hover:bg-yellow-300',
-            )}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-semibold rounded-md px-2 py-1 bg-yellow-400 text-zinc-950 hover:bg-yellow-300 transition-colors"
           >
             <ListChecks className="w-3 h-3" /> Mes commandes
           </button>
         )}
       </div>
 
-      {/* Tabs row */}
-      <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+      {/* Tabs */}
+      <div className="grid grid-cols-3 gap-1 sm:gap-1.5 mb-2.5">
         {TABS.map(t => {
-          const active = t.key === mode || (t.key === 'sourcing' && false);
+          const active = t.key === mode;
           return (
             <button
               key={t.key}
               type="button"
-              onClick={() => handleTab(t.key)}
+              onClick={() => { if (t.key !== mode) onModeChange(t.key); }}
+              aria-pressed={active}
               className={cn(
-                'group text-left transition-all min-w-0 rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1.5 text-[12px] sm:text-[13px] font-medium border',
+                'group min-w-0 rounded-lg px-2 sm:px-2.5 h-9 inline-flex items-center justify-center sm:justify-start gap-1.5 text-[11.5px] sm:text-[13px] font-medium border transition-all',
                 active
                   ? isDark
                     ? 'bg-yellow-400 text-zinc-950 border-yellow-400'
@@ -225,16 +252,17 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       <AnimatePresence initial={false} mode="wait">
         {expanded ? (
           <motion.div
-            key="expanded"
+            key={`expanded-${mode}`}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22 }}
             className="overflow-hidden"
           >
-            {mode === 'envoyer' ? (
+            {/* ENVOYER ─────────────────────────────────────────────── */}
+            {mode === 'envoyer' && (
               <div className="space-y-2 pt-1">
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                   <span
                     className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium border',
@@ -248,7 +276,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                   <button
                     type="button" onClick={swapDirection}
                     className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2 py-1 border',
+                      'inline-flex items-center gap-1 rounded-full px-2 py-1 border transition-colors',
                       isDark ? 'border-white/15 text-white/70 hover:text-white' : 'border-border text-muted-foreground hover:text-foreground',
                     )}
                   >
@@ -277,43 +305,75 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                     excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <input
                     type="number" inputMode="decimal" placeholder="Poids (kg)"
                     value={weight} onChange={e => setWeight(e.target.value)}
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2 text-[13px] border',
-                      isDark ? 'bg-white/[0.03] border-white/10 text-white placeholder:text-white/30' : 'bg-card border-border text-foreground',
-                    )}
+                    className={fieldCls}
                   />
                   <select
                     value={transport} onChange={e => setTransport(e.target.value as any)}
                     aria-label="Mode de transport"
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2 text-[13px] border',
-                      isDark ? 'bg-white/[0.03] border-white/10 text-white' : 'bg-card border-border text-foreground',
-                    )}
+                    className={fieldCls}
                   >
                     <option value="AIR">Aérien</option>
                     <option value="SEA">Maritime</option>
                     <option value="ROAD">Routier</option>
                   </select>
                   <button
-                    onClick={applyEnvoyer}
-                    disabled={!canSubmitSend}
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2 text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed',
-                      isDark ? 'bg-yellow-400 text-zinc-950 hover:bg-yellow-300' : 'bg-foreground text-background hover:bg-foreground/90',
-                    )}
+                    onClick={applyEnvoyer} disabled={!canSubmitSend}
+                    className={cn(ctaCls, 'col-span-2 sm:col-span-1')}
                   >
                     Continuer →
                   </button>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* SOURCING ────────────────────────────────────────────── */}
+            {mode === 'sourcing' && (
               <div className="space-y-2 pt-1">
                 <div>
-                  <div className={cn('text-[10px] uppercase tracking-[0.18em] mb-1.5', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>Marchand</div>
+                  <div className={cn('text-[10px] uppercase tracking-[0.18em] mb-1.5', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>Pays d'origine</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SOURCING_ORIGINS.map(c => {
+                      const active = srcOrigin === c.code;
+                      return (
+                        <button
+                          key={c.code} type="button" onClick={() => setSrcOrigin(c.code)}
+                          className={cn(
+                            'rounded-full px-2.5 py-1 text-[11px] font-medium border transition-colors',
+                            active
+                              ? isDark ? 'bg-yellow-400 text-zinc-950 border-yellow-400' : 'bg-foreground text-background border-foreground'
+                              : isDark ? 'border-white/10 text-white/70 hover:border-white/30' : 'border-border text-muted-foreground hover:border-foreground/40',
+                          )}
+                        >{c.flag} {c.label}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                  <input
+                    type="text" placeholder="Quel produit cherchez-vous ? (ex. iPhone 15 Pro, machine à café…)"
+                    value={productQuery} onChange={e => setProductQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && canSubmitSrc) applySourcing(); }}
+                    className={fieldCls}
+                  />
+                  <button
+                    onClick={applySourcing} disabled={!canSubmitSrc}
+                    className={cn(ctaCls, 'sm:w-auto sm:px-5')}
+                  >
+                    Sourcer →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* RECEVOIR ────────────────────────────────────────────── */}
+            {mode === 'recevoir' && (
+              <div className="space-y-2 pt-1">
+                <div>
+                  <div className={cn('text-[10px] uppercase tracking-[0.18em] mb-1.5', 'text-yellow-400/80')}>Marchand</div>
                   <div className="flex flex-wrap gap-1.5">
                     {MERCHANTS.map(m => {
                       const active = merchant === m;
@@ -323,8 +383,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                           className={cn(
                             'rounded-full px-2.5 py-1 text-[11px] font-medium border transition-colors',
                             active
-                              ? isDark ? 'bg-yellow-400 text-zinc-950 border-yellow-400' : 'bg-foreground text-background border-foreground'
-                              : isDark ? 'border-white/10 text-white/70 hover:border-white/30' : 'border-border text-muted-foreground hover:border-foreground/40',
+                              ? 'bg-yellow-400 text-zinc-950 border-yellow-400'
+                              : 'border-white/10 text-white/70 hover:border-white/30',
                           )}
                         >{m}</button>
                       );
@@ -335,39 +395,26 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                   <select
                     value={merchantCountry} onChange={e => setMerchantCountry(e.target.value as any)}
                     aria-label="Pays du marchand"
-                    className={cn(
-                      'w-full rounded-lg px-2 py-2 text-[13px] border',
-                      isDark ? 'bg-white/[0.03] border-white/10 text-white' : 'bg-card border-border text-foreground',
-                    )}
+                    className={fieldCls}
                   >
                     {MERCHANT_COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.label}</option>)}
                   </select>
                   <select
                     value={recMode} onChange={e => setRecMode(e.target.value as any)}
                     aria-label="Mode d'expédition"
-                    className={cn(
-                      'w-full rounded-lg px-2 py-2 text-[13px] border',
-                      isDark ? 'bg-white/[0.03] border-white/10 text-white' : 'bg-card border-border text-foreground',
-                    )}
+                    className={fieldCls}
                   >
                     <option value="AIR">Aérien (3-7j)</option>
                     <option value="SEA">Maritime (18-25j)</option>
                   </select>
                   <input
-                    type="number" inputMode="decimal" placeholder="Valeur estimée (€)"
+                    type="number" inputMode="decimal" placeholder="Valeur (€)"
                     value={estValue} onChange={e => setEstValue(e.target.value)}
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2 text-[13px] border col-span-2 sm:col-span-1',
-                      isDark ? 'bg-white/[0.03] border-white/10 text-white placeholder:text-white/30' : 'bg-card border-border text-foreground',
-                    )}
+                    className={cn(fieldCls, 'col-span-2 sm:col-span-1')}
                   />
                   <button
-                    onClick={applyRecevoir}
-                    disabled={!canSubmitRecv}
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2 text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed col-span-2 sm:col-span-1',
-                      isDark ? 'bg-yellow-400 text-zinc-950 hover:bg-yellow-300' : 'bg-foreground text-background hover:bg-foreground/90',
-                    )}
+                    onClick={applyRecevoir} disabled={!canSubmitRecv}
+                    className={cn(ctaCls, 'col-span-2 sm:col-span-1')}
                   >
                     Continuer →
                   </button>

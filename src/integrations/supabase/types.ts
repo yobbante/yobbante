@@ -415,10 +415,13 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string
+          discount_eur: number
           id: string
           items: Json
           note: string | null
           payment_method: string
+          promo_code: string | null
+          promo_id: string | null
           reference: string
           status: string
           subtotal_eur: number
@@ -434,10 +437,13 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone: string
+          discount_eur?: number
           id?: string
           items?: Json
           note?: string | null
           payment_method: string
+          promo_code?: string | null
+          promo_id?: string | null
           reference: string
           status?: string
           subtotal_eur?: number
@@ -453,10 +459,13 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
+          discount_eur?: number
           id?: string
           items?: Json
           note?: string | null
           payment_method?: string
+          promo_code?: string | null
+          promo_id?: string | null
           reference?: string
           status?: string
           subtotal_eur?: number
@@ -465,7 +474,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dekk_orders_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "dekk_promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dekk_promo_codes: {
         Row: {
@@ -2299,6 +2316,14 @@ export type Database = {
       cancel_shipment: {
         Args: { p_reason?: string; p_shipment_id: string }
         Returns: Json
+      }
+      dekk_consume_promo: {
+        Args: { p_code: string; p_order_id: string; p_subtotal_eur: number }
+        Returns: {
+          discount_eur: number
+          promo_id: string
+          total_eur: number
+        }[]
       }
       expire_past_manual_departures: { Args: never; Returns: number }
       expire_unpaid_shipments: { Args: never; Returns: number }
