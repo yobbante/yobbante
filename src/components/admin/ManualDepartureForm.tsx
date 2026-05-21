@@ -239,10 +239,10 @@ export function ManualDepartureForm({ open, onClose, departure }: Props) {
       // 4) Confirmation feedback
       if (wasNew) {
         toast.success(
-          `📋 Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
+          `Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
         );
       } else if (wasEdited) {
-        toast.success(`📋 Infos transporteur Réf. ${tRef} mises à jour.`);
+        toast.success(`Infos transporteur Réf. ${tRef} mises à jour.`);
       } else {
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
       }
