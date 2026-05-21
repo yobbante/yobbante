@@ -470,14 +470,51 @@ function BotBlastDialog({
 }) {
   const [cursor, setCursor] = useState(0);
   const [sequential, setSequential] = useState(false);
+  const [blasting, setBlasting] = useState(false);
+  const [blastProgress, setBlastProgress] = useState({ done: 0, ok: 0, fail: 0 });
 
   // Reset when (re)opened
-  useMemo(() => { if (open) { setCursor(0); setSequential(false); } }, [open]);
+  useMemo(() => {
+    if (open) {
+      setCursor(0); setSequential(false);
+      setBlasting(false);
+      setBlastProgress({ done: 0, ok: 0, fail: 0 });
+    }
+  }, [open]);
 
   const current = sequential ? eligible[cursor] : null;
 
+  const blastAllApi = async () => {
+    setBlasting(true);
+    setBlastProgress({ done: 0, ok: 0, fail: 0 });
+    let ok = 0, fail = 0;
+    for (let i = 0; i < eligible.length; i++) {
+      const gp = eligible[i];
+      const res = await sendGpMessage({
+        phone: gp.telephone_1,
+        message: buildBotInviteMessage(gp),
+        transporteur_id: gp.id,
+        trigger_type: 'admin_onboard_bot_blast',
+        silent: true,
+      });
+      if (res.ok) ok += 1; else fail += 1;
+      // Mark invited regardless (we attempted contact)
+      try {
+        await supabase
+          .from('transporteurs' as any)
+          .update({ invitation_bot_sent_at: new Date().toISOString() })
+          .eq('id', gp.id);
+      } catch { /* non-bloquant */ }
+      setBlastProgress({ done: i + 1, ok, fail });
+      // 1s rate-limit between sends
+      if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1000));
+    }
+    setBlasting(false);
+    toast.success(`${ok} envoyés, ${fail} échecs (fallback wa.me disponible)`);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!blasting) onOpenChange(v); }}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Onboarding Bot WhatsApp GP</DialogTitle>
@@ -497,7 +534,17 @@ function BotBlastDialog({
           </div>
         </div>
 
-        {sequential && current ? (
+        {blasting || (blastProgress.done > 0 && !sequential) ? (
+          <div className="border border-border rounded-lg p-4 space-y-2">
+            <div className="text-sm font-medium">
+              {blasting ? 'Envoi en cours…' : 'Envoi terminé'} {blastProgress.done}/{eligible.length}
+            </div>
+            <Progress value={eligible.length ? (blastProgress.done / eligible.length) * 100 : 0} />
+            <div className="text-xs text-muted-foreground">
+              ✅ {blastProgress.ok} envoyés · ⚠️ {blastProgress.fail} échecs
+            </div>
+          </div>
+        ) : sequential && current ? (
           <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {cursor + 1} / {eligible.length}
@@ -522,8 +569,8 @@ function BotBlastDialog({
                 className="flex-1"
                 style={{ background: '#F5C518', color: '#0A0E1A' }}
               >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Ouvrir WhatsApp & suivant
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                Envoyer & suivant
               </Button>
               <Button variant="ghost" onClick={() => setCursor(c => Math.min(c + 1, eligible.length - 1))}>
                 Passer
@@ -551,7 +598,7 @@ function BotBlastDialog({
                   onClick={() => onSent(g)}
                   className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
                   Envoyer
                 </Button>
               </div>
@@ -560,15 +607,26 @@ function BotBlastDialog({
         )}
 
         <DialogFooter className="gap-2">
-          {!sequential && eligible.length > 0 && (
-            <Button
-              onClick={() => { setCursor(0); setSequential(true); }}
-              style={{ background: '#F5C518', color: '#0A0E1A' }}
-            >
-              Tout envoyer (un par un)
-            </Button>
+          {!sequential && !blasting && eligible.length > 0 && blastProgress.done === 0 && (
+            <>
+              <Button
+                onClick={blastAllApi}
+                style={{ background: '#F5C518', color: '#0A0E1A' }}
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                Envoyer à tous (API)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => { setCursor(0); setSequential(true); }}
+              >
+                Un par un (WhatsApp)
+              </Button>
+            </>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={blasting}>
+            Fermer
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
