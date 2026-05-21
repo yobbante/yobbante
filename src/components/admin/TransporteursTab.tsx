@@ -479,6 +479,7 @@ function BotBlastDialog({
   const [sequential, setSequential] = useState(false);
   const [blasting, setBlasting] = useState(false);
   const [blastProgress, setBlastProgress] = useState({ done: 0, ok: 0, fail: 0 });
+  const [search, setSearch] = useState('');
 
   // Reset when (re)opened
   useMemo(() => {
@@ -486,8 +487,19 @@ function BotBlastDialog({
       setCursor(0); setSequential(false);
       setBlasting(false);
       setBlastProgress({ done: 0, ok: 0, fail: 0 });
+      setSearch('');
     }
   }, [open]);
+
+  const filteredEligible = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return eligible;
+    return eligible.filter(g =>
+      g.nom.toLowerCase().includes(s) ||
+      (g.prenom ?? '').toLowerCase().includes(s) ||
+      g.telephone_1.toLowerCase().includes(s),
+    );
+  }, [eligible, search]);
 
   const current = sequential ? eligible[cursor] : null;
 
