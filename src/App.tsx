@@ -43,6 +43,9 @@ import MentionsLegalesPage from "./pages/legal/MentionsLegalesPage";
 import CguPage from "./pages/legal/CguPage";
 import CgvPage from "./pages/legal/CgvPage";
 import CookiesPage from "./pages/legal/CookiesPage";
+import { isDekkSubdomain } from "@/lib/dekkDomain";
+import { DekkLayout } from "@/components/dekk/DekkLayout";
+import { DekkBoutiqueRedirect } from "@/components/dekk/DekkBoutiqueRedirect";
 
 const queryClient = new QueryClient({
   defaultOptions: {
