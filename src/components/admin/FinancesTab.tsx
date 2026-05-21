@@ -557,3 +557,90 @@ function PayDialog({
     </Dialog>
   );
 }
+
+// ============================================================================
+// Monthly bar chart — revenue vs GP cost + margin line, last 6 months
+// ============================================================================
+import {
+  Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
+} from 'recharts';
+
+function MonthlyChartSection() {
+  const sinceISO = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 5); d.setDate(1); d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }, []);
+
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['finances-monthly-chart', sinceISO],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('final_amount_xof, gp_amount, delivered_at')
+        .eq('status', 'DELIVERED')
+        .gte('delivered_at', sinceISO);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const series = useMemo(() => {
+    const months: { key: string; label: string; revenu: number; cout: number; marge: number }[] = [];
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push({
+        key,
+        label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
+        revenu: 0, cout: 0, marge: 0,
+      });
+    }
+    const idx = new Map(months.map((m, i) => [m.key, i]));
+    for (const row of data as any[]) {
+      if (!row.delivered_at) continue;
+      const d = new Date(row.delivered_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const i = idx.get(key);
+      if (i == null) continue;
+      months[i].revenu += Number(row.final_amount_xof ?? 0);
+      months[i].cout += Number(row.gp_amount ?? 0);
+    }
+    for (const m of months) m.marge = m.revenu - m.cout;
+    return months;
+  }, [data]);
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+        Revenus vs Coûts GP — 6 derniers mois
+      </h2>
+      <div className="rounded-xl border border-border bg-card p-4">
+        {isLoading ? (
+          <Skeleton className="h-72 w-full" />
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
+              <YAxis
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                tickFormatter={(v: number) => v >= 1_000_000 ? `${Math.round(v / 1_000_000)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)}
+              />
+              <Tooltip
+                formatter={(v: any) => formatXof(Number(v))}
+                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="revenu" name="Revenus clients" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="cout" name="Coûts GP" fill="#F5C518" radius={[6, 6, 0, 0]} />
+              <Line type="monotone" dataKey="marge" name="Marge nette" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </section>
+  );
+}
