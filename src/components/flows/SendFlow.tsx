@@ -366,19 +366,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const corridorWarning = corridorRisk(goodsType, originProfile.code, destProfile.code);
 
   // ── Submit ──────────────────────────────────────────────────────
+  // Map: id of section → boolean indicating it currently has unmet required fields.
+  // We compute it here so both the visual highlight and the scroll-on-submit work.
+  const sectionErrors = {
+    'section-collecte':    !collecteOk,
+    'section-recipient':   !recipientOk,
+    'section-package':     !packageOk,
+    'section-goods':       !goodsOk,
+    'section-final':       !senderName.trim() || !senderPhone.trim(),
+  } as const;
+  function scrollToFirstError() {
+    const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
+    if (!firstBadId) return;
+    requestAnimationFrame(() => {
+      document.getElementById(firstBadId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   async function submit() {
-    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk) {
-      toast.error('Étapes incomplètes', { description: 'Vérifiez les informations avant de confirmer.' });
+    if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
+      setSubmitAttempted(true);
+      toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      scrollToFirstError();
       return;
     }
     if (!dakarRouteOk) {
       toast('Choisissez Dakar', { description: "Yobbanté opère uniquement les trajets avec Dakar au départ ou à l'arrivée." });
       return;
     }
-    if (!senderName.trim() || !senderPhone.trim()) {
-      toast.error('Coordonnées expéditeur manquantes');
-      return;
-    }
+    setSubmitAttempted(false);
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
