@@ -149,7 +149,13 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    window.open(buildWaUrl(gp), '_blank', 'noopener,noreferrer');
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: buildInviteMessage(gp),
+      transporteur_id: gp.id,
+      trigger_type: 'admin_invite_konnekt',
+    });
+    if (res.ok) toast.success('Invitation Konnekt envoyée');
     await markInvited(gp);
   };
 
@@ -159,7 +165,13 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    window.open(buildBotWaUrl(gp), '_blank', 'noopener,noreferrer');
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: buildBotInviteMessage(gp),
+      transporteur_id: gp.id,
+      trigger_type: 'admin_onboard_bot',
+    });
+    if (res.ok) toast.success('Invitation bot envoyée');
     await markBotInvited(gp);
   };
 
