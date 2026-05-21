@@ -856,8 +856,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       ) : null}
 
-      {/* ─── Step 7 — Transport & priority ─── */}
-      <FlowSection revealed={step6Ok} step={7} total={10} title="Transport & priorité" hint="Mode de transport et urgence.">
+      {/* ─── Step 5 — Transport & priority ─── */}
+      <FlowSection revealed step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
         {(() => {
           // ── Prix venant directement du moteur (pricing engine v2)
           // Standard et Express sont calculés côté DB via urgency_mult.
