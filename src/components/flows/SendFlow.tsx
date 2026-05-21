@@ -1585,15 +1585,19 @@ function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[
 
 
 function AddressField({
-  label, value, onChange, placeholder,
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  label, value, onChange, placeholder, invalid,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; invalid?: boolean }) {
   return (
     <label className="block">
-      <span className="block text-xs mb-1.5 font-medium text-muted-foreground">{label}</span>
+      <span className={cn('block text-xs mb-1.5 font-medium', invalid ? 'text-danger' : 'text-muted-foreground')}>{label}</span>
       <textarea
         value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder} rows={2}
-        className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+        aria-invalid={invalid || undefined}
+        className={cn(
+          'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card placeholder:text-muted-foreground/60 focus:outline-none transition-all resize-none',
+          invalid ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+        )}
       />
     </label>
   );
