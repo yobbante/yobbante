@@ -720,41 +720,88 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </section>
 
-      {/* ─── Identity selector — qui complète ce formulaire ? ─── */}
+      {/* ─── Identity + sender coordinates ─── */}
       {routeOk && (
         <section className="mt-5">
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2.5">
-              Qui complète ce formulaire ?
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {([
-                { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: 'J\'expédie le colis' },
-                { id: 'recipient' as const, label: `Je suis à ${destCity?.city}`,    sub: 'Je recevrai le colis' },
-                { id: 'third'     as const, label: 'Je suis intermédiaire',          sub: 'Je remplis pour un tiers' },
-              ]).map(opt => {
-                const active = userRole === opt.id;
-                return (
-                  <button key={opt.id} type="button" onClick={() => setUserRole(opt.id)}
-                    className={`text-left rounded-xl border-2 px-3.5 py-2.5 transition-all ${
-                      active
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-border bg-card hover:border-foreground/40'
-                    }`}>
-                    <p className="text-sm font-semibold leading-tight">{opt.label}</p>
-                    <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.sub}</p>
+          {identityCollapsed && senderName.trim() && senderPhone.trim() ? (
+            <button
+              type="button"
+              onClick={() => setIdentityCollapsed(false)}
+              className="w-full text-left rounded-2xl border border-border bg-card hover:bg-secondary/40 transition-colors px-4 py-3 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {userRole === 'sender' ? 'Vous expédiez' : userRole === 'recipient' ? 'Vous recevrez' : 'Vous remplissez pour un tiers'}
+                </p>
+                <p className="text-sm font-semibold text-foreground truncate mt-0.5">
+                  {senderName} · {senderPhone}
+                </p>
+              </div>
+              <span className="text-[11px] underline underline-offset-2 text-muted-foreground shrink-0">Modifier</span>
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2.5">
+                  Qui complète ce formulaire ?
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {([
+                    { id: 'sender'    as const, label: `Je suis à ${originCity?.city}`, sub: 'J\'expédie le colis' },
+                    { id: 'recipient' as const, label: `Je suis à ${destCity?.city}`,    sub: 'Je recevrai le colis' },
+                    { id: 'third'     as const, label: 'Je suis intermédiaire',          sub: 'Je remplis pour un tiers' },
+                  ]).map(opt => {
+                    const active = userRole === opt.id;
+                    return (
+                      <button key={opt.id} type="button"
+                        onClick={() => {
+                          setUserRole(opt.id);
+                          // Auto-collapse if sender info already filled
+                          if (senderName.trim() && senderPhone.trim()) setIdentityCollapsed(true);
+                        }}
+                        className={`text-left rounded-xl border-2 px-3.5 py-2.5 transition-all ${
+                          active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'
+                        }`}>
+                        <p className="text-sm font-semibold leading-tight">{opt.label}</p>
+                        <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.sub}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sender coordinates — affichées ici, plus dans l'étape finale */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Coordonnées de l'expéditeur
+                    {userRole === 'sender' && <span className="ml-1.5 text-foreground normal-case">· c'est vous</span>}
+                  </p>
+                  {userRole !== 'sender' && recipientName && (
+                    <button type="button"
+                      onClick={() => { setSenderName(recipientName); setSenderPhone(recipientPhone); }}
+                      className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                      Copier depuis le destinataire
+                    </button>
+                  )}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <TextField label="Nom complet *" value={senderName} onChange={setSenderName} placeholder="Votre nom" />
+                  <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                    placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                </div>
+                {senderName.trim() && senderPhone.trim() && (
+                  <button type="button" onClick={() => setIdentityCollapsed(true)}
+                    className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
+                    Replier ce bloc
                   </button>
-                );
-              })}
+                )}
+              </div>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              {userRole === 'sender' && 'Vos coordonnées seront utilisées comme expéditeur. Renseignez le destinataire ci-dessous.'}
-              {userRole === 'recipient' && 'Vos coordonnées seront utilisées comme destinataire. Renseignez l\'expéditeur ci-dessous.'}
-              {userRole === 'third' && 'Renseignez séparément les coordonnées de l\'expéditeur et du destinataire.'}
-            </p>
-          </div>
+          )}
         </section>
       )}
+
 
       {/* ─── Step 1 — Collecte ─── */}
       <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
