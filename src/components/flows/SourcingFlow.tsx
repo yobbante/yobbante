@@ -66,6 +66,7 @@ const OPTION_ICONS = {
 
 export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNode } = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createDossier } = useDossiers();
   const { createShipment } = useShipments();
   const { profile, updateProfile } = useProfile();
