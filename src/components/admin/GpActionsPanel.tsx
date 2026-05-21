@@ -7,12 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Plane, Send, ListChecks, Bot, CheckCircle2, Loader2, History, MapPin, Copy, Search as SearchIcon } from 'lucide-react';
+import { Plane, Send, ListChecks, Bot, CheckCircle2, Loader2, History, MapPin, Copy, Search as SearchIcon, Coins, Wallet, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Transporteur } from '@/hooks/useTransporteurs';
+import { GpRatesDialog } from './GpRatesDialog';
+import { formatXof, PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/lib/gpFinance';
 
-type Action = 'depart' | 'missions' | 'message' | 'simulate' | 'history';
+type Action = 'depart' | 'missions' | 'message' | 'simulate' | 'history' | 'rates' | 'payments';
+
 
 export function GpActionsPanel({
   gp, open, onClose,
@@ -34,6 +37,8 @@ export function GpActionsPanel({
         <div className="mt-5 space-y-2">
           <ActionButton icon={Plane} label="Enregistrer un depart pour ce GP" onClick={() => setAction('depart')} />
           <ActionButton icon={ListChecks} label="Voir les missions de ce GP" onClick={() => setAction('missions')} />
+          <ActionButton icon={Coins} label="Tarifs GP (par défaut + routes)" onClick={() => setAction('rates')} />
+          <ActionButton icon={Wallet} label="Historique paiements GP" onClick={() => setAction('payments')} />
           <ActionButton icon={Send} label="Envoyer un message au GP" onClick={() => setAction('message')} />
           <ActionButton icon={Bot} label="Simuler une commande bot" onClick={() => setAction('simulate')} />
           <ActionButton icon={History} label="Historique conversations WhatsApp" onClick={() => setAction('history')} />
@@ -44,10 +49,15 @@ export function GpActionsPanel({
         {action === 'message' && <SendMessageDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'simulate' && <SimulateBotDialog gp={gp} onClose={() => setAction(null)} />}
         {action === 'history' && <GpHistoryDialog gp={gp} onClose={() => setAction(null)} />}
+        {action === 'rates' && (
+          <GpRatesDialog gp={gp} open onClose={() => setAction(null)} />
+        )}
+        {action === 'payments' && <GpPaymentsHistoryDialog gp={gp} onClose={() => setAction(null)} />}
       </SheetContent>
     </Sheet>
   );
 }
+
 
 function ActionButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
   return (
@@ -506,4 +516,86 @@ function cnHist(kind: 'in' | 'out') {
   return kind === 'in'
     ? 'rounded-lg border border-border bg-muted/30 p-2'
     : 'rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-2';
+}
+
+// ============================================================================
+// GP Payments History — list of confirmed payments for this GP
+// ============================================================================
+function GpPaymentsHistoryDialog({ gp, onClose }: { gp: Transporteur; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['gp-payments-history', gp.reference],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, reference, destination_city, destination_country, actual_weight_kg, estimated_weight, gp_amount, gp_paid_at, gp_payment_method, gp_payment_ref, gp_receipt_path')
+        .eq('assigned_transporteur_ref', gp.reference)
+        .eq('gp_paid', true)
+        .order('gp_paid_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  async function openReceipt(path: string) {
+    const { data, error } = await supabase.storage.from('gp-receipts').createSignedUrl(path, 60 * 5);
+    if (error || !data?.signedUrl) {
+      toast.error('Reçu indisponible');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
+  const total = (data ?? []).reduce((s, d) => s + Number(d.gp_amount ?? 0), 0);
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Historique paiements — {gp.prenom ?? ''} {gp.nom}</DialogTitle>
+          <DialogDescription>
+            {data?.length ?? 0} paiement{(data?.length ?? 0) > 1 ? 's' : ''} · total {formatXof(total)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          {isLoading ? (
+            <div className="py-8 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+          ) : !data || data.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-8">Aucun paiement enregistré</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {data.map((d) => (
+                <div key={d.id} className="py-3 flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-xs text-muted-foreground">{d.tracking_id || d.reference}</div>
+                    <div className="text-foreground truncate">
+                      {d.destination_city || d.destination_country || '—'} · {d.actual_weight_kg ?? d.estimated_weight ?? '?'}kg
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {d.gp_paid_at ? new Date(d.gp_paid_at).toLocaleString('fr-FR') : '—'}
+                      {d.gp_payment_method && <> · {PAYMENT_METHOD_LABELS[d.gp_payment_method as PaymentMethod] ?? d.gp_payment_method}</>}
+                      {d.gp_payment_ref && <> · réf {d.gp_payment_ref}</>}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-[#F5C518]">{formatXof(Number(d.gp_amount ?? 0))}</div>
+                    {d.gp_receipt_path && (
+                      <Button size="sm" variant="ghost" className="h-7 px-2 mt-1" onClick={() => openReceipt(d.gp_receipt_path)}>
+                        <FileDown className="w-3 h-3 mr-1" /> Reçu PDF
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="outline">Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
