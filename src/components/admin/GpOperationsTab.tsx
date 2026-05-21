@@ -10,6 +10,8 @@ import { useTransporteurs } from '@/hooks/useTransporteurs';
 import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { WeighingDialog, type WeighingDossier } from './WeighingDialog';
+import { parseDepartureMessage } from '@/lib/parseDepartureMessage';
+import { CreateGpFromContactDialog } from './CreateGpFromContactDialog';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
