@@ -412,7 +412,7 @@ function GpHistoryDialog({ gp, onClose }: { gp: Transporteur; onClose: () => voi
         .select('adresse_collecte_dakar, adresses_remise')
         .eq('id', gp.id)
         .maybeSingle();
-      return data as { adresse_collecte_dakar: string | null; adresses_remise: Record<string, string> | null } | null;
+      return data as unknown as { adresse_collecte_dakar: string | null; adresses_remise: Record<string, string> | null } | null;
     },
   });
 
