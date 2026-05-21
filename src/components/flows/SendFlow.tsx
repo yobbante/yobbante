@@ -871,8 +871,25 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
 
         <div className="space-y-4 max-w-xl">
-          <TextField label="Description *" value={description} onChange={setDescription}
-            placeholder="Ex. 3 robes, 2 pantalons, chaussures" />
+          {/* Description — textarea avec compteur (max 140) */}
+          <label className="block">
+            <span className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Description *</span>
+              <span className={cn(
+                'text-[10px] tabular-nums',
+                description.length > 140 ? 'text-red-500 font-semibold' : 'text-muted-foreground/70',
+              )}>{description.length}/140</span>
+            </span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value.slice(0, 140))}
+              maxLength={140}
+              rows={2}
+              placeholder="Ex. 3 robes, 2 pantalons, chaussures"
+              className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et améliore la détection automatique.</p>
+          </label>
 
           {/* AI auto-detection chip */}
           {description.trim().length >= 4 && (
@@ -908,23 +925,38 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <div className="flex items-end">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                ℹ️ Utilisée pour la douane et l'assurance. Conversion automatique côté système.
+                Utilisée pour la douane et l'assurance. Conversion automatique côté système.
               </p>
             </div>
           </div>
 
-          <NumberSlider
-            label="Poids estimé"
-            value={weight}
-            onChange={(v) => { setWeight(v); setWeightTouched(true); }}
-            min={1} max={500} unit=" kg"
-          />
-          {!weightTouched && (
-            <button type="button" onClick={() => setWeightTouched(true)}
-              className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition">
-              Valider le poids ({weight} kg)
-            </button>
-          )}
+          {/* Poids — presets rapides + saisie manuelle */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Poids estimé *</span>
+              <span className="text-xs font-semibold tabular-nums">{weight} kg</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {[1, 2, 5, 10, 20, 50, 100].map(w => {
+                const active = weight === w && weightTouched;
+                return (
+                  <button key={w} type="button"
+                    onClick={() => { setWeight(w); setWeightTouched(true); }}
+                    className={cn(
+                      'rounded-full px-3 py-1.5 text-xs font-semibold border-2 transition-all tabular-nums',
+                      active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40',
+                    )}>{w} kg</button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min={1} max={500} value={weight}
+                onChange={(e) => { const v = Math.max(1, Math.min(500, Number(e.target.value) || 1)); setWeight(v); setWeightTouched(true); }}
+                className="w-28 border-2 rounded-xl px-3 py-2 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all tabular-nums" />
+              <span className="text-xs text-muted-foreground">ou saisir un poids personnalisé (1-500 kg)</span>
+            </div>
+          </div>
 
           <label className="block max-w-[180px]">
             <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Nombre de colis</span>
@@ -934,7 +966,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </label>
 
           <p className="text-[11px] text-muted-foreground">
-            ℹ️ Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
+            Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
         </div>
       </FlowSection>
