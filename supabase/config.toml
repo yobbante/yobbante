@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.send-whatsapp]
 verify_jwt = false
+
+[functions.webhook-whatsapp]
+verify_jwt = false
+
+[functions.gp-bot]
+verify_jwt = false
