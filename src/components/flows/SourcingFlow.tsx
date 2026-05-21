@@ -171,6 +171,18 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
+  // Auto-scroll to the pricing block when arriving with #tarifs
+  // (e.g. from the landing CTA "Obtenir mon prix").
+  useEffect(() => {
+    if (location.hash !== '#tarifs') return;
+    if (!matchInput) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById('tarifs');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [location.hash, matchInput]);
+
   const summary = chosen && parsed && quantity && destination
     ? `Sourcing ${quantity} × ${parsed.title.slice(0, 24)}… · ${chosen.label} · ${chosen.price_eur}€`
     : quantity && productInput && destination
