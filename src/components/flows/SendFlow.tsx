@@ -1552,12 +1552,35 @@ function RecapRow({ label, value, strong }: { label: string; value: string; stro
   );
 }
 
-function RecapGroup({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function RecapGroup({
+  icon, title, children, onEdit, incomplete, missingLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  onEdit?: () => void;
+  incomplete?: boolean;
+  missingLabel?: string;
+}) {
   return (
-    <div className="px-5 py-4 border-t border-border space-y-1.5">
-      <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
-        {icon} {title}
-      </p>
+    <div className={cn('px-5 py-4 border-t border-border space-y-1.5', incomplete && 'bg-danger/5')}>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium inline-flex items-center gap-1.5 text-muted-foreground">
+          {incomplete && <span className="w-1.5 h-1.5 rounded-full bg-danger" aria-hidden />}
+          <span className="inline-flex items-center gap-1.5">{icon} {title}</span>
+          {incomplete && (
+            <span className="ml-1 text-[10px] normal-case tracking-normal text-danger font-medium">
+              · {missingLabel ?? 'champs manquants'}
+            </span>
+          )}
+        </p>
+        {onEdit && (
+          <button type="button" onClick={onEdit}
+            className="text-[11px] font-medium text-foreground hover:underline underline-offset-2 shrink-0">
+            Modifier
+          </button>
+        )}
+      </div>
       {children}
     </div>
   );
