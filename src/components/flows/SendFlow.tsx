@@ -1009,33 +1009,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           </div>
 
-          {/* Poids — presets rapides + saisie manuelle */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground">Poids estimé *</span>
-              <span className="text-xs font-semibold tabular-nums">{weight} kg</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {[1, 2, 5, 10, 20, 50, 100].map(w => {
-                const active = weight === w && weightTouched;
-                return (
-                  <button key={w} type="button"
-                    onClick={() => { setWeight(w); setWeightTouched(true); }}
-                    className={cn(
-                      'rounded-full px-3 py-1.5 text-xs font-semibold border-2 transition-all tabular-nums',
-                      active ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40',
-                    )}>{w} kg</button>
-                );
-              })}
-            </div>
+          {/* Poids — slider classique + saisie manuelle */}
+          <div className="space-y-2">
+            <NumberSlider
+              label="Poids estimé *"
+              value={weight}
+              onChange={(v) => { setWeight(v); setWeightTouched(true); }}
+              min={1} max={100} step={1} unit=" kg"
+            />
             <div className="flex items-center gap-2">
               <input
                 type="number" min={1} max={500} value={weight}
                 onChange={(e) => { const v = Math.max(1, Math.min(500, Number(e.target.value) || 1)); setWeight(v); setWeightTouched(true); }}
-                className="w-28 border-2 rounded-xl px-3 py-2 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all tabular-nums" />
-              <span className="text-xs text-muted-foreground">ou saisir un poids personnalisé (1-500 kg)</span>
+                className="w-24 border-2 rounded-xl px-3 py-2 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all tabular-nums" />
+              <span className="text-[11px] text-muted-foreground">ou saisie précise (1-500 kg)</span>
             </div>
           </div>
+
 
           <label className="block max-w-[180px]">
             <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Nombre de colis</span>
