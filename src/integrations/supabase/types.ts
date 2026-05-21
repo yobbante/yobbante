@@ -2199,6 +2199,7 @@ export type Database = {
           created_at: string
           destinations: string[] | null
           id: string
+          invitation_bot_sent_at: string | null
           konnekt_registered: boolean
           konnekt_registered_at: string | null
           modes_transport: string[] | null
@@ -2224,6 +2225,7 @@ export type Database = {
           created_at?: string
           destinations?: string[] | null
           id?: string
+          invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
           modes_transport?: string[] | null
@@ -2249,6 +2251,7 @@ export type Database = {
           created_at?: string
           destinations?: string[] | null
           id?: string
+          invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
           modes_transport?: string[] | null
