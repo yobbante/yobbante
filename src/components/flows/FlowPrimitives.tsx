@@ -250,47 +250,9 @@ export function FlowSection({
   const theme = useFlowTheme();
   const t = T[theme];
   const ref = useRef<HTMLElement>(null);
-  const wasRevealed = useRef(false);
-
-  useEffect(() => {
-    if (!revealed) { wasRevealed.current = false; return; }
-    if (wasRevealed.current) return;
-    wasRevealed.current = true;
-
-    // Debounced auto-scroll with "first wins" semantics: when several sections
-    // reveal in cascade (e.g. answering step 3 also unlocks step 4 + 5 because
-    // weight has a default value), we want to scroll to the FIRST newly-revealed
-    // section, not the last — otherwise the user never sees the intermediate
-    // steps. We track the earliest target's DOM position in the same tick.
-    const w = window as unknown as {
-      __flowScrollTimer?: number;
-      __flowScrollTargetTop?: number;
-    };
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const myTop = window.scrollY + rect.top - 80;
-
-    // Keep the smallest (topmost) target seen during this debounce window.
-    if (w.__flowScrollTargetTop == null || myTop < w.__flowScrollTargetTop) {
-      w.__flowScrollTargetTop = myTop;
-    }
-
-    if (w.__flowScrollTimer) window.clearTimeout(w.__flowScrollTimer);
-    w.__flowScrollTimer = window.setTimeout(() => {
-      const top = w.__flowScrollTargetTop;
-      if (top != null) window.scrollTo({ top, behavior: 'smooth' });
-      w.__flowScrollTimer = undefined;
-      w.__flowScrollTargetTop = undefined;
-    }, 380);
-    return () => {
-      if (w.__flowScrollTimer) {
-        window.clearTimeout(w.__flowScrollTimer);
-        w.__flowScrollTimer = undefined;
-        w.__flowScrollTargetTop = undefined;
-      }
-    };
-  }, [revealed]);
+  // Auto-scroll between revealed sections has been disabled: it disoriented
+  // users on long flows and conflicted with the sticky search bar header.
+  // The new section still uses scroll-mt-24 so manual anchors remain pleasant.
 
   const showProgress = step != null && total != null;
   const pct = showProgress ? Math.min(100, Math.round((step! / total!) * 100)) : 0;
