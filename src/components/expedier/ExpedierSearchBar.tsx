@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { getHomeHref } from '@/lib/homeHref';
 
 /* =========================================================================
    ExpedierSearchBar — sticky, theme-aware, 100% responsive search bar
