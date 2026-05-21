@@ -36,6 +36,7 @@ import BusinessPage from "./pages/BusinessPage";
 import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
+import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
@@ -158,6 +159,7 @@ const MainRoutes = () => (
     <Route path="/business" element={<BusinessPage />} />
     <Route path="/business/join" element={<BusinessJoinPage />} />
     <Route path="/business/pricing" element={<BusinessPricingPage />} />
+    <Route path="/rejoindre-konnekt" element={<RejoindreKonnektPage />} />
     {/* Legal pages */}
     <Route path="/confidentialite" element={<ConfidentialitePage />} />
     <Route path="/mentions-legales" element={<MentionsLegalesPage />} />

@@ -141,7 +141,7 @@ const ONBOARDING_TEXT = `Bonjour ! 👋
 Ce numero est reserve aux transporteurs partenaires de Yobbante.
 
 Si vous etes transporteur et souhaitez rejoindre notre reseau :
-👉 konnekt.app/beta
+👉 yobbante.com/rejoindre-konnekt
 
 Si vous etes deja partenaire et avez un probleme d'acces, contactez-nous :
 +221784604003

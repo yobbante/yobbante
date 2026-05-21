@@ -24,18 +24,16 @@ function normalizePhone(p: string): string {
 }
 
 function buildInvite(prenom: string, ref: string) {
-  return `Bonjour ${prenom},
+  return `Salam ${prenom},
 
-Yobbanté lance Konnekt — notre app de transport qui vous connecte à plus de missions dans votre zone.
+Yobbante vous invite a rejoindre Konnekt, la plateforme officielle de nos transporteurs.
 
-En tant que partenaire Yobbanté, vous êtes invité en accès bêta exclusif.
+Votre profil est deja cree. Activez votre compte ici :
+yobbante.com/rejoindre-konnekt?ref=GP${ref}
 
-👉 Inscrivez-vous ici (30 secondes) :
-konnekt.app/beta?ref=GP${ref}
+Une fois inscrit, vous recevrez vos missions directement sur votre telephone.
 
-Votre référence GP${ref} vous donne accès prioritaire dès l'ouverture.
-
-— Équipe Yobbanté`;
+Questions ? Repondez a ce message.`;
 }
 
 Deno.serve(async (req) => {

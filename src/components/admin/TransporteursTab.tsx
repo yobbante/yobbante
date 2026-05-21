@@ -30,15 +30,17 @@ function buildBotInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-J'ai mis en place un assistant automatique pour nos colis.
+J ai mis en place un assistant automatique pour gerer nos colis ensemble.
 
 Enregistre ce numero dans tes contacts :
 ${YOBBANTE_BOT_NUMBER}
 Nom : Yobbante GP
 
-Envoie-lui le mot AIDE pour voir comment ca marche.
+Envoie le mot AIDE pour voir comment ca marche.
 
-On continue nos echanges comme avant sur ce numero.`;
+On continue nos echanges comme avant.
+
+A bientot !`;
 }
 
 function buildBotWaUrl(gp: Transporteur) {
@@ -60,7 +62,6 @@ function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | nul
   const nom = collapseDup((nomRaw ?? '').trim()).replace(/[-\s]+$/, '').trim();
   if (!prenom) return nom;
   if (!nom) return prenom;
-  // If nom already starts with prenom (case-insensitive), just use nom.
   if (nom.toLowerCase() === prenom.toLowerCase() ||
       nom.toLowerCase().startsWith(prenom.toLowerCase() + ' ')) {
     return nom;
@@ -68,19 +69,19 @@ function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | nul
   return `${prenom} ${nom}`;
 }
 
-/** Build personalized invite text per GP. */
+/** Build personalized Konnekt invite text per GP (no accents for WhatsApp). */
 function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
-  return `Bonjour ${prenom},
+  return `Salam ${prenom},
 
-Yobbanté vous invite à rejoindre Konnekt — recevez plus de missions directement sur votre téléphone.
+Yobbante vous invite a rejoindre Konnekt, la plateforme officielle de nos transporteurs.
 
-En tant que partenaire Yobbanté, vous avez un accès exclusif :
-👉 https://konnekt.app/beta?ref=${gpRef(gp.reference)}
+Votre profil est deja cree. Activez votre compte ici :
+yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
 
-Inscription en 30 secondes — vos informations sont déjà enregistrées.
+Une fois inscrit, vous recevrez vos missions directement sur votre telephone.
 
-— Équipe Yobbanté`;
+Questions ? Repondez a ce message.`;
 }
 
 function buildWaUrl(gp: Transporteur) {
@@ -180,10 +181,16 @@ export function TransporteursTab() {
     [list.data],
   );
 
-  const botEligible = useMemo(
-    () => (list.data ?? []).filter(t => t.actif && !(botActiveIds?.has(t.id)) && !t.invitation_bot_sent_at && !botSentMap[t.id]),
-    [list.data, botActiveIds, botSentMap],
-  );
+  const botEligible = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    return (list.data ?? []).filter(t => {
+      if (!t.actif) return false;
+      if (botActiveIds?.has(t.id)) return false;
+      const lastSent = botSentMap[t.id] ?? t.invitation_bot_sent_at ?? null;
+      if (!lastSent) return true;
+      return new Date(lastSent).getTime() < sevenDaysAgo;
+    });
+  }, [list.data, botActiveIds, botSentMap]);
 
   const botActiveCount = useMemo(
     () => (list.data ?? []).filter(t => botActiveIds?.has(t.id)).length,
@@ -472,6 +479,7 @@ function BotBlastDialog({
   const [sequential, setSequential] = useState(false);
   const [blasting, setBlasting] = useState(false);
   const [blastProgress, setBlastProgress] = useState({ done: 0, ok: 0, fail: 0 });
+  const [search, setSearch] = useState('');
 
   // Reset when (re)opened
   useMemo(() => {
@@ -479,8 +487,19 @@ function BotBlastDialog({
       setCursor(0); setSequential(false);
       setBlasting(false);
       setBlastProgress({ done: 0, ok: 0, fail: 0 });
+      setSearch('');
     }
   }, [open]);
+
+  const filteredEligible = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return eligible;
+    return eligible.filter(g =>
+      g.nom.toLowerCase().includes(s) ||
+      (g.prenom ?? '').toLowerCase().includes(s) ||
+      g.telephone_1.toLowerCase().includes(s),
+    );
+  }, [eligible, search]);
 
   const current = sequential ? eligible[cursor] : null;
 
@@ -507,7 +526,7 @@ function BotBlastDialog({
       } catch { /* non-bloquant */ }
       setBlastProgress({ done: i + 1, ok, fail });
       // 1s rate-limit between sends
-      if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1000));
+      if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
     setBlasting(false);
     toast.success(`${ok} envoyés, ${fail} échecs (fallback wa.me disponible)`);
@@ -582,29 +601,58 @@ function BotBlastDialog({
             Tous les GP actifs sont déjà onboardés sur le bot 🎉
           </div>
         ) : (
-          <div className="max-h-[360px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
-            {eligible.map((g) => (
-              <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">
-                    {formatTransporteurName(g.prenom, g.nom)}
-                    <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filtrer par nom ou téléphone"
+                className="pl-9"
+              />
+            </div>
+            <div className="max-h-[360px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+              {filteredEligible.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">Aucun résultat</div>
+              ) : filteredEligible.map((g) => {
+                const lastSent = g.invitation_bot_sent_at;
+                const initials = formatTransporteurName(g.prenom, g.nom)
+                  .split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="shrink-0 h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-[11px] font-bold">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">
+                          {formatTransporteurName(g.prenom, g.nom)}
+                          <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+                        </div>
+                        <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {g.ville}</div>
+                        {lastSent && (
+                          <div className="text-[11px] text-amber-500 mt-0.5">
+                            Déjà invité le {new Date(lastSent).toLocaleDateString('fr-FR')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onSent(g)}
+                      className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1.5" />
+                      {lastSent ? 'Renvoyer' : 'Envoyer'}
+                    </Button>
                   </div>
-                  <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {g.ville}</div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onSent(g)}
-                  className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
-                >
-                  <Send className="w-3.5 h-3.5 mr-1.5" />
-                  Envoyer
-                </Button>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
+
 
         <DialogFooter className="gap-2">
           {!sequential && !blasting && eligible.length > 0 && blastProgress.done === 0 && (

@@ -276,7 +276,7 @@ export default function ServicesPage() {
               </p>
             </div>
             <a
-              href="https://konnekt.app"
+              href="https://usekonnekt.com"
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm font-semibold border border-border text-foreground px-5 py-3 rounded-xl hover:bg-secondary transition-colors"
             >
