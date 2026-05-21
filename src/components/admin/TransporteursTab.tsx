@@ -414,9 +414,153 @@ export function TransporteursTab() {
       />
 
       <GpActionsPanel gp={actionsGp} open={!!actionsGp} onClose={() => setActionsGp(null)} />
+
+      <BotBlastDialog
+        open={botBlastOpen}
+        onOpenChange={setBotBlastOpen}
+        eligible={botEligible}
+        activeCount={botActiveCount}
+        onSent={(gp) => openBotInvite(gp)}
+      />
     </div>
   );
 }
+
+function BotStatus({ invitedAt, active }: { invitedAt: string | null; active: boolean }) {
+  if (active) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
+        ✅ Actif
+      </span>
+    );
+  }
+  if (invitedAt) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-amber-500">📤 Invité</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">{formatShortDate(invitedAt)}</div>
+      </div>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
+}
+
+function BotBlastDialog({
+  open, onOpenChange, eligible, activeCount, onSent,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  eligible: Transporteur[];
+  activeCount: number;
+  onSent: (gp: Transporteur) => Promise<void> | void;
+}) {
+  const [cursor, setCursor] = useState(0);
+  const [sequential, setSequential] = useState(false);
+
+  // Reset when (re)opened
+  useMemo(() => { if (open) { setCursor(0); setSequential(false); } }, [open]);
+
+  const current = sequential ? eligible[cursor] : null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Onboarding Bot WhatsApp GP</DialogTitle>
+          <DialogDescription>
+            Invitez vos GP à utiliser l'assistant automatique du <span className="font-mono">{YOBBANTE_BOT_NUMBER}</span>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center gap-4 text-sm">
+          <div className="rounded-lg border border-border px-3 py-2 flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Actifs sur le bot</div>
+            <div className="text-lg font-bold text-emerald-500">{activeCount}</div>
+          </div>
+          <div className="rounded-lg border border-border px-3 py-2 flex-1">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">À onboarder</div>
+            <div className="text-lg font-bold" style={{ color: '#F5C518' }}>{eligible.length}</div>
+          </div>
+        </div>
+
+        {sequential && current ? (
+          <div className="border border-border rounded-lg p-4 space-y-3">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              {cursor + 1} / {eligible.length}
+            </div>
+            <div>
+              <div className="font-semibold">{formatTransporteurName(current.prenom, current.nom)}</div>
+              <div className="text-xs text-muted-foreground font-mono">
+                {gpRef(current.reference)} · {current.telephone_1} · {current.ville}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  await onSent(current);
+                  if (cursor + 1 >= eligible.length) {
+                    toast.success('Tous les GP ont été contactés 🎉');
+                    onOpenChange(false);
+                  } else {
+                    setCursor(c => c + 1);
+                  }
+                }}
+                className="flex-1"
+                style={{ background: '#F5C518', color: '#0A0E1A' }}
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                Ouvrir WhatsApp & suivant
+              </Button>
+              <Button variant="ghost" onClick={() => setCursor(c => Math.min(c + 1, eligible.length - 1))}>
+                Passer
+              </Button>
+            </div>
+          </div>
+        ) : eligible.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Tous les GP actifs sont déjà onboardés sur le bot 🎉
+          </div>
+        ) : (
+          <div className="max-h-[360px] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+            {eligible.map((g) => (
+              <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
+                    {formatTransporteurName(g.prenom, g.nom)}
+                    <span className="ml-2 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span>
+                  </div>
+                  <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {g.ville}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onSent(g)}
+                  className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  Envoyer
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <DialogFooter className="gap-2">
+          {!sequential && eligible.length > 0 && (
+            <Button
+              onClick={() => { setCursor(0); setSequential(true); }}
+              style={{ background: '#F5C518', color: '#0A0E1A' }}
+            >
+              Tout envoyer (un par un)
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function KonnektStatus({ invitedAt, registered }: { invitedAt: string | null; registered: boolean }) {
   if (registered) {
