@@ -94,13 +94,17 @@ function formatShortDate(iso?: string | null) {
 }
 
 export function TransporteursTab() {
+  const navigate = useNavigate();
   const { list, upsert, deactivate } = useTransporteurs();
   const { list: depList } = useManualDepartures();
+  const { data: botActiveIds } = useGpBotActive();
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Transporteur | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [blastOpen, setBlastOpen] = useState(false);
+  const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
+  const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
 
@@ -119,7 +123,21 @@ export function TransporteursTab() {
         .eq('id', gp.id);
       list.refetch();
     } catch (e) {
-      // Non-bloquant — l'ouverture WhatsApp a déjà eu lieu
+      // Non-bloquant
+    }
+  };
+
+  const markBotInvited = async (gp: Transporteur) => {
+    const now = new Date().toISOString();
+    setBotSentMap(prev => ({ ...prev, [gp.id]: now }));
+    try {
+      await supabase
+        .from('transporteurs' as any)
+        .update({ invitation_bot_sent_at: now })
+        .eq('id', gp.id);
+      list.refetch();
+    } catch (e) {
+      // Non-bloquant
     }
   };
 
@@ -133,9 +151,29 @@ export function TransporteursTab() {
     await markInvited(gp);
   };
 
+  const openBotInvite = async (gp: Transporteur) => {
+    const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
+    if (!phoneDigits) {
+      toast.error('Numéro de téléphone manquant');
+      return;
+    }
+    window.open(buildBotWaUrl(gp), '_blank', 'noopener,noreferrer');
+    await markBotInvited(gp);
+  };
+
   const eligible = useMemo(
     () => (list.data ?? []).filter(t => t.actif && !t.konnekt_registered && !t.beta_invite_sent_at),
     [list.data],
+  );
+
+  const botEligible = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && !(botActiveIds?.has(t.id)) && !t.invitation_bot_sent_at && !botSentMap[t.id]),
+    [list.data, botActiveIds, botSentMap],
+  );
+
+  const botActiveCount = useMemo(
+    () => (list.data ?? []).filter(t => botActiveIds?.has(t.id)).length,
+    [list.data, botActiveIds],
   );
 
   const counts = useMemo(() => {
@@ -149,6 +187,7 @@ export function TransporteursTab() {
     });
     return map;
   }, [depList.data]);
+
 
   const filtered = useMemo(() => {
     const all = list.data ?? [];
