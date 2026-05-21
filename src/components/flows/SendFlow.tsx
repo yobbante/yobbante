@@ -1003,8 +1003,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </FlowSection>
       )}
 
-      {/* ─── Step 9 — Recap & payment ─── */}
-      <FlowSection revealed={step7Ok} step={9} total={10} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
+      {/* ─── Step 7 — Recap & payment ─── */}
+      <FlowSection revealed step={7} total={7} title="Récapitulatif & paiement" hint="Vérifiez et choisissez votre mode de paiement.">
         <div className="space-y-5 max-w-2xl">
           <div className="rounded-2xl border-2 border-border bg-card p-5 sm:p-6 space-y-2.5 text-sm">
             <RecapRow label="Expéditeur"   value={`${originProfile.flag} ${originCity?.city}, ${originProfile.name}`} />
