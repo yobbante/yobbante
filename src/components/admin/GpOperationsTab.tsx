@@ -1,0 +1,350 @@
+import { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, CheckCircle2, Loader2, Truck } from 'lucide-react';
+import { toast } from 'sonner';
+
+const SECTIONS = [
+  { id: 'departures', label: 'Departs du jour', icon: Plane },
+  { id: 'pending', label: 'Collectes en attente', icon: Package },
+  { id: 'transit', label: 'Livraisons en cours', icon: Truck },
+  { id: 'unknown_intent', label: 'Commandes non reconnues', icon: MessageSquareWarning },
+  { id: 'unknown_contacts', label: 'Nouveaux contacts inconnus', icon: UserPlus },
+] as const;
+
+type SectionId = typeof SECTIONS[number]['id'];
+
+export function GpOperationsTab() {
+  const [section, setSection] = useState<SectionId>('departures');
+
+  return (
+    <div className="space-y-5">
+      <header>
+        <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <Truck className="w-5 h-5 text-[#F5C518]" />
+          Operations GP
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Vue globale des operations transporteurs du jour</p>
+      </header>
+
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+        {SECTIONS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setSection(id)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors font-medium ${
+              section === id
+                ? 'bg-[#F5C518] text-black'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'departures' && <DeparturesToday />}
+      {section === 'pending' && <PendingCollects />}
+      {section === 'transit' && <InTransit />}
+      {section === 'unknown_intent' && <UnknownIntent />}
+      {section === 'unknown_contacts' && <UnknownContacts />}
+    </div>
+  );
+}
+
+// ---------------- Section 1 : départs du jour ----------------
+function DeparturesToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['gp-ops-departures-today', today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('manual_departures')
+        .select('id, short_ref, transporteur_ref, destination_city, destination, departure_date, total_capacity_kg, available_capacity_kg, status')
+        .eq('departure_date', today)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function notify(ref: string, phone?: string | null) {
+    if (!phone) { toast.error('Pas de telephone GP'); return; }
+    await supabase.functions.invoke('send-whatsapp', {
+      body: {
+        recipient_phone: phone,
+        recipient_type: 'gp',
+        message: `📦 Rappel : votre depart ${ref} est aujourd'hui. Bonne route !`,
+        trigger_type: 'admin_remind_departure',
+      },
+    });
+    toast.success('GP notifie');
+  }
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucun depart programme aujourd'hui" />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((d: any) => {
+        const used = (d.total_capacity_kg ?? 0) - (d.available_capacity_kg ?? 0);
+        return (
+          <div key={d.id} className="border border-border rounded-lg p-3 bg-card">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-mono text-sm font-semibold">#{d.short_ref}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  GP {d.transporteur_ref ?? '—'} · {d.destination_city ?? d.destination ?? '—'} · {used}/{d.total_capacity_kg}kg
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">{d.status}</Badge>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" variant="outline" onClick={async () => {
+                const { data: gp } = await supabase.from('transporteurs').select('telephone_1').eq('reference', d.transporteur_ref).maybeSingle();
+                notify(d.short_ref, gp?.telephone_1);
+              }}>
+                <Bell className="w-3.5 h-3.5 mr-1" /> Notifier
+              </Button>
+              <Button size="sm" variant="outline" onClick={async () => {
+                await supabase.from('manual_departures').update({ status: 'full' }).eq('id', d.id);
+                toast.success('Marque comme parti');
+                refetch();
+              }}>
+                Marquer parti
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------- Section 2 : collectes en attente ----------------
+function PendingCollects() {
+  const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['gp-ops-pending-collects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, buyer_name, assigned_transporteur_ref, updated_at, contact_phone')
+        .eq('status', 'ASSIGNED')
+        .lt('updated_at', yesterday)
+        .order('updated_at', { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function relancer(ref: string | null, tracking: string) {
+    if (!ref) return;
+    const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
+    if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
+    await supabase.functions.invoke('send-whatsapp', {
+      body: {
+        recipient_phone: gp.telephone_1,
+        recipient_type: 'gp',
+        message: `Rappel : merci de confirmer la collecte du colis ${tracking}. Envoyez : COLLECTE ${tracking}`,
+        transporteur_id: gp.id,
+        trigger_type: 'admin_remind_collect',
+      },
+    });
+    toast.success('GP relance');
+  }
+
+  async function markCollected(id: string) {
+    await supabase.from('dossiers').update({ status: 'COLLECTED', collected_at: new Date().toISOString() }).eq('id', id);
+    toast.success('Marque collecte');
+    refetch();
+  }
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucune collecte en attente" />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((d: any) => (
+        <div key={d.id} className="border border-border rounded-lg p-3 bg-card">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-medium">{d.tracking_id}</div>
+              <div className="text-xs text-muted-foreground">{d.buyer_name} · GP {d.assigned_transporteur_ref}</div>
+            </div>
+            <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="w-3 h-3 mr-0.5" /> &gt;24h</Badge>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <Button size="sm" variant="outline" onClick={() => relancer(d.assigned_transporteur_ref, d.tracking_id)}>
+              <Bell className="w-3.5 h-3.5 mr-1" /> Relancer GP
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => markCollected(d.id)}>
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Collecte manuelle
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------- Section 3 : livraisons en cours ----------------
+function InTransit() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, isLoading } = useQuery({
+    queryKey: ['gp-ops-in-transit'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, buyer_name, assigned_transporteur_ref, destination_city, destination_country, estimated_delivery_date')
+        .eq('status', 'IN_TRANSIT')
+        .lt('estimated_delivery_date', today)
+        .order('estimated_delivery_date', { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function contactGp(ref: string | null, tracking: string) {
+    if (!ref) return;
+    const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
+    if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
+    await supabase.functions.invoke('send-whatsapp', {
+      body: {
+        recipient_phone: gp.telephone_1,
+        recipient_type: 'gp',
+        message: `Bonjour, ou en est la livraison de ${tracking} ? La date prevue est depassee.`,
+        transporteur_id: gp.id,
+        trigger_type: 'admin_late_delivery',
+      },
+    });
+    toast.success('GP contacte');
+  }
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucune livraison en retard" />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((d: any) => (
+        <div key={d.id} className="border border-amber-500/40 rounded-lg p-3 bg-amber-500/5">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-medium">{d.tracking_id} → {d.destination_city ?? d.destination_country}</div>
+              <div className="text-xs text-amber-500/80 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                ETA depassee ({d.estimated_delivery_date})
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => contactGp(d.assigned_transporteur_ref, d.tracking_id)}>
+              <Bell className="w-3.5 h-3.5 mr-1" /> Contacter GP
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------- Section 4 : commandes bot non reconnues ----------------
+function UnknownIntent() {
+  const qc = useQueryClient();
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['gp-ops-unknown-intent'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_inbound_messages')
+        .select('id, from_phone, from_name, message_body, received_at, is_read, transporteur_id')
+        .eq('channel', 'gp')
+        .eq('bot_intent', 'unknown')
+        .eq('is_read', false)
+        .order('received_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function markHandled(id: string) {
+    await supabase.from('whatsapp_inbound_messages').update({ is_read: true, replied_at: new Date().toISOString() }).eq('id', id);
+    toast.success('Traite');
+    refetch();
+  }
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucune commande non reconnue" />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((m: any) => (
+        <div key={m.id} className="border border-border rounded-lg p-3 bg-card">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="text-xs font-medium">{m.from_name ?? m.from_phone}</div>
+            <span className="text-[10px] text-muted-foreground">{new Date(m.received_at).toLocaleString('fr-FR')}</span>
+          </div>
+          <div className="text-sm bg-muted/50 rounded px-2 py-1.5 mt-1 italic">"{m.message_body}"</div>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => markHandled(m.id)}>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Marquer traite
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------- Section 5 : contacts inconnus ----------------
+function UnknownContacts() {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['gp-ops-unknown-contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gp_unknown_contacts' as any)
+        .select('*')
+        .eq('followed_up', false)
+        .order('contacted_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function markHandled(id: string) {
+    await supabase.from('gp_unknown_contacts' as any).update({
+      followed_up: true,
+      followed_up_at: new Date().toISOString(),
+    }).eq('id', id);
+    toast.success('Marque traite');
+    refetch();
+  }
+
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+  if (!data || data.length === 0) return <Empty label="Aucun nouveau contact" />;
+
+  return (
+    <div className="space-y-2">
+      {data.map((c: any) => (
+        <div key={c.id} className="border border-border rounded-lg p-3 bg-card">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-medium">{c.from_name ?? c.phone}</div>
+              <div className="text-xs text-muted-foreground">{c.phone} · {new Date(c.contacted_at).toLocaleString('fr-FR')}</div>
+            </div>
+          </div>
+          {c.message && <div className="text-sm bg-muted/50 rounded px-2 py-1.5 mt-2 italic">"{c.message}"</div>}
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => markHandled(c.id)}>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Marquer traite
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Empty({ label }: { label: string }) {
+  return <div className="text-center py-12 text-sm text-muted-foreground">{label}</div>;
+}
