@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
 import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
+import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
 
 // ─────────────────────────── Static config ───────────────────────────
