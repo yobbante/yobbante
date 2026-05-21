@@ -249,9 +249,12 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   });
 
   /* ── Pre-order flow state ── */
-  const landingHub = useMemo(readLandingHub, []);
-  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? initialSession.hub ?? landingHub);
-  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? initialSession.destination);
+  const urlHints = useMemo(readUrlHints, []);
+  const landingHub = urlHints.hub;
+  // Priorité: handoff sourcing > URL (barre de recherche) > session locale stale.
+  // Évite que la session écrase un choix fraîchement fait dans la barre /expedier.
+  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? landingHub ?? initialSession.hub);
+  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? urlHints.destination ?? initialSession.destination);
   const [copied, setCopied] = useState(false);
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSaved, setReminderSaved] = useState(false);
