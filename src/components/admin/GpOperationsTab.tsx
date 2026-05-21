@@ -196,15 +196,12 @@ function DeparturesToday() {
 
   async function notify(ref: string, phone?: string | null) {
     if (!phone) { toast.error('Pas de telephone GP'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: phone,
-        recipient_type: 'gp',
-        message: `📦 Rappel : votre depart ${ref} est aujourd'hui. Bonne route !`,
-        trigger_type: 'admin_remind_departure',
-      },
+    const res = await sendGpMessage({
+      phone,
+      message: `📦 Rappel : votre depart ${ref} est aujourd'hui. Bonne route !`,
+      trigger_type: 'admin_remind_departure',
     });
-    toast.success('GP notifie');
+    if (res.ok) toast.success('GP notifie');
   }
 
   if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
