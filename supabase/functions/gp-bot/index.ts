@@ -113,36 +113,29 @@ function formatDateFr(iso: string): string {
 //  Messages canoniques (sans accents, compatibilité WhatsApp basique)
 // =================================================================
 
-const HELP_TEXT = `Bienvenue sur Yobbante GP 👋
+const HELP_TEXT = `Bienvenue sur Yobbante GP !
 Je suis votre assistant automatique.
-Voici comment je fonctionne :
 
-📅 ENREGISTRER UN DEPART
-Envoyez : DEP [ville] [date] [poids]kg
-Exemple : DEP Paris 28/05 25kg
+Que voulez-vous faire ?
 
-✅ CONFIRMER UNE COLLECTE
-Envoyez : COLLECTE [numero de suivi]
-Exemple : COLLECTE YOB-K7M9P2
+1 - Enregistrer un depart
+2 - Confirmer une collecte
+3 - Enregistrer un poids
+4 - Confirmer une livraison
+5 - Mes missions en cours
+6 - Mes prochains departs
 
-⚖️ ENREGISTRER LE POIDS
-Envoyez : POIDS [numero] [poids]kg
-Exemple : POIDS YOB-K7M9P2 2.3kg
-
-🏠 CONFIRMER UNE LIVRAISON
-Envoyez : LIVRE [numero de suivi]
-Exemple : LIVRE YOB-K7M9P2
-
-📦 VOS COLIS EN COURS
-Envoyez : MES MISSIONS
-
-🚀 VOS PROCHAINS DEPARTS
-Envoyez : MES DEPARTS
-
-❓ AFFICHER CE MENU
-Envoyez : AIDE
+Repondez avec le numero de votre choix
+ou tapez directement votre commande.
+Ex: DEP Paris 28/05 25kg
 
 Pour toute urgence : +221784604003`;
+
+const FALLBACK_TEXT = `Je n'ai pas compris.
+Tapez AIDE pour voir le menu
+ou choisissez :
+1-Depart  2-Collecte  3-Poids
+4-Livraison  5-Missions  6-Departs`;
 
 const ONBOARDING_TEXT = `Bonjour ! 👋
 Ce numero est reserve aux transporteurs partenaires de Yobbante.
@@ -282,10 +275,10 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
     .limit(1)
     .maybeSingle();
 
-  // Session vieille de plus de 10 min → expirée
+  // Session vieille de plus de 30 min → expirée
   const sessionActive = session
     && session.pending_intent
-    && (Date.now() - new Date(session.updated_at).getTime()) < 10 * 60 * 1000;
+    && (Date.now() - new Date(session.updated_at).getTime()) < 30 * 60 * 1000;
 
   async function clearSession() {
     if (session?.id) {
@@ -328,8 +321,7 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   if (isAide || (isStart && !sessionActive)) {
     await clearSession();
     if (isStart && !isAide) {
-      await reply(`Bonjour ${prenom} ! 👋
-Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
+      await reply(`Bonjour ${prenom} !\n\n${HELP_TEXT}`, 'start');
     } else {
       await reply(HELP_TEXT, 'help');
     }
@@ -337,7 +329,7 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
   }
 
   // ---------- MES DEPARTS ----------
-  if (isMesDeparts) {
+  async function runMesDeparts() {
     await clearSession();
     const { data } = await supa
       .from('manual_departures')
@@ -358,9 +350,10 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
     }
     return new Response('ok', { headers: corsHeaders });
   }
+  if (isMesDeparts) return await runMesDeparts();
 
   // ---------- MES MISSIONS ----------
-  if (isMesMissions) {
+  async function runMesMissions() {
     await clearSession();
     const { data } = await supa
       .from('dossiers')
@@ -380,10 +373,55 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
     }
     return new Response('ok', { headers: corsHeaders });
   }
+  if (isMesMissions) return await runMesMissions();
+
+  // =================================================================
+  //  Menu numerote : 1..6 (ou "un", "deux", ...)
+  // =================================================================
+  const MENU_MAP: Record<string, string> = {
+    '1': '1', 'un': '1', 'une': '1',
+    '2': '2', 'deux': '2',
+    '3': '3', 'trois': '3',
+    '4': '4', 'quatre': '4',
+    '5': '5', 'cinq': '5',
+    '6': '6', 'six': '6',
+  };
+  if (!sessionActive && MENU_MAP[msg]) {
+    const choice = MENU_MAP[msg];
+    await clearSession();
+    if (choice === '1') {
+      await saveSession('dep', {});
+      await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '2') {
+      await saveSession('collecte', {});
+      await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_collecte');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '3') {
+      await saveSession('poids', {});
+      await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_poids');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '4') {
+      await saveSession('livre', {});
+      await reply(`Quel est le numero de suivi du colis livre ?\n(Exemple : YOB-K7M9P2)`, 'menu_livre');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (choice === '5') {
+      return await runMesMissions();
+    }
+    if (choice === '6') {
+      return await runMesDeparts();
+    }
+  }
 
   // =================================================================
   //  Détection intent DEP / COLLECTE / POIDS / LIVRE (tolérant)
   // =================================================================
+
+
 
   const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg);
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
@@ -476,13 +514,16 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'start');
   await notifyAdmin(`Commande non comprise de ${prenom} (Ref ${transporteur.reference}) :
 "${rawMsg.slice(0, 150)}"
 A traiter manuellement.`);
-  await reply(`Je n'ai pas compris votre message. 🤔
-Tapez AIDE pour voir toutes les commandes disponibles.`, 'unknown');
+  await reply(FALLBACK_TEXT, 'unknown');
   return new Response('ok', { headers: corsHeaders });
 
   // =================================================================
   //  Handlers d'intent
   // =================================================================
+
+  function isYes(t: string) { return /^(oui|ok|yes|valider?|valide|confirm(e|er)?|c'est ca|cest ca|exact)\b/i.test(t.trim()); }
+  function isNo(t: string)  { return /^(non|no|annul(e|er)?|cancel|stop)\b/i.test(t.trim()); }
+
 
   async function handleDep(text: string, prior: Record<string, any>) {
     // Strip keyword
@@ -532,7 +573,29 @@ Tapez AIDE pour voir toutes les commandes disponibles.`, 'unknown');
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Tout est OK → on crée
+    // Confirmation OUI/NON avant creation
+    if (!prior.awaiting_confirm) {
+      await saveSession('dep', { ...collected, awaiting_confirm: true });
+      const dStr = formatDateFr(dateIso);
+      await reply(`Confirmer ce depart ?
+Destination : ${city}
+Date : ${dStr}
+Capacite : ${Math.max(1, Math.round(weight))}kg
+
+Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'dep_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider ce depart ou NON pour annuler.`, 'dep_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // OUI → on cree
     const capacity = Math.max(1, Math.round(weight));
     const { data: dep, error } = await supa
       .from('manual_departures')
@@ -577,18 +640,38 @@ Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg`);
 
     const { data: dossier } = await supa
       .from('dossiers')
-      .select('id, assigned_transporteur_ref, status, tracking_id, contact_phone, buyer_name')
+      .select('id, assigned_transporteur_ref, status, tracking_id, contact_phone, buyer_name, estimated_weight')
       .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
       .maybeSingle();
 
     if (!dossier) {
       await clearSession();
-      await reply(`Tracking ${tracking} non trouve. Verifiez le numero et reessayez.`, 'collecte_notfound');
+      await reply(`Numero ${tracking} non trouve. Verifiez et reessayez.`, 'collecte_notfound');
       return new Response('ok', { headers: corsHeaders });
     }
     if (dossier.assigned_transporteur_ref !== transporteur.reference) {
       await clearSession();
       await reply(`Ce dossier ne vous est pas assigne.`, 'collecte_unauthorized');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('collecte', { tracking, awaiting_confirm: true });
+      await reply(`Confirmer la collecte de ${dossier.tracking_id} ?
+Client : ${dossier.buyer_name ?? '—'}
+Poids estime : ${dossier.estimated_weight ?? '—'}kg
+
+Repondez OUI pour valider ou NON pour annuler.`, 'collecte_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'collecte_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider la collecte ou NON pour annuler.`, 'collecte_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
 
@@ -602,7 +685,7 @@ Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg`);
     if (error) {
       await reply(`Erreur : ${error.message}`, 'collecte_error');
     } else {
-      await reply(`✅ Collecte enregistree pour ${dossier.tracking_id}.
+      await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
 Pesez le colis et envoyez :
 POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la collecte de ${dossier.tracking_id} (${dossier.buyer_name ?? '—'})`);
@@ -643,20 +726,41 @@ POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
       return new Response('ok', { headers: corsHeaders });
     }
 
-    let amountXof: number | null = null;
-    try {
-      const { data: quote } = await supa.rpc('calculate_quote', {
-        p_origin_country: 'FR',
-        p_destination_country: dossier.destination_country || 'SN',
-        p_weight_kg: weight,
-        p_transport_type: 'air',
-        p_priority: 'normal',
-      });
-      const row = Array.isArray(quote) ? quote[0] : quote;
-      const eur = row?.price_eur;
-      if (typeof eur === 'number') amountXof = Math.round(eur * 655.957);
-    } catch (e) {
-      console.error('WA_ERROR pricing', e);
+    let amountXof: number | null = (prior.amountXof as number | undefined) ?? null;
+    if (amountXof === null) {
+      try {
+        const { data: quote } = await supa.rpc('calculate_quote', {
+          p_origin_country: 'FR',
+          p_destination_country: dossier.destination_country || 'SN',
+          p_weight_kg: weight,
+          p_transport_type: 'air',
+          p_priority: 'normal',
+        });
+        const row = Array.isArray(quote) ? quote[0] : quote;
+        const eur = row?.price_eur;
+        if (typeof eur === 'number') amountXof = Math.round(eur * 655.957);
+      } catch (e) {
+        console.error('WA_ERROR pricing', e);
+      }
+    }
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('poids', { tracking, weight, amountXof, awaiting_confirm: true });
+      await reply(`Poids ${weight}kg pour ${dossier.tracking_id}.
+${amountXof ? `Montant final : ${amountXof.toLocaleString('fr-FR')} XOF` : `Montant final en cours de calcul.`}
+
+Repondez OUI pour valider et notifier le client, NON pour annuler.`, 'poids_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'poids_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider le poids ou NON pour annuler.`, 'poids_confirm');
+      return new Response('ok', { headers: corsHeaders });
     }
 
     const updates: Record<string, any> = {
@@ -705,6 +809,26 @@ Client notifie pour paiement.`, 'poids_ok');
     if (dossier.assigned_transporteur_ref !== transporteur.reference) {
       await clearSession();
       await reply(`Ce dossier ne vous est pas assigne.`, 'livre_unauthorized');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const destLabel = dossier.destination_city ?? dossier.destination_country ?? '—';
+
+    // Confirmation OUI/NON
+    if (!prior.awaiting_confirm) {
+      await saveSession('livre', { tracking, awaiting_confirm: true });
+      await reply(`Confirmer la livraison de ${dossier.tracking_id} a ${destLabel} ?
+
+Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (isNo(text)) {
+      await clearSession();
+      await reply(`Annule. Tapez AIDE pour recommencer.`, 'livre_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(text)) {
+      await reply(`Repondez OUI pour valider la livraison ou NON pour annuler.`, 'livre_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
 
