@@ -7,6 +7,7 @@ import { AdminGlobalSearch } from './AdminGlobalSearch';
 export type AdminSection =
   | 'overview'
   | 'inbox'
+  | 'messages'
   | 'requests'
   | 'shipments'
   | 'orders'
