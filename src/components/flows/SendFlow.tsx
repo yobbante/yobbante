@@ -1021,10 +1021,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           {/* Description — textarea avec compteur (max 140) */}
           <label className="block">
             <span className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Description *</span>
+              <span className={cn('text-xs font-medium', fieldErrors.description ? 'text-danger' : 'text-muted-foreground')}>Description *</span>
               <span className={cn(
                 'text-[10px] tabular-nums',
-                description.length > 140 ? 'text-red-500 font-semibold' : 'text-muted-foreground/70',
+                description.length > 140 ? 'text-danger font-semibold' : 'text-muted-foreground/70',
               )}>{description.length}/140</span>
             </span>
             <textarea
@@ -1033,7 +1033,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               maxLength={140}
               rows={2}
               placeholder="Ex. 3 robes, 2 pantalons, chaussures"
-              className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground transition-all resize-none"
+              aria-invalid={fieldErrors.description || undefined}
+              className={cn(
+                'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card placeholder:text-muted-foreground/60 focus:outline-none transition-all resize-none',
+                fieldErrors.description ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+              )}
             />
             <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et améliore la détection automatique.</p>
           </label>
