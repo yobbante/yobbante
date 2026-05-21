@@ -8,6 +8,7 @@ import { Plane, Package, AlertTriangle, MessageSquareWarning, UserPlus, Bell, Ch
 import { toast } from 'sonner';
 import { useTransporteurs } from '@/hooks/useTransporteurs';
 import { useGpBotActive } from '@/hooks/useGpBotActive';
+import { sendGpMessage } from '@/lib/sendGpMessage';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
@@ -107,11 +108,15 @@ function OnboardingGp() {
     qc.invalidateQueries({ queryKey: ['transporteurs'] });
   }
 
-  function openWa(t: any) {
+  async function openWa(t: any) {
     const prenom = (t.prenom?.trim() || t.nom.split(' ')[0] || 'cher partenaire');
-    const phone = (t.telephone_1 || '').replace(/\D/g, '');
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildInviteMessage(prenom))}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const res = await sendGpMessage({
+      phone: t.telephone_1,
+      message: buildInviteMessage(prenom),
+      transporteur_id: t.id,
+      trigger_type: 'admin_onboard_bot',
+    });
+    if (res.ok) toast.success('Invitation envoyée');
     markSent(t.id);
   }
 
@@ -191,15 +196,12 @@ function DeparturesToday() {
 
   async function notify(ref: string, phone?: string | null) {
     if (!phone) { toast.error('Pas de telephone GP'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: phone,
-        recipient_type: 'gp',
-        message: `📦 Rappel : votre depart ${ref} est aujourd'hui. Bonne route !`,
-        trigger_type: 'admin_remind_departure',
-      },
+    const res = await sendGpMessage({
+      phone,
+      message: `📦 Rappel : votre depart ${ref} est aujourd'hui. Bonne route !`,
+      trigger_type: 'admin_remind_departure',
     });
-    toast.success('GP notifie');
+    if (res.ok) toast.success('GP notifie');
   }
 
   if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
@@ -264,16 +266,13 @@ function PendingCollects() {
     if (!ref) return;
     const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
     if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: gp.telephone_1,
-        recipient_type: 'gp',
-        message: `Rappel : merci de confirmer la collecte du colis ${tracking}. Envoyez : COLLECTE ${tracking}`,
-        transporteur_id: gp.id,
-        trigger_type: 'admin_remind_collect',
-      },
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: `Rappel : merci de confirmer la collecte du colis ${tracking}. Envoyez : COLLECTE ${tracking}`,
+      transporteur_id: gp.id,
+      trigger_type: 'admin_remind_collect',
     });
-    toast.success('GP relance');
+    if (res.ok) toast.success('GP relance');
   }
 
   async function markCollected(id: string) {
@@ -332,16 +331,13 @@ function InTransit() {
     if (!ref) return;
     const { data: gp } = await supabase.from('transporteurs').select('telephone_1, id').eq('reference', ref).maybeSingle();
     if (!gp?.telephone_1) { toast.error('Pas de telephone'); return; }
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipient_phone: gp.telephone_1,
-        recipient_type: 'gp',
-        message: `Bonjour, ou en est la livraison de ${tracking} ? La date prevue est depassee.`,
-        transporteur_id: gp.id,
-        trigger_type: 'admin_late_delivery',
-      },
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message: `Bonjour, ou en est la livraison de ${tracking} ? La date prevue est depassee.`,
+      transporteur_id: gp.id,
+      trigger_type: 'admin_late_delivery',
     });
-    toast.success('GP contacte');
+    if (res.ok) toast.success('GP contacte');
   }
 
   if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
