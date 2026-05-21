@@ -39,7 +39,8 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
 
 
     if (manual?.length) {
-      const refs = manual.map(m => m.transporteur_ref).filter(Boolean) as string[];
+      const rows = manual as any[];
+      const refs = rows.map(m => m.transporteur_ref).filter(Boolean) as string[];
       let transporteursMap: Record<string, string> = {};
       if (refs.length) {
         const { data: trans } = await supabase
@@ -51,7 +52,7 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
           for (const t of trans) transporteursMap[t.reference as string] = t.nom as string;
         }
       }
-      for (const m of manual) {
+      for (const m of rows) {
         items.push({
           ville_depart: m.origin_city,
           ville_arrivee: m.destination_city,
@@ -64,6 +65,7 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
         });
       }
     }
+
   } catch { /* skip silently */ }
 
   // SOURCE 3: konnekt_departures table (cached/synced)
