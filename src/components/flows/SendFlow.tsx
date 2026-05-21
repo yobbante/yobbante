@@ -892,9 +892,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
-                      placeholder={`Personne qui remet le colis à ${originCity.city}`} />
+                      placeholder={`Personne qui remet le colis à ${originCity.city}`}
+                      invalid={fieldErrors.senderName} />
                     <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />} />
+                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                      invalid={fieldErrors.senderPhone} />
                   </div>
                 </div>
               )}
@@ -904,6 +906,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier, code postal…"
+                invalid={fieldErrors.pickupAddress}
               />
 
               <div className="grid sm:grid-cols-2 gap-3">
