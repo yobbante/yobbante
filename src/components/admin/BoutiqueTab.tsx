@@ -434,6 +434,20 @@ function ProductFormSheet({
           </Field>
         )}
 
+        {form.stock_mode === 'stock' && (
+          <Field label="Quantité en stock (vide = illimité)">
+            <Input
+              type="number"
+              mono
+              value={form.stock_qty}
+              onChange={v => setForm({ ...form, stock_qty: v.replace(/[^0-9]/g, '') })}
+            />
+            <div style={{ marginTop: 4, fontSize: 11, color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>
+              {form.stock_qty === '' ? 'Stock illimité' : Number(form.stock_qty) === 0 ? '⚠️ Rupture — produit masqué de la boutique' : `${form.stock_qty} unité${Number(form.stock_qty) > 1 ? 's' : ''} disponible${Number(form.stock_qty) > 1 ? 's' : ''}`}
+            </div>
+          </Field>
+        )}
+
         <Field label="Image URL *">
           <Input value={form.image_url} onChange={v => setForm({ ...form, image_url: v })} />
         </Field>
