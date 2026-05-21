@@ -85,14 +85,13 @@ function CreateDepartDialog({ gp, onClose }: { gp: Transporteur; onClose: () => 
           transporteur_ref: gp.reference,
           origin_city: origin.trim(),
           destination_city: destination.trim(),
-          destination: destination.trim(),
           departure_date: date,
           total_capacity_kg: cap,
           available_capacity_kg: cap,
           transport_mode: mode,
           status: 'active',
         } as any)
-        .select('short_ref, departure_date, destination, total_capacity_kg')
+        .select('short_ref, departure_date, destination_city, total_capacity_kg')
         .single();
       if (error) throw error;
 
