@@ -131,25 +131,33 @@ function clearSession() {
 
 /** Public hand-off key used by the landing-page hub map. */
 const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
-function readLandingHub(): HubId | null {
+
+type UrlHints = { hub: HubId | null; destination: string | null };
+
+function readUrlHints(): UrlHints {
   try {
-    // 1) URL ?origin= (set by IntentSearchBar "Réception")
-    if (typeof window !== 'undefined') {
-      const sp = new URLSearchParams(window.location.search);
-      const raw = (sp.get('origin') ?? '').toLowerCase();
-      const map: Record<string, HubId> = {
-        cn: 'CN', chine: 'CN', china: 'CN', amazon: 'US', aliexpress: 'CN', alibaba: 'CN', shein: 'CN', temu: 'CN',
-        fr: 'FR', france: 'FR',
-        us: 'US', usa: 'US', 'états-unis': 'US', etats: 'US', ebay: 'US',
-        ae: 'AE', dubai: 'AE', dubaï: 'AE', emirats: 'AE',
-        tr: 'TR', turquie: 'TR', istanbul: 'TR',
-      };
-      for (const k of Object.keys(map)) if (raw.includes(k)) return map[k];
+    if (typeof window === 'undefined') return { hub: null, destination: null };
+    const sp = new URLSearchParams(window.location.search);
+    const rawOrigin = (sp.get('origin') ?? sp.get('country') ?? '').toLowerCase();
+    const map: Record<string, HubId> = {
+      cn: 'CN', chine: 'CN', china: 'CN', amazon: 'US', aliexpress: 'CN', alibaba: 'CN', shein: 'CN', temu: 'CN',
+      fr: 'FR', france: 'FR',
+      us: 'US', usa: 'US', 'états-unis': 'US', etats: 'US', ebay: 'US',
+      ae: 'AE', dubai: 'AE', dubaï: 'AE', emirats: 'AE',
+      tr: 'TR', turquie: 'TR', istanbul: 'TR',
+    };
+    let hub: HubId | null = null;
+    for (const k of Object.keys(map)) if (rawOrigin.includes(k)) { hub = map[k]; break; }
+    if (!hub) {
+      const v = localStorage.getItem(LANDING_HUB_KEY);
+      if (v && ['CN', 'FR', 'US', 'AE', 'TR', 'SN'].includes(v)) hub = v as HubId;
     }
-    const v = localStorage.getItem(LANDING_HUB_KEY);
-    return v && ['CN', 'FR', 'US', 'AE', 'TR', 'SN'].includes(v) ? (v as HubId) : null;
-  } catch { return null; }
+    const rawDest = (sp.get('destination') ?? sp.get('dest') ?? '').toUpperCase();
+    const destination = ['SN', 'CI', 'ML', 'GN', 'BF', 'TG'].includes(rawDest) ? rawDest : null;
+    return { hub, destination };
+  } catch { return { hub: null, destination: null }; }
 }
+function readLandingHub(): HubId | null { return readUrlHints().hub; }
 function clearLandingHub() {
   try { localStorage.removeItem(LANDING_HUB_KEY); } catch { /* noop */ }
 }
@@ -241,9 +249,12 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
   });
 
   /* ── Pre-order flow state ── */
-  const landingHub = useMemo(readLandingHub, []);
-  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? initialSession.hub ?? landingHub);
-  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? initialSession.destination);
+  const urlHints = useMemo(readUrlHints, []);
+  const landingHub = urlHints.hub;
+  // Priorité: handoff sourcing > URL (barre de recherche) > session locale stale.
+  // Évite que la session écrase un choix fraîchement fait dans la barre /expedier.
+  const [hub, setHubState] = useState<string | null>(handoff?.hub ?? landingHub ?? initialSession.hub);
+  const [destination, setDestination] = useState<string | null>(handoff?.destination ?? urlHints.destination ?? initialSession.destination);
   const [copied, setCopied] = useState(false);
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderSaved, setReminderSaved] = useState(false);
@@ -331,6 +342,20 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     window.addEventListener('yobbante:receive-flow:goto', handler);
     return () => window.removeEventListener('yobbante:receive-flow:goto', handler);
   }, []);
+
+  /* Auto-scroll vers la section tarifs/tracking si #tarifs dans l'URL
+     (déclenché depuis le CTA "Obtenir mon prix" du landing). */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#tarifs') return;
+    if (step === 'ask') setStep(hub ? 'tracking' : 'pre-order');
+    const t = setTimeout(() => {
+      const el = document.getElementById('tarifs');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hub]);
 
   /* ── Handlers — ASK step ── */
   function chooseOrdered(value: 'yes' | 'no') {
@@ -1095,12 +1120,14 @@ function TrackingFlow({
         />
       </FlowSection>
 
-      <FlowSection
-        revealed={hasItems && !!hub} step={3} total={TOTAL}
-        title="Où vous livrer ?"
-      >
-        <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
-      </FlowSection>
+      <div id="tarifs">
+        <FlowSection
+          revealed={hasItems && !!hub} step={3} total={TOTAL}
+          title="Où vous livrer ?"
+        >
+          <CountryGrid countries={DESTINATIONS} value={destination} onChange={setDestination} />
+        </FlowSection>
+      </div>
 
       {/* Sticky submit bar */}
       <AnimatePresence>
