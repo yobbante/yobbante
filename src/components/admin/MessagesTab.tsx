@@ -175,6 +175,15 @@ export function MessagesTab() {
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, []);
 
+  // ---------- Deep-link: ?gp=<transporteur_id> opens that GP conversation ----------
+  useEffect(() => {
+    const gpId = searchParams.get('gp');
+    if (!gpId || inbound.length === 0) return;
+    const msg = inbound.find((m) => m.transporteur_id === gpId);
+    if (msg) setOpenPhone(msg.from_phone);
+  }, [searchParams, inbound]);
+
+
   // ---------- Group inbound by phone ----------
   const conversations: ConversationGroup[] = useMemo(() => {
     const map = new Map<string, ConversationGroup>();
