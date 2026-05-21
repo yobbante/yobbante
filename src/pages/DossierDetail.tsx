@@ -222,6 +222,11 @@ export default function DossierDetail() {
           )}
         </section>
 
+        {/* Invoice */}
+        <InvoiceSection dossier={dossier as any} isStaff={isStaff} />
+
+
+
         {/* Customs documents */}
         <section>
           <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
