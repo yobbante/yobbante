@@ -167,6 +167,31 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
         isDark ? 'bg-zinc-950/90 border-white/10' : 'bg-background/90 border-border',
       )}
     >
+      {/* Top mini-toolbar : back to home + (recevoir only) Mes commandes */}
+      <div className="flex items-center justify-between mb-1.5">
+        <button
+          type="button" onClick={() => navigate('/')}
+          className={cn(
+            'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-medium transition-opacity hover:opacity-100',
+            isDark ? 'text-white/55 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <ArrowLeft className="w-3 h-3" /> Accueil
+        </button>
+        {mode === 'recevoir' && (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } }))}
+            className={cn(
+              'inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-semibold rounded-md px-2 py-1 transition-colors',
+              'bg-yellow-400 text-zinc-950 hover:bg-yellow-300',
+            )}
+          >
+            <ListChecks className="w-3 h-3" /> Mes commandes
+          </button>
+        )}
+      </div>
+
       {/* Tabs row */}
       <div className="grid grid-cols-3 gap-1.5 mb-2.5">
         {TABS.map(t => {
