@@ -57,6 +57,118 @@ export function GpOperationsTab() {
       {section === 'transit' && <InTransit />}
       {section === 'unknown_intent' && <UnknownIntent />}
       {section === 'unknown_contacts' && <UnknownContacts />}
+      {section === 'onboarding' && <OnboardingGp />}
+    </div>
+  );
+}
+
+// ---------------- Section 6 : onboarding GP ----------------
+function buildInviteMessage(prenom: string) {
+  return `Salam ${prenom},
+
+J'ai mis en place un nouveau systeme pour gerer nos colis plus facilement.
+
+Enregistre ce numero : ${YOBBANTE_BOT_NUMBER}
+Nom : Yobbante GP
+
+Envoie-lui AIDE pour voir comment ca marche.
+
+Pour nos echanges habituels je reste disponible sur ce numero.`;
+}
+
+function OnboardingGp() {
+  const { list } = useTransporteurs();
+  const { data: botActive } = useGpBotActive();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [sentLocal, setSentLocal] = useState<Record<string, string>>({});
+
+  const all = list.data ?? [];
+  const activeGps = all.filter((t) => t.actif);
+  const onboardedCount = activeGps.filter((t) => botActive?.has(t.id)).length;
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return activeGps
+      .filter((t) => !botActive?.has(t.id))
+      .filter((t) => !q || `${t.prenom ?? ''} ${t.nom} ${t.telephone_1}`.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const aSent = !!(sentLocal[a.id] || a.invitation_bot_sent_at);
+        const bSent = !!(sentLocal[b.id] || b.invitation_bot_sent_at);
+        if (aSent !== bSent) return aSent ? 1 : -1;
+        return a.nom.localeCompare(b.nom);
+      });
+  }, [activeGps, botActive, search, sentLocal]);
+
+  async function markSent(id: string) {
+    const now = new Date().toISOString();
+    setSentLocal((p) => ({ ...p, [id]: now }));
+    await supabase.from('transporteurs' as any).update({ invitation_bot_sent_at: now }).eq('id', id);
+    qc.invalidateQueries({ queryKey: ['transporteurs'] });
+  }
+
+  function openWa(t: any) {
+    const prenom = (t.prenom?.trim() || t.nom.split(' ')[0] || 'cher partenaire');
+    const phone = (t.telephone_1 || '').replace(/\D/g, '');
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(buildInviteMessage(prenom))}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    markSent(t.id);
+  }
+
+  if (list.isLoading) return <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-sm font-semibold text-foreground">
+          <span className="text-[#F5C518]">{onboardedCount}</span> GP onboardés / {activeGps.length} GP actifs
+        </div>
+        <div className="relative w-64">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher GP..." className="pl-8 h-8 text-xs" />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <Empty label="Tous les GP actifs sont déjà onboardés 🎉" />
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((t) => {
+            const sentAt = sentLocal[t.id] || t.invitation_bot_sent_at;
+            const hasReplied = botActive?.has(t.id);
+            return (
+              <div key={t.id} className="border border-border rounded-lg p-3 bg-card flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {(t.prenom ? `${t.prenom} ` : '') + t.nom}
+                    <span className="ml-2 text-[10px] text-muted-foreground font-mono">{t.reference}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span>{t.telephone_1}</span>
+                    {t.ville && <span>· {t.ville}</span>}
+                    {hasReplied && <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px] h-4">✅ A répondu</Badge>}
+                    {sentAt && !hasReplied && (
+                      <Badge variant="secondary" className="text-[9px] h-4">
+                        📤 Invité {new Date(sentAt).toLocaleDateString('fr-FR')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => openWa(t)} className="text-xs">
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ouvrir WhatsApp
+                  </Button>
+                  {!sentAt && (
+                    <Button size="sm" variant="ghost" onClick={() => markSent(t.id)} className="text-xs">
+                      <Check className="w-3.5 h-3.5 mr-1" /> Marquer invité
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
