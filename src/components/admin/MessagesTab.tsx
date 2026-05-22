@@ -69,6 +69,7 @@ interface InboundMsg {
   to_number: string | null;
   message_body: string | null;
   message_type: string;
+  media_url: string | null;
   channel: Channel;
   dossier_id: string | null;
   transporteur_id: string | null;
