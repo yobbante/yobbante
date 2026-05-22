@@ -102,7 +102,52 @@ Deno.serve(async (req) => {
               JSON.stringify(msg?.interactive ?? {});
           } else if (messageType === 'image' || messageType === 'document' || messageType === 'audio' || messageType === 'video') {
             body = msg?.[messageType]?.caption ?? `[${messageType}]`;
-            mediaUrl = msg?.[messageType]?.id ?? null;
+            const mediaId = msg?.[messageType]?.id ?? null;
+            mediaUrl = mediaId;
+
+            // For audio (voice notes), download and store in Supabase Storage so admin can play them
+            if (messageType === 'audio' && mediaId && wamid) {
+              try {
+                const waToken = Deno.env.get('WHATSAPP_TOKEN');
+                if (waToken) {
+                  // 1. Resolve media URL
+                  const metaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+                    headers: { Authorization: `Bearer ${waToken}` },
+                  });
+                  if (metaRes.ok) {
+                    const meta = await metaRes.json();
+                    const mediaTempUrl = meta?.url;
+                    const mimeType: string = meta?.mime_type ?? 'audio/ogg';
+                    if (mediaTempUrl) {
+                      // 2. Download the audio bytes
+                      const audioRes = await fetch(mediaTempUrl, {
+                        headers: { Authorization: `Bearer ${waToken}` },
+                      });
+                      if (audioRes.ok) {
+                        const bytes = new Uint8Array(await audioRes.arrayBuffer());
+                        const ext = mimeType.includes('mpeg') ? 'mp3' : mimeType.includes('mp4') ? 'm4a' : 'ogg';
+                        const path = `${wamid}.${ext}`;
+                        // 3. Upload to public bucket
+                        const { error: upErr } = await supa.storage
+                          .from('voice-messages')
+                          .upload(path, bytes, { contentType: mimeType, upsert: true });
+                        if (!upErr) {
+                          const { data: pub } = supa.storage.from('voice-messages').getPublicUrl(path);
+                          mediaUrl = pub?.publicUrl ?? mediaUrl;
+                          console.log('WA_AUDIO stored', path);
+                        } else {
+                          console.error('WA_ERROR audio upload', upErr.message);
+                        }
+                      }
+                    }
+                  } else {
+                    console.error('WA_ERROR audio meta', metaRes.status);
+                  }
+                }
+              } catch (e) {
+                console.error('WA_ERROR audio fetch', e instanceof Error ? e.message : String(e));
+              }
+            }
           } else {
             body = `[${messageType}]`;
           }
