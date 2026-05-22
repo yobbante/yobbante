@@ -130,26 +130,66 @@ export function RequestsTab() {
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
       if (kind !== 'all' && getKind(d) !== kind) return false;
+      if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false;
       if (q) {
         const s = q.toLowerCase();
         return (
           d.reference.toLowerCase().includes(s) ||
           d.product_description.toLowerCase().includes(s) ||
-          (d.contact_email || '').toLowerCase().includes(s)
+          (d.contact_email || '').toLowerCase().includes(s) ||
+          (d.contact_phone || '').toLowerCase().includes(s)
         );
       }
       return true;
     });
-  }, [dossiers, q, kind]);
+  }, [dossiers, q, kind, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const c = new Map<DossierStatus, number>();
+    const scope = dossiers.filter(d => kind === 'all' || getKind(d) === kind);
+    scope.forEach(d => c.set(d.status, (c.get(d.status) ?? 0) + 1));
+    return c;
+  }, [dossiers, kind]);
+
+  function toggleStatus(s: DossierStatus) {
+    setStatusFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
-        <p className="text-sm text-muted-foreground">
-          Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
+          <p className="text-sm text-muted-foreground">
+            Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
+          </p>
+        </div>
+        <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+          <button
+            onClick={() => setView('list')}
+            className={cn(
+              'px-2.5 py-1 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors',
+              view === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <ListIcon className="w-3.5 h-3.5" /> Liste
+          </button>
+          <button
+            onClick={() => setView('kanban')}
+            className={cn(
+              'px-2.5 py-1 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors',
+              view === 'kanban' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+          </button>
+        </div>
       </div>
+
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
