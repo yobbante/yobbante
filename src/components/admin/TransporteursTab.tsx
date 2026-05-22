@@ -336,6 +336,9 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => navigate(`/admin/messages?gp=${t.id}`)}>
                         <MessageCircle className="w-4 h-4 mr-2" /> Voir conversation bot
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
+                        <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
+                      </DropdownMenuItem>
                       {t.actif && (
                         <DropdownMenuItem onClick={async () => {
                           await deactivate.mutateAsync(t.id);
