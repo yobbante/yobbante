@@ -239,7 +239,337 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ---------- Onboarding numéros inconnus ----------
+  // =================================================================
+  //  SUPER ADMIN MODE — priorite absolue (+221784604003)
+  // =================================================================
+  const SUPER_ADMIN_PHONE = '221784604003';
+  const isSuperAdmin = fromPhone.replace(/\D/g, '').endsWith(SUPER_ADMIN_PHONE);
+
+  if (isSuperAdmin) {
+    const result = await handleSuperAdmin();
+    if (result) return result;
+  }
+
+  async function handleSuperAdmin(): Promise<Response | null> {
+    const SA_MENU = `Mode Admin actif.
+
+1 - Nouveau dossier
+2 - Stats du jour
+3 - Dossiers urgents
+4 - Assigner GP
+5 - Changer statut
+6 - Contacter un GP
+
+Tapez le numero, ou STOP pour quitter.`;
+
+    async function saReply(text: string) {
+      await sendWa({
+        recipient_phone: fromPhone,
+        recipient_type: 'admin',
+        message: text,
+        trigger_type: 'super_admin_reply',
+      });
+      if (input.inbound_id) {
+        try {
+          await supa.from('whatsapp_inbound_messages').update({
+            bot_intent: 'super_admin',
+            bot_response: text,
+            replied_at: new Date().toISOString(),
+          }).eq('id', input.inbound_id);
+        } catch (_) { /* noop */ }
+      }
+    }
+
+    // Load existing super admin session
+    const { data: saSession } = await supa
+      .from('gp_bot_sessions')
+      .select('*')
+      .eq('from_phone', fromPhone)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const saActive = saSession
+      && saSession.pending_intent?.startsWith('sa_')
+      && (Date.now() - new Date(saSession.updated_at).getTime()) < 30 * 60 * 1000;
+
+    async function saClear() {
+      if (saSession?.id) await supa.from('gp_bot_sessions').delete().eq('id', saSession.id);
+    }
+    async function saSave(intent: string, data: Record<string, unknown>) {
+      const payload = { ...data, is_super_admin: true };
+      if (saSession?.id) {
+        await supa.from('gp_bot_sessions').update({ pending_intent: intent, pending_data: payload }).eq('id', saSession.id);
+      } else {
+        await supa.from('gp_bot_sessions').insert({ from_phone: fromPhone, pending_intent: intent, pending_data: payload });
+      }
+    }
+
+    // STOP/cancel
+    if (/^(stop|annul|cancel|reset|quit)/i.test(msg)) {
+      await saClear();
+      await saReply('Mode Admin desactive.');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Menu / aide
+    if (!saActive && (/^(menu|aide|help|admin|\?|0)$/i.test(msg) || msg === '')) {
+      await saClear();
+      await saReply(SA_MENU);
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Top-level command dispatch
+    if (!saActive && /^[1-6]$/.test(msg)) {
+      const cmd = msg;
+      if (cmd === '1') {
+        await saSave('sa_new_type', {});
+        await saReply('Type ? (1=Expedier 2=Recevoir 3=Sourcing)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (cmd === '2') return await saStats();
+      if (cmd === '3') return await saUrgents();
+      if (cmd === '4') {
+        await saSave('sa_assign_tracking', {});
+        await saReply('Quel tracking ID ? (ex: YOB-K7M9P2)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (cmd === '5') {
+        await saSave('sa_status_tracking', {});
+        await saReply('Quel tracking ID ?');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (cmd === '6') {
+        await saSave('sa_contact_ref', {});
+        await saReply('Quelle ref GP ? (ex: GP0001)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+    }
+
+    // ===== Command 2: stats du jour =====
+    async function saStats(): Promise<Response> {
+      await saClear();
+      const today = new Date().toISOString().slice(0, 10);
+      const { count: cNew } = await supa.from('dossiers').select('id', { count: 'exact', head: true })
+        .gte('created_at', today);
+      const { count: cActive } = await supa.from('dossiers').select('id', { count: 'exact', head: true })
+        .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)');
+      const { count: cDeliv } = await supa.from('dossiers').select('id', { count: 'exact', head: true })
+        .eq('status', 'DELIVERED').gte('delivered_at', today);
+      const { count: cPay } = await supa.from('dossiers').select('id', { count: 'exact', head: true })
+        .eq('payment_status', 'pending').eq('status', 'WEIGHED');
+      const { count: cMsg } = await supa.from('whatsapp_inbound_messages').select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+      const dStr = new Date().toLocaleDateString('fr-FR');
+      await saReply(`Stats du ${dStr} :
+
+Nouveaux : ${cNew ?? 0}
+En cours : ${cActive ?? 0}
+Livres : ${cDeliv ?? 0}
+Paiements en attente : ${cPay ?? 0}
+Messages non lus : ${cMsg ?? 0}`);
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // ===== Command 3: dossiers urgents =====
+    async function saUrgents(): Promise<Response> {
+      await saClear();
+      const now = Date.now();
+      const h24 = new Date(now - 24 * 3600 * 1000).toISOString();
+      const h48 = new Date(now - 48 * 3600 * 1000).toISOString();
+      const d5 = new Date(now - 5 * 24 * 3600 * 1000).toISOString();
+
+      const { data: weighed } = await supa.from('dossiers')
+        .select('tracking_id, status, weighed_at, buyer_name')
+        .eq('status', 'WEIGHED').eq('payment_status', 'pending')
+        .lte('weighed_at', h24).limit(10);
+      const { data: arrived } = await supa.from('dossiers')
+        .select('tracking_id, status, updated_at, buyer_name')
+        .eq('status', 'ARRIVED_HUB').lte('updated_at', d5).limit(10);
+      const { data: awaiting } = await supa.from('dossiers')
+        .select('tracking_id, status, updated_at, buyer_name')
+        .eq('status', 'AWAITING_CLIENT').lte('updated_at', h48).limit(10);
+
+      const fmt = (d: any, ref: string) => {
+        const days = Math.floor((now - new Date(d.weighed_at ?? d.updated_at).getTime()) / (24 * 3600 * 1000));
+        return `${d.tracking_id ?? '—'} (${d.status}) - ${days}j - ${d.buyer_name ?? '?'}`;
+      };
+      const lines: string[] = [];
+      (weighed ?? []).forEach((d) => lines.push(fmt(d, 'WEIGHED')));
+      (arrived ?? []).forEach((d) => lines.push(fmt(d, 'ARRIVED_HUB')));
+      (awaiting ?? []).forEach((d) => lines.push(fmt(d, 'AWAITING_CLIENT')));
+
+      if (lines.length === 0) {
+        await saReply('Aucun dossier urgent. Top !');
+      } else {
+        await saReply(`Dossiers urgents (${lines.length}) :\n\n${lines.join('\n')}`);
+      }
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // ===== Active session handlers =====
+    if (saActive) {
+      const intent = saSession!.pending_intent as string;
+      const data = (saSession!.pending_data ?? {}) as Record<string, any>;
+
+      // -- Command 1: new dossier (guided) --
+      if (intent === 'sa_new_type') {
+        const tMap: Record<string, string> = { '1': 'expedier', '2': 'recevoir', '3': 'sourcing' };
+        const t = tMap[msg];
+        if (!t) { await saReply('Tapez 1, 2 ou 3.'); return new Response('ok', { headers: corsHeaders }); }
+        await saSave('sa_new_name', { ...data, service_type: t });
+        await saReply('Nom du client ?');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_name') {
+        await saSave('sa_new_phone', { ...data, buyer_name: rawMsg });
+        await saReply('Telephone client ?');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_phone') {
+        await saSave('sa_new_origin', { ...data, contact_phone: rawMsg });
+        await saReply('Origine ? (pays ou ville)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_origin') {
+        await saSave('sa_new_dest', { ...data, origin_country: rawMsg.toUpperCase().slice(0, 3) });
+        await saReply('Destination ?');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_dest') {
+        await saSave('sa_new_weight', { ...data, destination_country: rawMsg.toUpperCase().slice(0, 3) });
+        await saReply('Poids estime (kg) ?');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_weight') {
+        const w = parseWeight(rawMsg);
+        if (!w) { await saReply('Poids invalide. Donnez un nombre en kg.'); return new Response('ok', { headers: corsHeaders }); }
+        await saSave('sa_new_canal', { ...data, estimated_weight: w });
+        await saReply('Canal ? (1=WhatsApp 2=Appel 3=Email)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_canal') {
+        const cMap: Record<string, string> = { '1': 'whatsapp', '2': 'telephone', '3': 'email' };
+        const c = cMap[msg];
+        if (!c) { await saReply('Tapez 1, 2 ou 3.'); return new Response('ok', { headers: corsHeaders }); }
+        await saSave('sa_new_notes', { ...data, source: c });
+        await saReply('Notes ? (0 pour skip)');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_new_notes') {
+        const notes = rawMsg.trim() === '0' ? null : rawMsg;
+        const payload = {
+          buyer_name: data.buyer_name,
+          contact_phone: data.contact_phone,
+          origin_country: data.origin_country,
+          destination_country: data.destination_country,
+          estimated_weight: data.estimated_weight,
+          service_type: data.service_type,
+          source: data.source,
+          intake_method: 'manual_intake',
+          status: 'NEW',
+          notes,
+        };
+        const { data: dossier, error } = await supa.from('dossiers')
+          .insert(payload).select('tracking_id, reference').maybeSingle();
+        await saClear();
+        if (error) {
+          await saReply(`Erreur creation : ${error.message}`);
+        } else {
+          await saReply(`Dossier cree !
+Ref : ${dossier?.tracking_id ?? dossier?.reference ?? '—'}
+Client : ${data.buyer_name} - ${data.contact_phone}
+Route : ${data.origin_country} > ${data.destination_country}
+
+Voir : yobbante.com/admin`);
+        }
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // -- Command 4: assign GP --
+      if (intent === 'sa_assign_tracking') {
+        const tk = parseTracking(rawMsg) ?? rawMsg.trim().toUpperCase();
+        const { data: d } = await supa.from('dossiers')
+          .select('id, tracking_id, destination_country, estimated_weight')
+          .or(`tracking_id.eq.${tk},reference.eq.${tk}`).maybeSingle();
+        if (!d) { await saClear(); await saReply(`Dossier ${tk} introuvable.`); return new Response('ok', { headers: corsHeaders }); }
+        const { data: gps } = await supa.from('transporteurs')
+          .select('id, reference, prenom, nom, telephone_1').eq('actif', true).limit(5);
+        if (!gps || gps.length === 0) { await saClear(); await saReply('Aucun GP disponible.'); return new Response('ok', { headers: corsHeaders }); }
+        const list = gps.map((g, i) => `${i + 1}. ${g.reference} - ${g.prenom ?? ''} ${g.nom ?? ''}`.trim()).join('\n');
+        await saSave('sa_assign_pick', { dossier_id: d.id, tracking: d.tracking_id, gp_ids: gps.map((g) => g.id), gp_refs: gps.map((g) => g.reference) });
+        await saReply(`Top 5 GP :\n${list}\n\nChoisissez le numero (1-${gps.length})`);
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_assign_pick') {
+        const n = parseInt(msg, 10);
+        if (!n || n < 1 || n > (data.gp_ids?.length ?? 0)) { await saReply('Numero invalide.'); return new Response('ok', { headers: corsHeaders }); }
+        const gpRef = data.gp_refs[n - 1];
+        const { error } = await supa.from('dossiers')
+          .update({ status: 'ASSIGNED', assigned_transporteur_ref: gpRef })
+          .eq('id', data.dossier_id);
+        await saClear();
+        if (error) { await saReply(`Erreur : ${error.message}`); }
+        else { await saReply(`OK : dossier ${data.tracking} assigne a ${gpRef}. Notifications envoyees.`); }
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // -- Command 5: change status --
+      if (intent === 'sa_status_tracking') {
+        const tk = parseTracking(rawMsg) ?? rawMsg.trim().toUpperCase();
+        const { data: d } = await supa.from('dossiers')
+          .select('id, tracking_id, status').or(`tracking_id.eq.${tk},reference.eq.${tk}`).maybeSingle();
+        if (!d) { await saClear(); await saReply(`Dossier ${tk} introuvable.`); return new Response('ok', { headers: corsHeaders }); }
+        const STATUSES = ['NEW','CONFIRMED','ASSIGNED','COLLECTED','WEIGHED','IN_TRANSIT','ARRIVED_HUB','OUT_FOR_DELIVERY','DELIVERED','CANCELLED'];
+        const list = STATUSES.map((s, i) => `${i + 1}. ${s}`).join('\n');
+        await saSave('sa_status_pick', { dossier_id: d.id, tracking: d.tracking_id, statuses: STATUSES });
+        await saReply(`Statut actuel : ${d.status}\n\n${list}\n\nQuel statut ?`);
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_status_pick') {
+        const n = parseInt(msg, 10);
+        const statuses: string[] = data.statuses ?? [];
+        if (!n || n < 1 || n > statuses.length) { await saReply('Numero invalide.'); return new Response('ok', { headers: corsHeaders }); }
+        const newStatus = statuses[n - 1];
+        const { error } = await supa.from('dossiers').update({ status: newStatus }).eq('id', data.dossier_id);
+        await saClear();
+        if (error) { await saReply(`Erreur : ${error.message}`); }
+        else { await saReply(`OK : ${data.tracking} -> ${newStatus}. Client notifie.`); }
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // -- Command 6: contact GP --
+      if (intent === 'sa_contact_ref') {
+        const ref = rawMsg.trim().toUpperCase();
+        const { data: gp } = await supa.from('transporteurs')
+          .select('id, reference, prenom, nom, telephone_1').eq('reference', ref).maybeSingle();
+        if (!gp || !gp.telephone_1) { await saClear(); await saReply(`GP ${ref} introuvable ou sans telephone.`); return new Response('ok', { headers: corsHeaders }); }
+        await saSave('sa_contact_msg', { gp_id: gp.id, gp_phone: gp.telephone_1, gp_ref: gp.reference });
+        await saReply(`GP : ${gp.prenom ?? ''} ${gp.nom ?? ''} (${gp.telephone_1})\n\nVotre message ?`);
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (intent === 'sa_contact_msg') {
+        await sendWa({
+          recipient_phone: data.gp_phone,
+          recipient_type: 'gp',
+          message: rawMsg,
+          transporteur_id: data.gp_id,
+          trigger_type: 'super_admin_contact',
+        });
+        await saClear();
+        await saReply(`Message envoye a ${data.gp_ref}.`);
+        return new Response('ok', { headers: corsHeaders });
+      }
+    }
+
+    // Super admin without active session and message not matching menu -> show menu
+    if (!saActive) {
+      await saReply(`Commande non reconnue.\n\n${SA_MENU}`);
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    return null;
+  }
+
   if (!transporteur) {
     try {
       await supa.from('gp_unknown_contacts').insert({
