@@ -112,6 +112,7 @@ export function TransporteursTab() {
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
+  const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
 
   const existingRefs = useMemo(
     () => new Set((list.data ?? []).map(t => t.reference)),
