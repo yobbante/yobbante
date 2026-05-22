@@ -267,7 +267,25 @@ Deno.serve(async (req) => {
             const adminPhone = Deno.env.get('ADMIN_WHATSAPP_NUMBER');
             const isSuperAdmin = adminPhone && fromPhone === normalizePhone(adminPhone);
             if (isSuperAdmin) {
-              // Just log, nothing else
+              // Route to super-admin bot
+              try {
+                const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/super-admin-bot`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  },
+                  body: JSON.stringify({
+                    inbound_id: insertedRow?.id,
+                    from_phone: fromPhone,
+                    from_name: fromName,
+                    message: body,
+                  }),
+                });
+                if (!botRes.ok) console.error('WA_ERROR super-admin-bot', await botRes.text());
+              } catch (e) {
+                console.error('WA_ERROR super-admin-bot fetch', e);
+              }
             } else {
               // Delegate to bot-client
               try {
