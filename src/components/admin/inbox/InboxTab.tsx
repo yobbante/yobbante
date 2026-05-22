@@ -14,6 +14,7 @@ import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SendEditLinkDialog } from '../SendEditLinkDialog';
+import { DeliveryFinalePanel } from './DeliveryFinalePanel';
 import { Pencil } from 'lucide-react';
 
 const COLS = [
@@ -196,6 +197,10 @@ export function InboxTab() {
                     <Pencil className="w-3 h-3 mr-1" /> Lien modif. destinataire
                   </Button>
                 </div>
+
+                {(detail.status === 'ARRIVED_HUB' || detail.status === 'DELIVERED' || detail.delivery_mode) && (
+                  <DeliveryFinalePanel dossier={detail} onChanged={() => { refetch(); }} />
+                )}
               </div>
             </>
           )}
