@@ -159,6 +159,8 @@ const MainRoutes = () => (
     {/* Public review + payment pages (WhatsApp deep links) */}
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
+    <Route path="/modifier/:token" element={<ModifierPage />} />
+
     <Route path="/business" element={<BusinessPage />} />
     <Route path="/business/join" element={<BusinessJoinPage />} />
     <Route path="/business/pricing" element={<BusinessPricingPage />} />
