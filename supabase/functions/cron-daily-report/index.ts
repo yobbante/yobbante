@@ -65,11 +65,11 @@ async function buildMorningReport(supa: any): Promise<string> {
       .eq('is_read', false)),
   ]);
 
-  return `Bonjour ! Resume Yobbante du jour :
+  return `Bonjour ! Resume Yobbante :
 Dossiers actifs : ${Math.round(actifs)}
 En attente paiement : ${Math.round(paiement)}
 Livres hier : ${Math.round(livresHier)}
-Nouveaux aujourd'hui : ${Math.round(nouveaux)}
+Nouveaux aujourd hui : ${Math.round(nouveaux)}
 Messages non lus : ${Math.round(msgs)}
 Bonne journee !`;
 }
