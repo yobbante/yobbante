@@ -1052,6 +1052,60 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
+
+            {/* Mode de reception finale */}
+            <div className="rounded-2xl border-2 border-border bg-card p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
+              {[
+                { id: 'pickup_gp' as const, label: 'Récupérer chez notre partenaire', sub: 'Gratuit — adresse communiquée à l\'arrivée' },
+                { id: 'relay_point' as const, label: 'Livraison à un point relais', sub: 'Frais selon distance' },
+                { id: 'home_delivery' as const, label: 'Livraison à domicile', sub: 'Frais selon zone et carrier' },
+              ].map(opt => (
+                <label key={opt.id} className={cn(
+                  'flex items-start gap-3 cursor-pointer rounded-xl border-2 p-3 transition-colors',
+                  deliveryMode === opt.id ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40',
+                )}>
+                  <input
+                    type="radio" name="delivery_mode" value={opt.id}
+                    checked={deliveryMode === opt.id}
+                    onChange={() => setDeliveryMode(opt.id)}
+                    className="mt-1 accent-foreground"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-foreground">{opt.label}</span>
+                    <span className="block text-[11px] text-muted-foreground">{opt.sub}</span>
+                  </span>
+                </label>
+              ))}
+              {deliveryMode === 'relay_point' && (
+                <div className="space-y-2 pt-1">
+                  <TextField label="Nom du point relais *" value={relayPointName} onChange={setRelayPointName}
+                    placeholder="Ex. Bureau de poste Liberté 6" />
+                  <TextField label="Adresse du point relais *" value={relayPointAddress} onChange={setRelayPointAddress}
+                    placeholder="N°, rue, quartier, ville" />
+                </div>
+              )}
+              {deliveryMode === 'home_delivery' && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] text-muted-foreground">
+                    Choisissez un transporteur. Les tarifs seront calculés et confirmés avant le départ.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Yobbanté', 'DHL', 'FedEx'].map(c => (
+                      <button
+                        type="button" key={c}
+                        onClick={() => setDeliveryCarrier(c)}
+                        className={cn(
+                          'rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors',
+                          deliveryCarrier === c ? 'border-foreground bg-secondary/40 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground/40',
+                        )}
+                      >{c}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
           </div>
         )}
