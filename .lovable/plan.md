@@ -1,78 +1,64 @@
-# Système relances GP + Fix envoi 607 API
+# Lien sécurisé de modification client/GP
 
-## 1. Fix wa.me → API send-whatsapp (Partie 1)
+Système permettant aux clients et transporteurs de corriger leurs infos via un lien unique à usage limité (24h).
 
-**Fichiers** : `NewIntakeDialog.tsx`, `OrderDetailDrawer.tsx`
+## 1. Base de données
 
-- Supprimer tous les `window.open('https://wa.me/...')` pour messages client.
-- Remplacer par `supabase.functions.invoke('send-whatsapp', { body: { recipient_phone, recipient_type: 'client', message } })`.
-- Si erreur API : toast admin "Envoi WhatsApp échoué pour {tracking}. Vérifiez /admin/messages." + log déjà fait côté edge.
-- Conserver wa.me uniquement pour messages GP (122) via `sendGpMessage` existant.
+Migration créant :
 
-## 2. Migration DB (Parties 2, 5, 7)
+- **Table `edit_tokens`** : token unique (32 bytes hex), entity_type (`dossier_client` / `dossier_destinataire` / `transporteur` / `client`), entity_id, fields_allowed (TEXT[]), used_at, expires_at (défaut +24h), created_by.
+- **RLS** : 
+  - Lecture publique d'un token valide via RPC `get_edit_token(token)` (SECURITY DEFINER) — retourne entity_type, entity_id, fields_allowed, valeurs actuelles, tracking_id si dossier.
+  - Application de la modification via RPC `apply_edit_token(token, payload jsonb)` (SECURITY DEFINER) qui :
+    - Vérifie validité du token
+    - Filtre payload aux champs autorisés
+    - Met à jour la table cible
+    - Marque `used_at = now()`
+    - INSERT dans `dossier_events` (ou log équivalent pour transporteur) avec `old → new`
+    - Déclenche un appel HTTP à la fonction `notify-admin-edit` pour WhatsApp admin
+  - Seuls admins/staff peuvent INSERT directement dans `edit_tokens`.
 
-```sql
-ALTER TABLE dossiers
-  ADD COLUMN gp_reminded_at TIMESTAMPTZ,
-  ADD COLUMN gp_reminder_count INT DEFAULT 0,
-  ADD COLUMN gp_last_action_at TIMESTAMPTZ,
-  ADD COLUMN gp_no_response_alert_sent BOOLEAN DEFAULT false;
+## 2. Page publique `/modifier/:token`
 
-ALTER TABLE transporteurs
-  ADD COLUMN last_bot_activity_at TIMESTAMPTZ;
-```
+- Route ajoutée dans `App.tsx` (publique, hors auth).
+- Composant `PublicEditPage.tsx` :
+  - Appel RPC `get_edit_token`
+  - Si invalide → écran "Lien expiré ou invalide. Contactez-nous : +221 78 607 80 80"
+  - Si valide → formulaire dynamique (uniquement les champs autorisés, pré-remplis)
+  - Submit → RPC `apply_edit_token` → toast succès + écran de confirmation
+- Design : dark Yobbante + accent `#F5C518`, logo en header, titre + tracking_id, responsive mobile.
 
-(weight_status existe déjà selon contexte précédent — sinon ajouter enum to_be_weighed/estimated/known.)
+## 3. Edge function `notify-admin-edit`
 
-## 3. Nouvelle edge function `cron-gp-reminders`
+- Appelée par la RPC après modification
+- Envoie WhatsApp via `send-whatsapp` (numéro 607) au `+221 78 460 40 03` avec récap des changements
+- Logue dans `whatsapp_outbound_messages` (trigger_type = `edit_notification`)
 
-Exécution horaire. Implémente RELANCE A à G :
-- **A** : ASSIGNED + 2h sans confirmation → 1 message GP
-- **B** : déjà géré par `gp_mission_recap_j1` (vérifier appel)
-- **C** : Jour J 7h → liste des collectes
-- **D** : COLLECTED + 1h sans poids → rappel POIDS
-- **E** : IN_TRANSIT + 72h sans livraison → rappel LIVRE
-- **F** : Aucune réponse 24h + 2 relances → alerte admin +221784604003 + `gp_no_response_alert_sent = true`
-- **G** : WEIGHED + paid → notifier GP "EN ROUTE possible"
+## 4. Génération de lien depuis admin
 
-Garde-fous : max 3 relances par dossier, 1h min entre 2 relances, skip si `gp_last_action_at > gp_reminded_at`, log dans `whatsapp_outbound_messages` avec `trigger_type='gp_reminder'`.
+- **`OrderDetailDrawer`** : bouton "Envoyer lien de modification" → dialog avec checkboxes (Infos expéditeur / destinataire / date collecte / adresse livraison) → crée token via insert → envoie WhatsApp 607 au client avec `yobbante.com/modifier/{token}`.
+- **Fiche transporteur** (`TransporteurDetailDrawer` ou équivalent) : même bouton avec champs transporteur (`telephone_1`, `adresse_collecte_dakar`, `adresses_remise`).
 
-Cron horaire via `pg_cron` (SQL insert tool, pas migration).
+## 5. Commande bot `MODIFIER`
 
-## 4. Bot GP — nouvelle commande EN ROUTE (Partie 4)
+- **`bot-client/index.ts`** : intercepte "MODIFIER" → crée token `dossier_client` pour le dernier dossier actif du client (via téléphone) → envoie lien + menu court.
+- **`gp-bot/index.ts`** : intercepte "MODIFIER" → crée token `transporteur` pour le GP courant → envoie lien.
 
-Dans `gp-bot/index.ts` :
-- Parser `EN ROUTE {tracking}` → ne change pas le statut (reste IN_TRANSIT)
-- Insert `dossier_events` event_type=`gp_departed`
-- Notifier client depuis 607 via send-whatsapp
-- Réponse GP : "Bon voyage…"
-- UPDATE `gp_last_action_at = now()`
+## 6. Audit des modifications admin
 
-## 5. Tracker activité GP (Partie 5)
+- Vérifier que `OrderDetailDrawer` logue déjà les modifications de champs dans `dossier_events` (status, transporteur). Étendre pour : `contact_phone`, `pickup_address`, `actual_weight_kg`, `notes` (event_type = `field_edited`, event_data = `{field, old, new, edited_by}`).
 
-Dans `gp-bot/index.ts`, après succès de COLLECTE, POIDS, LIVRE, EN ROUTE, MES MISSIONS, MES DEPARTS :
-- UPDATE `dossiers.gp_last_action_at = now()` (sur dossier concerné)
-- UPDATE `transporteurs.last_bot_activity_at = now()`
+## Contraintes respectées
 
-## 6. Panneau admin "GP sans réponse" (Partie 6)
-
-Dans `GpOperationsTab.tsx` (existant), ajouter une section en haut :
-- Liste dossiers où `gp_no_response_alert_sent=true OR gp_reminder_count>=2`
-- Affichage : GP, tracking, statut, dernière activité, nb relances
-- Actions : [Appeler] (tel:), [Réassigner] (placeholder dialog réutilisant GpActionsPanel), [Relance manuelle] (send-whatsapp depuis 122)
-
-## Hors-périmètre / clarifications
-
-- **Partie 7 (weight_status badges)** : suppose que `weight_status` enum existe déjà sur `dossiers`. Si non, à ajouter dans la migration. Je vérifierai et adapterai.
-- **RELANCE B** : je vérifie juste que `gp_mission_recap_j1` est déclenché par un cron existant — pas de nouveau code.
-- **"Réassigner"** dans le panneau : je branche un simple bouton qui ouvre `GpActionsPanel` existant en mode réassignation (pas de nouveau flow complet).
+- Token usage unique (used_at) + TTL 24h
+- Champs strictement filtrés côté serveur (RPC)
+- Toute modification → notification admin + event log
+- Textes français, design dark Yobbante + #F5C518
+- Page mobile-first
 
 ## Détails techniques
 
-- Nouveau fichier : `supabase/functions/cron-gp-reminders/index.ts`
-- Migration : nouvelles colonnes + index sur `(status, gp_reminded_at)` pour perf cron
-- Cron via `pg_cron` insert (pas migration car contient URL projet)
-- Tous textes bot sans accents, UI en français, design dark + #F5C518
-- Aucun crash si GP sans téléphone (guard `if (!phone) continue`)
-
-Confirmez et je lance l'implémentation complète.
+- RPC `get_edit_token` et `apply_edit_token` en SECURITY DEFINER avec `search_path = public`.
+- Numéro admin stocké côté fonction (constante `ADMIN_PHONE`).
+- Pas de wa.me — tout passe par `send-whatsapp` (607).
+- Les anciennes valeurs sont capturées dans la RPC avant UPDATE pour produire le diff.
