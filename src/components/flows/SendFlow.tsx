@@ -1687,6 +1687,41 @@ function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[
   );
 }
 
+function LockedStep({ step, total, title }: { step: number; total: number; title: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-3 flex items-center justify-between gap-3 opacity-70">
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground">
+          Étape {step} / {total}
+        </p>
+        <p className="mt-0.5 text-sm font-medium text-muted-foreground truncate">{title}</p>
+      </div>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">À venir</span>
+    </div>
+  );
+}
+
+function StepContinueBar({ enabled, onContinue }: { enabled: boolean; onContinue: () => void }) {
+  return (
+    <div className="mt-5 flex items-center justify-end">
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={!enabled}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+          enabled
+            ? 'bg-foreground text-background hover:opacity-90'
+            : 'bg-secondary text-muted-foreground cursor-not-allowed',
+        )}
+      >
+        Continuer <ArrowRight className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+
 
 function AddressField({
   label, value, onChange, placeholder, invalid,
