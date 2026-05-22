@@ -228,6 +228,38 @@ export function RequestsTab() {
         </div>
       </div>
 
+      {/* Status pill filters (multi-select) */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Statut :</span>
+        {DOSSIER_STATUS_ORDER.map(s => {
+          const active = statusFilter.has(s);
+          const count = statusCounts.get(s) ?? 0;
+          return (
+            <button
+              key={s}
+              onClick={() => toggleStatus(s)}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[11px] border inline-flex items-center gap-1.5 transition-colors',
+                active
+                  ? 'bg-[#F5C518]/15 border-[#F5C518]/40 text-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {DOSSIER_STATUS_LABELS[s]}
+              <span className="tabular-nums text-[10px] opacity-70">{count}</span>
+            </button>
+          );
+        })}
+        {statusFilter.size > 0 && (
+          <button
+            onClick={() => setStatusFilter(new Set())}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
@@ -238,9 +270,16 @@ export function RequestsTab() {
           <p className="text-sm font-semibold text-foreground">Aucune demande</p>
           <p className="text-xs text-muted-foreground mt-1">Ajustez vos filtres.</p>
         </div>
+      ) : view === 'kanban' ? (
+        <KanbanView
+          dossiers={filtered}
+          onMove={(id, status) => updateStatus.mutate({ id, status })}
+          onOpen={(id) => navigate(`/app/dossier/${id}`)}
+        />
       ) : (
         <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
           {filtered.map(d => {
+
             const k = getKind(d);
             const isOpen = expandedId === d.id;
             return (
