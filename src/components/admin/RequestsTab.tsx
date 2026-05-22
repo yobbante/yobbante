@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Search, ChevronRight, Inbox, ExternalLink, Mail, Phone,
-  Weight, Wallet, Calendar, MapPin, Building2,
+  Weight, Wallet, Calendar, MapPin, Building2, LayoutGrid, List as ListIcon,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,9 +28,9 @@ const TYPE_FILTERS = [
 ] as const;
 
 type TypeFilter = typeof TYPE_FILTERS[number]['id'];
+type ViewMode = 'list' | 'kanban';
 
 function getKind(d: Dossier): TypeFilter {
-  // app_source is authoritative — it's set explicitly by each flow / l'intake manuel.
   if (d.app_source === 'expedier') return 'send';
   if (d.app_source === 'recevoir') return 'receive';
   if (d.app_source === 'sourcing' || d.needs_sourcing) return 'sourcing';
@@ -57,11 +57,22 @@ const STATUS_TONE: Partial<Record<DossierStatus, string>> = {
 
 const PAGE_SIZE = 50;
 
+// Kanban swimlanes (collapsed view of the dossier lifecycle)
+const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
+  { id: 'SUBMITTED',  label: DOSSIER_STATUS_LABELS.SUBMITTED },
+  { id: 'IN_REVIEW',  label: DOSSIER_STATUS_LABELS.IN_REVIEW },
+  { id: 'SOURCING',   label: DOSSIER_STATUS_LABELS.SOURCING },
+  { id: 'IN_TRANSIT', label: DOSSIER_STATUS_LABELS.IN_TRANSIT },
+  { id: 'DELIVERED',  label: DOSSIER_STATUS_LABELS.DELIVERED },
+];
+
 export function RequestsTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<Set<DossierStatus>>(new Set());
+  const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Open + scroll to a row from dashboard "Activité récente" deep-link
@@ -69,6 +80,7 @@ export function RequestsTab() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { service?: string; id?: string };
       if (detail?.service !== 'expedier' || !detail.id) return;
+      setView('list');
       setExpandedId(detail.id);
       setTimeout(() => {
         const el = document.querySelector(`[data-dossier-id="${detail.id}"]`);
@@ -95,6 +107,7 @@ export function RequestsTab() {
     },
   });
 
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DossierStatus }) => {
       const { error } = await supabase.from('dossiers').update({ status }).eq('id', id);
@@ -117,26 +130,66 @@ export function RequestsTab() {
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
       if (kind !== 'all' && getKind(d) !== kind) return false;
+      if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false;
       if (q) {
         const s = q.toLowerCase();
         return (
           d.reference.toLowerCase().includes(s) ||
           d.product_description.toLowerCase().includes(s) ||
-          (d.contact_email || '').toLowerCase().includes(s)
+          (d.contact_email || '').toLowerCase().includes(s) ||
+          (d.contact_phone || '').toLowerCase().includes(s)
         );
       }
       return true;
     });
-  }, [dossiers, q, kind]);
+  }, [dossiers, q, kind, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const c = new Map<DossierStatus, number>();
+    const scope = dossiers.filter(d => kind === 'all' || getKind(d) === kind);
+    scope.forEach(d => c.set(d.status, (c.get(d.status) ?? 0) + 1));
+    return c;
+  }, [dossiers, kind]);
+
+  function toggleStatus(s: DossierStatus) {
+    setStatusFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
-        <p className="text-sm text-muted-foreground">
-          Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
+          <p className="text-sm text-muted-foreground">
+            Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
+          </p>
+        </div>
+        <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+          <button
+            onClick={() => setView('list')}
+            className={cn(
+              'px-2.5 py-1 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors',
+              view === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <ListIcon className="w-3.5 h-3.5" /> Liste
+          </button>
+          <button
+            onClick={() => setView('kanban')}
+            className={cn(
+              'px-2.5 py-1 rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors',
+              view === 'kanban' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+          </button>
+        </div>
       </div>
+
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -175,6 +228,38 @@ export function RequestsTab() {
         </div>
       </div>
 
+      {/* Status pill filters (multi-select) */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Statut :</span>
+        {DOSSIER_STATUS_ORDER.map(s => {
+          const active = statusFilter.has(s);
+          const count = statusCounts.get(s) ?? 0;
+          return (
+            <button
+              key={s}
+              onClick={() => toggleStatus(s)}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[11px] border inline-flex items-center gap-1.5 transition-colors',
+                active
+                  ? 'bg-[#F5C518]/15 border-[#F5C518]/40 text-foreground'
+                  : 'bg-card border-border text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {DOSSIER_STATUS_LABELS[s]}
+              <span className="tabular-nums text-[10px] opacity-70">{count}</span>
+            </button>
+          );
+        })}
+        {statusFilter.size > 0 && (
+          <button
+            onClick={() => setStatusFilter(new Set())}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
@@ -185,9 +270,16 @@ export function RequestsTab() {
           <p className="text-sm font-semibold text-foreground">Aucune demande</p>
           <p className="text-xs text-muted-foreground mt-1">Ajustez vos filtres.</p>
         </div>
+      ) : view === 'kanban' ? (
+        <KanbanView
+          dossiers={filtered}
+          onMove={(id, status) => updateStatus.mutate({ id, status })}
+          onOpen={(id) => navigate(`/app/dossier/${id}`)}
+        />
       ) : (
         <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
           {filtered.map(d => {
+
             const k = getKind(d);
             const isOpen = expandedId === d.id;
             return (
@@ -351,6 +443,104 @@ export function RequestsTab() {
   );
 }
 
+
+/* ──────────────────────── Kanban view ──────────────────────── */
+function KanbanView({
+  dossiers, onMove, onOpen,
+}: {
+  dossiers: Dossier[];
+  onMove: (id: string, status: DossierStatus) => void;
+  onOpen: (id: string) => void;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<DossierStatus, Dossier[]>();
+    KANBAN_COLUMNS.forEach(c => map.set(c.id, []));
+    for (const d of dossiers) {
+      // Bucket CUSTOMS into IN_TRANSIT, PROCURED into SOURCING, CLOSED into DELIVERED
+      const bucket: DossierStatus =
+        d.status === 'CUSTOMS' ? 'IN_TRANSIT'
+        : d.status === 'PROCURED' ? 'SOURCING'
+        : d.status === 'CLOSED' ? 'DELIVERED'
+        : d.status;
+      if (!map.has(bucket)) map.set(bucket, []);
+      map.get(bucket)!.push(d);
+    }
+    return map;
+  }, [dossiers]);
+
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [hover, setHover] = useState<DossierStatus | null>(null);
+
+  return (
+    <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto pb-2">
+      {KANBAN_COLUMNS.map(col => {
+        const items = grouped.get(col.id) ?? [];
+        const isHover = hover === col.id;
+        return (
+          <div
+            key={col.id}
+            onDragOver={(e) => { e.preventDefault(); setHover(col.id); }}
+            onDragLeave={() => setHover(prev => (prev === col.id ? null : prev))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setHover(null);
+              if (dragging) {
+                const d = dossiers.find(x => x.id === dragging);
+                if (d && d.status !== col.id) onMove(dragging, col.id);
+              }
+              setDragging(null);
+            }}
+            className={cn(
+              'rounded-xl border bg-card flex flex-col min-h-[160px]',
+              isHover ? 'border-[#F5C518]/60 bg-[#F5C518]/5' : 'border-border',
+            )}
+          >
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <div className="text-xs font-semibold text-foreground">{col.label}</div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{items.length}</span>
+            </div>
+            <div className="p-2 space-y-1.5 flex-1">
+              {items.length === 0 && (
+                <div className="text-[11px] text-muted-foreground text-center py-6 italic">
+                  Vide
+                </div>
+              )}
+              {items.map(d => (
+                <div
+                  key={d.id}
+                  draggable
+                  onDragStart={() => setDragging(d.id)}
+                  onDragEnd={() => { setDragging(null); setHover(null); }}
+                  onDoubleClick={() => onOpen(d.id)}
+                  className={cn(
+                    'rounded-md border border-border bg-background px-2.5 py-2 cursor-grab active:cursor-grabbing text-xs space-y-1 hover:border-[#F5C518]/40 transition-colors',
+                    dragging === d.id && 'opacity-50',
+                  )}
+                  title="Glisser pour changer de statut · double-clic pour ouvrir"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] text-muted-foreground truncate">{d.reference}</span>
+                    <span className="text-sm">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
+                  </div>
+                  <div className="text-foreground line-clamp-2 leading-snug">{d.product_description}</div>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{d.origin_country} → {d.destination_country}</span>
+                    {d.business_id && (
+                      <span className="inline-flex items-center gap-0.5 text-primary">
+                        <Building2 className="w-2.5 h-2.5" />B2B
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Info({
   icon: Icon, label, children,
 }: { icon: typeof Inbox; label: string; children: React.ReactNode }) {
@@ -363,3 +553,4 @@ function Info({
     </div>
   );
 }
+
