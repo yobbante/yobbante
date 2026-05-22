@@ -476,6 +476,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         origin_country: originCity.country as WarehouseCountry,
         destination_country: destCity.country,
         app_source: 'expedier',
+        needs_sourcing: false,
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,

@@ -536,6 +536,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
         destination_country: destination ?? 'SN',
         budget_eur: totalValue || null,
         app_source: 'recevoir',
+        needs_sourcing: false,
         notes: [
           'Type: Réception (commande déjà passée)',
           `Hub: ${hub ? COUNTRY_NAME(hub) : 'À définir'}`,

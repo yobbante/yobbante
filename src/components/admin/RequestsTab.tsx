@@ -30,8 +30,10 @@ const TYPE_FILTERS = [
 type TypeFilter = typeof TYPE_FILTERS[number]['id'];
 
 function getKind(d: Dossier): TypeFilter {
-  if (d.needs_sourcing) return 'sourcing';
+  // app_source is authoritative — it's set explicitly by each flow.
   if (d.app_source === 'expedier') return 'send';
+  if (d.app_source === 'recevoir') return 'receive';
+  if (d.needs_sourcing) return 'sourcing';
   return 'receive';
 }
 
