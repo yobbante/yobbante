@@ -791,6 +791,15 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
   const hasPoidsKeyword = /\b(poids|pese|weight|fait\s+\d|pesant)\b/.test(msg);
   const hasLivreKeyword = /\b(livr|delivered|remis|depose|livraison)\b/.test(msg);
+  const hasEnRouteKeyword = /\b(en\s*route|enroute|departe|je\s+pars|on\s+part)\b/.test(msg);
+
+  // ---------- EN ROUTE ----------
+  if (hasEnRouteKeyword) {
+    return await handleEnRoute(rawMsg, {});
+  }
+  if (sessionActive && session!.pending_intent === 'enroute') {
+    return await handleEnRoute(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
+  }
 
   // ---------- DEP : enregistrer un départ ----------
   if (hasDepKeyword || (!sessionActive && /\d{1,2}[\/.\-]\d{1,2}/.test(rawMsg) && /\d+\s*kg/i.test(rawMsg))) {
