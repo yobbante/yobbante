@@ -17,6 +17,7 @@ import { MessagesTab } from '@/components/admin/MessagesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesTab } from '@/components/admin/FinancesTab';
+import { RevenusTab } from '@/components/admin/RevenusTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
