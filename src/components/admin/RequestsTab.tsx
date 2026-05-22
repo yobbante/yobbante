@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Search, ChevronRight, Inbox, ExternalLink, Mail, Phone,
-  Weight, Wallet, Calendar, MapPin, Building2,
+  Weight, Wallet, Calendar, MapPin, Building2, LayoutGrid, List as ListIcon,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,9 +28,9 @@ const TYPE_FILTERS = [
 ] as const;
 
 type TypeFilter = typeof TYPE_FILTERS[number]['id'];
+type ViewMode = 'list' | 'kanban';
 
 function getKind(d: Dossier): TypeFilter {
-  // app_source is authoritative — it's set explicitly by each flow / l'intake manuel.
   if (d.app_source === 'expedier') return 'send';
   if (d.app_source === 'recevoir') return 'receive';
   if (d.app_source === 'sourcing' || d.needs_sourcing) return 'sourcing';
@@ -57,11 +57,22 @@ const STATUS_TONE: Partial<Record<DossierStatus, string>> = {
 
 const PAGE_SIZE = 50;
 
+// Kanban swimlanes (collapsed view of the dossier lifecycle)
+const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
+  { id: 'SUBMITTED',  label: DOSSIER_STATUS_LABELS.SUBMITTED },
+  { id: 'IN_REVIEW',  label: DOSSIER_STATUS_LABELS.IN_REVIEW },
+  { id: 'SOURCING',   label: DOSSIER_STATUS_LABELS.SOURCING },
+  { id: 'IN_TRANSIT', label: DOSSIER_STATUS_LABELS.IN_TRANSIT },
+  { id: 'DELIVERED',  label: DOSSIER_STATUS_LABELS.DELIVERED },
+];
+
 export function RequestsTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<Set<DossierStatus>>(new Set());
+  const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Open + scroll to a row from dashboard "Activité récente" deep-link
@@ -69,6 +80,7 @@ export function RequestsTab() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { service?: string; id?: string };
       if (detail?.service !== 'expedier' || !detail.id) return;
+      setView('list');
       setExpandedId(detail.id);
       setTimeout(() => {
         const el = document.querySelector(`[data-dossier-id="${detail.id}"]`);
@@ -94,6 +106,7 @@ export function RequestsTab() {
       return (data || []) as Dossier[];
     },
   });
+
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DossierStatus }) => {
