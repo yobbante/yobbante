@@ -573,6 +573,14 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
 
   /* ── Success screen ── */
   if (reference) {
+    const originLabel = hub ? COUNTRY_NAME(hub) : 'votre pays d\'origine';
+    const nextSteps = [
+      { icon: <CheckCircle2 className="w-4 h-4" />, title: 'Confirmation de votre demande', desc: 'Notre équipe valide les informations et active le suivi.', eta: 'Sous 2 h', active: true },
+      { icon: <Inbox className="w-4 h-4" />,        title: `Réception au hub ${originLabel}`, desc: 'Vos colis arrivent à notre entrepôt et sont enregistrés.', eta: 'Variable' },
+      { icon: <Truck className="w-4 h-4" />,         title: 'Transport vers Dakar', desc: 'Acheminement groupé vers le Sénégal, suivi en temps réel.', eta: '5-15 jours' },
+      { icon: <Package className="w-4 h-4" />,       title: 'Arrivée hub Dakar', desc: 'Vos colis sont triés et préparés pour la livraison locale.', eta: '24-48 h' },
+      { icon: <MapPin className="w-4 h-4" />,        title: 'Livraison à votre adresse Dakar', desc: 'Un coursier vous remet votre commande sur RDV.', eta: 'Sur RDV' },
+    ];
     return (
       <FlowShell theme="dark" compactHeader={compactHeader}>
         <FlowSuccess
@@ -581,6 +589,35 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           subtitle="Nous vous notifions à chaque étape : achat, en route, reçu au hub, expédié, livré."
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
+        <section className="mt-6 mb-20 rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold tracking-tight">Prochaines étapes</h3>
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Suivi en direct</span>
+          </div>
+          <ol className="space-y-0">
+            {nextSteps.map((s, i) => (
+              <li key={i} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                    s.active
+                      ? 'bg-primary text-primary-foreground border-primary ring-4 ring-primary/15'
+                      : 'bg-secondary text-muted-foreground border-border'
+                  }`}>
+                    {s.icon}
+                  </div>
+                  {i < nextSteps.length - 1 && <div className="w-px flex-1 min-h-[24px] bg-border my-1" />}
+                </div>
+                <div className={`flex-1 pb-5 ${s.active ? '' : 'opacity-90'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                    <span className="text-[11px] font-medium text-muted-foreground bg-secondary border border-border rounded-full px-2 py-0.5 whitespace-nowrap">{s.eta}</span>
+                  </div>
+                  <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground leading-relaxed">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
       </FlowShell>
     );
   }
