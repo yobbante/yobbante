@@ -784,6 +784,13 @@ export type Database = {
           currency: string | null
           declared_value: number | null
           delivered_at: string | null
+          delivery_appointment: string | null
+          delivery_carrier: string | null
+          delivery_confirmed_by_client: boolean
+          delivery_cost_xof: number | null
+          delivery_mode: string
+          delivery_notified_at: string | null
+          delivery_reminder_count: number
           dernier_km_adresse: string | null
           dernier_km_carrier: string | null
           dernier_km_label_url: string | null
@@ -840,6 +847,8 @@ export type Database = {
           recipient_name: string | null
           recipient_phone: string | null
           reference: string
+          relay_point_address: string | null
+          relay_point_name: string | null
           reminder_count: number
           reminder_sent_at: string | null
           sender_address: string | null
@@ -886,6 +895,13 @@ export type Database = {
           currency?: string | null
           declared_value?: number | null
           delivered_at?: string | null
+          delivery_appointment?: string | null
+          delivery_carrier?: string | null
+          delivery_confirmed_by_client?: boolean
+          delivery_cost_xof?: number | null
+          delivery_mode?: string
+          delivery_notified_at?: string | null
+          delivery_reminder_count?: number
           dernier_km_adresse?: string | null
           dernier_km_carrier?: string | null
           dernier_km_label_url?: string | null
@@ -942,6 +958,8 @@ export type Database = {
           recipient_name?: string | null
           recipient_phone?: string | null
           reference?: string
+          relay_point_address?: string | null
+          relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
           sender_address?: string | null
@@ -988,6 +1006,13 @@ export type Database = {
           currency?: string | null
           declared_value?: number | null
           delivered_at?: string | null
+          delivery_appointment?: string | null
+          delivery_carrier?: string | null
+          delivery_confirmed_by_client?: boolean
+          delivery_cost_xof?: number | null
+          delivery_mode?: string
+          delivery_notified_at?: string | null
+          delivery_reminder_count?: number
           dernier_km_adresse?: string | null
           dernier_km_carrier?: string | null
           dernier_km_label_url?: string | null
@@ -1044,6 +1069,8 @@ export type Database = {
           recipient_name?: string | null
           recipient_phone?: string | null
           reference?: string
+          relay_point_address?: string | null
+          relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
           sender_address?: string | null

@@ -14,6 +14,11 @@ export interface CreateDossierInput {
   notes?: string | null;
   estimated_cost?: number | null;
   app_source?: string;
+  delivery_mode?: 'pickup_gp' | 'relay_point' | 'home_delivery';
+  relay_point_name?: string | null;
+  relay_point_address?: string | null;
+  delivery_carrier?: string | null;
+  delivery_cost_xof?: number | null;
 }
 
 export function useDossiers() {
@@ -51,6 +56,11 @@ export function useDossiers() {
           notes: input.notes ?? null,
           estimated_cost: input.estimated_cost ?? null,
           ...(input.app_source ? { app_source: input.app_source } : {}),
+          ...(input.delivery_mode ? { delivery_mode: input.delivery_mode } : {}),
+          ...(input.relay_point_name !== undefined ? { relay_point_name: input.relay_point_name } : {}),
+          ...(input.relay_point_address !== undefined ? { relay_point_address: input.relay_point_address } : {}),
+          ...(input.delivery_carrier !== undefined ? { delivery_carrier: input.delivery_carrier } : {}),
+          ...(input.delivery_cost_xof !== undefined ? { delivery_cost_xof: input.delivery_cost_xof } : {}),
         })
         .select()
         .single();
