@@ -819,8 +819,50 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg);
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
   const hasPoidsKeyword = /\b(poids|pese|weight|fait\s+\d|pesant)\b/.test(msg);
-  const hasLivreKeyword = /\b(livr|delivered|remis|depose|livraison)\b/.test(msg);
+  const hasLivreKeyword = /\b(livr|delivered|remis|livraison)\b/.test(msg);
+  const hasDeposeKeyword = /\b(depose|depot|deposer|relais)\b/.test(msg);
   const hasEnRouteKeyword = /\b(en\s*route|enroute|departe|je\s+pars|on\s+part)\b/.test(msg);
+
+  // ---------- DEPOSE (point relais) ----------
+  if (hasDeposeKeyword) {
+    const tracking = parseTracking(rawMsg);
+    if (!tracking) {
+      await reply(`Indiquez le numero de suivi.
+Exemple : DEPOSE YOB-K7M9P2`, 'depose_ask_tracking');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const { data: dossier } = await supa
+      .from('dossiers')
+      .select('id, assigned_transporteur_ref, tracking_id, relay_point_name, relay_point_address, recipient_phone, contact_phone')
+      .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
+      .maybeSingle();
+    if (!dossier) {
+      await reply(`Tracking ${tracking} non trouve.`, 'depose_notfound');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (dossier.assigned_transporteur_ref !== transporteur.reference) {
+      await reply(`Ce dossier ne vous est pas assigne.`, 'depose_unauthorized');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    await supa.from('dossier_events').insert({
+      dossier_id: dossier.id,
+      event_type: 'relay_deposit',
+      event_data: { relay_name: dossier.relay_point_name, relay_address: dossier.relay_point_address },
+      visible_to_client: true,
+    });
+    await bumpGpActivity(dossier.id);
+    const clientPhone = dossier.recipient_phone || dossier.contact_phone;
+    if (clientPhone) {
+      await notifyClientFromYobbante(clientPhone,
+        `Votre colis ${dossier.tracking_id} a ete depose au point relais ${dossier.relay_point_name || ''}.
+Recuperez-le sous 5 jours.`,
+        dossier.id);
+    }
+    await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a depose ${dossier.tracking_id} au point relais.`);
+    await reply(`Depot confirme pour ${dossier.tracking_id}. Le client est notifie.`, 'depose_ok');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
 
   // ---------- EN ROUTE ----------
   if (hasEnRouteKeyword) {
