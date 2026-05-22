@@ -189,11 +189,8 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
   }, [data]);
 
   const openActivity = (row: { service: 'expedier' | 'sourcing' | 'reception'; rawId: string }) => {
-    const target: AdminSection =
-      row.service === 'sourcing' ? 'sourcing'
-      : row.service === 'reception' ? 'reception'
-      : 'requests';
-    onJump(target);
+    // All dossier types now live under the unified Dossiers hub.
+    onJump('dossiers');
     // dispatch on next tick so target tab is mounted and listening
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('admin:focus', { detail: { service: row.service, id: row.rawId } }));
