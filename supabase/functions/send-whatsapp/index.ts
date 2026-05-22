@@ -31,6 +31,11 @@ function normalizePhone(input: string): string {
   return (input || '').toString().replace(/\D/g, '');
 }
 
+function hasRealClientName(input?: string | null): boolean {
+  const value = (input || '').trim();
+  return value.length > 0 && value.toUpperCase() !== 'N/A';
+}
+
 function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromNumber?: string } {
   if (recipientType === 'gp') {
     return {
@@ -93,6 +98,14 @@ Deno.serve(async (req) => {
   if (!recipient || recipient.length < 6) {
     return new Response(JSON.stringify({ error: 'recipient_phone is required' }), {
       status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (recipientType === 'admin' && !body.message && !hasRealClientName(body.client_name)) {
+    console.log('WA_SKIP admin notification without real client name');
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'missing_client_name' }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
