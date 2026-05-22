@@ -1,64 +1,123 @@
-# Lien sécurisé de modification client/GP
+## Modes de livraison finale — 3 options client
 
-Système permettant aux clients et transporteurs de corriger leurs infos via un lien unique à usage limité (24h).
+Système permettant au client de choisir comment recevoir son colis à l'arrivée : récupération chez le GP (par défaut, gratuit), livraison à un point relais, ou livraison à domicile (carrier ou livreur Yobbanté).
 
-## 1. Base de données
+---
 
-Migration créant :
+### 1. Base de données
 
-- **Table `edit_tokens`** : token unique (32 bytes hex), entity_type (`dossier_client` / `dossier_destinataire` / `transporteur` / `client`), entity_id, fields_allowed (TEXT[]), used_at, expires_at (défaut +24h), created_by.
-- **RLS** : 
-  - Lecture publique d'un token valide via RPC `get_edit_token(token)` (SECURITY DEFINER) — retourne entity_type, entity_id, fields_allowed, valeurs actuelles, tracking_id si dossier.
-  - Application de la modification via RPC `apply_edit_token(token, payload jsonb)` (SECURITY DEFINER) qui :
-    - Vérifie validité du token
-    - Filtre payload aux champs autorisés
-    - Met à jour la table cible
-    - Marque `used_at = now()`
-    - INSERT dans `dossier_events` (ou log équivalent pour transporteur) avec `old → new`
-    - Déclenche un appel HTTP à la fonction `notify-admin-edit` pour WhatsApp admin
-  - Seuls admins/staff peuvent INSERT directement dans `edit_tokens`.
+**Migration** — ajout de colonnes à `dossiers` :
+- `delivery_mode TEXT DEFAULT 'pickup_gp'` avec CHECK (`pickup_gp` | `relay_point` | `home_delivery`)
+- `relay_point_address TEXT`
+- `relay_point_name TEXT`
+- `delivery_appointment TIMESTAMPTZ`
+- `delivery_confirmed_by_client BOOLEAN DEFAULT false`
+- `delivery_carrier TEXT` (DHL/FedEx/Yobbante quand `home_delivery`)
+- `delivery_cost_xof INT` (frais calculés)
+- `delivery_notified_at TIMESTAMPTZ` (anti-spam relances)
+- `delivery_reminder_count INT DEFAULT 0`
 
-## 2. Page publique `/modifier/:token`
+Index sur `(status, delivery_mode, delivery_notified_at)` pour les crons de relance.
 
-- Route ajoutée dans `App.tsx` (publique, hors auth).
-- Composant `PublicEditPage.tsx` :
-  - Appel RPC `get_edit_token`
-  - Si invalide → écran "Lien expiré ou invalide. Contactez-nous : +221 78 607 80 80"
-  - Si valide → formulaire dynamique (uniquement les champs autorisés, pré-remplis)
-  - Submit → RPC `apply_edit_token` → toast succès + écran de confirmation
-- Design : dark Yobbante + accent `#F5C518`, logo en header, titre + tracking_id, responsive mobile.
+---
 
-## 3. Edge function `notify-admin-edit`
+### 2. Formulaire client — `SendFlow.tsx`
 
-- Appelée par la RPC après modification
-- Envoie WhatsApp via `send-whatsapp` (numéro 607) au `+221 78 460 40 03` avec récap des changements
-- Logue dans `whatsapp_outbound_messages` (trigger_type = `edit_notification`)
+Nouvelle section **"Mode de réception"** dans l'étape Destinataire :
 
-## 4. Génération de lien depuis admin
+```text
+◉ Recuperer chez notre partenaire (GP)
+    Gratuit — adresse communiquee a l'arrivee
 
-- **`OrderDetailDrawer`** : bouton "Envoyer lien de modification" → dialog avec checkboxes (Infos expéditeur / destinataire / date collecte / adresse livraison) → crée token via insert → envoie WhatsApp 607 au client avec `yobbante.com/modifier/{token}`.
-- **Fiche transporteur** (`TransporteurDetailDrawer` ou équivalent) : même bouton avec champs transporteur (`telephone_1`, `adresse_collecte_dakar`, `adresses_remise`).
+○ Livraison a un point relais
+    Frais selon distance
+    └─ [Nom du point relais]
+    └─ [Adresse complete du point relais]
 
-## 5. Commande bot `MODIFIER`
+○ Livraison a domicile
+    └─ Affiche tarifs carriers (DHL/FedEx/Yobbante)
+       via edge function get-shipping-rates
+```
 
-- **`bot-client/index.ts`** : intercepte "MODIFIER" → crée token `dossier_client` pour le dernier dossier actif du client (via téléphone) → envoie lien + menu court.
-- **`gp-bot/index.ts`** : intercepte "MODIFIER" → crée token `transporteur` pour le GP courant → envoie lien.
+Sauvegarde dans `dossier_draft` puis flush vers `dossiers` à la création.
 
-## 6. Audit des modifications admin
+---
 
-- Vérifier que `OrderDetailDrawer` logue déjà les modifications de champs dans `dossier_events` (status, transporteur). Étendre pour : `contact_phone`, `pickup_address`, `actual_weight_kg`, `notes` (event_type = `field_edited`, event_data = `{field, old, new, edited_by}`).
+### 3. Comportement à l'arrivée — `status = ARRIVED_HUB`
 
-## Contraintes respectées
+Nouveau trigger `trg_dossier_delivery_dispatch` (AFTER UPDATE) qui appelle l'edge function **`delivery-dispatch`** :
 
-- Token usage unique (used_at) + TTL 24h
-- Champs strictement filtrés côté serveur (RPC)
-- Toute modification → notification admin + event log
-- Textes français, design dark Yobbante + #F5C518
-- Page mobile-first
+| Mode | Action |
+|------|--------|
+| `pickup_gp` | WhatsApp 607 → client avec coordonnées GP (nom, tel, adresse remise) |
+| `relay_point` | WhatsApp 122 → GP : "Livrez au point relais {adresse}, repondez DEPOSE {tracking}". WhatsApp 607 → client : "Colis arrive au point relais, retirez sous 5 jours". |
+| `home_delivery` | Si carrier externe → générer label + notifier. Si livreur Yobbante → créer `delivery_missions` + bot livreur (V2, hors scope ici, log événement). |
 
-## Détails techniques
+Nouvelle commande GP : **`DEPOSE {tracking}`** → `status = DELIVERED_RELAY`, event `relay_deposit`, notif client.
 
-- RPC `get_edit_token` et `apply_edit_token` en SECURITY DEFINER avec `search_path = public`.
-- Numéro admin stocké côté fonction (constante `ADMIN_PHONE`).
-- Pas de wa.me — tout passe par `send-whatsapp` (607).
-- Les anciennes valeurs sont capturées dans la RPC avant UPDATE pour produire le diff.
+---
+
+### 4. Relances automatiques — `cron-delivery-reminders`
+
+Nouvelle edge function appelée toutes les heures (`pg_cron`) :
+
+| Mode | T+48h | T+5j | T+7j |
+|------|-------|------|------|
+| `pickup_gp` | Rappel client "N'oubliez pas de recuperer chez {gp}" | — | Alerte admin |
+| `relay_point` | — | "Dernier rappel : retrait expire dans 2 jours" | Alerte admin |
+| `home_delivery` | Suivi carrier (out of scope manuel) | — | — |
+
+Anti-spam : `delivery_notified_at` + `delivery_reminder_count ≤ 3`.
+
+---
+
+### 5. UI Admin — `OrderDetailDrawer.tsx`
+
+Nouveau panneau **"Livraison finale"** affiché quand `status` ≥ `ARRIVED_HUB` :
+
+```text
+┌─ Livraison finale ───────────────────┐
+│ Mode    : Recuperation chez le GP    │
+│ Adresse : {gp.adresse_remise}        │
+│ Statut  : En attente de retrait      │
+│                                      │
+│ [Notifier le client]                 │
+│ [Contacter le GP]                    │
+│ [Marquer comme recupere]  ← DELIVERED│
+└──────────────────────────────────────┘
+```
+
+- Boutons contextuels selon `delivery_mode`
+- "Marquer comme recupere" → `status = DELIVERED` + `delivery_confirmed_by_client = true` + event
+- Tous textes français, accents OK côté UI admin (mais sans accents dans les messages bot)
+
+---
+
+### 6. Logging
+
+Événements `dossier_events` ajoutés :
+- `delivery_mode_chosen` (création dossier)
+- `delivery_dispatch_sent` (notif initiale)
+- `delivery_reminder_sent` (chaque relance, avec `reminder_index`)
+- `relay_deposit` (GP a déposé au relais)
+- `delivery_completed` (client confirme ou admin marque récupéré)
+
+---
+
+### Contraintes respectées
+
+- Default `pickup_gp` (gratuit, comportement actuel inchangé)
+- Tarifs domicile via `get-shipping-rates` existant
+- Tous événements loggés
+- Messages bot **sans accents**, UI admin en français
+- Design dark Yobbante + `#F5C518`
+- Pas de régression : dossiers existants tombent en `pickup_gp` par défaut
+
+---
+
+### Hors scope (à confirmer)
+
+- Bot livreur Yobbanté complet (mode `home_delivery` interne) → V2, on logge juste l'événement
+- Génération automatique label DHL/FedEx → on prépare le hook mais l'intégration carrier reste manuelle
+
+Dis-moi si tu valides ; j'enchaîne la migration puis le code (SendFlow, edge functions, drawer admin, cron).
