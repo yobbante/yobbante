@@ -58,11 +58,27 @@ const MAIN_MENU = `Bonjour ! Je suis l assistant Yobbante.
 4 - Obtenir un devis
 5 - Parler a un agent`;
 
-const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|allo|coucou)\b/;
+const SHORT_MENU = `Tapez 1-Departs 2-Suivi 3-Expedition 4-Devis 5-Agent`;
 
-const FALLBACK = `Je n ai pas compris.
+const SESSION_EXPIRED = `Votre session a expire.
 
-Tapez AIDE ou appelez le ${BOT_PHONE_DISPLAY}`;
+1 - Prochains departs
+2 - Suivre mon colis
+3 - Nouvelle expedition
+4 - Obtenir un devis
+5 - Parler a un agent`;
+
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/;
+
+const FALLBACK = `Je n ai pas compris.`;
+
+// Append short menu after info replies, full menu after errors/fallback
+function withShortMenu(reply: string): string {
+  return `${reply}\n\n${SHORT_MENU}`;
+}
+function withFullMenu(reply: string): string {
+  return `${reply}\n\nQue souhaitez-vous faire ?\n1 - Prochains departs\n2 - Suivre mon colis\n3 - Nouvelle expedition\n4 - Obtenir un devis\n5 - Parler a un agent`;
+}
 
 async function sendWa(supa: any, phone: string, message: string, trigger: string) {
   try {
@@ -84,7 +100,7 @@ async function sendWa(supa: any, phone: string, message: string, trigger: string
   }
 }
 
-async function getSession(supa: any, phone: string) {
+async function getSession(supa: any, phone: string): Promise<{ session: any; expired: boolean }> {
   const { data } = await supa
     .from('client_bot_sessions')
     .select('*')
@@ -92,13 +108,13 @@ async function getSession(supa: any, phone: string) {
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!data) return null;
-  // Timeout
+  if (!data) return { session: null, expired: false };
   const age = Date.now() - new Date(data.updated_at).getTime();
   if (age > SESSION_TIMEOUT_MS) {
-    return { ...data, pending_intent: null, pending_data: {} };
+    const hadIntent = !!data.pending_intent;
+    return { session: { ...data, pending_intent: null, pending_data: {} }, expired: hadIntent };
   }
-  return data;
+  return { session: data, expired: false };
 }
 
 async function saveSession(
@@ -156,8 +172,7 @@ function parseReserver(msg: string): { ref: string; weight: number } | null {
   return { ref: m[1].toUpperCase(), weight: w };
 }
 
-async function handleReserver(supa: any, phone: string, name: string | null, ref: string, weight: number) {
-  // Find departure by short_ref OR transporteur_ref
+async function handleReserver(supa: any, phone: string, _name: string | null, ref: string, weight: number) {
   const { data: dep } = await supa
     .from('manual_departures')
     .select('id,short_ref,transporteur_ref,departure_date,origin_city,destination_city,available_capacity_kg')
@@ -193,7 +208,6 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
 }
 
 async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise<string> {
-  // Map common dest names to ISO
   const destLower = norm(dest);
   let destCountry = 'FR';
   if (destLower.includes('paris') || destLower.includes('france')) destCountry = 'FR';
@@ -205,29 +219,14 @@ async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise
   try {
     const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pricing-calculate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      },
-      body: JSON.stringify({
-        destination_country: destCountry,
-        real_weight_kg: weight,
-        transport_mode: 'air',
-      }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ destination_country: destCountry, real_weight_kg: weight, transport_mode: 'air' }),
     });
     const air = await res.json().catch(() => null);
-
     const res2 = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pricing-calculate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      },
-      body: JSON.stringify({
-        destination_country: destCountry,
-        real_weight_kg: weight,
-        transport_mode: 'sea_lcl',
-      }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ destination_country: destCountry, real_weight_kg: weight, transport_mode: 'sea_lcl' }),
     });
     const sea = await res2.json().catch(() => null);
 
@@ -237,12 +236,49 @@ async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise
     if (airPrice) body += `Aerien : ${airPrice.toLocaleString('fr-FR')} XOF (3-7 jours)\n`;
     if (seaPrice) body += `Maritime : ${seaPrice.toLocaleString('fr-FR')} XOF (25-30 jours)\n`;
     if (!airPrice && !seaPrice) body += `Nous recherchons la meilleure option. Un agent vous contactera.\n`;
-    body += `\nPour reserver : yobbante.com\nou repondez OUI`;
+    body += `\nPour reserver : yobbante.com`;
     return body;
   } catch (e) {
     console.error('BOT_CLIENT pricing err', e);
     return `Estimation indisponible pour le moment.\nUn agent vous contactera.`;
   }
+}
+
+// Handle a top-level menu choice (1-5). Returns the reply.
+async function handleMenuChoice(
+  supa: any,
+  phone: string,
+  fromName: string | null,
+  choice: string,
+  lastMsg: string,
+): Promise<string> {
+  if (choice === '1') {
+    const r = await handleMenu1Departures(supa);
+    await saveSession(supa, phone, null, {});
+    return withShortMenu(r);
+  }
+  if (choice === '2') {
+    await saveSession(supa, phone, 'await_tracking', {});
+    return `Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`;
+  }
+  if (choice === '3') {
+    await saveSession(supa, phone, 'ship_origin', {});
+    return `D ou part votre colis ?`;
+  }
+  if (choice === '4') {
+    await saveSession(supa, phone, 'quote_origin', {});
+    return `Origine ?`;
+  }
+  // 5
+  const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+  await saveSession(supa, phone, null, {}, pauseUntil);
+  await sendWa(
+    supa,
+    ADMIN_PHONE,
+    `Client ${fromName ?? phone} (${phone}) demande un agent.\nDernier message : "${lastMsg.slice(0, 200)}"`,
+    'agent_handoff',
+  );
+  return `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
 }
 
 Deno.serve(async (req) => {
@@ -269,12 +305,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const session = await getSession(supa, phone);
+    const { session, expired } = await getSession(supa, phone);
 
-    // Bot paused?
     if (session?.bot_paused_until && new Date(session.bot_paused_until) > new Date()) {
       console.log('BOT_CLIENT paused for', phone);
       return new Response(JSON.stringify({ ok: true, paused: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Session expired notice (only when there was a pending flow)
+    if (expired) {
+      await saveSession(supa, phone, null, {});
+      await sendWa(supa, phone, SESSION_EXPIRED, 'bot_client_session_expired');
+      return new Response(JSON.stringify({ ok: true, expired: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let intent = session?.pending_intent ?? null;
@@ -282,13 +324,26 @@ Deno.serve(async (req) => {
 
     let reply = '';
 
+    // PRIORITY 1: greetings / menu triggers always reset session
     if (MENU_TRIGGERS.test(nMsg)) {
       await saveSession(supa, phone, null, {});
-      intent = null;
-      data = {};
       reply = MAIN_MENU;
     }
-    // ============ Continuing flows ============
+    // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
+    else if (/^[1-5]$/.test(nMsg)) {
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
+    }
+    // PRIORITY 3: explicit RESERVER command
+    else if (/^reserver\s/.test(nMsg)) {
+      const p = parseReserver(msg);
+      if (!p) {
+        reply = withFullMenu(`Format: RESERVER {ref} {poids}kg\nEx: RESERVER 5508 3kg`);
+      } else {
+        const r = await handleReserver(supa, phone, input.from_name ?? null, p.ref, p.weight);
+        reply = r.startsWith('Super') ? r : withFullMenu(r);
+      }
+    }
+    // PRIORITY 4: continuing flows
     else if (intent === 'reserve_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'reserve_address', data);
@@ -321,11 +376,11 @@ Deno.serve(async (req) => {
 
       if (error || !dossier) {
         console.error('BOT_CLIENT create reserve dossier err', error?.message);
-        reply = `Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`;
+        reply = withFullMenu(`Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`);
       } else {
         const trk = dossier.tracking_id || dossier.reference;
         await saveSession(supa, phone, null, {});
-        reply = `Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbante !`;
+        reply = withShortMenu(`Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbante !`);
       }
     }
     // ---- Quote flow ----
@@ -342,8 +397,9 @@ Deno.serve(async (req) => {
       if (!w || w <= 0) {
         reply = `Poids invalide. Indiquez en kg (ex: 5)`;
       } else {
-        reply = await handleQuoteCalc(supa, data.dest, w);
+        const r = await handleQuoteCalc(supa, data.dest, w);
         await saveSession(supa, phone, null, {});
+        reply = withShortMenu(r);
       }
     }
     // ---- Shipment flow ----
@@ -396,56 +452,29 @@ Deno.serve(async (req) => {
 
         if (!dossier || error) {
           console.error('BOT_CLIENT create ship dossier err', error?.message);
-          reply = `Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`;
+          reply = withFullMenu(`Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`);
         } else {
           const trk = dossier.tracking_id || dossier.reference || '';
-          reply = `${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`;
           await saveSession(supa, phone, null, {});
+          reply = withShortMenu(`${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`);
         }
       }
     }
     // ---- Tracking flow ----
     else if (intent === 'await_tracking' && msg) {
-      reply = await handleTrackingLookup(supa, msg);
+      const r = await handleTrackingLookup(supa, msg);
       await saveSession(supa, phone, null, {});
+      reply = withShortMenu(r);
     }
-    // ============ Direct commands ============
-    else if (/^reserver\s/.test(nMsg)) {
-      const p = parseReserver(msg);
-      if (!p) {
-        reply = `Format: RESERVER {ref} {poids}kg\nEx: RESERVER 5508 3kg`;
-      } else {
-        reply = await handleReserver(supa, phone, input.from_name ?? null, p.ref, p.weight);
-      }
-    } else if (nMsg === '1') {
-      reply = await handleMenu1Departures(supa);
-    } else if (nMsg === '2') {
-      await saveSession(supa, phone, 'await_tracking', {});
-      reply = `Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`;
-    } else if (nMsg === '3') {
-      await saveSession(supa, phone, 'ship_origin', {});
-      reply = `D ou part votre colis ?`;
-    } else if (nMsg === '4') {
-      await saveSession(supa, phone, 'quote_origin', {});
-      reply = `Origine ?`;
-    } else if (nMsg === '5') {
-      const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-      await saveSession(supa, phone, null, {}, pauseUntil);
-      // Notify admin
-      await sendWa(
-        supa,
-        ADMIN_PHONE,
-        `Client ${input.from_name ?? phone} (${phone}) demande un agent.\nDernier message : "${msg.slice(0, 200)}"`,
-        'agent_handoff',
-      );
-      reply = `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
+    // ---- Direct tracking number outside flow ----
+    else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
+      const r = await handleTrackingLookup(supa, msg);
+      reply = withShortMenu(r);
     } else if (!nMsg) {
       reply = MAIN_MENU;
-    } else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
-      // Direct tracking number
-      reply = await handleTrackingLookup(supa, msg);
     } else {
-      reply = `${FALLBACK}\n\n${MAIN_MENU}`;
+      // Unrecognized → full menu
+      reply = withFullMenu(FALLBACK);
     }
 
     if (reply) {
@@ -454,7 +483,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('BOT_CLIENT error', e instanceof Error ? e.message : String(e));
     try {
-      await sendWa(supa, phone, FALLBACK, 'bot_client_error');
+      await sendWa(supa, phone, withFullMenu(FALLBACK), 'bot_client_error');
     } catch {}
   }
 
