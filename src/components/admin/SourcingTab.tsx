@@ -75,7 +75,7 @@ export function SourcingTab() {
       const { data, error } = await supabase
         .from('dossiers')
         .select('*')
-        .eq('needs_sourcing', true)
+        .or('needs_sourcing.eq.true,app_source.eq.sourcing')
         .not('app_source', 'in', '("expedier","recevoir")')
         .order('created_at', { ascending: false });
       if (error) throw error;
