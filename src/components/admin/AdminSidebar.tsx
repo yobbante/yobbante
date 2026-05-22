@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search, MessageCircle, Wallet } from 'lucide-react';
+import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search, MessageCircle, Wallet, Bike } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
@@ -23,6 +23,7 @@ export type AdminSection =
   | 'enterprise'
   | 'manual-quotes'
   | 'gp-operations'
+  | 'livreurs'
   | 'finances'
   | 'settings';
 
@@ -70,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'departures',   label: 'Départs manuels', icon: Plane,  live: true },
       { id: 'departs-semaine' as any, label: 'Départs de la semaine', icon: Plane, live: true },
       { id: 'transporteurs',label: 'Transporteurs',   icon: UserCog,live: true, adminOnly: true },
+      { id: 'livreurs',     label: 'Livreurs Dakar',  icon: Bike,   live: true, adminOnly: true },
       { id: 'gp-operations',label: 'Operations GP',   icon: Truck,  live: true, adminOnly: true },
     ],
   },

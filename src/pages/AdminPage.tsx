@@ -20,6 +20,7 @@ import { ShipmentsWorkflowTab } from '@/components/admin/ShipmentsWorkflowTab';
 import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
 import { TransporteursTab } from '@/components/admin/TransporteursTab';
 import { GpOperationsTab } from '@/components/admin/GpOperationsTab';
+import { LivreursTab } from '@/components/admin/LivreursTab';
 import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { ManualQuotesTab } from '@/components/admin/ManualQuotesTab';
@@ -197,6 +198,7 @@ export default function AdminPage() {
               {section === 'departures' && <DeparturesTab />}
               {section === 'transporteurs' && isAdmin && <TransporteursTab />}
               {section === 'gp-operations' && isAdmin && <GpOperationsTab />}
+              {section === 'livreurs' && isAdmin && <LivreursTab />}
               {section === 'sourcing'   && <SourcingTab />}
               {section === 'boutique'   && <BoutiqueTab />}
               {section === 'tracking'   && <TrackingTab />}
