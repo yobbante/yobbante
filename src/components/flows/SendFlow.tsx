@@ -1604,6 +1604,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
       </div>
+      )}
+
 
 
 
