@@ -231,7 +231,7 @@ export default function AdminPage() {
               {section === 'clients'  && <ClientsTab />}
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
-              {section === 'revenus'  && isAdmin && <RevenusPlaceholder />}
+              {section === 'revenus'  && isAdmin && <RevenusTab />}
               {section === 'finances' && isAdmin && <FinancesTab />}
               {section === 'boutique' && <BoutiqueTab />}
               {section === 'hubs'     && <HubsHubTab />}
