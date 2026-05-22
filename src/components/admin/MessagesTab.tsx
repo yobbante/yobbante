@@ -560,7 +560,9 @@ export function MessagesTab() {
 
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
-                {thread.map((t) => (
+                {thread.map((t) => {
+                  const isAudio = t.kind === 'in' && (t.m as InboundMsg).message_type === 'audio' && (t.m as InboundMsg).media_url;
+                  return (
                   <div key={`${t.kind}-${t.id}`} className={cn('flex flex-col', t.kind === 'out' ? 'items-end' : 'items-start')}>
                     <div
                       className={cn(
@@ -571,7 +573,16 @@ export function MessagesTab() {
                       )}
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
-                      {t.body}
+                      {isAudio ? (
+                        <audio
+                          controls
+                          preload="metadata"
+                          src={(t.m as InboundMsg).media_url!}
+                          className="w-[240px] max-w-full"
+                        />
+                      ) : (
+                        t.body
+                      )}
                       <div className={cn('text-[9px] mt-1 opacity-60', t.kind === 'out' ? 'text-black/60' : 'text-muted-foreground')}>
                         {formatTime(t.at)}
                       </div>
