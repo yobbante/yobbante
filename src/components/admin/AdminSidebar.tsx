@@ -23,6 +23,7 @@ export type AdminSection =
   | 'enterprise'
   | 'manual-quotes'
   | 'gp-operations'
+  | 'livreurs'
   | 'finances'
   | 'settings';
 
