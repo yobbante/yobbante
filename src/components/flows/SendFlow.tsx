@@ -184,6 +184,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
   // Tracks which step is currently being edited (null = use collapsed summaries when complete)
   const [editingStep, setEditingStep] = useState<number | null>(null);
+  // Sequential step gating — only the current step is expanded; past steps
+  // collapse to a summary, future steps show a locked placeholder.
+  const [currentStep, setCurrentStep] = useState<number>(1);
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
@@ -321,18 +324,49 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
-  // When the page is opened with a #tarifs hash (e.g. from the landing
-  // "Obtenir mon prix" CTA), scroll to the pricing step once the route
-  // is ready and the section has been rendered.
+  // Listen to sticky search bar updates — when the user changes route /
+  // poids / mode in the top bar, we hot-patch the preset fields WITHOUT
+  // resetting the steps already filled in below.
   useEffect(() => {
-    if (location.hash !== '#tarifs') return;
-    if (!originCity || !destCity) return;
-    const t = setTimeout(() => {
-      const el = document.getElementById('tarifs');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [location.hash, originCity?.id, destCity?.id]);
+    function refreshFromStorage() {
+      try {
+        const raw = sessionStorage.getItem(PRESET_KEY);
+        if (!raw) return;
+        const p = JSON.parse(raw) as {
+          origin?: string; destination?: string;
+          origin_city?: string; destination_city?: string;
+          transport?: 'AIR' | 'SEA' | 'ROAD'; weight?: number;
+        };
+        // Enforce: Dakar must always be one of the two endpoints.
+        const dakarSide: 'origin' | 'destination' | null =
+          p.origin === 'SN' ? 'origin' : p.destination === 'SN' ? 'destination' : null;
+        if (!dakarSide) {
+          toast.message('Yobbanté opère depuis Dakar.', {
+            description: "L'origine a été ajustée à Dakar.",
+          });
+        }
+        const newDirection: 'from_dakar' | 'to_dakar' = dakarSide === 'destination' ? 'to_dakar' : 'from_dakar';
+        setDirection(newDirection);
+        if (p.origin) setOriginCountry(p.origin);
+        const newOriginCityId = (() => {
+          if (!p.origin || !p.origin_city) return null;
+          const m = ORIGIN_CITIES.find(c => c.country === p.origin && c.city.toLowerCase() === p.origin_city!.toLowerCase());
+          return m?.id ?? ORIGIN_CITIES.find(c => c.country === p.origin)?.id ?? null;
+        })();
+        const newDestCityId = (() => {
+          if (!p.destination || !p.destination_city) return null;
+          const m = DESTINATION_CITIES.find(c => c.country === p.destination && c.city.toLowerCase() === p.destination_city!.toLowerCase());
+          return m?.id ?? DESTINATION_CITIES.find(c => c.country === p.destination)?.id ?? null;
+        })();
+        if (newOriginCityId) setOriginCity(newOriginCityId);
+        if (newDestCityId) setDestCity(newDestCityId);
+        if (p.transport) setTransportMode(p.transport);
+        if (typeof p.weight === 'number') { setWeight(p.weight); setWeightTouched(true); }
+      } catch {}
+    }
+    window.addEventListener('send-preset-updated', refreshFromStorage);
+    return () => window.removeEventListener('send-preset-updated', refreshFromStorage);
+  }, []);
 
   // ── Pricing breakdown (in EUR for internal math)
   // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
@@ -432,11 +466,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     7: 'section-final',
   };
   function goToStep(step: number) {
+    setCurrentStep(step);
     setEditingStep(step);
     requestAnimationFrame(() => {
       document.getElementById(STEP_DOM_ID[step])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+  // Mark step N as done and advance to N+1, scrolling to the next section.
+  function advanceFromStep(step: number) {
+    const next = step + 1;
+    setEditingStep(null);
+    setCurrentStep(s => Math.max(s, next));
+    requestAnimationFrame(() => {
+      const id = STEP_DOM_ID[next] ?? STEP_DOM_ID[7];
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  // True only when step N is the one the user should currently be editing.
+  // Past steps render their collapsed summary; future steps render a locked card.
+  const stepIsActive = (n: number) => currentStep === n;
+  const stepIsPast = (n: number) => currentStep > n;
+  const stepIsFuture = (n: number) => currentStep < n;
+  const stepValidity: Record<number, boolean> = {
+    1: collecteOk, 2: recipientOk, 3: packageOk, 4: goodsOk,
+    5: true, 6: true,
+    7: !!senderName.trim() && !!senderPhone.trim(),
+  };
   function scrollToFirstError() {
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
@@ -871,7 +926,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
       >
         {originCity ? (
-          collecteOk && editingStep !== 1 ? (
+          collecteOk && editingStep !== 1 && !stepIsActive(1) ? (
             <StepCollapsed
               title="Collecte programmée"
               lines={[
@@ -879,7 +934,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 pickupAddress,
                 userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
               ].filter(Boolean) as string[]}
-              onEdit={() => setEditingStep(1)}
+              onEdit={() => { setCurrentStep(1); setEditingStep(1); }}
             />
           ) : (
             <div className="mt-2 space-y-4 max-w-xl">
@@ -934,12 +989,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               </div>
 
-              {collecteOk && (
-                <button type="button" onClick={() => setEditingStep(null)}
-                  className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                  Valider et replier
-                </button>
-              )}
+              <StepContinueBar enabled={collecteOk} onContinue={() => advanceFromStep(1)} />
             </div>
           )
         ) : (
@@ -949,7 +999,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </div>
 
 
+
       {/* ─── Step 2 — Recipient ─── */}
+      {routeOk && stepIsFuture(2) ? (
+        <div className="mt-6"><LockedStep step={2} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
+      ) : (
       <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
         revealed={routeOk}
@@ -960,7 +1014,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
           : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
       >
-        {recipientOk && editingStep !== 2 ? (
+        {recipientOk && editingStep !== 2 && !stepIsActive(2) ? (
           <StepCollapsed
             title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
             lines={[
@@ -968,7 +1022,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
               recipientEmail || null,
             ].filter(Boolean) as string[]}
-            onEdit={() => setEditingStep(2)}
+            onEdit={() => { setCurrentStep(2); setEditingStep(2); }}
           />
         ) : (
           <div className="space-y-3 max-w-xl">
@@ -993,28 +1047,28 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
-            {recipientOk && (
-              <button type="button" onClick={() => setEditingStep(null)}
-                className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                Valider et replier
-              </button>
-            )}
+            <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
           </div>
         )}
       </FlowSection>
       </div>
+      )}
+
 
 
       {/* ─── Step 3 — Package description ─── */}
+      {routeOk && stepIsFuture(3) ? (
+        <div className="mt-6"><LockedStep step={3} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
+      ) : (
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
-        {packageOk && editingStep !== 3 ? (
+        {packageOk && editingStep !== 3 && !stepIsActive(3) ? (
           <StepCollapsed
             title={`${description} — ${weight} kg`}
             lines={[
               `${parcelCount} colis · ${declaredLocal} ${originProfile.currencySymbol}`,
             ]}
-            onEdit={() => setEditingStep(3)}
+            onEdit={() => { setCurrentStep(3); setEditingStep(3); }}
           />
         ) : (
         <div className="space-y-4 max-w-xl">
@@ -1111,29 +1165,30 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
-          {packageOk && (
-            <button type="button" onClick={() => setEditingStep(null)}
-              className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-              Valider et replier
-            </button>
-          )}
+          <StepContinueBar enabled={packageOk} onContinue={() => advanceFromStep(3)} />
         </div>
         )}
       </FlowSection>
       </div>
+      )}
+
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
+        routeOk && stepIsFuture(4) ? (
+          <div className="mt-6"><LockedStep step={4} total={7} title="Type de marchandise" /></div>
+        ) : (
         <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
-          {goodsOk && editingStep !== 4 ? (
+
+          {goodsOk && editingStep !== 4 && !stepIsActive(4) ? (
             <StepCollapsed
               title={GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'}
               lines={[
                 GOODS_TYPES.find(g => g.id === goodsType)?.desc ?? '',
                 goodsAutoConfident ? 'Détecté automatiquement à partir de votre description' : '',
               ].filter(Boolean)}
-              onEdit={() => setEditingStep(4)}
+              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
             />
           ) : (
             <>
@@ -1144,7 +1199,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   return (
                     <button key={g.id} type="button"
                       title={g.desc}
-                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); setEditingStep(null); }}
+                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); advanceFromStep(4); }}
                       className={cn(
                         'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
@@ -1173,10 +1228,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <span>{corridorWarning}</span>
                 </div>
               )}
+              <StepContinueBar enabled={goodsOk} onContinue={() => advanceFromStep(4)} />
             </>
           )}
         </FlowSection>
         </div>
+        )
+
 
       ) : corridorWarning ? (
         <div className="mx-auto max-w-2xl px-4">
@@ -1187,9 +1245,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       ) : null}
 
-      {/* ─── Step 5 — Transport & priority (anchor target for #tarifs) ─── */}
+      {/* ─── Step 5 — Transport & priority ─── */}
+      {routeOk && stepIsFuture(5) ? (
+        <div className="mt-6"><LockedStep step={5} total={7} title="Transport & priorité" /></div>
+      ) : (
       <div id="tarifs" className="scroll-mt-32">
       <FlowSection revealed={routeOk} step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
+
 
         {(() => {
           // ── Prix venant directement du moteur (pricing engine v2)
@@ -1377,6 +1439,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   )}
 
                   <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                  <StepContinueBar enabled={true} onContinue={() => advanceFromStep(5)} />
                 </>
               )}
             </div>
@@ -1384,12 +1447,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })()}
       </FlowSection>
       </div>
-
+      )}
 
 
 
       {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
+        routeOk && stepIsFuture(6) ? (
+          <div className="mt-6"><LockedStep step={6} total={7} title="Protégez votre envoi" /></div>
+        ) : (
+
         <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
@@ -1411,12 +1478,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </button>
             ))}
           </div>
+          <StepContinueBar enabled={true} onContinue={() => advanceFromStep(6)} />
         </FlowSection>
+        )
       )}
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      {routeOk && stepIsFuture(7) ? (
+        <div className="mt-6"><LockedStep step={7} total={7} title="Paiement & récapitulatif" /></div>
+      ) : (
       <div id="section-final" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-final'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={7} total={7} title="Paiement & récapitulatif" hint="Choisissez votre paiement, puis vérifiez le résumé avant de confirmer.">
+
 
         <div className="max-w-2xl">
           <Tabs defaultValue="paiement" className="w-full">
@@ -1531,6 +1604,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       </FlowSection>
       </div>
+      )}
+
 
 
 
@@ -1631,6 +1706,41 @@ function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[
     </button>
   );
 }
+
+function LockedStep({ step, total, title }: { step: number; total: number; title: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-3 flex items-center justify-between gap-3 opacity-70">
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground">
+          Étape {step} / {total}
+        </p>
+        <p className="mt-0.5 text-sm font-medium text-muted-foreground truncate">{title}</p>
+      </div>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">À venir</span>
+    </div>
+  );
+}
+
+function StepContinueBar({ enabled, onContinue }: { enabled: boolean; onContinue: () => void }) {
+  return (
+    <div className="mt-5 flex items-center justify-end">
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={!enabled}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+          enabled
+            ? 'bg-foreground text-background hover:opacity-90'
+            : 'bg-secondary text-muted-foreground cursor-not-allowed',
+        )}
+      >
+        Continuer <ArrowRight className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 
 
 function AddressField({
