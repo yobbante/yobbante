@@ -14,6 +14,7 @@ import { useDossierMessages } from '@/hooks/useDossierMessages';
 import { useUserRole } from '@/hooks/useUserRole';
 import { DossierDocuments } from '@/components/DossierDocuments';
 import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
+import { DernierKmPanel } from '@/components/dossier/DernierKmPanel';
 import {
   type Dossier,
   type Package,
