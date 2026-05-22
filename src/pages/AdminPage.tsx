@@ -17,6 +17,7 @@ import { MessagesTab } from '@/components/admin/MessagesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesTab } from '@/components/admin/FinancesTab';
+import { RevenusTab } from '@/components/admin/RevenusTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
@@ -230,7 +231,7 @@ export default function AdminPage() {
               {section === 'clients'  && <ClientsTab />}
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
-              {section === 'revenus'  && isAdmin && <RevenusPlaceholder />}
+              {section === 'revenus'  && isAdmin && <RevenusTab />}
               {section === 'finances' && isAdmin && <FinancesTab />}
               {section === 'boutique' && <BoutiqueTab />}
               {section === 'hubs'     && <HubsHubTab />}
@@ -243,17 +244,3 @@ export default function AdminPage() {
   );
 }
 
-function RevenusPlaceholder() {
-  return (
-    <div className="py-20 text-center max-w-md mx-auto">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#F5C518]/10 mb-4">
-        <span className="text-2xl">💰</span>
-      </div>
-      <h2 className="text-xl font-semibold text-foreground">Revenus</h2>
-      <p className="text-sm text-muted-foreground mt-2">
-        Section en cours de construction (Phase 3). KPIs revenus, paiements reçus,
-        relances clients et export CSV mensuel arrivent bientôt.
-      </p>
-    </div>
-  );
-}
