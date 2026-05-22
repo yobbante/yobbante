@@ -448,12 +448,68 @@ Merci de votre confiance.`;
   };
 
 
+  if (createdDossier) {
+    return (
+      <Sheet open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Dossier créé</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <Card className="p-4 border-primary/40 bg-primary/5">
+              <div className="text-sm text-muted-foreground">Référence</div>
+              <div className="text-lg font-semibold">{createdDossier.reference}</div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Lié au départ {data.selected_departure_label || '—'}
+              </div>
+            </Card>
+
+            <div className="text-sm font-medium">Actions rapides</div>
+            <div className="grid gap-2">
+              <Button
+                onClick={() => confirmDossier(true)}
+                disabled={!!actionLoading}
+                className="justify-start"
+              >
+                {actionLoading === 'notify'
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  : <Check className="h-4 w-4 mr-2" />}
+                Confirmer et notifier le GP
+              </Button>
+              <Button
+                onClick={() => confirmDossier(false)}
+                disabled={!!actionLoading}
+                variant="secondary"
+                className="justify-start"
+              >
+                {actionLoading === 'silent'
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  : <Check className="h-4 w-4 mr-2" />}
+                Confirmer sans notifier
+              </Button>
+              <Button
+                onClick={() => { const id = createdDossier.id; resetAndClose(); window.open(`/admin/dossier/${id}`, '_blank'); }}
+                disabled={!!actionLoading}
+                variant="outline"
+                className="justify-start"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Voir le dossier
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Nouveau dossier · Étape {step + 1} / {TOTAL_STEPS}</SheetTitle>
         </SheetHeader>
+
 
         <div className="mt-6 space-y-4">
           <div className="flex gap-1">
