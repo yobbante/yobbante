@@ -324,18 +324,49 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.length]);
 
-  // When the page is opened with a #tarifs hash (e.g. from the landing
-  // "Obtenir mon prix" CTA), scroll to the pricing step once the route
-  // is ready and the section has been rendered.
+  // Listen to sticky search bar updates — when the user changes route /
+  // poids / mode in the top bar, we hot-patch the preset fields WITHOUT
+  // resetting the steps already filled in below.
   useEffect(() => {
-    if (location.hash !== '#tarifs') return;
-    if (!originCity || !destCity) return;
-    const t = setTimeout(() => {
-      const el = document.getElementById('tarifs');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [location.hash, originCity?.id, destCity?.id]);
+    function refreshFromStorage() {
+      try {
+        const raw = sessionStorage.getItem(PRESET_KEY);
+        if (!raw) return;
+        const p = JSON.parse(raw) as {
+          origin?: string; destination?: string;
+          origin_city?: string; destination_city?: string;
+          transport?: 'AIR' | 'SEA' | 'ROAD'; weight?: number;
+        };
+        // Enforce: Dakar must always be one of the two endpoints.
+        const dakarSide: 'origin' | 'destination' | null =
+          p.origin === 'SN' ? 'origin' : p.destination === 'SN' ? 'destination' : null;
+        if (!dakarSide) {
+          toast.message('Yobbanté opère depuis Dakar.', {
+            description: "L'origine a été ajustée à Dakar.",
+          });
+        }
+        const newDirection: 'from_dakar' | 'to_dakar' = dakarSide === 'destination' ? 'to_dakar' : 'from_dakar';
+        setDirection(newDirection);
+        if (p.origin) setOriginCountry(p.origin);
+        const newOriginCityId = (() => {
+          if (!p.origin || !p.origin_city) return null;
+          const m = ORIGIN_CITIES.find(c => c.country === p.origin && c.city.toLowerCase() === p.origin_city!.toLowerCase());
+          return m?.id ?? ORIGIN_CITIES.find(c => c.country === p.origin)?.id ?? null;
+        })();
+        const newDestCityId = (() => {
+          if (!p.destination || !p.destination_city) return null;
+          const m = DESTINATION_CITIES.find(c => c.country === p.destination && c.city.toLowerCase() === p.destination_city!.toLowerCase());
+          return m?.id ?? DESTINATION_CITIES.find(c => c.country === p.destination)?.id ?? null;
+        })();
+        if (newOriginCityId) setOriginCity(newOriginCityId);
+        if (newDestCityId) setDestCity(newDestCityId);
+        if (p.transport) setTransportMode(p.transport);
+        if (typeof p.weight === 'number') { setWeight(p.weight); setWeightTouched(true); }
+      } catch {}
+    }
+    window.addEventListener('send-preset-updated', refreshFromStorage);
+    return () => window.removeEventListener('send-preset-updated', refreshFromStorage);
+  }, []);
 
   // ── Pricing breakdown (in EUR for internal math)
   // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
