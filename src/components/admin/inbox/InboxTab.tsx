@@ -13,6 +13,8 @@ import { HistoryColumn } from './HistoryColumn';
 import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { SendEditLinkDialog } from '../SendEditLinkDialog';
+import { Pencil } from 'lucide-react';
 
 const COLS = [
   { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
