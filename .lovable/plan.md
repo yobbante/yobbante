@@ -1,123 +1,71 @@
-## Modes de livraison finale — 3 options client
+## Réorganisation Dashboard Admin — Plan d'exécution
 
-Système permettant au client de choisir comment recevoir son colis à l'arrivée : récupération chez le GP (par défaut, gratuit), livraison à un point relais, ou livraison à domicile (carrier ou livreur Yobbanté).
+L'ampleur du chantier (12+ pages fusionnées, nouveau dashboard, page Dossiers unifiée avec vue liste/kanban/hover-card, nouvelle page Revenus, 11 redirections) ne tient pas en une seule passe sans risque. Je propose 4 phases incrémentales, chacune livrable et testable.
 
----
-
-### 1. Base de données
-
-**Migration** — ajout de colonnes à `dossiers` :
-- `delivery_mode TEXT DEFAULT 'pickup_gp'` avec CHECK (`pickup_gp` | `relay_point` | `home_delivery`)
-- `relay_point_address TEXT`
-- `relay_point_name TEXT`
-- `delivery_appointment TIMESTAMPTZ`
-- `delivery_confirmed_by_client BOOLEAN DEFAULT false`
-- `delivery_carrier TEXT` (DHL/FedEx/Yobbante quand `home_delivery`)
-- `delivery_cost_xof INT` (frais calculés)
-- `delivery_notified_at TIMESTAMPTZ` (anti-spam relances)
-- `delivery_reminder_count INT DEFAULT 0`
-
-Index sur `(status, delivery_mode, delivery_notified_at)` pour les crons de relance.
-
----
-
-### 2. Formulaire client — `SendFlow.tsx`
-
-Nouvelle section **"Mode de réception"** dans l'étape Destinataire :
+### Architecture cible
 
 ```text
-◉ Recuperer chez notre partenaire (GP)
-    Gratuit — adresse communiquee a l'arrivee
-
-○ Livraison a un point relais
-    Frais selon distance
-    └─ [Nom du point relais]
-    └─ [Adresse complete du point relais]
-
-○ Livraison a domicile
-    └─ Affiche tarifs carriers (DHL/FedEx/Yobbante)
-       via edge function get-shipping-rates
+🏠 Vue globale        → /admin               (refonte Overview)
+📦 Dossiers           → /admin/dossiers      (NEW — 4 onglets)
+─ OPÉRATIONS ─
+🚚 Départs            → /admin/departs       (NEW — 3 onglets)
+👥 Équipe terrain     → /admin/terrain       (NEW — 3 onglets)
+─ CONTACTS ─
+👤 Clients            → /admin/clients       (existant)
+💬 Messages           → /admin/messages      (existant)
+📋 Leads & devis      → /admin/leads         (NEW — 2 onglets)
+─ FINANCES ─
+💰 Revenus            → /admin/revenus       (NEW)
+💳 Paiements GP       → /admin/finances      (existant)
+─ SYSTÈME ─
+🛒 Boutique Dëkk      → /admin/boutique      (existant)
+🌐 Hubs               → /admin/hubs          (+ Konnekt en sous-onglet)
+⚙️ Paramètres         → /admin/settings      (existant)
 ```
 
-Sauvegarde dans `dossier_draft` puis flush vers `dossiers` à la création.
+### Phase 1 — Sidebar + redirections (livrable seul)
 
----
+- Réécrire `AdminSidebar.tsx` avec les 6 sections groupées (icônes, labels, ordre exacts du brief).
+- Ajouter table `LEGACY_REDIRECTS` dans `AdminPage.tsx` qui mappe les anciens slugs (`inbox`, `shipments`, `orders`, `reception`, `transporteurs`, `livreurs`, `gp-operations`, `transport`, `departures`, `manual-quotes`, `enterprise`) vers les nouveaux paths + querystring (`?tab=...`), via `<Navigate replace>` côté React Router (équivalent 301 client).
+- Les **anciennes pages restent fonctionnelles** sous leurs nouveaux paths — c'est de la tuyauterie, zéro perte de fonctionnalité.
+- Mobile : drawer hamburger existant, juste mis à jour avec les 6 sections.
 
-### 3. Comportement à l'arrivée — `status = ARRIVED_HUB`
+À la fin de la phase 1 : nouvelle sidebar visible, toutes les URLs anciennes redirigent, tout marche comme avant.
 
-Nouveau trigger `trg_dossier_delivery_dispatch` (AFTER UPDATE) qui appelle l'edge function **`delivery-dispatch`** :
+### Phase 2 — Pages onglets fusionnés (Dossiers v1, Départs, Terrain, Leads)
 
-| Mode | Action |
-|------|--------|
-| `pickup_gp` | WhatsApp 607 → client avec coordonnées GP (nom, tel, adresse remise) |
-| `relay_point` | WhatsApp 122 → GP : "Livrez au point relais {adresse}, repondez DEPOSE {tracking}". WhatsApp 607 → client : "Colis arrive au point relais, retirez sous 5 jours". |
-| `home_delivery` | Si carrier externe → générer label + notifier. Si livreur Yobbante → créer `delivery_missions` + bot livreur (V2, hors scope ici, log événement). |
+Chacune est un wrapper léger `<Tabs>` qui réutilise les composants `*Tab.tsx` existants — pas de refonte interne, juste un regroupement visuel.
 
-Nouvelle commande GP : **`DEPOSE {tracking}`** → `status = DELIVERED_RELAY`, event `relay_deposit`, notif client.
+- **`/admin/dossiers`** — `[Tous] [Expédier] [Réception] [Sourcing]` : vue "Tous" = nouveau composant `AllDossiersTab` (table simple sur `dossiers` toutes catégories) ; les 3 autres réutilisent `RequestsTab`, `ReceptionKanbanTab`, `SourcingTab`. **L'Inbox** devient un 5e onglet `[Demandes entrantes]` (réutilise `InboxTab`).
+- **`/admin/departs`** — `[Vue semaine] [Liste] [Publication]` : réutilise `DeparturesWeekPage` (semaine), `DeparturesTab` (liste), `KonnektMonitorTab` (publication/monitoring).
+- **`/admin/terrain`** — `[Transporteurs GP] [Livreurs Dakar] [Opérations du jour]` : réutilise `TransporteursTab`, `LivreursTab`, `GpOperationsTab`.
+- **`/admin/leads`** — `[Particuliers] [Entreprises B2B]` : réutilise `ManualQuotesTab`, `EnterpriseQuotesTab`.
 
----
+L'URL synchronise l'onglet via `?tab=...` (déjà le pattern dans `InboxTab`).
 
-### 4. Relances automatiques — `cron-delivery-reminders`
+À la fin de la phase 2 : les 6 sections sont navigables, structure cible en place.
 
-Nouvelle edge function appelée toutes les heures (`pg_cron`) :
+### Phase 3 — Page Revenus (nouvelle)
 
-| Mode | T+48h | T+5j | T+7j |
-|------|-------|------|------|
-| `pickup_gp` | Rappel client "N'oubliez pas de recuperer chez {gp}" | — | Alerte admin |
-| `relay_point` | — | "Dernier rappel : retrait expire dans 2 jours" | Alerte admin |
-| `home_delivery` | Suivi carrier (out of scope manuel) | — | — |
+- `/admin/revenus` avec 4 sections (KPIs, paiements reçus, paiements en attente, export CSV).
+- Source : table `dossiers` (`payment_status`, `final_amount_xof`, `paid_at`, `payment_method`, `payment_provider_ref`, `invoice_url`) — toutes les colonnes existent déjà.
+- KPIs : agrégats SQL via `supabase.from('dossiers').select(...)` côté client.
+- Bouton "Marquer payé" → update `payment_status = 'paid'`.
+- Bouton "Relancer client" → invoke `send-whatsapp` avec template de relance.
+- Export CSV : génération côté client (papaparse déjà dans le bundle, sinon `Blob` natif).
 
-Anti-spam : `delivery_notified_at` + `delivery_reminder_count ≤ 3`.
+### Phase 4 — Vue globale redesignée + Dossiers v2 (avancé)
 
----
+Les éléments les plus complexes, livrés en dernier :
 
-### 5. UI Admin — `OrderDetailDrawer.tsx`
+- **Overview redesigné** : bandeau alertes urgentes (4 conditions SQL), 4 KPIs, 2 colonnes "À traiter" / "Départs du jour", feed activité (`dossier_events`).
+- **Dossiers v2** : actions inline (dropdown statut, dropdown GP), filtres pills, recherche full-text, hover-card mini-timeline, toggle vue Kanban avec drag-drop (`@dnd-kit/core` déjà installé pour la boutique je vérifierai).
 
-Nouveau panneau **"Livraison finale"** affiché quand `status` ≥ `ARRIVED_HUB` :
+### Hors scope (à confirmer si on les ajoute)
 
-```text
-┌─ Livraison finale ───────────────────┐
-│ Mode    : Recuperation chez le GP    │
-│ Adresse : {gp.adresse_remise}        │
-│ Statut  : En attente de retrait      │
-│                                      │
-│ [Notifier le client]                 │
-│ [Contacter le GP]                    │
-│ [Marquer comme recupere]  ← DELIVERED│
-└──────────────────────────────────────┘
-```
+- Le drag-drop Kanban sur Dossiers — si pas de lib dispo, je propose un changement de colonne via dropdown au lieu d'installer une nouvelle dépendance.
+- Réécriture des composants existants (`RequestsTab`, etc.) : on les garde tels quels, ils sont juste remontés sous les nouveaux onglets.
 
-- Boutons contextuels selon `delivery_mode`
-- "Marquer comme recupere" → `status = DELIVERED` + `delivery_confirmed_by_client = true` + event
-- Tous textes français, accents OK côté UI admin (mais sans accents dans les messages bot)
+### Question avant de démarrer
 
----
-
-### 6. Logging
-
-Événements `dossier_events` ajoutés :
-- `delivery_mode_chosen` (création dossier)
-- `delivery_dispatch_sent` (notif initiale)
-- `delivery_reminder_sent` (chaque relance, avec `reminder_index`)
-- `relay_deposit` (GP a déposé au relais)
-- `delivery_completed` (client confirme ou admin marque récupéré)
-
----
-
-### Contraintes respectées
-
-- Default `pickup_gp` (gratuit, comportement actuel inchangé)
-- Tarifs domicile via `get-shipping-rates` existant
-- Tous événements loggés
-- Messages bot **sans accents**, UI admin en français
-- Design dark Yobbante + `#F5C518`
-- Pas de régression : dossiers existants tombent en `pickup_gp` par défaut
-
----
-
-### Hors scope (à confirmer)
-
-- Bot livreur Yobbanté complet (mode `home_delivery` interne) → V2, on logge juste l'événement
-- Génération automatique label DHL/FedEx → on prépare le hook mais l'intégration carrier reste manuelle
-
-Dis-moi si tu valides ; j'enchaîne la migration puis le code (SendFlow, edge functions, drawer admin, cron).
+Plutôt que de tout livrer d'un coup (risque élevé de casser des flux opérationnels en prod), **je commence par la Phase 1 + Phase 2** dans ce tour (sidebar + 4 pages onglets + redirections), puis tu valides en navigant avant que j'enchaîne Phase 3 et 4. OK pour toi ?
