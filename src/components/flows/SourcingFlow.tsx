@@ -253,6 +253,13 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
   }
 
   if (reference) {
+    const nextSteps = [
+      { icon: <Search className="w-4 h-4" />,      title: 'Analyse de votre demande', desc: 'Notre équipe étudie votre besoin et identifie les meilleurs fournisseurs.', eta: 'Sous 24 h', active: true },
+      { icon: <BadgeCheck className="w-4 h-4" />,  title: 'Devis personnalisé envoyé', desc: 'Vous recevez une short-list de fournisseurs avec prix et délais.', eta: '24-48 h' },
+      { icon: <Handshake className="w-4 h-4" />,   title: 'Achat du produit après validation', desc: "Après votre accord, nous procédons à l'achat et au contrôle qualité.", eta: 'Variable' },
+      { icon: <Truck className="w-4 h-4" />,       title: 'Transport vers Dakar', desc: 'Acheminement international suivi en temps réel.', eta: '5-15 jours' },
+      { icon: <ShoppingBag className="w-4 h-4" />, title: 'Livraison à votre adresse', desc: 'Un coursier vous remet votre commande sur RDV.', eta: 'Sur RDV' },
+    ];
     return (
       <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
@@ -261,6 +268,35 @@ export function SourcingFlow({ compactHeader }: { compactHeader?: React.ReactNod
           subtitle="Notre équipe identifie les meilleurs fournisseurs et vous présente une short-list sous 48h."
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
+        <section className="mt-6 mb-20 rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold tracking-tight">Prochaines étapes</h3>
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Suivi en direct</span>
+          </div>
+          <ol className="space-y-0">
+            {nextSteps.map((s, i) => (
+              <li key={i} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                    s.active
+                      ? 'bg-primary text-primary-foreground border-primary ring-4 ring-primary/15'
+                      : 'bg-secondary text-muted-foreground border-border'
+                  }`}>
+                    {s.icon}
+                  </div>
+                  {i < nextSteps.length - 1 && <div className="w-px flex-1 min-h-[24px] bg-border my-1" />}
+                </div>
+                <div className={`flex-1 pb-5 ${s.active ? '' : 'opacity-90'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                    <span className="text-[11px] font-medium text-muted-foreground bg-secondary border border-border rounded-full px-2 py-0.5 whitespace-nowrap">{s.eta}</span>
+                  </div>
+                  <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground leading-relaxed">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
       </FlowShell>
     );
   }
