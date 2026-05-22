@@ -17,6 +17,7 @@ import {
   COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, DOSSIER_STATUS_ORDER,
   type Dossier, type DossierStatus,
 } from '@/lib/types';
+import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { toast } from 'sonner';
 
 const TYPE_FILTERS = [
@@ -299,13 +300,16 @@ export function RequestsTab() {
                           value={d.status}
                           onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
                         >
-                          <SelectTrigger className="h-8 w-44 text-xs">
+                          <SelectTrigger className="h-8 w-56 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {DOSSIER_STATUS_ORDER.map(s => (
-                              <SelectItem key={s} value={s} className="text-xs">
-                                {DOSSIER_STATUS_LABELS[s]}
+                            {getStatutsPourDossier({
+                              app_source: d.app_source,
+                              needs_sourcing: d.needs_sourcing,
+                            }).map(s => (
+                              <SelectItem key={s.value} value={s.value} className="text-xs">
+                                {s.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
