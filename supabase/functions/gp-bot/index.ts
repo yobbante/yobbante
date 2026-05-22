@@ -1140,12 +1140,15 @@ Repondez OUI pour valider et notifier le client, NON pour annuler.`, 'poids_conf
     const updates: Record<string, any> = {
       status: 'WEIGHED',
       actual_weight_kg: weight,
+      weight_status: 'known',
       weighed_at: new Date().toISOString(),
       payment_status: 'pending',
+      gp_last_action_at: new Date().toISOString(),
     };
     if (amountXof) updates.final_amount_xof = amountXof;
 
     const { error } = await supa.from('dossiers').update(updates).eq('id', dossier.id);
+    await bumpGpActivity(dossier.id);
 
     await clearSession();
 
