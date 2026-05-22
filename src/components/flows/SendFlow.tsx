@@ -926,7 +926,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
       >
         {originCity ? (
-          collecteOk && editingStep !== 1 ? (
+          collecteOk && editingStep !== 1 && !stepIsActive(1) ? (
             <StepCollapsed
               title="Collecte programmée"
               lines={[
@@ -934,7 +934,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 pickupAddress,
                 userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
               ].filter(Boolean) as string[]}
-              onEdit={() => setEditingStep(1)}
+              onEdit={() => { setCurrentStep(1); setEditingStep(1); }}
             />
           ) : (
             <div className="mt-2 space-y-4 max-w-xl">
