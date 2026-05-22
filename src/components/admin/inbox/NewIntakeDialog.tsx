@@ -400,16 +400,53 @@ Merci de votre confiance.`;
         window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
-      setData(INITIAL);
-      setStep(0);
-      setEstimatedPrice(null);
-      onOpenChange(false);
+      const hasDeparture = data.service_kind === 'envoi' && !!data.selected_departure_id;
+      if (hasDeparture) {
+        // Show quick-action panel — keep the dialog open
+        setCreatedDossier({ id: created.id, reference: created.reference, hasDeparture: true });
+      } else {
+        setData(INITIAL);
+        setStep(0);
+        setEstimatedPrice(null);
+        onOpenChange(false);
+      }
     } catch (e: any) {
       toast.error(e.message || 'Erreur lors de la création');
     } finally {
       setSaving(false);
     }
   };
+
+  const resetAndClose = () => {
+    setData(INITIAL);
+    setStep(0);
+    setEstimatedPrice(null);
+    setCreatedDossier(null);
+    onOpenChange(false);
+  };
+
+  const confirmDossier = async (notifyGp: boolean) => {
+    if (!createdDossier) return;
+    setActionLoading(notifyGp ? 'notify' : 'silent');
+    try {
+      // ASSIGNED triggers the WhatsApp notify trigger to GP + client; CONFIRMED is silent.
+      const nextStatus = notifyGp ? 'ASSIGNED' : 'CONFIRMED';
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ status: nextStatus as any })
+        .eq('id', createdDossier.id);
+      if (error) throw error;
+      toast.success(notifyGp ? 'Dossier confirmé et GP notifié' : 'Dossier confirmé (sans notification)');
+      qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      resetAndClose();
+    } catch (e: any) {
+      toast.error(e.message || 'Échec de la confirmation');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
