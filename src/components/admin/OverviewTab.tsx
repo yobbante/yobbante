@@ -25,7 +25,7 @@ const inDays = (d: string | Date | null | undefined, days: number) => {
 const TERMINAL = new Set(['DELIVERED', 'CLOSED', 'CANCELLED', 'delivered', 'cancelled']);
 
 /* ───────────────────────── component ─────────────────────── */
-export function OverviewTab({ onJump }: { onJump: (s: AdminSection) => void }) {
+export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
   const { data: depSummary } = useDeparturesSummary();
 
   const { data, isLoading } = useQuery({
