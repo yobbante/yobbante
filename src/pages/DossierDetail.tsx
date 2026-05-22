@@ -226,6 +226,18 @@ export default function DossierDetail() {
         {/* Invoice */}
         <InvoiceSection dossier={dossier as any} isStaff={isStaff} />
 
+        {/* Dernier kilomètre — visible une fois la marchandise en route */}
+        {dossier && ['IN_TRANSIT', 'CUSTOMS', 'ARRIVED', 'OUT_FOR_DELIVERY'].includes((dossier as any).status) && (
+          <DernierKmPanel
+            dossierId={(dossier as any).id}
+            destinationCountry={(dossier as any).destination_country ?? 'SN'}
+            weightKg={(dossier as any).actual_weight_kg ?? (dossier as any).estimated_weight ?? null}
+            initialAddress={(dossier as any).dernier_km_adresse ?? null}
+            initialCarrier={(dossier as any).dernier_km_carrier ?? null}
+            initialMode={(dossier as any).dernier_km_adresse ? 'home' : null}
+          />
+        )}
+
 
 
         {/* Customs documents */}
