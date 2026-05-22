@@ -989,12 +989,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               </div>
 
-              {collecteOk && (
-                <button type="button" onClick={() => setEditingStep(null)}
-                  className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                  Valider et replier
-                </button>
-              )}
+              <StepContinueBar enabled={collecteOk} onContinue={() => advanceFromStep(1)} />
             </div>
           )
         ) : (
@@ -1002,6 +997,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </FlowSection>
       </div>
+
 
 
       {/* ─── Step 2 — Recipient ─── */}
