@@ -239,6 +239,32 @@ Deno.serve(async (req) => {
     });
   }
 
+  async function bumpGpActivity(dossierId?: string | null) {
+    const now = new Date().toISOString();
+    try {
+      if (dossierId) {
+        await supa.from('dossiers').update({ gp_last_action_at: now }).eq('id', dossierId);
+      }
+      if (transporteur?.id) {
+        await supa.from('transporteurs').update({ last_bot_activity_at: now }).eq('id', transporteur.id);
+      }
+    } catch (e) {
+      console.error('bumpGpActivity', e);
+    }
+  }
+
+  async function notifyClientFromYobbante(phone: string, message: string, dossierId?: string) {
+    if (!phone || phone.replace(/\D/g, '').length < 6) return;
+    await sendWa({
+      recipient_phone: phone,
+      recipient_type: 'client',
+      message,
+      dossier_id: dossierId,
+      trigger_type: 'gp_departed_client_notify',
+    });
+  }
+
+
   // =================================================================
   //  SUPER ADMIN MODE — priorite absolue (+221784604003)
   // =================================================================
