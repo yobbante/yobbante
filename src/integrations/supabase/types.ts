@@ -832,12 +832,19 @@ export type Database = {
           payment_provider_ref: string | null
           payment_reminders_count: number
           payment_status: string
+          pickup_date: string | null
           poids_livreur: number | null
           product_description: string
           quantity: number | null
+          recipient_address: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
           reference: string
           reminder_count: number
           reminder_sent_at: string | null
+          sender_address: string | null
+          sender_name: string | null
+          sender_phone: string | null
           skip_whatsapp_trigger: boolean
           source: string
           source_reference: string | null
@@ -927,12 +934,19 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          pickup_date?: string | null
           poids_livreur?: number | null
           product_description: string
           quantity?: number | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          sender_address?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
@@ -1022,12 +1036,19 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          pickup_date?: string | null
           poids_livreur?: number | null
           product_description?: string
           quantity?: number | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          sender_address?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
@@ -1082,6 +1103,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      edit_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          expires_at: string
+          fields_allowed: string[]
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          expires_at?: string
+          fields_allowed: string[]
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string
+          fields_allowed?: string[]
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       enterprise_quotes: {
         Row: {
@@ -2424,6 +2481,30 @@ export type Database = {
           },
         ]
       }
+      transporteur_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          transporteur_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          transporteur_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          transporteur_id?: string
+        }
+        Relationships: []
+      }
       transporteur_inscriptions: {
         Row: {
           created_at: string
@@ -2938,6 +3019,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_edit_token: {
+        Args: { p_payload: Json; p_token: string }
+        Returns: Json
+      }
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       auto_progress_departures: { Args: never; Returns: number }
       calculate_quote: {
@@ -3024,6 +3109,7 @@ export type Database = {
       generate_shipment_tracking_number: { Args: never; Returns: string }
       generate_tracking_id_v2: { Args: never; Returns: string }
       generate_unique_short_ref: { Args: never; Returns: string }
+      get_edit_token: { Args: { p_token: string }; Returns: Json }
       get_user_contact: {
         Args: { _user_id: string }
         Returns: {

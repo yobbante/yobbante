@@ -782,6 +782,35 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   }
 
   // =================================================================
+  //  MODIFIER : génère un lien public pour modifier les infos GP
+  // =================================================================
+  if (/^modifier\b/.test(msg)) {
+    if (!transporteur) {
+      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'modifier_unknown');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const { data: tok, error } = await supa
+      .from('edit_tokens')
+      .insert({
+        entity_type: 'transporteur',
+        entity_id: transporteur.id,
+        fields_allowed: ['telephone_1', 'adresse_collecte_dakar', 'adresses_remise'],
+      })
+      .select('token')
+      .single();
+    if (error || !tok) {
+      await reply(`Erreur technique. Reessayez plus tard.`, 'modifier_error');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const link = `https://yobbante.com/modifier/${tok.token}`;
+    await reply(
+      `Voici votre lien de modification (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`,
+      'modifier_link',
+    );
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
   //  Détection intent DEP / COLLECTE / POIDS / LIVRE (tolérant)
   // =================================================================
 

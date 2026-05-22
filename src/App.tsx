@@ -37,6 +37,7 @@ import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
 import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
+import ModifierPage from "./pages/ModifierPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
@@ -89,6 +90,8 @@ const DekkRoutes = () => (
     <Route path="/track/:id" element={<TrackPage />} />
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
+    <Route path="/modifier/:token" element={<ModifierPage />} />
+
 
     {/* Admin accessible des deux côtés (session partagée) */}
     <Route path="/admin" element={<AdminPage />} />
@@ -156,6 +159,8 @@ const MainRoutes = () => (
     {/* Public review + payment pages (WhatsApp deep links) */}
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
+    <Route path="/modifier/:token" element={<ModifierPage />} />
+
     <Route path="/business" element={<BusinessPage />} />
     <Route path="/business/join" element={<BusinessJoinPage />} />
     <Route path="/business/pricing" element={<BusinessPricingPage />} />

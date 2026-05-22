@@ -22,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { Progress } from '@/components/ui/progress';
+import { SendEditLinkDialog } from './SendEditLinkDialog';
+import { Pencil as PencilIcon } from 'lucide-react';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
@@ -110,6 +112,7 @@ export function TransporteursTab() {
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
+  const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
 
   const existingRefs = useMemo(
     () => new Set((list.data ?? []).map(t => t.reference)),
@@ -333,6 +336,9 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => navigate(`/admin/messages?gp=${t.id}`)}>
                         <MessageCircle className="w-4 h-4 mr-2" /> Voir conversation bot
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
+                        <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
+                      </DropdownMenuItem>
                       {t.actif && (
                         <DropdownMenuItem onClick={async () => {
                           await deactivate.mutateAsync(t.id);
@@ -364,6 +370,18 @@ export function TransporteursTab() {
           setEditing(null);
         }}
       />
+
+      {editLinkGp && (
+        <SendEditLinkDialog
+          open={!!editLinkGp}
+          onOpenChange={(v) => { if (!v) setEditLinkGp(null); }}
+          entityType="transporteur"
+          entityId={editLinkGp.id}
+          recipientPhone={editLinkGp.telephone_1}
+          recipientFirstName={editLinkGp.prenom || editLinkGp.nom?.split(' ')[0]}
+          trackingLabel={`votre profil GP (Réf. ${gpRef(editLinkGp.reference)})`}
+        />
+      )}
 
       {/* Blast modal — manual per-row sends (no auto multi-tab) */}
       <Dialog open={blastOpen} onOpenChange={setBlastOpen}>

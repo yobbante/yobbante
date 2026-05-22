@@ -13,6 +13,8 @@ import { HistoryColumn } from './HistoryColumn';
 import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { SendEditLinkDialog } from '../SendEditLinkDialog';
+import { Pencil } from 'lucide-react';
 
 const COLS = [
   { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
@@ -44,6 +46,7 @@ export function InboxTab() {
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [detail, setDetail] = useState<InboxDossier | null>(null);
+  const [editLinkType, setEditLinkType] = useState<'dossier_client' | 'dossier_destinataire' | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') === 'history' ? 'history' : 'kanban';
 
@@ -177,7 +180,7 @@ export function InboxTab() {
                     {detail.intake_notes}
                   </div>
                 )}
-                <div className="pt-2 flex gap-2">
+                <div className="pt-2 flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => handleWhatsApp(detail)} disabled={!detail.contact_phone}>
                     Récap WhatsApp client
                   </Button>
@@ -186,12 +189,30 @@ export function InboxTab() {
                       Marquer confirmé
                     </Button>
                   )}
+                  <Button size="sm" variant="outline" onClick={() => setEditLinkType('dossier_client')} disabled={!detail.contact_phone}>
+                    <Pencil className="w-3 h-3 mr-1" /> Lien modif. expéditeur
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditLinkType('dossier_destinataire')} disabled={!detail.contact_phone}>
+                    <Pencil className="w-3 h-3 mr-1" /> Lien modif. destinataire
+                  </Button>
                 </div>
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {detail && editLinkType && (
+        <SendEditLinkDialog
+          open={!!editLinkType}
+          onOpenChange={(v) => { if (!v) setEditLinkType(null); }}
+          entityType={editLinkType}
+          entityId={detail.id}
+          recipientPhone={detail.contact_phone}
+          recipientFirstName={(detail.buyer_name || '').split(' ')[0]}
+          trackingLabel={detail.reference}
+        />
+      )}
     </div>
   );
 }

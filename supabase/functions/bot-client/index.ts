@@ -281,6 +281,41 @@ async function handleMenuChoice(
   return `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
 }
 
+// Generate an edit link for the client's most recent active dossier.
+async function handleModifierClient(supa: any, phone: string): Promise<string> {
+  // Find the most recent dossier for this phone
+  const { data: dossier } = await supa
+    .from('dossiers')
+    .select('id, tracking_id, reference')
+    .or(`contact_phone.eq.${phone},sender_phone.eq.${phone}`)
+    .not('status', 'in', '(DELIVERED,CANCELLED)')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!dossier) {
+    return withShortMenu(`Aucun dossier actif trouve pour votre numero.\nContactez-nous : +221 78 607 80 80`);
+  }
+
+  const { data: tok, error } = await supa
+    .from('edit_tokens')
+    .insert({
+      entity_type: 'dossier_client',
+      entity_id: dossier.id,
+      fields_allowed: ['sender_name', 'sender_phone', 'sender_address', 'recipient_name', 'recipient_phone', 'recipient_address'],
+    })
+    .select('token')
+    .single();
+
+  if (error || !tok) {
+    return withShortMenu(`Erreur technique. Reessayez plus tard.`);
+  }
+
+  const link = `https://yobbante.com/modifier/${tok.token}`;
+  const ref = dossier.tracking_id || dossier.reference || '';
+  return `Voici votre lien de modification pour ${ref} (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders });
@@ -332,6 +367,10 @@ Deno.serve(async (req) => {
     // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
     else if (/^[1-5]$/.test(nMsg)) {
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
+    }
+    // PRIORITY 3a: MODIFIER command → generate edit link
+    else if (/^modifier\b/.test(nMsg)) {
+      reply = await handleModifierClient(supa, phone);
     }
     // PRIORITY 3: explicit RESERVER command
     else if (/^reserver\s/.test(nMsg)) {
