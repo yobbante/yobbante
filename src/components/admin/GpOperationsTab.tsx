@@ -29,7 +29,7 @@ const SECTIONS = [
 type SectionId = typeof SECTIONS[number]['id'];
 
 export function GpOperationsTab() {
-  const [section, setSection] = useState<SectionId>('departures');
+  const [section, setSection] = useState<SectionId>('no_response');
 
   return (
     <div className="space-y-5">
