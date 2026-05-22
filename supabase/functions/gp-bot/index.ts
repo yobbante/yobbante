@@ -1210,8 +1210,9 @@ Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
 
     const { error } = await supa
       .from('dossiers')
-      .update({ status: 'DELIVERED', delivered_at: new Date().toISOString() })
+      .update({ status: 'DELIVERED', delivered_at: new Date().toISOString(), gp_last_action_at: new Date().toISOString() })
       .eq('id', dossier.id);
+    await bumpGpActivity(dossier.id);
 
     await clearSession();
 
@@ -1221,6 +1222,72 @@ Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
       await reply(`✅ Livraison confirmee pour ${dossier.tracking_id}. Merci !`, 'livre_ok');
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la livraison de ${dossier.tracking_id} a ${dossier.destination_city ?? dossier.destination_country ?? '—'}`);
     }
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  async function handleEnRoute(text: string, prior: Record<string, any>) {
+    const tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
+    if (!tracking) {
+      await saveSession('enroute', {});
+      await reply(`Quel est le numero de suivi du colis ?
+(Exemple : EN ROUTE YOB-K7M9P2)`, 'enroute_ask_tracking');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const { data: dossier } = await supa
+      .from('dossiers')
+      .select('id, assigned_transporteur_ref, tracking_id, contact_phone, buyer_name, estimated_delivery_date, destination_city, destination_country')
+      .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
+      .maybeSingle();
+
+    if (!dossier) {
+      await clearSession();
+      await reply(`Tracking ${tracking} non trouve.
+
+Que souhaitez-vous faire ?
+Tapez AIDE pour les commandes.`, 'enroute_notfound');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (dossier.assigned_transporteur_ref !== transporteur.reference) {
+      await clearSession();
+      await reply(`Ce dossier ne vous est pas assigne.`, 'enroute_unauthorized');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Log event (status unchanged)
+    try {
+      await supa.from('dossier_events').insert({
+        dossier_id: dossier.id,
+        event_type: 'gp_departed',
+        event_data: { transporteur_ref: transporteur.reference, at: new Date().toISOString() },
+        visible_to_client: false,
+      });
+    } catch (e) { console.error('gp_departed event', e); }
+
+    await supa.from('dossiers').update({ gp_last_action_at: new Date().toISOString() }).eq('id', dossier.id);
+    await bumpGpActivity(dossier.id);
+    await clearSession();
+
+    const eta = dossier.estimated_delivery_date
+      ? new Date(dossier.estimated_delivery_date).toLocaleDateString('fr-FR')
+      : 'a venir';
+    const destLabel = dossier.destination_city ?? dossier.destination_country ?? '';
+
+    if (dossier.contact_phone) {
+      await notifyClientFromYobbante(
+        dossier.contact_phone,
+        `Votre colis ${dossier.tracking_id} est en route ! Arrivee estimee : ${eta}.
+
+Suivez sur yobbante.com`,
+        dossier.id,
+      );
+    }
+
+    await reply(`Bon voyage ! On suit votre trajet vers ${destLabel}.
+A la livraison, confirmez :
+LIVRE ${dossier.tracking_id}`, 'enroute_ok');
+    await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) est EN ROUTE avec ${dossier.tracking_id}`);
+
     return new Response('ok', { headers: corsHeaders });
   }
 });
