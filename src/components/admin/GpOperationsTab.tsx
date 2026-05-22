@@ -16,6 +16,7 @@ import { CreateGpFromContactDialog } from './CreateGpFromContactDialog';
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
 const SECTIONS = [
+  { id: 'no_response', label: 'GP sans reponse', icon: AlertTriangle },
   { id: 'departures', label: 'Departs du jour', icon: Plane },
   { id: 'pending', label: 'Collectes en attente', icon: Package },
   { id: 'weighing', label: 'À peser', icon: Scale },
