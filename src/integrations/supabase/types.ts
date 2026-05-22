@@ -832,12 +832,19 @@ export type Database = {
           payment_provider_ref: string | null
           payment_reminders_count: number
           payment_status: string
+          pickup_date: string | null
           poids_livreur: number | null
           product_description: string
           quantity: number | null
+          recipient_address: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
           reference: string
           reminder_count: number
           reminder_sent_at: string | null
+          sender_address: string | null
+          sender_name: string | null
+          sender_phone: string | null
           skip_whatsapp_trigger: boolean
           source: string
           source_reference: string | null
@@ -927,12 +934,19 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          pickup_date?: string | null
           poids_livreur?: number | null
           product_description: string
           quantity?: number | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          sender_address?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
@@ -1022,12 +1036,19 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          pickup_date?: string | null
           poids_livreur?: number | null
           product_description?: string
           quantity?: number | null
+          recipient_address?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          sender_address?: string | null
+          sender_name?: string | null
+          sender_phone?: string | null
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
