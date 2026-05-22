@@ -742,13 +742,23 @@ export type Database = {
           buyer_country: string | null
           buyer_name: string | null
           cash_on_delivery: boolean
+          collecte_confirmee_at: string | null
+          collecte_creneau: string | null
+          collecte_photos: string[] | null
           collected_at: string | null
+          conformite_notes: string | null
+          conformite_ok: boolean | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
           currency: string | null
           declared_value: number | null
           delivered_at: string | null
+          dernier_km_adresse: string | null
+          dernier_km_carrier: string | null
+          dernier_km_label_url: string | null
+          dernier_km_prix: number | null
+          dernier_km_tracking: string | null
           destination_country: string
           dossier_type: Database["public"]["Enums"]["dossier_type"]
           estimated_cost: number | null
@@ -778,6 +788,8 @@ export type Database = {
           konnekt_synced_at: string | null
           last_client_contact: string | null
           last_payment_reminder_at: string | null
+          livreur_collecte_id: string | null
+          livreur_livraison_id: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -786,6 +798,7 @@ export type Database = {
           payment_provider_ref: string | null
           payment_reminders_count: number
           payment_status: string
+          poids_livreur: number | null
           product_description: string
           quantity: number | null
           reference: string
@@ -819,13 +832,23 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cash_on_delivery?: boolean
+          collecte_confirmee_at?: string | null
+          collecte_creneau?: string | null
+          collecte_photos?: string[] | null
           collected_at?: string | null
+          conformite_notes?: string | null
+          conformite_ok?: boolean | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           currency?: string | null
           declared_value?: number | null
           delivered_at?: string | null
+          dernier_km_adresse?: string | null
+          dernier_km_carrier?: string | null
+          dernier_km_label_url?: string | null
+          dernier_km_prix?: number | null
+          dernier_km_tracking?: string | null
           destination_country?: string
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
@@ -855,6 +878,8 @@ export type Database = {
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
           last_payment_reminder_at?: string | null
+          livreur_collecte_id?: string | null
+          livreur_livraison_id?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
@@ -863,6 +888,7 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          poids_livreur?: number | null
           product_description: string
           quantity?: number | null
           reference?: string
@@ -896,13 +922,23 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cash_on_delivery?: boolean
+          collecte_confirmee_at?: string | null
+          collecte_creneau?: string | null
+          collecte_photos?: string[] | null
           collected_at?: string | null
+          conformite_notes?: string | null
+          conformite_ok?: boolean | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           currency?: string | null
           declared_value?: number | null
           delivered_at?: string | null
+          dernier_km_adresse?: string | null
+          dernier_km_carrier?: string | null
+          dernier_km_label_url?: string | null
+          dernier_km_prix?: number | null
+          dernier_km_tracking?: string | null
           destination_country?: string
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           estimated_cost?: number | null
@@ -932,6 +968,8 @@ export type Database = {
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
           last_payment_reminder_at?: string | null
+          livreur_collecte_id?: string | null
+          livreur_livraison_id?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
@@ -940,6 +978,7 @@ export type Database = {
           payment_provider_ref?: string | null
           payment_reminders_count?: number
           payment_status?: string
+          poids_livreur?: number | null
           product_description?: string
           quantity?: number | null
           reference?: string
@@ -981,6 +1020,20 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossiers_livreur_collecte_id_fkey"
+            columns: ["livreur_collecte_id"]
+            isOneToOne: false
+            referencedRelation: "livreurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossiers_livreur_livraison_id_fkey"
+            columns: ["livreur_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "livreurs"
             referencedColumns: ["id"]
           },
         ]
@@ -1351,6 +1404,83 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      livreur_bot_sessions: {
+        Row: {
+          created_at: string
+          from_phone: string
+          id: string
+          livreur_id: string | null
+          pending_data: Json
+          pending_intent: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_phone: string
+          id?: string
+          livreur_id?: string | null
+          pending_data?: Json
+          pending_intent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_phone?: string
+          id?: string
+          livreur_id?: string | null
+          pending_data?: Json
+          pending_intent?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livreur_bot_sessions_livreur_id_fkey"
+            columns: ["livreur_id"]
+            isOneToOne: false
+            referencedRelation: "livreurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livreurs: {
+        Row: {
+          created_at: string
+          id: string
+          invitation_bot_sent_at: string | null
+          is_active: boolean
+          nom: string
+          notes: string | null
+          prenom: string
+          telephone: string
+          updated_at: string
+          zone_couverte: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitation_bot_sent_at?: string | null
+          is_active?: boolean
+          nom: string
+          notes?: string | null
+          prenom: string
+          telephone: string
+          updated_at?: string
+          zone_couverte?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitation_bot_sent_at?: string | null
+          is_active?: boolean
+          nom?: string
+          notes?: string | null
+          prenom?: string
+          telephone?: string
+          updated_at?: string
+          zone_couverte?: string[] | null
+        }
+        Relationships: []
       }
       manual_departures: {
         Row: {
@@ -2931,6 +3061,7 @@ export type Database = {
         | "STALE"
         | "EN_RECHERCHE_DEPART"
         | "ASSIGNED"
+        | "COLLECTING"
         | "COLLECTED"
         | "WEIGHED"
         | "ARRIVED_HUB"
@@ -3132,6 +3263,7 @@ export const Constants = {
         "STALE",
         "EN_RECHERCHE_DEPART",
         "ASSIGNED",
+        "COLLECTING",
         "COLLECTED",
         "WEIGHED",
         "ARRIVED_HUB",
