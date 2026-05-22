@@ -44,12 +44,21 @@ export default function ExpedierPage() {
     <ExpedierSearchBar
       mode={mode}
       onModeChange={handleModeChange}
-      onApply={() => setFlowKey(k => k + 1)}
+      onApply={() => {
+        // For "envoyer", we keep the SendFlow mounted so the user doesn't
+        // lose the form they've already filled — SendFlow listens to
+        // `send-preset-updated` and refreshes route/poids/mode in place.
+        if (mode === 'envoyer') {
+          window.dispatchEvent(new Event('send-preset-updated'));
+        } else {
+          setFlowKey(k => k + 1);
+        }
+      }}
       defaultExpanded
     />
   );
 
   return mode === 'envoyer'
-    ? <SendFlow key={`send-${flowKey}`} compactHeader={bar} />
+    ? <SendFlow key="send" compactHeader={bar} />
     : <ReceiveFlow key={`receive-${flowKey}`} compactHeader={bar} />;
 }
