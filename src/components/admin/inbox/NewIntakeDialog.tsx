@@ -246,6 +246,8 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
   const { data, setData, hasExisting, loadExisting, clearDraft } = useIntakeDraft<IntakeData>(INITIAL);
   const [resumePromptShown, setResumePromptShown] = useState(false);
+  const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const qc = useQueryClient();
 
   useEffect(() => {
