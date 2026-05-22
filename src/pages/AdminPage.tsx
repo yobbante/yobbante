@@ -7,35 +7,60 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUserRole } from '@/hooks/useUserRole';
 import { AdminSidebar, ADMIN_NAV, type AdminSection } from '@/components/admin/AdminSidebar';
 import { OverviewTab } from '@/components/admin/OverviewTab';
-import { RequestsTab } from '@/components/admin/RequestsTab';
-import { OrdersTab } from '@/components/admin/OrdersTab';
-import { HubsTab } from '@/components/admin/HubsTab';
-import { SourcingTab } from '@/components/admin/SourcingTab';
-import { KonnektMonitorTab } from '@/components/admin/KonnektMonitorTab';
-import { DeparturesTab } from '@/components/admin/DeparturesTab';
-import { TrackingTab } from '@/components/admin/TrackingTab';
+import { DossiersHubTab } from '@/components/admin/DossiersHubTab';
+import { DepartsHubTab } from '@/components/admin/DepartsHubTab';
+import { TerrainHubTab } from '@/components/admin/TerrainHubTab';
+import { LeadsHubTab } from '@/components/admin/LeadsHubTab';
+import { HubsHubTab } from '@/components/admin/HubsHubTab';
 import { ClientsTab } from '@/components/admin/ClientsTab';
-import { SettingsTab } from '@/components/admin/SettingsTab';
-import { ShipmentsWorkflowTab } from '@/components/admin/ShipmentsWorkflowTab';
-import { ReceptionKanbanTab } from '@/components/admin/ReceptionKanbanTab';
-import { TransporteursTab } from '@/components/admin/TransporteursTab';
-import { GpOperationsTab } from '@/components/admin/GpOperationsTab';
-import { LivreursTab } from '@/components/admin/LivreursTab';
-import { EnterpriseQuotesTab } from '@/components/admin/EnterpriseQuotesTab';
-import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
-import { ManualQuotesTab } from '@/components/admin/ManualQuotesTab';
-import { InboxTab } from '@/components/admin/inbox/InboxTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
+import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
+import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesTab } from '@/components/admin/FinancesTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
 
-/** URL slug → internal section key. Slugs not listed here fall through to `slug as AdminSection`. */
-const SLUG_TO_SECTION: Record<string, AdminSection> = {
-  dossiers: 'requests',
+/**
+ * URL slug → { section, tab? } resolver.
+ * - Direct matches: new section IDs map to themselves.
+ * - Legacy slugs (old structure) redirect to the unified hub + corresponding tab.
+ */
+type Resolved = { section: AdminSection; tab?: string };
+
+const LEGACY_REDIRECTS: Record<string, Resolved> = {
+  // Old dossier-related pages → unified Dossiers hub
+  inbox:           { section: 'dossiers', tab: 'demandes' },
+  requests:        { section: 'dossiers' },
+  shipments:       { section: 'dossiers' },
+  orders:          { section: 'dossiers' },
+  reception:       { section: 'dossiers', tab: 'reception' },
+  sourcing:        { section: 'dossiers', tab: 'sourcing' },
+
+  // Terrain
+  transporteurs:   { section: 'terrain', tab: 'gp' },
+  livreurs:        { section: 'terrain', tab: 'livreurs' },
+  'gp-operations': { section: 'terrain', tab: 'operations' },
+
+  // Départs
+  departures:      { section: 'departs', tab: 'liste' },
+  'departs-semaine': { section: 'departs', tab: 'semaine' },
+  transport:       { section: 'hubs', tab: 'konnekt' },
+  tracking:        { section: 'hubs', tab: 'tracking' },
+
+  // Leads
+  'manual-quotes': { section: 'leads', tab: 'particuliers' },
+  enterprise:      { section: 'leads', tab: 'b2b' },
 };
+
+function resolveSlug(slug: string | undefined): { section: AdminSection; tab?: string; unknown: boolean } {
+  if (!slug) return { section: 'overview', unknown: false };
+  const legacy = LEGACY_REDIRECTS[slug];
+  if (legacy) return { section: legacy.section, tab: legacy.tab, unknown: false };
+  if ((ALLOWED as string[]).includes(slug)) return { section: slug as AdminSection, unknown: false };
+  return { section: 'overview', unknown: true };
+}
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -45,21 +70,28 @@ export default function AdminPage() {
   const { section: pathSlug } = useParams<{ section?: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Priority : URL path /admin/:section > legacy ?section= query > overview
-  const queryRaw = searchParams.get('section');
-  const pathSection = pathSlug ? (SLUG_TO_SECTION[pathSlug] ?? (pathSlug as AdminSection)) : null;
-  const requested = pathSection ?? (queryRaw as AdminSection | null);
-  const section: AdminSection = requested && ALLOWED.includes(requested) ? requested : 'overview';
-  const isUnknownSection = !!pathSlug && !ALLOWED.includes(pathSection as AdminSection);
+  // Resolve slug (handles both new IDs and legacy redirects)
+  const resolved = resolveSlug(pathSlug);
+  const section = resolved.section;
+  const isUnknownSection = resolved.unknown;
 
-  const setSection = (s: AdminSection) => {
-    // Always navigate using the clean path form so URLs are shareable.
-    if (s === 'overview') {
+  // If a legacy slug was used, normalize the URL to the new canonical path.
+  useEffect(() => {
+    if (!pathSlug) return;
+    const legacy = LEGACY_REDIRECTS[pathSlug];
+    if (legacy) {
+      const search = legacy.tab ? `?tab=${legacy.tab}` : '';
+      navigate(`/admin/${legacy.section}${search}`, { replace: true });
+    }
+  }, [pathSlug, navigate]);
+
+  const setSection = (s: string) => {
+    const target = (ALLOWED as string[]).includes(s) ? (s as AdminSection) : 'overview';
+    if (target === 'overview') {
       navigate('/admin');
     } else {
-      navigate(`/admin/${s}`);
+      navigate(`/admin/${target}`);
     }
-    // Clean any legacy ?section= param.
     if (searchParams.has('section')) {
       const sp = new URLSearchParams(searchParams);
       sp.delete('section');
@@ -113,7 +145,6 @@ export default function AdminPage() {
           <p className="text-[11px] text-muted-foreground mt-1 ml-6">Console opérations</p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto">
-
           <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} />
         </div>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
@@ -186,31 +217,37 @@ export default function AdminPage() {
           ) : (
             <>
               {section !== 'messages' && <AdminBreadcrumb section={section} />}
-              {section === 'overview'   && <OverviewTab onJump={setSection} />}
-              {section === 'inbox'      && <InboxTab />}
-              {section === 'messages'   && <MessagesTab />}
-              {section === 'requests'   && <RequestsTab />}
-              {section === 'shipments'  && <ShipmentsWorkflowTab />}
-              {section === 'orders'     && <OrdersTab />}
-              {section === 'reception'  && <ReceptionKanbanTab />}
-              {section === 'hubs'       && <HubsTab />}
-              {section === 'transport'  && <KonnektMonitorTab />}
-              {section === 'departures' && <DeparturesTab />}
-              {section === 'transporteurs' && isAdmin && <TransporteursTab />}
-              {section === 'gp-operations' && isAdmin && <GpOperationsTab />}
-              {section === 'livreurs' && isAdmin && <LivreursTab />}
-              {section === 'sourcing'   && <SourcingTab />}
-              {section === 'boutique'   && <BoutiqueTab />}
-              {section === 'tracking'   && <TrackingTab />}
-              {section === 'clients'    && <ClientsTab />}
-              {section === 'enterprise' && <EnterpriseQuotesTab />}
-              {section === 'manual-quotes' && <ManualQuotesTab />}
+              {section === 'overview' && <OverviewTab onJump={setSection} />}
+              {section === 'dossiers' && <DossiersHubTab />}
+              {section === 'departs'  && <DepartsHubTab />}
+              {section === 'terrain'  && isAdmin && <TerrainHubTab />}
+              {section === 'clients'  && <ClientsTab />}
+              {section === 'messages' && <MessagesTab />}
+              {section === 'leads'    && <LeadsHubTab />}
+              {section === 'revenus'  && isAdmin && <RevenusPlaceholder />}
               {section === 'finances' && isAdmin && <FinancesTab />}
-              {section === 'settings'   && <SettingsTab />}
+              {section === 'boutique' && <BoutiqueTab />}
+              {section === 'hubs'     && <HubsHubTab />}
+              {section === 'settings' && <SettingsTab />}
             </>
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+function RevenusPlaceholder() {
+  return (
+    <div className="py-20 text-center max-w-md mx-auto">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#F5C518]/10 mb-4">
+        <span className="text-2xl">💰</span>
+      </div>
+      <h2 className="text-xl font-semibold text-foreground">Revenus</h2>
+      <p className="text-sm text-muted-foreground mt-2">
+        Section en cours de construction (Phase 3). KPIs revenus, paiements reçus,
+        relances clients et export CSV mensuel arrivent bientôt.
+      </p>
     </div>
   );
 }
