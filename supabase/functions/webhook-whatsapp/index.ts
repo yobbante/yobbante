@@ -263,30 +263,30 @@ Deno.serve(async (req) => {
               console.error('WA_ERROR gp-bot fetch', e);
             }
           } else {
-            // Notify admin on 607 (free-text, requires admin to have messaged the bot in 24h)
+            // Channel = client (607). Skip super admin to avoid loops.
             const adminPhone = Deno.env.get('ADMIN_WHATSAPP_NUMBER');
-            if (adminPhone && fromPhone !== normalizePhone(adminPhone)) {
-              const preview = (body ?? '').slice(0, 80);
-              const adminMsg = `📩 Client ${fromName ?? fromPhone} (${fromPhone}) :
-"${preview}${(body ?? '').length > 80 ? '…' : ''}"
-
-→ yobbante.com/admin/messages`;
+            const isSuperAdmin = adminPhone && fromPhone === normalizePhone(adminPhone);
+            if (isSuperAdmin) {
+              // Just log, nothing else
+            } else {
+              // Delegate to bot-client
               try {
-                await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+                const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bot-client`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
                   },
                   body: JSON.stringify({
-                    recipient_phone: adminPhone,
-                    recipient_type: 'admin',
-                    message: adminMsg,
-                    trigger_type: 'admin_inbound_notification',
+                    inbound_id: insertedRow?.id,
+                    from_phone: fromPhone,
+                    from_name: fromName,
+                    message: body,
                   }),
                 });
+                if (!botRes.ok) console.error('WA_ERROR bot-client', await botRes.text());
               } catch (e) {
-                console.error('WA_ERROR admin notify', e);
+                console.error('WA_ERROR bot-client fetch', e);
               }
             }
           }
