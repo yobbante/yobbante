@@ -244,17 +244,3 @@ export default function AdminPage() {
   );
 }
 
-function RevenusPlaceholder() {
-  return (
-    <div className="py-20 text-center max-w-md mx-auto">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#F5C518]/10 mb-4">
-        <span className="text-2xl">💰</span>
-      </div>
-      <h2 className="text-xl font-semibold text-foreground">Revenus</h2>
-      <p className="text-sm text-muted-foreground mt-2">
-        Section en cours de construction (Phase 3). KPIs revenus, paiements reçus,
-        relances clients et export CSV mensuel arrivent bientôt.
-      </p>
-    </div>
-  );
-}
