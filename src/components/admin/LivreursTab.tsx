@@ -258,6 +258,8 @@ export function LivreursTab() {
           })}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
 
       <LivreurDialog
         livreur={editing}
