@@ -155,6 +155,20 @@ Deno.serve(async (req) => {
           // Look up dossier and transporteur for context
           let dossierId: string | null = null;
           let transporteurId: string | null = null;
+          let livreurId: string | null = null;
+          let isLivreur = false;
+
+          // Check if sender is a registered livreur (priority on GP channel)
+          if (channel === 'gp') {
+            const tail = fromPhone.slice(-9);
+            const { data: liv } = await supa
+              .from('livreurs')
+              .select('id, is_active')
+              .ilike('telephone', `%${tail}%`)
+              .limit(1)
+              .maybeSingle();
+            if (liv?.id) { livreurId = liv.id; isLivreur = true; }
+          }
 
           if (channel === 'client') {
             const { data: dossier } = await supa
@@ -165,7 +179,7 @@ Deno.serve(async (req) => {
               .limit(1)
               .maybeSingle();
             dossierId = dossier?.id ?? null;
-          } else {
+          } else if (!isLivreur) {
             const { data: gp } = await supa
               .from('transporteurs')
               .select('id')
@@ -204,7 +218,30 @@ Deno.serve(async (req) => {
           }
 
           // Route to bot or notify admin
-          if (channel === 'gp') {
+          if (channel === 'gp' && isLivreur) {
+            // Delegate to livreur-bot
+            try {
+              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/livreur-bot`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({
+                  inbound_id: insertedRow?.id,
+                  from_phone: fromPhone,
+                  from_name: fromName,
+                  livreur_id: livreurId,
+                  message: body,
+                  message_type: messageType,
+                  media_url: mediaUrl,
+                }),
+              });
+              if (!botRes.ok) console.error('WA_ERROR livreur-bot', await botRes.text());
+            } catch (e) {
+              console.error('WA_ERROR livreur-bot fetch', e);
+            }
+          } else if (channel === 'gp') {
             // Delegate to gp-bot
             try {
               const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/gp-bot`, {
