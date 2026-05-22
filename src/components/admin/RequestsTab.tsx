@@ -455,3 +455,114 @@ function Info({
     </div>
   );
 }
+
+/* ──────────────────────── Kanban view ──────────────────────── */
+function KanbanView({
+  dossiers, onMove, onOpen,
+}: {
+  dossiers: Dossier[];
+  onMove: (id: string, status: DossierStatus) => void;
+  onOpen: (id: string) => void;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<DossierStatus, Dossier[]>();
+    KANBAN_COLUMNS.forEach(c => map.set(c.id, []));
+    for (const d of dossiers) {
+      // Bucket CUSTOMS into IN_TRANSIT, PROCURED into SOURCING, CLOSED into DELIVERED
+      const bucket: DossierStatus =
+        d.status === 'CUSTOMS' ? 'IN_TRANSIT'
+        : d.status === 'PROCURED' ? 'SOURCING'
+        : d.status === 'CLOSED' ? 'DELIVERED'
+        : d.status;
+      if (!map.has(bucket)) map.set(bucket, []);
+      map.get(bucket)!.push(d);
+    }
+    return map;
+  }, [dossiers]);
+
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [hover, setHover] = useState<DossierStatus | null>(null);
+
+  return (
+    <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto pb-2">
+      {KANBAN_COLUMNS.map(col => {
+        const items = grouped.get(col.id) ?? [];
+        const isHover = hover === col.id;
+        return (
+          <div
+            key={col.id}
+            onDragOver={(e) => { e.preventDefault(); setHover(col.id); }}
+            onDragLeave={() => setHover(prev => (prev === col.id ? null : prev))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setHover(null);
+              if (dragging) {
+                const d = dossiers.find(x => x.id === dragging);
+                if (d && d.status !== col.id) onMove(dragging, col.id);
+              }
+              setDragging(null);
+            }}
+            className={cn(
+              'rounded-xl border bg-card flex flex-col min-h-[160px]',
+              isHover ? 'border-[#F5C518]/60 bg-[#F5C518]/5' : 'border-border',
+            )}
+          >
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <div className="text-xs font-semibold text-foreground">{col.label}</div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{items.length}</span>
+            </div>
+            <div className="p-2 space-y-1.5 flex-1">
+              {items.length === 0 && (
+                <div className="text-[11px] text-muted-foreground text-center py-6 italic">
+                  Vide
+                </div>
+              )}
+              {items.map(d => (
+                <div
+                  key={d.id}
+                  draggable
+                  onDragStart={() => setDragging(d.id)}
+                  onDragEnd={() => { setDragging(null); setHover(null); }}
+                  onDoubleClick={() => onOpen(d.id)}
+                  className={cn(
+                    'rounded-md border border-border bg-background px-2.5 py-2 cursor-grab active:cursor-grabbing text-xs space-y-1 hover:border-[#F5C518]/40 transition-colors',
+                    dragging === d.id && 'opacity-50',
+                  )}
+                  title="Glisser pour changer de statut · double-clic pour ouvrir"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] text-muted-foreground truncate">{d.reference}</span>
+                    <span className="text-sm">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
+                  </div>
+                  <div className="text-foreground line-clamp-2 leading-snug">{d.product_description}</div>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{d.origin_country} → {d.destination_country}</span>
+                    {d.business_id && (
+                      <span className="inline-flex items-center gap-0.5 text-primary">
+                        <Building2 className="w-2.5 h-2.5" />B2B
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Info({
+  icon: Icon, label, children,
+}: { icon: typeof Inbox; label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+        <Icon className="w-3 h-3" /> {label}
+      </p>
+      <p className="text-foreground font-medium truncate">{children}</p>
+    </div>
+  );
+}
+
