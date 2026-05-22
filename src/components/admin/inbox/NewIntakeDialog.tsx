@@ -331,6 +331,11 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         estimated_weight: data.weight_kg ? parseFloat(data.weight_kg) : null,
         estimated_cost: price ?? null,
         needs_sourcing: data.service_kind === 'sourcing',
+        app_source: data.service_kind === 'envoi'
+          ? 'expedier'
+          : data.service_kind === 'reception'
+            ? 'recevoir'
+            : 'sourcing',
         notes: [
           data.client_company && `Société: ${data.client_company}`,
           data.client_city && `Ville: ${data.client_city}`,
