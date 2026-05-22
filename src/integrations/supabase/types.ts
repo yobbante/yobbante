@@ -295,6 +295,36 @@ export type Database = {
           },
         ]
       }
+      client_bot_sessions: {
+        Row: {
+          bot_paused_until: string | null
+          created_at: string
+          from_phone: string
+          id: string
+          pending_data: Json
+          pending_intent: string | null
+          updated_at: string
+        }
+        Insert: {
+          bot_paused_until?: string | null
+          created_at?: string
+          from_phone: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bot_paused_until?: string | null
+          created_at?: string
+          from_phone?: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coverage_zones: {
         Row: {
           active: boolean
