@@ -58,6 +58,7 @@ export function GpOperationsTab() {
         ))}
       </div>
 
+      {section === 'no_response' && <GpNoResponse />}
       {section === 'departures' && <DeparturesToday />}
       {section === 'pending' && <PendingCollects />}
       {section === 'weighing' && <WeighingQueue />}
