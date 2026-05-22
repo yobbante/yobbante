@@ -14,6 +14,11 @@ export interface CreateDossierInput {
   notes?: string | null;
   estimated_cost?: number | null;
   app_source?: string;
+  delivery_mode?: 'pickup_gp' | 'relay_point' | 'home_delivery';
+  relay_point_name?: string | null;
+  relay_point_address?: string | null;
+  delivery_carrier?: string | null;
+  delivery_cost_xof?: number | null;
 }
 
 export function useDossiers() {
