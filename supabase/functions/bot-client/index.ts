@@ -168,36 +168,13 @@ async function handleReserver(supa: any, phone: string, name: string | null, ref
   if ((dep.available_capacity_kg ?? 0) < weight) {
     return `Desole, plus que ${dep.available_capacity_kg ?? 0}kg dispo sur #${ref}.\n\nTapez 1 pour voir d autres departs.`;
   }
-  // Create dossier
-  const { data: dossier, error } = await supa
-    .from('dossiers')
-    .insert({
-      user_id: '00000000-0000-0000-0000-000000000000', // placeholder until claim
-      status: 'AWAITING_CLIENT',
-      source: 'bot_client_session',
-      product_description: 'Reservation via WhatsApp',
-      origin_country: 'SN',
-      destination_country: 'FR',
-      estimated_weight: weight,
-      contact_phone: phone,
-      assigned_departure_id: dep.id,
-      intake_method: 'bot',
-      skip_whatsapp_trigger: true,
-    })
-    .select('id,tracking_id,reference')
-    .maybeSingle();
-  if (error || !dossier) {
-    console.error('BOT_CLIENT create dossier err', error?.message);
-    return `Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`;
-  }
-  const trk = dossier.tracking_id || dossier.reference;
-  await saveSession(supa, phone, 'await_name', {
-    dossier_id: dossier.id,
+  await saveSession(supa, phone, 'reserve_name', {
+    departure_id: dep.id,
     step: 'name',
     ref,
     weight,
   });
-  return `Super ! Reservation en cours.\n\nDossier : ${trk}\nDepart : Ref #${ref} - ${fmtDate(dep.departure_date)}\nPoids : ${weight}kg\n\nPour finaliser, donnez-nous :\nVotre nom complet ?`;
+  return `Super ! Reservation en cours.\n\nDepart : Ref #${ref} - ${fmtDate(dep.departure_date)}\nPoids : ${weight}kg\n\nPour finaliser, donnez-nous :\nVotre nom complet ?`;
 }
 
 async function handleTrackingLookup(supa: any, trackingInput: string) {
