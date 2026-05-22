@@ -785,6 +785,10 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   //  MODIFIER : génère un lien public pour modifier les infos GP
   // =================================================================
   if (/^modifier\b/.test(msg)) {
+    if (!transporteur) {
+      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'modifier_unknown');
+      return new Response('ok', { headers: corsHeaders });
+    }
     const { data: tok, error } = await supa
       .from('edit_tokens')
       .insert({
