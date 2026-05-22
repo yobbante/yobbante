@@ -197,6 +197,10 @@ export function InboxTab() {
                     <Pencil className="w-3 h-3 mr-1" /> Lien modif. destinataire
                   </Button>
                 </div>
+
+                {(detail.status === 'ARRIVED_HUB' || detail.status === 'DELIVERED' || detail.delivery_mode) && (
+                  <DeliveryFinalePanel dossier={detail} onChanged={() => { refetch(); }} />
+                )}
               </div>
             </>
           )}
