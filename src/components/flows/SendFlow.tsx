@@ -155,6 +155,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [recipientPhone, setRecipientPhone] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [deliveryAddress, setDelivery]    = useState('');
+  // Mode de reception finale
+  const [deliveryMode, setDeliveryMode]   = useState<'pickup_gp' | 'relay_point' | 'home_delivery'>('pickup_gp');
+  const [relayPointName, setRelayPointName] = useState('');
+  const [relayPointAddress, setRelayPointAddress] = useState('');
+  const [deliveryCarrier, setDeliveryCarrier] = useState<string>('');
   // Step 5 — package description
   const [description, setDescription]     = useState('');
   const [declaredLocal, setDeclaredLocal] = useState('');
