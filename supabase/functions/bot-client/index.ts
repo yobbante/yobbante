@@ -364,13 +364,14 @@ Deno.serve(async (req) => {
           .insert({
             user_id: '00000000-0000-0000-0000-000000000000',
             status: 'AWAITING_CLIENT',
-            source: 'whatsapp_bot',
+            source: 'bot_client_session',
             product_description: `Expedition ${data.origin} -> ${data.dest}`,
             origin_country: 'SN',
             destination_country: 'FR',
             estimated_weight: w,
             contact_phone: phone,
             intake_method: 'bot',
+            skip_whatsapp_trigger: true,
             notes: `Origine: ${data.origin} | Dest: ${data.dest}`,
           })
           .select('id,tracking_id,reference')
