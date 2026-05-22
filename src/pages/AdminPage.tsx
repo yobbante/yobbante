@@ -198,6 +198,7 @@ export default function AdminPage() {
               {section === 'departures' && <DeparturesTab />}
               {section === 'transporteurs' && isAdmin && <TransporteursTab />}
               {section === 'gp-operations' && isAdmin && <GpOperationsTab />}
+              {section === 'livreurs' && isAdmin && <LivreursTab />}
               {section === 'sourcing'   && <SourcingTab />}
               {section === 'boutique'   && <BoutiqueTab />}
               {section === 'tracking'   && <TrackingTab />}
