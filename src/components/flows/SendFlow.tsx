@@ -1478,12 +1478,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </button>
             ))}
           </div>
+          <StepContinueBar enabled={true} onContinue={() => advanceFromStep(6)} />
         </FlowSection>
+        )
       )}
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
+      {routeOk && stepIsFuture(7) ? (
+        <div className="mt-6"><LockedStep step={7} total={7} title="Paiement & récapitulatif" /></div>
+      ) : (
       <div id="section-final" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-final'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={7} total={7} title="Paiement & récapitulatif" hint="Choisissez votre paiement, puis vérifiez le résumé avant de confirmer.">
+
 
         <div className="max-w-2xl">
           <Tabs defaultValue="paiement" className="w-full">
