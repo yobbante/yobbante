@@ -184,6 +184,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
   // Tracks which step is currently being edited (null = use collapsed summaries when complete)
   const [editingStep, setEditingStep] = useState<number | null>(null);
+  // Sequential step gating — only the current step is expanded; past steps
+  // collapse to a summary, future steps show a locked placeholder.
+  const [currentStep, setCurrentStep] = useState<number>(1);
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
