@@ -1050,8 +1050,9 @@ Repondez OUI pour valider ou NON pour annuler.`, 'collecte_confirm');
 
     const { error } = await supa
       .from('dossiers')
-      .update({ status: 'COLLECTED', collected_at: new Date().toISOString() })
+      .update({ status: 'COLLECTED', collected_at: new Date().toISOString(), gp_last_action_at: new Date().toISOString() })
       .eq('id', dossier.id);
+    await bumpGpActivity(dossier.id);
 
     await clearSession();
 
