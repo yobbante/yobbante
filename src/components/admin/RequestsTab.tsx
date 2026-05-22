@@ -17,6 +17,7 @@ import {
   COUNTRY_FLAGS, DOSSIER_STATUS_LABELS, DOSSIER_STATUS_ORDER,
   type Dossier, type DossierStatus,
 } from '@/lib/types';
+import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { toast } from 'sonner';
 
 const TYPE_FILTERS = [
