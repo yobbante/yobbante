@@ -12,31 +12,27 @@ type Item = {
 };
 
 const SECTION_ITEMS: Item[] = [
-  { id: 'overview',      label: 'Dashboard',                section: 'overview',      keywords: 'accueil home stats' },
-  { id: 'requests',      label: 'Demandes — Particuliers',  section: 'requests',      keywords: 'devis quote particulier' },
-  { id: 'enterprise',    label: 'Demandes — Entreprises',   section: 'enterprise',    keywords: 'b2b devis pro' },
-  { id: 'shipments',     label: 'Workflow envois',          section: 'shipments',     keywords: 'expedition shipment' },
-  { id: 'orders',        label: 'Commandes & colis',        section: 'orders',        keywords: 'colis package' },
-  { id: 'reception',     label: 'Réception internationale', section: 'reception',     keywords: 'arrivee receive intl' },
-  { id: 'tracking',      label: 'Tracking global',          section: 'tracking',      keywords: 'suivi map carte' },
-  { id: 'sourcing',      label: 'Sourcing',                 section: 'sourcing',      keywords: 'achat acheter shopping' },
-  { id: 'boutique',      label: 'Dëkk — Produits',          section: 'boutique',      keywords: 'shop produit catalog' },
-  { id: 'boutique-cmd',  label: 'Dëkk — Commandes',         section: 'boutique',      keywords: 'order commande livraison suivi' },
-  { id: 'hubs',          label: 'Hubs',                     section: 'hubs',          keywords: 'reseau ville port' },
-  { id: 'transport',     label: 'Konnekt',                  section: 'transport',     keywords: 'gp transporteur' },
-  { id: 'departures',    label: 'Départs manuels',          section: 'departures',    keywords: 'depart vol' },
-  { id: 'transporteurs', label: 'Base GP — Transporteurs',  section: 'transporteurs', keywords: 'gp konnekt import' },
-  { id: 'clients',       label: 'Clients',                  section: 'clients',       keywords: 'crm utilisateur user' },
-  { id: 'settings',      label: 'Paramètres',               section: 'settings',      keywords: 'config admin role' },
+  { id: 'overview',      label: 'Vue globale',              section: 'overview', keywords: 'accueil home stats dashboard' },
+  { id: 'dossiers',      label: 'Dossiers',                 section: 'dossiers', keywords: 'demandes devis quote inbox shipments orders reception sourcing' },
+  { id: 'departs',       label: 'Départs',                  section: 'departs',  keywords: 'depart vol semaine konnekt manuel' },
+  { id: 'terrain',       label: 'Équipe terrain',           section: 'terrain',  keywords: 'gp transporteur livreur operations base' },
+  { id: 'clients',       label: 'Clients',                  section: 'clients',  keywords: 'crm utilisateur user' },
+  { id: 'messages',      label: 'Messages WhatsApp',        section: 'messages', keywords: 'whatsapp chat conversation' },
+  { id: 'leads',         label: 'Leads & devis',            section: 'leads',    keywords: 'devis quote particulier entreprise b2b' },
+  { id: 'revenus',       label: 'Revenus',                  section: 'revenus',  keywords: 'finance ca chiffre affaire paiement' },
+  { id: 'finances',      label: 'Paiements GP',             section: 'finances', keywords: 'gp wallet payout' },
+  { id: 'boutique',      label: 'Boutique Dëkk',            section: 'boutique', keywords: 'shop produit catalog commande' },
+  { id: 'hubs',          label: 'Hubs & Konnekt',           section: 'hubs',     keywords: 'reseau ville port transport tracking' },
+  { id: 'settings',      label: 'Paramètres',               section: 'settings', keywords: 'config admin role' },
 ];
 
 const ACTIONS: Item[] = [
-  { id: 'a-new-product',   label: 'Nouveau produit Dëkk',         hint: 'Action',  section: 'boutique',      keywords: 'creer add ajouter' },
-  { id: 'a-orders',        label: 'Voir les commandes Dëkk',      hint: 'Action',  section: 'boutique',      keywords: 'order livraison' },
-  { id: 'a-import-gp',     label: 'Importer une base GP (Excel)', hint: 'Action',  section: 'transporteurs', keywords: 'import xlsx' },
-  { id: 'a-blast',         label: 'Inviter les GP sur Konnekt',   hint: 'Action',  section: 'transporteurs', keywords: 'whatsapp invitation' },
-  { id: 'a-departure',     label: 'Créer un départ manuel',       hint: 'Action',  section: 'departures',    keywords: 'vol bateau' },
-  { id: 'a-pending-quotes',label: 'Devis en attente',             hint: 'Action',  section: 'requests',      keywords: 'pending nouveau' },
+  { id: 'a-new-product',   label: 'Nouveau produit Dëkk',         hint: 'Action', section: 'boutique', keywords: 'creer add ajouter' },
+  { id: 'a-orders',        label: 'Voir les commandes Dëkk',      hint: 'Action', section: 'boutique', keywords: 'order livraison' },
+  { id: 'a-import-gp',     label: 'Importer une base GP (Excel)', hint: 'Action', section: 'terrain',  keywords: 'import xlsx' },
+  { id: 'a-blast',         label: 'Inviter les GP sur Konnekt',   hint: 'Action', section: 'terrain',  keywords: 'whatsapp invitation' },
+  { id: 'a-departure',     label: 'Créer un départ manuel',       hint: 'Action', section: 'departs',  keywords: 'vol bateau' },
+  { id: 'a-pending-quotes',label: 'Devis en attente',             hint: 'Action', section: 'dossiers', keywords: 'pending nouveau' },
 ];
 
 const ALL = [...SECTION_ITEMS, ...ACTIONS];
