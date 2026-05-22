@@ -1177,14 +1177,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       {!skipGoodsStep ? (
         <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
-          {goodsOk && editingStep !== 4 ? (
+          {goodsOk && editingStep !== 4 && !stepIsActive(4) ? (
             <StepCollapsed
               title={GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'}
               lines={[
                 GOODS_TYPES.find(g => g.id === goodsType)?.desc ?? '',
                 goodsAutoConfident ? 'Détecté automatiquement à partir de votre description' : '',
               ].filter(Boolean)}
-              onEdit={() => setEditingStep(4)}
+              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
             />
           ) : (
             <>
@@ -1195,7 +1195,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   return (
                     <button key={g.id} type="button"
                       title={g.desc}
-                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); setEditingStep(null); }}
+                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); advanceFromStep(4); }}
                       className={cn(
                         'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
@@ -1224,6 +1224,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <span>{corridorWarning}</span>
                 </div>
               )}
+              <StepContinueBar enabled={goodsOk} onContinue={() => advanceFromStep(4)} />
             </>
           )}
         </FlowSection>
