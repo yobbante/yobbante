@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
         'agent_handoff',
       );
       reply = `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
-    } else if (/^(aide|bonjour|salut|hello|hi|menu|help|salam)/.test(nMsg) || !nMsg) {
+    } else if (/^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/.test(nMsg) || !nMsg) {
       reply = MAIN_MENU;
     } else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       // Direct tracking number
