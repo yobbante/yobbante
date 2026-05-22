@@ -167,7 +167,7 @@ export function LivreursTab() {
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Livreurs Dakar</h2>
-          <p className="text-sm text-muted-foreground">Annuaire des livreurs pour les collectes et livraisons locales.</p>
+          <p className="text-sm text-muted-foreground">Annuaire des livreurs et dispatch quotidien des collectes.</p>
         </div>
         <Button
           size="sm"
@@ -178,10 +178,21 @@ export function LivreursTab() {
         </Button>
       </header>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : nom · téléphone · zone" className="pl-9" />
-      </div>
+      <Tabs defaultValue="annuaire" className="w-full">
+        <TabsList>
+          <TabsTrigger value="annuaire">Annuaire</TabsTrigger>
+          <TabsTrigger value="dispatch">Dispatch du jour</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dispatch" className="mt-4">
+          <DispatchPanel />
+        </TabsContent>
+
+        <TabsContent value="annuaire" className="mt-4 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : nom · téléphone · zone" className="pl-9" />
+          </div>
 
       {list.isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
