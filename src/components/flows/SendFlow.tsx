@@ -1057,15 +1057,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 3 — Package description ─── */}
+      {routeOk && stepIsFuture(3) ? (
+        <div className="mt-6"><LockedStep step={3} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
+      ) : (
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
-        {packageOk && editingStep !== 3 ? (
+        {packageOk && editingStep !== 3 && !stepIsActive(3) ? (
           <StepCollapsed
             title={`${description} — ${weight} kg`}
             lines={[
               `${parcelCount} colis · ${declaredLocal} ${originProfile.currencySymbol}`,
             ]}
-            onEdit={() => setEditingStep(3)}
+            onEdit={() => { setCurrentStep(3); setEditingStep(3); }}
           />
         ) : (
         <div className="space-y-4 max-w-xl">
@@ -1162,16 +1165,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
-          {packageOk && (
-            <button type="button" onClick={() => setEditingStep(null)}
-              className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-              Valider et replier
-            </button>
-          )}
+          <StepContinueBar enabled={packageOk} onContinue={() => advanceFromStep(3)} />
         </div>
         )}
       </FlowSection>
       </div>
+      )}
+
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
