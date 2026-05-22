@@ -8,7 +8,17 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ADMIN_PHONE = Deno.env.get('ADMIN_WHATSAPP_NUMBER') || '+221784604003';
+const SUPER_ADMIN_PHONE = Deno.env.get('SUPER_ADMIN_PHONE')
+  || Deno.env.get('ADMIN_WHATSAPP_NUMBER')
+  || '+221784604003';
+const ADMIN_PHONE = SUPER_ADMIN_PHONE;
+
+function isSuperAdminPhone(from: string): boolean {
+  const n = (from || '').replace(/\D/g, '');
+  const sa = SUPER_ADMIN_PHONE.replace(/\D/g, '');
+  if (!n || !sa) return false;
+  return n === sa || n.endsWith(sa) || sa.endsWith(n);
+}
 
 function supa() {
   return createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -233,7 +243,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
-    const fromPhone = body.from_phone || ADMIN_PHONE;
+    const fromPhone = body.from_phone || '';
+
+    // HARD SECURITY GUARD — only the super admin number can use this bot.
+    // Anyone else: silently ignore (no reply, no session, no log).
+    if (!isSuperAdminPhone(fromPhone)) {
+      console.warn('SUPER_ADMIN_BOT rejected non-admin', fromPhone);
+      return new Response('ok', { status: 200, headers: corsHeaders });
+    }
+
     const message = body.message || '';
     console.log('SUPER_ADMIN_BOT IN', fromPhone, message);
     const reply = await handleMessage(fromPhone, message);
