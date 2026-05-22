@@ -22,6 +22,16 @@ export type InboxDossier = {
   user_id: string;
   buyer_name: string | null;
   buyer_country: string | null;
+  delivery_mode: string | null;
+  relay_point_name: string | null;
+  relay_point_address: string | null;
+  delivery_carrier: string | null;
+  delivery_cost_xof: number | null;
+  delivery_notified_at: string | null;
+  delivery_reminder_count: number | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  recipient_address: string | null;
 };
 
 export function useInboxDossiers() {
