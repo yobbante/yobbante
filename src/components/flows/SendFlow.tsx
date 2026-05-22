@@ -1439,6 +1439,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   )}
 
                   <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
+                  <StepContinueBar enabled={true} onContinue={() => advanceFromStep(5)} />
                 </>
               )}
             </div>
@@ -1446,12 +1447,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })()}
       </FlowSection>
       </div>
-
+      )}
 
 
 
       {/* ─── Step 6 — Insurance (conditional) ─── */}
       {showInsuranceStep && (
+        routeOk && stepIsFuture(6) ? (
+          <div className="mt-6"><LockedStep step={6} total={7} title="Protégez votre envoi" /></div>
+        ) : (
+
         <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
           <div className="space-y-2.5 max-w-xl">
             {[
