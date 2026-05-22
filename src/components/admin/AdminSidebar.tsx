@@ -1,96 +1,65 @@
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Inbox, Package, Globe2, Truck, Plane, ShoppingCart, ShoppingBag, MapPin, Users, Settings, Workflow, PackageOpen, UserCog, Building2, MessageSquare, Search, MessageCircle, Wallet, Bike } from 'lucide-react';
+import {
+  LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
+  Wallet, CreditCard, ShoppingBag, Globe2, Settings,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
 
 export type AdminSection =
   | 'overview'
-  | 'inbox'
-  | 'messages'
-  | 'requests'
-  | 'shipments'
-  | 'orders'
-  | 'reception'
-  | 'hubs'
-  | 'transport'
-  | 'departures'
-  | 'transporteurs'
-  | 'sourcing'
-  | 'boutique'
-  | 'tracking'
+  | 'dossiers'
+  | 'departs'
+  | 'terrain'
   | 'clients'
-  | 'enterprise'
-  | 'manual-quotes'
-  | 'gp-operations'
-  | 'livreurs'
+  | 'messages'
+  | 'leads'
+  | 'revenus'
   | 'finances'
+  | 'boutique'
+  | 'hubs'
   | 'settings';
 
-type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; live: boolean; adminOnly?: boolean };
+type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
 type NavGroup = { label: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
     items: [
-      { id: 'inbox',    label: 'Inbox',     icon: MessageSquare,   live: true },
-      { id: 'messages', label: 'Messages',  icon: MessageCircle,   live: true },
-      { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, live: true },
-    ],
-  },
-  {
-    label: 'Demandes entrantes',
-    items: [
-      { id: 'requests',     label: 'Particuliers', icon: Inbox,     live: true },
-      { id: 'manual-quotes',label: 'Devis manuels',icon: Search,    live: true },
-      { id: 'enterprise',   label: 'Entreprises',  icon: Building2, live: true },
+      { id: 'overview', label: 'Vue globale', icon: LayoutDashboard },
+      { id: 'dossiers', label: 'Dossiers',    icon: Package },
     ],
   },
   {
     label: 'Opérations',
     items: [
-      { id: 'shipments',  label: 'Workflow envois',  icon: Workflow,    live: true },
-      { id: 'orders',     label: 'Commandes & colis',icon: Package,     live: true },
-      { id: 'reception',  label: 'Réception intl.',  icon: PackageOpen, live: true },
-      { id: 'tracking',   label: 'Tracking global',  icon: MapPin,      live: true },
-      { id: 'sourcing',   label: 'Sourcing',         icon: ShoppingCart,live: true },
+      { id: 'departs', label: 'Départs',         icon: Truck },
+      { id: 'terrain', label: 'Équipe terrain',  icon: UsersRound, adminOnly: true },
     ],
   },
   {
-    label: 'Catalogue',
+    label: 'Contacts',
     items: [
-      { id: 'boutique', label: 'Dëkk — Boutique', icon: ShoppingBag, live: true },
+      { id: 'clients',  label: 'Clients',        icon: Users },
+      { id: 'messages', label: 'Messages',       icon: MessageCircle },
+      { id: 'leads',    label: 'Leads & devis',  icon: ClipboardList },
     ],
   },
   {
-    label: 'Réseau transport',
+    label: 'Finances',
     items: [
-      { id: 'hubs',         label: 'Hubs',            icon: Globe2, live: true },
-      { id: 'transport',    label: 'Konnekt',         icon: Truck,  live: true },
-      { id: 'departures',   label: 'Départs manuels', icon: Plane,  live: true },
-      { id: 'departs-semaine' as any, label: 'Départs de la semaine', icon: Plane, live: true },
-      { id: 'transporteurs',label: 'Transporteurs',   icon: UserCog,live: true, adminOnly: true },
-      { id: 'livreurs',     label: 'Livreurs Dakar',  icon: Bike,   live: true, adminOnly: true },
-      { id: 'gp-operations',label: 'Operations GP',   icon: Truck,  live: true, adminOnly: true },
-    ],
-  },
-  {
-    label: 'CRM',
-    items: [
-      { id: 'clients', label: 'Clients', icon: Users, live: true },
-    ],
-  },
-  {
-    label: 'Finance',
-    items: [
-      { id: 'finances', label: 'Finances GP', icon: Wallet, live: true, adminOnly: true },
+      { id: 'revenus',  label: 'Revenus',        icon: Wallet,      adminOnly: true },
+      { id: 'finances', label: 'Paiements GP',   icon: CreditCard,  adminOnly: true },
     ],
   },
   {
     label: 'Système',
     items: [
-      { id: 'settings', label: 'Paramètres', icon: Settings, live: true },
+      { id: 'boutique', label: 'Boutique Dëkk', icon: ShoppingBag },
+      { id: 'hubs',     label: 'Hubs',          icon: Globe2 },
+      { id: 'settings', label: 'Paramètres',    icon: Settings },
     ],
   },
 ];
@@ -131,7 +100,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         minWidth: 220,
       }}
     >
-      <AdminGlobalSearch onJump={onChange} isAdmin={isAdmin} />
+      <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n => !n.adminOnly || isAdmin);
         if (visibleItems.length === 0) return null;
@@ -145,7 +114,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
                 {group.label}
               </div>
             )}
-            {visibleItems.map(({ id, label, icon: Icon, live }) => {
+            {visibleItems.map(({ id, label, icon: Icon }) => {
               const disabled = id === 'settings' && !isAdmin;
               const isActive = active === id;
               return (
@@ -160,7 +129,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
                   )}
                   style={{
                     borderRadius: isActive ? 0 : 8,
-                    borderLeft: isActive ? '2px solid #1D9E75' : '2px solid transparent',
+                    borderLeft: isActive ? '2px solid #F5C518' : '2px solid transparent',
                     background: isActive ? 'hsl(var(--secondary))' : 'transparent',
                     color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
                   }}
@@ -182,14 +151,6 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
                   {id === 'messages' && unread > 0 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
                       {unread > 99 ? '99+' : unread}
-                    </span>
-                  )}
-                  {!live && (
-                    <span
-                      className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
-                      style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--text-tertiary))' }}
-                    >
-                      Soon
                     </span>
                   )}
                 </button>
