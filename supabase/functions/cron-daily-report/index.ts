@@ -143,11 +143,11 @@ async function buildWeeklyReport(supa: any): Promise<string> {
   }
 
   return `Bilan semaine Yobbante :
-Commandes recues : ${Math.round(recues)}
+Commandes : ${Math.round(recues)}
 Livrees : ${Math.round(livrees)}
 En cours : ${Math.round(actifs)}
 GP actifs : ${gpActifs}
-Routes les + actives : ${topRoutes}
+Routes top 3 : ${topRoutes}
 Bonne semaine !`;
 }
 
