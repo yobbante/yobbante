@@ -466,11 +466,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     7: 'section-final',
   };
   function goToStep(step: number) {
+    setCurrentStep(step);
     setEditingStep(step);
     requestAnimationFrame(() => {
       document.getElementById(STEP_DOM_ID[step])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+  // Mark step N as done and advance to N+1, scrolling to the next section.
+  function advanceFromStep(step: number) {
+    const next = step + 1;
+    setEditingStep(null);
+    setCurrentStep(s => Math.max(s, next));
+    requestAnimationFrame(() => {
+      const id = STEP_DOM_ID[next] ?? STEP_DOM_ID[7];
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  // True only when step N is the one the user should currently be editing.
+  // Past steps render their collapsed summary; future steps render a locked card.
+  const stepIsActive = (n: number) => currentStep === n;
+  const stepIsPast = (n: number) => currentStep > n;
+  const stepIsFuture = (n: number) => currentStep < n;
+  const stepValidity: Record<number, boolean> = {
+    1: collecteOk, 2: recipientOk, 3: packageOk, 4: goodsOk,
+    5: true, 6: true,
+    7: !!senderName.trim() && !!senderPhone.trim(),
+  };
   function scrollToFirstError() {
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
