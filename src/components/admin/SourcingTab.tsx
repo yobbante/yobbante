@@ -76,6 +76,7 @@ export function SourcingTab() {
         .from('dossiers')
         .select('*')
         .eq('needs_sourcing', true)
+        .not('app_source', 'in', '("expedier","recevoir")')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as Dossier[];
