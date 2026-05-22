@@ -2328,6 +2328,36 @@ export type Database = {
           },
         ]
       }
+      super_admin_sessions: {
+        Row: {
+          created_at: string
+          from_phone: string
+          id: string
+          pending_data: Json
+          pending_intent: string | null
+          pending_step: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_phone: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          pending_step?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_phone?: string
+          id?: string
+          pending_data?: Json
+          pending_intent?: string | null
+          pending_step?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       timeline_events: {
         Row: {
           created_at: string
