@@ -377,7 +377,6 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       toast.success(`Dossier ${created.reference} créé`);
 
       if (sendWhatsApp && data.client_phone) {
-        const phoneClean = data.client_phone.replace(/[^\d]/g, '');
         const trackingUrl = `https://yobbante.com/suivre/${created.reference}`;
         const serviceLabel = SERVICE_KINDS.find(s => s.id === data.service_kind)?.label || 'Demande';
         const route = data.service_kind === 'envoi'
@@ -397,7 +396,22 @@ Suivre : ${trackingUrl}
 
 Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.
 Merci de votre confiance.`;
-        window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(msg)}`, '_blank');
+        try {
+          const { data: waRes, error: waErr } = await supabase.functions.invoke('send-whatsapp', {
+            body: {
+              recipient_phone: data.client_phone,
+              recipient_type: 'client',
+              message: msg,
+              dossier_id: created.id,
+              trigger_type: 'intake_recap',
+            },
+          });
+          if (waErr || ((waRes as any)?.status && (waRes as any).status !== 'sent')) {
+            toast.error(`Envoi WhatsApp échoué pour ${created.reference}. Vérifiez /admin/messages.`);
+          }
+        } catch {
+          toast.error(`Envoi WhatsApp échoué pour ${created.reference}. Vérifiez /admin/messages.`);
+        }
       }
 
       const hasDeparture = data.service_kind === 'envoi' && !!data.selected_departure_id;
