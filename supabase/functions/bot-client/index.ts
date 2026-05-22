@@ -172,7 +172,7 @@ async function handleReserver(supa: any, phone: string, name: string | null, ref
     .insert({
       user_id: '00000000-0000-0000-0000-000000000000', // placeholder until claim
       status: 'AWAITING_CLIENT',
-      source: 'whatsapp_bot',
+      source: 'bot_client_session',
       product_description: 'Reservation via WhatsApp',
       origin_country: 'SN',
       destination_country: 'FR',
@@ -180,6 +180,7 @@ async function handleReserver(supa: any, phone: string, name: string | null, ref
       contact_phone: phone,
       assigned_departure_id: dep.id,
       intake_method: 'bot',
+      skip_whatsapp_trigger: true,
     })
     .select('id,tracking_id,reference')
     .maybeSingle();
