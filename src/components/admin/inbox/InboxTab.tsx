@@ -46,6 +46,7 @@ export function InboxTab() {
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [detail, setDetail] = useState<InboxDossier | null>(null);
+  const [editLinkType, setEditLinkType] = useState<'dossier_client' | 'dossier_destinataire' | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') === 'history' ? 'history' : 'kanban';
 
