@@ -277,13 +277,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, paused: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const intent = session?.pending_intent ?? null;
-    const data = session?.pending_data ?? {};
+    let intent = session?.pending_intent ?? null;
+    let data = session?.pending_data ?? {};
 
     let reply = '';
 
+    if (MENU_TRIGGERS.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      intent = null;
+      data = {};
+      reply = MAIN_MENU;
+    }
     // ============ Continuing flows ============
-    if (intent === 'reserve_name' && msg) {
+    else if (intent === 'reserve_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'reserve_address', data);
       reply = `Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`;
@@ -433,7 +439,7 @@ Deno.serve(async (req) => {
         'agent_handoff',
       );
       reply = `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
-    } else if (MENU_TRIGGERS.test(nMsg) || !nMsg) {
+    } else if (!nMsg) {
       reply = MAIN_MENU;
     } else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       // Direct tracking number
