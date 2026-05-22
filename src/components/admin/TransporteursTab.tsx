@@ -538,7 +538,7 @@ function BotBlastDialog({
         <DialogHeader>
           <DialogTitle>Onboarding Bot WhatsApp GP</DialogTitle>
           <DialogDescription>
-            Invitez vos GP à utiliser l'assistant automatique du <span className="font-mono">{YOBBANTE_BOT_NUMBER}</span>.
+            Envoi depuis le <span className="font-mono">122</span> (<span className="font-mono">{YOBBANTE_BOT_NUMBER}</span>)
           </DialogDescription>
         </DialogHeader>
 
