@@ -1001,6 +1001,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 2 — Recipient ─── */}
+      {routeOk && stepIsFuture(2) ? (
+        <div className="mt-6"><LockedStep step={2} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
+      ) : (
       <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
         revealed={routeOk}
@@ -1011,7 +1014,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
           : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
       >
-        {recipientOk && editingStep !== 2 ? (
+        {recipientOk && editingStep !== 2 && !stepIsActive(2) ? (
           <StepCollapsed
             title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
             lines={[
@@ -1019,7 +1022,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
               recipientEmail || null,
             ].filter(Boolean) as string[]}
-            onEdit={() => setEditingStep(2)}
+            onEdit={() => { setCurrentStep(2); setEditingStep(2); }}
           />
         ) : (
           <div className="space-y-3 max-w-xl">
@@ -1044,16 +1047,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             />
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
-            {recipientOk && (
-              <button type="button" onClick={() => setEditingStep(null)}
-                className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                Valider et replier
-              </button>
-            )}
+            <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
           </div>
         )}
       </FlowSection>
       </div>
+      )}
+
 
 
       {/* ─── Step 3 — Package description ─── */}
