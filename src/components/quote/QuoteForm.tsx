@@ -129,7 +129,10 @@ export function QuoteForm() {
         weightKg: Number(weight) || 0,
         mode, type,
       });
-      navigate('/expedier/envoyer#tarifs');
+      // Land on Étape 1 (Collecte) — the sticky bar resume bar will already
+      // show the route/poids/mode chosen here. We don't want to skip ahead
+      // to the pricing section before the user fills in collecte/destinataire.
+      navigate('/expedier/envoyer');
       return;
     }
     if (service === 'sourcing') {
