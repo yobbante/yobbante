@@ -539,7 +539,7 @@ Voir : yobbante.com/admin`);
 
       // -- Command 6: contact GP --
       if (intent === 'sa_contact_ref') {
-        const ref = rawMsg.trim().toUpperCase();
+        const ref = rawMsg.trim().toUpperCase().replace(/^GP[-\s]?/i, '').padStart(4, '0').slice(0, 4);
         const { data: gp } = await supa.from('transporteurs')
           .select('id, reference, prenom, nom, telephone_1').eq('reference', ref).maybeSingle();
         if (!gp || !gp.telephone_1) { await saClear(); await saReply(`GP ${ref} introuvable ou sans telephone.`); return new Response('ok', { headers: corsHeaders }); }
