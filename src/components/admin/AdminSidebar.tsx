@@ -71,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'departures',   label: 'Départs manuels', icon: Plane,  live: true },
       { id: 'departs-semaine' as any, label: 'Départs de la semaine', icon: Plane, live: true },
       { id: 'transporteurs',label: 'Transporteurs',   icon: UserCog,live: true, adminOnly: true },
+      { id: 'livreurs',     label: 'Livreurs Dakar',  icon: Bike,   live: true, adminOnly: true },
       { id: 'gp-operations',label: 'Operations GP',   icon: Truck,  live: true, adminOnly: true },
     ],
   },
