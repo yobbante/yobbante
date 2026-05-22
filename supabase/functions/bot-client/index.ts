@@ -172,7 +172,7 @@ async function handleReserver(supa: any, phone: string, name: string | null, ref
     .insert({
       user_id: '00000000-0000-0000-0000-000000000000', // placeholder until claim
       status: 'AWAITING_CLIENT',
-      source: 'whatsapp_bot',
+      source: 'bot_client_session',
       product_description: 'Reservation via WhatsApp',
       origin_country: 'SN',
       destination_country: 'FR',
@@ -180,6 +180,7 @@ async function handleReserver(supa: any, phone: string, name: string | null, ref
       contact_phone: phone,
       assigned_departure_id: dep.id,
       intake_method: 'bot',
+      skip_whatsapp_trigger: true,
     })
     .select('id,tracking_id,reference')
     .maybeSingle();
@@ -363,13 +364,14 @@ Deno.serve(async (req) => {
           .insert({
             user_id: '00000000-0000-0000-0000-000000000000',
             status: 'AWAITING_CLIENT',
-            source: 'whatsapp_bot',
+            source: 'bot_client_session',
             product_description: `Expedition ${data.origin} -> ${data.dest}`,
             origin_country: 'SN',
             destination_country: 'FR',
             estimated_weight: w,
             contact_phone: phone,
             intake_method: 'bot',
+            skip_whatsapp_trigger: true,
             notes: `Origine: ${data.origin} | Dest: ${data.dest}`,
           })
           .select('id,tracking_id,reference')
@@ -414,7 +416,7 @@ Deno.serve(async (req) => {
         'agent_handoff',
       );
       reply = `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
-    } else if (/^(aide|bonjour|salut|hello|hi|menu|help|salam)/.test(nMsg) || !nMsg) {
+    } else if (/^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/.test(nMsg) || !nMsg) {
       reply = MAIN_MENU;
     } else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       // Direct tracking number

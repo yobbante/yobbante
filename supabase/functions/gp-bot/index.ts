@@ -242,8 +242,16 @@ Deno.serve(async (req) => {
   // =================================================================
   //  SUPER ADMIN MODE — priorite absolue (+221784604003)
   // =================================================================
-  const SUPER_ADMIN_PHONE = '221784604003';
-  const isSuperAdmin = fromPhone.replace(/\D/g, '').endsWith(SUPER_ADMIN_PHONE);
+  const SUPER_ADMIN_PHONE = (
+    Deno.env.get('SUPER_ADMIN_PHONE')
+    || Deno.env.get('ADMIN_WHATSAPP_NUMBER')
+    || '+221784604003'
+  ).replace(/\D/g, '');
+  const normalizedFrom = fromPhone.replace(/\D/g, '');
+  const isSuperAdmin = !!SUPER_ADMIN_PHONE
+    && (normalizedFrom === SUPER_ADMIN_PHONE
+        || normalizedFrom.endsWith(SUPER_ADMIN_PHONE)
+        || SUPER_ADMIN_PHONE.endsWith(normalizedFrom));
 
   if (isSuperAdmin) {
     const result = await handleSuperAdmin();
