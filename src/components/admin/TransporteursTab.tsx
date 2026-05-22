@@ -371,6 +371,18 @@ export function TransporteursTab() {
         }}
       />
 
+      {editLinkGp && (
+        <SendEditLinkDialog
+          open={!!editLinkGp}
+          onOpenChange={(v) => { if (!v) setEditLinkGp(null); }}
+          entityType="transporteur"
+          entityId={editLinkGp.id}
+          recipientPhone={editLinkGp.telephone_1}
+          recipientFirstName={editLinkGp.prenom || editLinkGp.nom?.split(' ')[0]}
+          trackingLabel={`votre profil GP (Réf. ${gpRef(editLinkGp.reference)})`}
+        />
+      )}
+
       {/* Blast modal — manual per-row sends (no auto multi-tab) */}
       <Dialog open={blastOpen} onOpenChange={setBlastOpen}>
         <DialogContent className="max-w-xl">
