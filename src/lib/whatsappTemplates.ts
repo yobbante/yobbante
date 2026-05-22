@@ -82,7 +82,7 @@ export const WA_TEMPLATES = {
     label: 'Pesée + montant final',
   },
   PAYMENT_CONFIRMATION: {
-    name: 'payment_confirmation',
+    name: 'payment_confirmation_v2',
     recipient: 'client',
     params: ['client_name', 'tracking_id', 'amount'],
     label: 'Paiement reçu',
