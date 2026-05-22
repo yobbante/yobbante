@@ -607,7 +607,8 @@ export function MessagesTab() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 {thread.length === 0 && <p className="text-center text-xs text-muted-foreground py-8">Aucun message</p>}
               </div>
 
