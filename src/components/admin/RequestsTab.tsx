@@ -443,18 +443,6 @@ export function RequestsTab() {
   );
 }
 
-function Info({
-  icon: Icon, label, children,
-}: { icon: typeof Inbox; label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-        <Icon className="w-3 h-3" /> {label}
-      </p>
-      <p className="text-foreground font-medium truncate">{children}</p>
-    </div>
-  );
-}
 
 /* ──────────────────────── Kanban view ──────────────────────── */
 function KanbanView({
