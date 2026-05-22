@@ -65,11 +65,11 @@ async function buildMorningReport(supa: any): Promise<string> {
       .eq('is_read', false)),
   ]);
 
-  return `Bonjour ! Resume Yobbante du jour :
+  return `Bonjour ! Resume Yobbante :
 Dossiers actifs : ${Math.round(actifs)}
 En attente paiement : ${Math.round(paiement)}
 Livres hier : ${Math.round(livresHier)}
-Nouveaux aujourd'hui : ${Math.round(nouveaux)}
+Nouveaux aujourd hui : ${Math.round(nouveaux)}
 Messages non lus : ${Math.round(msgs)}
 Bonne journee !`;
 }
@@ -143,11 +143,11 @@ async function buildWeeklyReport(supa: any): Promise<string> {
   }
 
   return `Bilan semaine Yobbante :
-Commandes recues : ${Math.round(recues)}
+Commandes : ${Math.round(recues)}
 Livrees : ${Math.round(livrees)}
 En cours : ${Math.round(actifs)}
 GP actifs : ${gpActifs}
-Routes les + actives : ${topRoutes}
+Routes top 3 : ${topRoutes}
 Bonne semaine !`;
 }
 
