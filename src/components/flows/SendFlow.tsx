@@ -1175,8 +1175,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
+        routeOk && stepIsFuture(4) ? (
+          <div className="mt-6"><LockedStep step={4} total={7} title="Type de marchandise" /></div>
+        ) : (
         <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
         <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+
           {goodsOk && editingStep !== 4 && !stepIsActive(4) ? (
             <StepCollapsed
               title={GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'}
