@@ -785,7 +785,7 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   //  MODIFIER : génère un lien public pour modifier les infos GP
   // =================================================================
   if (/^modifier\b/.test(msg)) {
-    const { data: tok, error } = await supabase
+    const { data: tok, error } = await supa
       .from('edit_tokens')
       .insert({
         entity_type: 'transporteur',
