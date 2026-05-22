@@ -58,6 +58,8 @@ const MAIN_MENU = `Bonjour ! Je suis l assistant Yobbante.
 4 - Obtenir un devis
 5 - Parler a un agent`;
 
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|allo|coucou)\b/;
+
 const FALLBACK = `Je n ai pas compris.
 
 Tapez AIDE ou appelez le ${BOT_PHONE_DISPLAY}`;
@@ -304,26 +306,44 @@ Deno.serve(async (req) => {
     let reply = '';
 
     // ============ Continuing flows ============
-    if (intent === 'await_name' && msg) {
+    if (intent === 'reserve_name' && msg) {
       data.name = msg;
-      await supa.from('dossiers').update({ notes: `Nom client: ${msg}` }).eq('id', data.dossier_id);
-      await saveSession(supa, phone, 'await_address', data);
+      await saveSession(supa, phone, 'reserve_address', data);
       reply = `Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`;
-    } else if (intent === 'await_address' && msg) {
+    } else if (intent === 'reserve_address' && msg) {
       data.address = msg;
-      await saveSession(supa, phone, 'await_description', data);
+      await saveSession(supa, phone, 'reserve_description', data);
       reply = `Bien recu.\nDecrivez votre colis (contenu + valeur estimee) ?`;
-    } else if (intent === 'await_description' && msg) {
+    } else if (intent === 'reserve_description' && msg) {
       data.description = msg;
-      await supa
+      const { data: dossier, error } = await supa
         .from('dossiers')
-        .update({
+        .insert({
+          user_id: '00000000-0000-0000-0000-000000000000',
+          status: 'AWAITING_CLIENT',
+          source: 'bot_client_session',
           product_description: msg,
-          notes: `Nom: ${data.name} | Adresse: ${data.address} | Desc: ${msg}`,
+          origin_country: 'SN',
+          destination_country: 'FR',
+          estimated_weight: data.weight,
+          contact_phone: phone,
+          buyer_name: data.name,
+          intake_method: 'bot',
+          assigned_departure_id: data.departure_id,
+          skip_whatsapp_trigger: true,
+          notes: `Reservation via WhatsApp | Ref: ${data.ref} | Nom: ${data.name} | Adresse: ${data.address} | Desc: ${msg}`,
         })
-        .eq('id', data.dossier_id);
-      await saveSession(supa, phone, null, {});
-      reply = `Parfait ! Votre dossier est enregistre.\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbante !`;
+        .select('id,tracking_id,reference')
+        .maybeSingle();
+
+      if (error || !dossier) {
+        console.error('BOT_CLIENT create reserve dossier err', error?.message);
+        reply = `Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`;
+      } else {
+        const trk = dossier.tracking_id || dossier.reference;
+        await saveSession(supa, phone, null, {});
+        reply = `Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbante !`;
+      }
     }
     // ---- Quote flow ----
     else if (intent === 'quote_origin' && msg) {
@@ -357,9 +377,22 @@ Deno.serve(async (req) => {
       if (!w || w <= 0) {
         reply = `Poids invalide. Indiquez en kg (ex: 5)`;
       } else {
-        const est = await handleQuoteCalc(supa, data.dest, w);
-        // Create dossier
-        const { data: dossier } = await supa
+        data.weight = w;
+        await saveSession(supa, phone, 'ship_name', data);
+        reply = `Merci. Quel est votre nom complet ?`;
+      }
+    } else if (intent === 'ship_name' && msg) {
+      data.name = msg;
+      await saveSession(supa, phone, 'ship_phone', data);
+      reply = `Quel numero de telephone doit etre associe a l expedition ?`;
+    } else if (intent === 'ship_phone' && msg) {
+      const digits = msg.replace(/\D/g, '');
+      if (digits.length < 8) {
+        reply = `Numero invalide. Envoyez un numero complet.`;
+      } else {
+        data.client_phone = msg;
+        const est = await handleQuoteCalc(supa, data.dest, data.weight);
+        const { data: dossier, error } = await supa
           .from('dossiers')
           .insert({
             user_id: '00000000-0000-0000-0000-000000000000',
@@ -368,17 +401,24 @@ Deno.serve(async (req) => {
             product_description: `Expedition ${data.origin} -> ${data.dest}`,
             origin_country: 'SN',
             destination_country: 'FR',
-            estimated_weight: w,
-            contact_phone: phone,
+            estimated_weight: data.weight,
+            contact_phone: msg,
+            buyer_name: data.name,
             intake_method: 'bot',
             skip_whatsapp_trigger: true,
-            notes: `Origine: ${data.origin} | Dest: ${data.dest}`,
+            notes: `Origine: ${data.origin} | Dest: ${data.dest} | Nom: ${data.name} | Tel: ${msg}`,
           })
           .select('id,tracking_id,reference')
           .maybeSingle();
-        const trk = dossier?.tracking_id || dossier?.reference || '';
-        reply = `${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`;
-        await saveSession(supa, phone, null, {});
+
+        if (!dossier || error) {
+          console.error('BOT_CLIENT create ship dossier err', error?.message);
+          reply = `Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`;
+        } else {
+          const trk = dossier.tracking_id || dossier.reference || '';
+          reply = `${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`;
+          await saveSession(supa, phone, null, {});
+        }
       }
     }
     // ---- Tracking flow ----
@@ -416,7 +456,7 @@ Deno.serve(async (req) => {
         'agent_handoff',
       );
       reply = `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
-    } else if (/^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/.test(nMsg) || !nMsg) {
+    } else if (MENU_TRIGGERS.test(nMsg) || !nMsg) {
       reply = MAIN_MENU;
     } else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       // Direct tracking number
