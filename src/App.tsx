@@ -90,6 +90,8 @@ const DekkRoutes = () => (
     <Route path="/track/:id" element={<TrackPage />} />
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
+    <Route path="/modifier/:token" element={<ModifierPage />} />
+
 
     {/* Admin accessible des deux côtés (session partagée) */}
     <Route path="/admin" element={<AdminPage />} />
