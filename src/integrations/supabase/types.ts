@@ -799,12 +799,16 @@ export type Database = {
           gp_amount_set_at: string | null
           gp_amount_set_by: string | null
           gp_id: string | null
+          gp_last_action_at: string | null
+          gp_no_response_alert_sent: boolean
           gp_paid: boolean
           gp_paid_at: string | null
           gp_payment_method: string | null
           gp_payment_note: string | null
           gp_payment_ref: string | null
           gp_receipt_path: string | null
+          gp_reminded_at: string | null
+          gp_reminder_count: number
           hs_code: string | null
           id: string
           incoterm: string | null
@@ -890,12 +894,16 @@ export type Database = {
           gp_amount_set_at?: string | null
           gp_amount_set_by?: string | null
           gp_id?: string | null
+          gp_last_action_at?: string | null
+          gp_no_response_alert_sent?: boolean
           gp_paid?: boolean
           gp_paid_at?: string | null
           gp_payment_method?: string | null
           gp_payment_note?: string | null
           gp_payment_ref?: string | null
           gp_receipt_path?: string | null
+          gp_reminded_at?: string | null
+          gp_reminder_count?: number
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -981,12 +989,16 @@ export type Database = {
           gp_amount_set_at?: string | null
           gp_amount_set_by?: string | null
           gp_id?: string | null
+          gp_last_action_at?: string | null
+          gp_no_response_alert_sent?: boolean
           gp_paid?: boolean
           gp_paid_at?: string | null
           gp_payment_method?: string | null
           gp_payment_note?: string | null
           gp_payment_ref?: string | null
           gp_receipt_path?: string | null
+          gp_reminded_at?: string | null
+          gp_reminder_count?: number
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -2471,6 +2483,7 @@ export type Database = {
           invitation_bot_sent_at: string | null
           konnekt_registered: boolean
           konnekt_registered_at: string | null
+          last_bot_activity_at: string | null
           modes_transport: string[] | null
           nom: string
           notes: string | null
@@ -2499,6 +2512,7 @@ export type Database = {
           invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           nom: string
           notes?: string | null
@@ -2527,6 +2541,7 @@ export type Database = {
           invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           nom?: string
           notes?: string | null

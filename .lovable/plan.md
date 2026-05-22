@@ -1,51 +1,78 @@
+# Système relances GP + Fix envoi 607 API
 
-## État actuel découvert
+## 1. Fix wa.me → API send-whatsapp (Partie 1)
 
-Plusieurs éléments existent déjà :
-- Enum `dossier_status` contient déjà `COLLECTED`, `WEIGHED`, `ARRIVED_HUB`, `IN_TRANSIT`, etc.
-- Colonnes existantes : `actual_weight_kg`, `final_amount_xof`, `payment_status` (TEXT default 'pending'), `cash_on_delivery`, `collected_at`, `weighed_at`, `delivered_at`.
-- `ReceptionKanbanTab` a déjà une UI de pesée (pour réceptions, pas dossiers WEIGHED).
-- `PayPage.tsx` existe et lit déjà `payment_status` via `lookup_dossier_public`.
-- Trigger `trg_dossier_whatsapp_notify` envoie déjà `package_in_transit` quand `IN_TRANSIT` ET `payment_status='paid' OR cash_on_delivery`.
+**Fichiers** : `NewIntakeDialog.tsx`, `OrderDetailDrawer.tsx`
 
-## Plan d'implémentation
+- Supprimer tous les `window.open('https://wa.me/...')` pour messages client.
+- Remplacer par `supabase.functions.invoke('send-whatsapp', { body: { recipient_phone, recipient_type: 'client', message } })`.
+- Si erreur API : toast admin "Envoi WhatsApp échoué pour {tracking}. Vérifiez /admin/messages." + log déjà fait côté edge.
+- Conserver wa.me uniquement pour messages GP (122) via `sendGpMessage` existant.
 
-### 1. Migration DB
-- Ajouter à `dossiers` : `payment_method TEXT`, `payment_provider_ref TEXT`, `paid_at TIMESTAMPTZ`, `weighed_by UUID`, `payment_reminders_count INT DEFAULT 0`, `last_payment_reminder_at TIMESTAMPTZ`, `weigh_location TEXT`.
-- Étendre le CHECK `payment_status` pour inclure `'not_required'`, `'paid'`, `'pending'`, `'refunded'`, `'failed'`.
-- Créer table `weight_logs` (dossier_id, weight_kg, measured_by, measured_at, location, notes) avec RLS staff-only.
-- Mettre à jour `lookup_dossier_public` pour exposer `actual_weight_kg`, `final_amount_xof`, `cash_on_delivery`.
-- Créer trigger `block_in_transit_if_unpaid` AVANT UPDATE qui empêche `IN_TRANSIT` si `payment_status='pending'` et `cash_on_delivery=false`.
+## 2. Migration DB (Parties 2, 5, 7)
 
-### 2. Statuts & libellés (`src/lib/statusLabels.ts`)
-Ajouter mappings français : `COLLECTED`, `WEIGHED` ("Pesé - En attente de paiement"), `ASSIGNED`, `ARRIVED_HUB`, `OUT_FOR_DELIVERY`, `AWAITING_CLIENT`.
+```sql
+ALTER TABLE dossiers
+  ADD COLUMN gp_reminded_at TIMESTAMPTZ,
+  ADD COLUMN gp_reminder_count INT DEFAULT 0,
+  ADD COLUMN gp_last_action_at TIMESTAMPTZ,
+  ADD COLUMN gp_no_response_alert_sent BOOLEAN DEFAULT false;
 
-### 3. Panneau pesée (nouveau composant `WeighingPanel.tsx`)
-Affiché dans `GpOperationsTab` (où la collecte est déjà gérée) quand un dossier est en `COLLECTED`. Contient :
-- Poids estimé en readonly, input poids réel, dropdown hub (Dakar/Paris/NY/Dubaï/Chine).
-- Calcul live du montant (poids × tarif via `calculate_quote_v2` côté front, ou simple `final_amount_xof = poids × prix_unitaire` selon route).
-- Checkbox cash_on_delivery.
-- 3 boutons : "Confirmer + Demander paiement", "Confirmer + Cash on delivery", "Annuler".
-- Sur soumission : UPDATE dossier + INSERT weight_log + invoke `send-whatsapp` avec template `weight_confirmation` ou `cash_on_delivery_confirmed`, lien `https://yobbante.com/pay/{tracking_id}`.
+ALTER TABLE transporteurs
+  ADD COLUMN last_bot_activity_at TIMESTAMPTZ;
+```
 
-### 4. Page `/pay/:trackingId` (`src/pages/PayPage.tsx`)
-Refactor pour utiliser `actual_weight_kg` et `final_amount_xof` (XOF directement, pas conversion EUR). Affichage récap (route, poids réel, GP). Montant en gros. 3 boutons placeholder (Wave/OM/Carte) avec message "Paiement bientôt disponible — Contactez +221 78 460 4003". États : déjà payé, lien invalide, en attente.
+(weight_status existe déjà selon contexte précédent — sinon ajouter enum to_be_weighed/estimated/known.)
 
-### 5. Cron relances paiement
-Étendre `relance-dossiers` (ou créer section dans le cron existant) :
-- 48h après `weighed_at` si `payment_status='pending'` et `reminders=0` → template `payment_reminder_48h`, increment counter.
-- 96h si counter=1 → texte libre admin vers +221 78 460 4003 + counter=2.
+## 3. Nouvelle edge function `cron-gp-reminders`
 
-### 6. Templates WhatsApp
-Ajouter dans `whatsappTemplates.ts` les variantes `weight_confirmation`, `cash_on_delivery_confirmed`, `payment_reminder_48h` (textes français sans accents, paramètres positionnels).
+Exécution horaire. Implémente RELANCE A à G :
+- **A** : ASSIGNED + 2h sans confirmation → 1 message GP
+- **B** : déjà géré par `gp_mission_recap_j1` (vérifier appel)
+- **C** : Jour J 7h → liste des collectes
+- **D** : COLLECTED + 1h sans poids → rappel POIDS
+- **E** : IN_TRANSIT + 72h sans livraison → rappel LIVRE
+- **F** : Aucune réponse 24h + 2 relances → alerte admin +221784604003 + `gp_no_response_alert_sent = true`
+- **G** : WEIGHED + paid → notifier GP "EN ROUTE possible"
 
-## Notes techniques
-- Tarifs : utiliser `calculate_quote_v2` RPC (existant) pour recalculer avec le poids réel.
-- Le trigger DB bloque la transition `IN_TRANSIT` côté serveur ; côté UI on affiche toast d'erreur.
-- RLS `weight_logs` : SELECT staff ou propriétaire du dossier ; INSERT staff uniquement.
-- Tous les textes affichés en français, design dark + #F5C518.
-- Ne pas casser : ne pas modifier les dossiers existants (defaults), garder colonnes optionnelles.
+Garde-fous : max 3 relances par dossier, 1h min entre 2 relances, skip si `gp_last_action_at > gp_reminded_at`, log dans `whatsapp_outbound_messages` avec `trigger_type='gp_reminder'`.
 
-## Questions ouvertes
-- L'UI de pesée doit-elle vivre dans `GpOperationsTab` (recommandé, c'est là que la collecte est gérée) ou ailleurs ?
-- Pour le calcul du montant final : recalcul live via `calculate_quote_v2` ou simple règle de 3 (estimated_cost × actual/estimated) ? Je recommande `calculate_quote_v2` pour cohérence.
+Cron horaire via `pg_cron` (SQL insert tool, pas migration).
+
+## 4. Bot GP — nouvelle commande EN ROUTE (Partie 4)
+
+Dans `gp-bot/index.ts` :
+- Parser `EN ROUTE {tracking}` → ne change pas le statut (reste IN_TRANSIT)
+- Insert `dossier_events` event_type=`gp_departed`
+- Notifier client depuis 607 via send-whatsapp
+- Réponse GP : "Bon voyage…"
+- UPDATE `gp_last_action_at = now()`
+
+## 5. Tracker activité GP (Partie 5)
+
+Dans `gp-bot/index.ts`, après succès de COLLECTE, POIDS, LIVRE, EN ROUTE, MES MISSIONS, MES DEPARTS :
+- UPDATE `dossiers.gp_last_action_at = now()` (sur dossier concerné)
+- UPDATE `transporteurs.last_bot_activity_at = now()`
+
+## 6. Panneau admin "GP sans réponse" (Partie 6)
+
+Dans `GpOperationsTab.tsx` (existant), ajouter une section en haut :
+- Liste dossiers où `gp_no_response_alert_sent=true OR gp_reminder_count>=2`
+- Affichage : GP, tracking, statut, dernière activité, nb relances
+- Actions : [Appeler] (tel:), [Réassigner] (placeholder dialog réutilisant GpActionsPanel), [Relance manuelle] (send-whatsapp depuis 122)
+
+## Hors-périmètre / clarifications
+
+- **Partie 7 (weight_status badges)** : suppose que `weight_status` enum existe déjà sur `dossiers`. Si non, à ajouter dans la migration. Je vérifierai et adapterai.
+- **RELANCE B** : je vérifie juste que `gp_mission_recap_j1` est déclenché par un cron existant — pas de nouveau code.
+- **"Réassigner"** dans le panneau : je branche un simple bouton qui ouvre `GpActionsPanel` existant en mode réassignation (pas de nouveau flow complet).
+
+## Détails techniques
+
+- Nouveau fichier : `supabase/functions/cron-gp-reminders/index.ts`
+- Migration : nouvelles colonnes + index sur `(status, gp_reminded_at)` pour perf cron
+- Cron via `pg_cron` insert (pas migration car contient URL projet)
+- Tous textes bot sans accents, UI en français, design dark + #F5C518
+- Aucun crash si GP sans téléphone (guard `if (!phone) continue`)
+
+Confirmez et je lance l'implémentation complète.

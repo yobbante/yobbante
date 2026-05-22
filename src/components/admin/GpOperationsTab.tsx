@@ -16,6 +16,7 @@ import { CreateGpFromContactDialog } from './CreateGpFromContactDialog';
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
 const SECTIONS = [
+  { id: 'no_response', label: 'GP sans reponse', icon: AlertTriangle },
   { id: 'departures', label: 'Departs du jour', icon: Plane },
   { id: 'pending', label: 'Collectes en attente', icon: Package },
   { id: 'weighing', label: 'À peser', icon: Scale },
@@ -28,7 +29,7 @@ const SECTIONS = [
 type SectionId = typeof SECTIONS[number]['id'];
 
 export function GpOperationsTab() {
-  const [section, setSection] = useState<SectionId>('departures');
+  const [section, setSection] = useState<SectionId>('no_response');
 
   return (
     <div className="space-y-5">
@@ -57,6 +58,7 @@ export function GpOperationsTab() {
         ))}
       </div>
 
+      {section === 'no_response' && <GpNoResponse />}
       {section === 'departures' && <DeparturesToday />}
       {section === 'pending' && <PendingCollects />}
       {section === 'weighing' && <WeighingQueue />}
@@ -573,4 +575,113 @@ function UnknownContacts() {
 
 function Empty({ label }: { label: string }) {
   return <div className="text-center py-12 text-sm text-muted-foreground">{label}</div>;
+}
+
+// ---------------- Section : GP sans reponse ----------------
+function GpNoResponse() {
+  const qc = useQueryClient();
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['gp-no-response'],
+    queryFn: async () => {
+      const { data: dossiers, error } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, status, assigned_transporteur_ref, gp_last_action_at, gp_reminder_count, gp_no_response_alert_sent, buyer_name, origin_country, destination_country')
+        .or('gp_no_response_alert_sent.eq.true,gp_reminder_count.gte.2')
+        .order('gp_last_action_at', { ascending: true, nullsFirst: true })
+        .limit(100);
+      if (error) throw error;
+      const refs = Array.from(new Set((dossiers ?? []).map((d: any) => d.assigned_transporteur_ref).filter(Boolean)));
+      const { data: gps } = refs.length
+        ? await supabase.from('transporteurs').select('id, reference, prenom, nom, telephone_1, whatsapp, last_bot_activity_at').in('reference', refs)
+        : { data: [] as any[] };
+      const gpByRef = new Map((gps ?? []).map((g: any) => [g.reference, g]));
+      return (dossiers ?? []).map((d: any) => ({ ...d, gp: gpByRef.get(d.assigned_transporteur_ref) }));
+    },
+    refetchInterval: 60_000,
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+  }
+  if (!data || data.length === 0) {
+    return <Empty label="Aucun GP en alerte. Tout roule." />;
+  }
+
+  async function sendManualReminder(d: any) {
+    const phone = d.gp?.telephone_1 || d.gp?.whatsapp;
+    if (!phone) { toast.error('GP sans numero'); return; }
+    setSendingId(d.id);
+    const prenom = d.gp?.prenom?.trim() || d.gp?.nom?.split(' ')?.[0] || 'cher partenaire';
+    const msg = `Salam ${prenom}, relance Yobbante.\nMerci de confirmer l etat du dossier ${d.tracking_id}.`;
+    const res = await sendGpMessage({
+      phone,
+      message: msg,
+      transporteur_id: d.gp?.id,
+      dossier_id: d.id,
+      trigger_type: 'gp_manual_reminder',
+    });
+    if (res.ok) toast.success('Relance envoyee');
+    setSendingId(null);
+    qc.invalidateQueries({ queryKey: ['gp-no-response'] });
+  }
+
+  function fmtDate(s: string | null) {
+    if (!s) return 'jamais';
+    const d = new Date(s);
+    return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  return (
+    <div className="space-y-2">
+      {data.map((d: any) => {
+        const gpName = d.gp ? `${d.gp.prenom ?? ''} ${d.gp.nom ?? ''}`.trim() || d.gp.reference : (d.assigned_transporteur_ref ?? '—');
+        const phone = d.gp?.telephone_1 || d.gp?.whatsapp;
+        return (
+          <div key={d.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm text-foreground">{gpName}</span>
+                  <Badge variant="outline" className="text-[10px]">{d.tracking_id}</Badge>
+                  <Badge className="text-[10px] bg-[#F5C518] text-black hover:bg-[#F5C518]">{d.status}</Badge>
+                  {d.gp_no_response_alert_sent && (
+                    <Badge className="text-[10px] bg-destructive/20 text-destructive border border-destructive/40">ALERTE 24h</Badge>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {d.buyer_name ?? '—'} · {d.origin_country ?? '?'} → {d.destination_country ?? '?'}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Derniere activite : {fmtDate(d.gp_last_action_at)} · {d.gp_reminder_count ?? 0} relance(s)
+                </div>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {phone && (
+                  <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+                    <a href={`tel:${String(phone).replace(/\s/g, '')}`}>Appeler</a>
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  disabled={sendingId === d.id || !phone}
+                  onClick={() => sendManualReminder(d)}
+                >
+                  {sendingId === d.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Relancer'}
+                </Button>
+                <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+                  <a href={`/admin/dossier/${d.id}`} target="_blank" rel="noreferrer">
+                    Reassigner <ExternalLink className="w-3 h-3 ml-1" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
