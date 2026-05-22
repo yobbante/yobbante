@@ -86,11 +86,17 @@ export default function AdminPage() {
   }, [pathSlug, navigate]);
 
   const setSection = (s: string) => {
-    const target = (ALLOWED as string[]).includes(s) ? (s as AdminSection) : 'overview';
+    // Resolve legacy IDs (passed by OverviewTab quick actions) through the redirect map.
+    const legacy = LEGACY_REDIRECTS[s];
+    const target: AdminSection = legacy
+      ? legacy.section
+      : (ALLOWED as string[]).includes(s) ? (s as AdminSection) : 'overview';
+    const tab = legacy?.tab;
+    const search = tab ? `?tab=${tab}` : '';
     if (target === 'overview') {
       navigate('/admin');
     } else {
-      navigate(`/admin/${target}`);
+      navigate(`/admin/${target}${search}`);
     }
     if (searchParams.has('section')) {
       const sp = new URLSearchParams(searchParams);
