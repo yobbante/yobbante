@@ -834,6 +834,7 @@ export type Database = {
           reference: string
           reminder_count: number
           reminder_sent_at: string | null
+          skip_whatsapp_trigger: boolean
           source: string
           source_reference: string | null
           status: Database["public"]["Enums"]["dossier_status"]
@@ -924,6 +925,7 @@ export type Database = {
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
@@ -1014,6 +1016,7 @@ export type Database = {
           reference?: string
           reminder_count?: number
           reminder_sent_at?: string | null
+          skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
           status?: Database["public"]["Enums"]["dossier_status"]
