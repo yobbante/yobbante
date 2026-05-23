@@ -279,7 +279,7 @@ export function LivreursTab() {
   );
 }
 
-const DAKAR_ZONES = ['Plateau', 'Médina', 'Liberté', 'HLM', 'Point E', 'Sacré-Cœur', 'Mermoz', 'Almadies', 'Ouakam', 'Yoff', 'Pikine', 'Guédiawaye', 'Thiaroye', 'Rufisque', 'Bargny'];
+
 
 function LivreurDialog({ livreur, onClose, onSave }: {
   livreur: Partial<Livreur> | null;
