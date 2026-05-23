@@ -114,22 +114,74 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    const ref = trackingNumber.trim();
     let { data: shipment, error } = await sb
       .from('shipments')
       .select('id, tracking_number, status, origin_city, origin_country, destination_city, destination_country, weight_kg, departure_date, eta, konnekt_id, transport_type, priority, total_cost')
-      .eq('tracking_number', trackingNumber)
+      .eq('tracking_number', ref)
       .maybeSingle();
 
     // Fallback: id lookup
-    if (!shipment && /^[0-9a-f-]{36}$/i.test(trackingNumber)) {
+    if (!shipment && /^[0-9a-f-]{36}$/i.test(ref)) {
       const r = await sb.from('shipments')
         .select('id, tracking_number, status, origin_city, origin_country, destination_city, destination_country, weight_kg, departure_date, eta, konnekt_id, transport_type, priority, total_cost')
-        .eq('id', trackingNumber).maybeSingle();
+        .eq('id', ref).maybeSingle();
       shipment = r.data;
     }
 
-    if (error || !shipment) {
-      return new Response(JSON.stringify({ error: 'Envoi introuvable', tracking_number: trackingNumber }),
+    // Fallback: lookup dossier by tracking_id (YOB-XXXXXX) or reference (YBT-YYYY-NNNN).
+    // Allows a customer to /suivre/ either ref shown on the confirmation page.
+    if (!shipment) {
+      const { data: dossier } = await sb
+        .from('dossiers')
+        .select('id, tracking_id, reference, status, origin_country, destination_country, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost')
+        .or(`tracking_id.eq.${ref},reference.eq.${ref}`)
+        .maybeSingle();
+
+      if (dossier) {
+        const DOSSIER_TO_PIPELINE: Record<string, string> = {
+          CREATED: 'CONFIRMED', PENDING: 'CONFIRMED', IN_REVIEW: 'CONFIRMED',
+          ASSIGNED: 'MATCHED', MATCHED: 'MATCHED',
+          RECEIVED: 'IN_PREPARATION', IN_STORAGE: 'IN_PREPARATION',
+          READY_TO_SHIP: 'IN_PREPARATION', COLLECTED: 'IN_PREPARATION',
+          SHIPPED: 'IN_TRANSIT', IN_TRANSIT: 'IN_TRANSIT',
+          CUSTOMS: 'CUSTOMS',
+          ARRIVED: 'ARRIVED',
+          OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
+          DELIVERED: 'DELIVERED',
+        };
+        const mapped = DOSSIER_TO_PIPELINE[(dossier as any).status] || 'CONFIRMED';
+        // Synthesize pseudo-events from dossier timestamps
+        const events: any[] = [
+          { event_type: 'shipment_created', to_status: 'CONFIRMED', created_at: (dossier as any).created_at, note: null },
+          (dossier as any).collected_at && { event_type: 'collected', to_status: 'IN_PREPARATION', created_at: (dossier as any).collected_at, note: null },
+          (dossier as any).weighed_at && { event_type: 'weighed', to_status: 'IN_PREPARATION', created_at: (dossier as any).weighed_at, note: null },
+          (dossier as any).delivered_at && { event_type: 'delivered', to_status: 'DELIVERED', created_at: (dossier as any).delivered_at, note: null },
+        ].filter(Boolean);
+        const timeline = buildTimeline(mapped, events);
+        return new Response(JSON.stringify({
+          tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
+          status: mapped,
+          status_label: STATUS_LABEL[mapped] || mapped,
+          origin_city: (dossier as any).origin_country,
+          destination_city: (dossier as any).destination_country,
+          weight_kg: (dossier as any).actual_weight_kg ?? (dossier as any).estimated_weight,
+          departure_date: null,
+          eta: (dossier as any).estimated_delivery_date,
+          transport_type: null,
+          priority: null,
+          total_cost: (dossier as any).final_amount_xof ?? (dossier as any).estimated_cost,
+          timeline,
+          source: 'db' as const,
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({ error: 'Envoi introuvable', tracking_number: ref }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (error) {
+      return new Response(JSON.stringify({ error: 'Envoi introuvable', tracking_number: ref }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

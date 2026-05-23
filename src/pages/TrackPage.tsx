@@ -120,11 +120,14 @@ export default function TrackPage() {
             <h2 className="mb-3">Suivre mon colis</h2>
             <input
               className="input-base w-full mb-3"
-              placeholder="YOB-2026-XXXXX"
+              placeholder="YOB-XXXXXX ou YBT-AAAA-XXXX"
               value={input}
               onChange={e => setInput(e.target.value)}
               style={{ height: 40 }}
             />
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Les deux formats sont acceptés : référence suivi (YOB-…) ou référence commande (YBT-…).
+            </p>
             <button
               className="btn-cta w-full"
               onClick={() => input.trim() && navigate(`/track/${input.trim()}`)}
@@ -140,7 +143,7 @@ export default function TrackPage() {
           <EmptyState
             icon={Search}
             title="Numéro introuvable"
-            description={`Vérifiez votre référence YOB-XXXX-XXXXX. ${error}`}
+            description={`Vérifiez votre référence (YOB-XXXXXX ou YBT-AAAA-XXXX). ${error}`}
             ctaLabel="Réessayer"
             onCta={() => setRetries(r => r + 1)}
             secondaryLabel="Saisir un autre numéro"
