@@ -152,8 +152,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
 
   // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
-    const o = resolveCityToCountry(origin);
-    const d = resolveCityToCountry(destination);
+    const o = resolveCityToCountry(origin, customCities);
+    const d = resolveCityToCountry(destination, customCities);
     if (!o || !d || !weight) return;
     const preset = {
       origin: o.country, destination: d.country,
