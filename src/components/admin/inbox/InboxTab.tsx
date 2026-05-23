@@ -138,7 +138,7 @@ export function InboxTab() {
                         <InboxCard
                           key={d.id}
                           dossier={d}
-                          onView={setDetail}
+                          onView={(d) => sheet.open(d.id)}
                           onConfirm={handleConfirm}
                           onWhatsApp={handleWhatsApp}
                         />
