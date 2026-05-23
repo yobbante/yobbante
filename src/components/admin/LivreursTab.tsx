@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { DispatchPanel } from './DispatchPanel';
+import { QUARTIER_GROUPS } from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
