@@ -104,11 +104,20 @@ function DossierSheetBody({ id }: { id: string }) {
         <div className="px-6 border-b border-border overflow-x-auto">
           <TabsList className="h-10">
             <TabsTrigger value="apercu" className="text-xs">Aperçu</TabsTrigger>
+            <TabsTrigger value="colis" className="text-xs">
+              <Scale className="w-3.5 h-3.5 mr-1" /> Colis & poids
+            </TabsTrigger>
             <TabsTrigger value="transport" className="text-xs">
               <Truck className="w-3.5 h-3.5 mr-1" /> Transport
             </TabsTrigger>
+            <TabsTrigger value="livraison" className="text-xs">
+              <MapPin className="w-3.5 h-3.5 mr-1" /> Livraison
+            </TabsTrigger>
             <TabsTrigger value="paiement" className="text-xs">
               <CreditCard className="w-3.5 h-3.5 mr-1" /> Paiement
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs">
+              <FileText className="w-3.5 h-3.5 mr-1" /> Documents
             </TabsTrigger>
             <TabsTrigger value="messages" className="text-xs">
               <MessageCircle className="w-3.5 h-3.5 mr-1" /> Messages
@@ -121,8 +130,11 @@ function DossierSheetBody({ id }: { id: string }) {
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <TabsContent value="apercu"     className="mt-0"><ApercuTab dossier={dossier} /></TabsContent>
+          <TabsContent value="colis"      className="mt-0"><ColisTab dossier={dossier} /></TabsContent>
           <TabsContent value="transport"  className="mt-0"><TransportTab dossier={dossier} /></TabsContent>
+          <TabsContent value="livraison"  className="mt-0"><LivraisonTab dossier={dossier} /></TabsContent>
           <TabsContent value="paiement"   className="mt-0"><PaiementTab dossier={dossier} /></TabsContent>
+          <TabsContent value="documents"  className="mt-0"><DocumentsTab dossier={dossier} /></TabsContent>
           <TabsContent value="messages"   className="mt-0"><MessagesTab dossier={dossier} isStaff={isStaff} /></TabsContent>
           <TabsContent value="historique" className="mt-0"><HistoriqueTab id={dossier.id} /></TabsContent>
         </div>
