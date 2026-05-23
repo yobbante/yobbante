@@ -209,7 +209,7 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
         {dossier.contact_phone && (
           <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-            <a href={whatsappLink(dossier.contact_phone, `Bonjour, à propos de votre dossier ${dossier.reference}`)} target="_blank" rel="noreferrer">
+            <a href={`https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`} target="_blank" rel="noreferrer">
               <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp client
             </a>
           </Button>
