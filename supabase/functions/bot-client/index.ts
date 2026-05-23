@@ -456,8 +456,6 @@ Deno.serve(async (req) => {
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
     }
 
-      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
-    }
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
     else if (/^(oui|ok|yes|y|confirme|confirmer|valide|valider|d accord|daccord)\b/.test(nMsg)) {
       reply = await handleOui(supa, phone, input.from_name ?? null);
