@@ -482,11 +482,12 @@ Deno.serve(async (req) => {
     else if (intent === 'reserve_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'reserve_address', data);
-      reply = `Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`;
+      reply = withBack(`Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`);
     } else if (intent === 'reserve_address' && msg) {
       data.address = msg;
       await saveSession(supa, phone, 'reserve_description', data);
-      reply = `Bien recu.\nDecrivez votre colis (contenu + valeur estimee) ?`;
+      reply = withBack(`Bien recu.\nDecrivez votre colis (contenu + valeur estimee) ?`);
+
     } else if (intent === 'reserve_description' && msg) {
       data.description = msg;
       const { data: dossier, error } = await supa
