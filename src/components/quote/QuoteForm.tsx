@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Search, Inbox, ArrowRightLeft, MapPin } from 'lucide-react';
 import {
@@ -7,6 +7,7 @@ import {
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { estimateTransport } from '@/lib/pricing';
 
 const SEND_PRESET_KEY = 'send-flow:preset';
 
@@ -299,6 +300,33 @@ export function QuoteForm() {
               </select>
             </Field>
           </div>
+          {(() => {
+            const w = Number(weight);
+            if (!origin || !destination || !w || w <= 0) return null;
+            const transport = mode === 'air' ? 'air' : mode === 'sea' ? 'sea' : 'road';
+            const est = estimateTransport(transport as any, w, 'standard');
+            return (
+              <div
+                className="rounded-[10px] px-3 py-2.5 flex items-center justify-between gap-3"
+                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
+              >
+                <div className="min-w-0">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Estimation indicative
+                  </div>
+                  <div className="text-[15px] font-bold text-foreground leading-tight truncate">
+                    ≈ {est.formatted}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    Prix confirmé à l'étape suivante.
+                  </div>
+                </div>
+                <div className="text-[10px] text-muted-foreground text-right shrink-0">
+                  {est.perKgFormatted}
+                </div>
+              </div>
+            );
+          })()}
           <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
         </div>
       )}

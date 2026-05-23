@@ -187,6 +187,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
+  // Récap par email (optionnel)
+  const [wantRecapEmail, setWantRecapEmail] = useState(false);
+  const [recapEmail, setRecapEmail]         = useState('');
   // Identité de la personne qui remplit le formulaire
   // 'sender' = je suis dans la ville d'origine (j'expédie)
   // 'recipient' = je suis dans la ville de destination (je recevrai)
@@ -668,6 +671,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
         }).catch((e) => console.error('WA recap error', e));
       }
+
+      // Récap email automatique si demandé
+      if (wantRecapEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recapEmail) && (dossier as any)?.id) {
+        supabase.functions.invoke('send-confirmation-email', {
+          body: { dossier_id: (dossier as any).id, email: recapEmail.trim() },
+        }).then(({ error }) => {
+          if (error) console.error('Email recap error', error);
+          else toast.success('Récapitulatif envoyé par email');
+        }).catch((e) => console.error('Email recap error', e));
+      }
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
@@ -989,6 +1002,33 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     Replier ce bloc
                   </button>
                 )}
+
+                {/* Récap par email — optionnel */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={wantRecapEmail}
+                      onChange={(e) => setWantRecapEmail(e.target.checked)}
+                      className="mt-1 w-4 h-4 accent-foreground"
+                    />
+                    <span className="text-[13px] font-medium">
+                      📧 Recevoir le récapitulatif par email
+                      <span className="block text-[11px] text-muted-foreground font-normal mt-0.5">
+                        En complément du WhatsApp envoyé automatiquement.
+                      </span>
+                    </span>
+                  </label>
+                  {wantRecapEmail && (
+                    <TextField
+                      label="Votre email"
+                      value={recapEmail}
+                      onChange={setRecapEmail}
+                      placeholder="votre@email.com"
+                      type="email"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           )}
