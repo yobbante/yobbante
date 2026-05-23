@@ -144,30 +144,33 @@ export function ReceptionKanbanTab() {
                     {items.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground text-center py-6">Aucune commande</p>
                     ) : items.map(o => (
-                      <button
-                        key={o.id}
-                        onClick={() => setSelected(o)}
-                        className={cn(
-                          'w-full text-left rounded-[12px] bg-card transition-colors p-3 space-y-1.5',
-                          selected?.id === o.id ? 'card-featured' : ''
-                        )}
-                        style={selected?.id === o.id ? undefined : { border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-[11px] font-mono text-muted-foreground truncate">{o.reference}</p>
-                          {o.final_price_eur != null && (
-                            <span className="text-[11px] font-medium text-success tabular-nums">{Math.round(o.final_price_eur)} €</span>
+                      <div key={o.id} className="relative group">
+                        <button
+                          onClick={() => setSelected(o)}
+                          className={cn(
+                            'w-full text-left rounded-[12px] bg-card transition-colors p-3 space-y-1.5',
+                            selected?.id === o.id ? 'card-featured' : ''
                           )}
-                        </div>
-                        <p className="text-sm font-semibold text-foreground truncate">{o.merchant_name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{o.order_description}</p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{o.relay_addresses?.city || '—'}</span>
-                          <span>·</span>
-                          <span>{o.profiles?.full_name || o.profiles?.email || 'Client'}</span>
-                        </div>
-                      </button>
+                          style={selected?.id === o.id ? undefined : { border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+                        >
+                          <div className="flex items-center justify-between gap-2 pr-6">
+                            <p className="text-[11px] font-mono text-muted-foreground truncate">{o.reference}</p>
+                            {o.final_price_eur != null && (
+                              <span className="text-[11px] font-medium text-success tabular-nums">{Math.round(o.final_price_eur)} €</span>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-foreground truncate">{o.merchant_name}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{o.order_description}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{o.relay_addresses?.city || '—'}</span>
+                            <span>·</span>
+                            <span>{o.profiles?.full_name || o.profiles?.email || 'Client'}</span>
+                          </div>
+                        </button>
+
+                        <CardActionsMenu order={o} onChanged={refresh} onView={() => setSelected(o)} />
+                      </div>
                     ))}
                   </div>
                 </div>
