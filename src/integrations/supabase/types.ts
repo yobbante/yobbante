@@ -2720,6 +2720,7 @@ export type Database = {
           default_rate_per_kg: number | null
           default_routes: Json
           destinations: string[] | null
+          email: string | null
           id: string
           invitation_bot_sent_at: string | null
           konnekt_registered: boolean
@@ -2757,6 +2758,7 @@ export type Database = {
           default_rate_per_kg?: number | null
           default_routes?: Json
           destinations?: string[] | null
+          email?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean
@@ -2794,6 +2796,7 @@ export type Database = {
           default_rate_per_kg?: number | null
           default_routes?: Json
           destinations?: string[] | null
+          email?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
           konnekt_registered?: boolean

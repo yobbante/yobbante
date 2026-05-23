@@ -15,6 +15,7 @@ interface SignupBody {
   prenom?: string;
   nom?: string;
   telephone?: string;
+  email?: string;
   ville?: string;
   villes_desservies?: string[];
   frequence?: 'hebdomadaire' | 'mensuel' | 'occasionnel';
@@ -27,11 +28,14 @@ function normalizePhone(input: string): string {
   if (!v) return '';
   if (v.startsWith('00')) v = '+' + v.slice(2);
   if (!v.startsWith('+')) {
-    // Si 9 chiffres, on suppose +221
     if (v.length === 9) v = '+221' + v;
     else v = '+' + v;
   }
   return v;
+}
+
+function isValidEmail(e: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length <= 200;
 }
 
 function validate(b: SignupBody): { ok: true; data: Required<Pick<SignupBody, 'prenom' | 'nom' | 'telephone' | 'ville'>> & SignupBody } | { ok: false; error: string } {
@@ -39,12 +43,14 @@ function validate(b: SignupBody): { ok: true; data: Required<Pick<SignupBody, 'p
   const nom = (b.nom || '').trim();
   const ville = (b.ville || '').trim();
   const telephone = normalizePhone(b.telephone || '');
+  const email = (b.email || '').trim().toLowerCase();
   if (prenom.length < 2 || prenom.length > 60) return { ok: false, error: 'Prenom invalide' };
   if (nom.length < 2 || nom.length > 60) return { ok: false, error: 'Nom invalide' };
   if (!ville || ville.length > 60) return { ok: false, error: 'Ville invalide' };
   if (!telephone || telephone.length < 8 || telephone.length > 18) return { ok: false, error: 'Telephone invalide' };
+  if (email && !isValidEmail(email)) return { ok: false, error: 'Email invalide' };
   const villes = Array.isArray(b.villes_desservies) ? b.villes_desservies.filter(v => typeof v === 'string' && v.length > 0 && v.length < 60).slice(0, 20) : [];
-  return { ok: true, data: { prenom, nom, telephone, ville, villes_desservies: villes, frequence: b.frequence, source_decouverte: b.source_decouverte, ref_parrainage: b.ref_parrainage ?? null } };
+  return { ok: true, data: { prenom, nom, telephone, email, ville, villes_desservies: villes, frequence: b.frequence, source_decouverte: b.source_decouverte, ref_parrainage: b.ref_parrainage ?? null } };
 }
 
 /** Génère le prochain reference disponible (4 chiffres). */
@@ -82,7 +88,7 @@ Deno.serve(async (req) => {
   if (!v.ok) {
     return new Response(JSON.stringify({ error: v.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  const { prenom, nom, telephone, ville, villes_desservies, frequence, source_decouverte, ref_parrainage } = v.data;
+  const { prenom, nom, telephone, email, ville, villes_desservies, frequence, source_decouverte, ref_parrainage } = v.data;
 
   const supaUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -123,6 +129,7 @@ Deno.serve(async (req) => {
     nom: `${prenom} ${nom}`.trim(),
     telephone_1: telephone,
     whatsapp: telephone,
+    email: email || null,
     ville,
     adresse_1: ville,
     actif: false,
@@ -182,10 +189,96 @@ Deno.serve(async (req) => {
     trigger_type: 'konnekt_beta_signup_admin',
   });
 
+  // 5. Email Resend (optionnel, ne crash jamais)
+  let emailSent = false;
+  if (email) {
+    const resendKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendKey) {
+      console.warn('KONNEKT_SIGNUP email_skipped: RESEND_API_KEY manquant', { email });
+    } else {
+      try {
+        const html = renderKonnektEmail(prenom, telephone);
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendKey}`,
+          },
+          body: JSON.stringify({
+            from: 'Konnekt <noreply@usekonnekt.com>',
+            to: [email],
+            subject: 'Bienvenue dans la beta Konnekt !',
+            html,
+            reply_to: 'contact@usekonnekt.com',
+          }),
+        });
+        if (r.ok) {
+          emailSent = true;
+        } else {
+          const errText = await r.text();
+          console.error('KONNEKT_SIGNUP resend_error', r.status, errText);
+        }
+      } catch (e) {
+        console.error('KONNEKT_SIGNUP resend_exception', e instanceof Error ? e.message : String(e));
+      }
+    }
+  }
+
   return new Response(JSON.stringify({
     ok: true,
     transporteur_id: inserted.id,
     reference: inserted.reference,
     prenom,
+    email_sent: emailSent,
   }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 });
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+function renderKonnektEmail(prenom: string, telephone: string): string {
+  const safePrenom = escapeHtml(prenom);
+  const safeTel = escapeHtml(telephone);
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1A1A2E;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 24px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-block;background:#1A1A2E;color:#F5C518;padding:14px 22px;border-radius:12px;font-weight:900;letter-spacing:1px;font-size:22px;">KONNEKT</div>
+      <p style="margin:8px 0 0;font-size:12px;color:#6b7280;">by Yobbanté</p>
+    </div>
+
+    <h1 style="font-size:22px;font-weight:800;margin:0 0 18px;color:#1A1A2E;">Bonjour ${safePrenom},</h1>
+
+    <p style="font-size:15px;line-height:1.6;color:#374151;margin:0 0 16px;">
+      Votre inscription à la beta Konnekt a bien été reçue.
+    </p>
+
+    <p style="font-size:15px;line-height:1.6;color:#374151;margin:0 0 24px;">
+      Nous examinons votre profil sous 24h. Vous serez contacté sur WhatsApp au <strong>${safeTel}</strong>.
+    </p>
+
+    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:18px;margin:0 0 28px;">
+      <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">En attendant, enregistrez notre numéro :</p>
+      <p style="margin:0;font-size:16px;font-weight:700;color:#1A1A2E;">+221 78 122 18 91</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Nom : <strong>Konnekt GP</strong></p>
+    </div>
+
+    <div style="text-align:center;margin:0 0 32px;">
+      <a href="https://usekonnekt.com" style="display:inline-block;background:#F5C518;color:#1A1A2E;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:14px;">
+        Découvrir Konnekt →
+      </a>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0;">
+
+    <p style="font-size:13px;color:#6b7280;margin:0 0 4px;">L'équipe Konnekt by Yobbanté</p>
+    <p style="font-size:12px;color:#9ca3af;margin:0;">
+      <a href="mailto:contact@usekonnekt.com" style="color:#9ca3af;text-decoration:underline;">contact@usekonnekt.com</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}

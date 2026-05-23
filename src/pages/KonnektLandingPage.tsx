@@ -37,6 +37,7 @@ export default function KonnektLandingPage() {
     prenom: '',
     nom: '',
     telephone: '',
+    email: '',
     ville: '',
     villes_desservies: [] as string[],
     frequence: 'mensuel' as typeof FREQUENCES[number]['id'],
@@ -252,6 +253,17 @@ function InscriptionForm({
               value={form.telephone}
               onChange={e => setForm({ ...form, telephone: e.target.value })}
               inputMode="tel"
+            />
+          </Field>
+
+          <Field label="Email (optionnel)" hint="Pour recevoir votre confirmation par email en plus du WhatsApp">
+            <input
+              className={inputClass}
+              placeholder="votre@email.com"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              inputMode="email"
+              type="email"
             />
           </Field>
 
