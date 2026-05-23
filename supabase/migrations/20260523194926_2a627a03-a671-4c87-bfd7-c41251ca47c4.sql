@@ -1,0 +1,1 @@
+ALTER TABLE public.transporteurs ADD COLUMN IF NOT EXISTS email text;
