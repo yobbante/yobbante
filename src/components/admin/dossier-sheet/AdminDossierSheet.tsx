@@ -24,7 +24,6 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type DossierStatus } from '@/lib/types';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
-import { whatsappLink } from '@/lib/contact';
 import { format } from 'date-fns';
 
 type DossierRow = Record<string, any>;
