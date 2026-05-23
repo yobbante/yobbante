@@ -73,6 +73,7 @@ interface Props {
 
 export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded = true }: Props) {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const theme: 'light' | 'dark' = mode === 'recevoir' ? 'dark' : 'light';
   const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -91,7 +92,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const buildCityLabel = (city?: string, country?: string) => {
     if (!city) return '';
     if (city === 'Dakar') return DAKAR;
-    const m = ALL_CITIES.find(c => c.city === city && (!country || c.country === country));
+    const pool = [...ALL_CITIES, ...customCities];
+    const m = pool.find(c => c.city === city && (!country || c.country === country));
     return m ? `${m.city}, ${m.countryLabel}` : city;
   };
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
