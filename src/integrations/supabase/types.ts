@@ -827,6 +827,7 @@ export type Database = {
           delivered_at: string | null
           delivery_appointment: string | null
           delivery_carrier: string | null
+          delivery_carrier_cost: number
           delivery_confirmed_by_client: boolean
           delivery_cost_xof: number | null
           delivery_mode: string
@@ -838,7 +839,9 @@ export type Database = {
           dernier_km_prix: number | null
           dernier_km_tracking: string | null
           destination_country: string
+          displayed_price_per_kg: number | null
           dossier_type: Database["public"]["Enums"]["dossier_type"]
+          enlevement_amount: number
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
@@ -854,9 +857,11 @@ export type Database = {
           gp_payment_method: string | null
           gp_payment_note: string | null
           gp_payment_ref: string | null
+          gp_rate_per_kg: number | null
           gp_receipt_path: string | null
           gp_reminded_at: string | null
           gp_reminder_count: number
+          hors_dakar_surcharge: number
           hs_code: string | null
           id: string
           incoterm: string | null
@@ -866,6 +871,8 @@ export type Database = {
           invoice_generated_at: string | null
           invoice_number: string | null
           invoice_url: string | null
+          is_express: boolean
+          is_outside_dakar: boolean
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
           last_client_contact: string | null
@@ -882,6 +889,7 @@ export type Database = {
           payment_status: string
           pickup_date: string | null
           poids_livreur: number | null
+          price_is_estimate: boolean
           product_description: string
           quantity: number | null
           recipient_address: string | null
@@ -902,6 +910,8 @@ export type Database = {
           supplier_contact: string | null
           supplier_country: string | null
           supplier_name: string | null
+          total_cost_price: number | null
+          total_displayed_price: number | null
           tracking_id: string | null
           tracking_id_format: string
           unit: string | null
@@ -910,7 +920,9 @@ export type Database = {
           weigh_location: string | null
           weighed_at: string | null
           weighed_by: string | null
+          yobbante_gross_margin: number | null
           yobbante_margin: number | null
+          yobbante_margin_pct: number
         }
         Insert: {
           actual_weight_kg?: number | null
@@ -938,6 +950,7 @@ export type Database = {
           delivered_at?: string | null
           delivery_appointment?: string | null
           delivery_carrier?: string | null
+          delivery_carrier_cost?: number
           delivery_confirmed_by_client?: boolean
           delivery_cost_xof?: number | null
           delivery_mode?: string
@@ -949,7 +962,9 @@ export type Database = {
           dernier_km_prix?: number | null
           dernier_km_tracking?: string | null
           destination_country?: string
+          displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
+          enlevement_amount?: number
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
@@ -965,9 +980,11 @@ export type Database = {
           gp_payment_method?: string | null
           gp_payment_note?: string | null
           gp_payment_ref?: string | null
+          gp_rate_per_kg?: number | null
           gp_receipt_path?: string | null
           gp_reminded_at?: string | null
           gp_reminder_count?: number
+          hors_dakar_surcharge?: number
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -977,6 +994,8 @@ export type Database = {
           invoice_generated_at?: string | null
           invoice_number?: string | null
           invoice_url?: string | null
+          is_express?: boolean
+          is_outside_dakar?: boolean
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
@@ -993,6 +1012,7 @@ export type Database = {
           payment_status?: string
           pickup_date?: string | null
           poids_livreur?: number | null
+          price_is_estimate?: boolean
           product_description: string
           quantity?: number | null
           recipient_address?: string | null
@@ -1013,6 +1033,8 @@ export type Database = {
           supplier_contact?: string | null
           supplier_country?: string | null
           supplier_name?: string | null
+          total_cost_price?: number | null
+          total_displayed_price?: number | null
           tracking_id?: string | null
           tracking_id_format?: string
           unit?: string | null
@@ -1021,7 +1043,9 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
+          yobbante_margin_pct?: number
         }
         Update: {
           actual_weight_kg?: number | null
@@ -1049,6 +1073,7 @@ export type Database = {
           delivered_at?: string | null
           delivery_appointment?: string | null
           delivery_carrier?: string | null
+          delivery_carrier_cost?: number
           delivery_confirmed_by_client?: boolean
           delivery_cost_xof?: number | null
           delivery_mode?: string
@@ -1060,7 +1085,9 @@ export type Database = {
           dernier_km_prix?: number | null
           dernier_km_tracking?: string | null
           destination_country?: string
+          displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
+          enlevement_amount?: number
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
@@ -1076,9 +1103,11 @@ export type Database = {
           gp_payment_method?: string | null
           gp_payment_note?: string | null
           gp_payment_ref?: string | null
+          gp_rate_per_kg?: number | null
           gp_receipt_path?: string | null
           gp_reminded_at?: string | null
           gp_reminder_count?: number
+          hors_dakar_surcharge?: number
           hs_code?: string | null
           id?: string
           incoterm?: string | null
@@ -1088,6 +1117,8 @@ export type Database = {
           invoice_generated_at?: string | null
           invoice_number?: string | null
           invoice_url?: string | null
+          is_express?: boolean
+          is_outside_dakar?: boolean
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
           last_client_contact?: string | null
@@ -1104,6 +1135,7 @@ export type Database = {
           payment_status?: string
           pickup_date?: string | null
           poids_livreur?: number | null
+          price_is_estimate?: boolean
           product_description?: string
           quantity?: number | null
           recipient_address?: string | null
@@ -1124,6 +1156,8 @@ export type Database = {
           supplier_contact?: string | null
           supplier_country?: string | null
           supplier_name?: string | null
+          total_cost_price?: number | null
+          total_displayed_price?: number | null
           tracking_id?: string | null
           tracking_id_format?: string
           unit?: string | null
@@ -1132,7 +1166,9 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
+          yobbante_margin_pct?: number
         }
         Relationships: [
           {
@@ -2322,6 +2358,45 @@ export type Database = {
         }
         Relationships: []
       }
+      route_default_rates: {
+        Row: {
+          active: boolean
+          cities: string[]
+          countries: string[]
+          created_at: string
+          default_rate_per_kg: number
+          express_coefficient: number
+          id: string
+          updated_at: string
+          zone: string
+          zone_label: string | null
+        }
+        Insert: {
+          active?: boolean
+          cities?: string[]
+          countries?: string[]
+          created_at?: string
+          default_rate_per_kg: number
+          express_coefficient?: number
+          id?: string
+          updated_at?: string
+          zone: string
+          zone_label?: string | null
+        }
+        Update: {
+          active?: boolean
+          cities?: string[]
+          countries?: string[]
+          created_at?: string
+          default_rate_per_kg?: number
+          express_coefficient?: number
+          id?: string
+          updated_at?: string
+          zone?: string
+          zone_label?: string | null
+        }
+        Relationships: []
+      }
       shipment_events: {
         Row: {
           created_at: string
@@ -2642,6 +2717,9 @@ export type Database = {
           photo_url: string | null
           prenom: string | null
           profile_complete: boolean | null
+          rates_collected_at: string | null
+          rates_per_city: Json
+          rates_reminder_sent_at: string | null
           reference: string
           telephone_1: string
           telephone_2: string | null
@@ -2676,6 +2754,9 @@ export type Database = {
           photo_url?: string | null
           prenom?: string | null
           profile_complete?: boolean | null
+          rates_collected_at?: string | null
+          rates_per_city?: Json
+          rates_reminder_sent_at?: string | null
           reference: string
           telephone_1: string
           telephone_2?: string | null
@@ -2710,6 +2791,9 @@ export type Database = {
           photo_url?: string | null
           prenom?: string | null
           profile_complete?: boolean | null
+          rates_collected_at?: string | null
+          rates_per_city?: Json
+          rates_reminder_sent_at?: string | null
           reference?: string
           telephone_1?: string
           telephone_2?: string | null
@@ -3108,6 +3192,10 @@ export type Database = {
       }
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       auto_progress_departures: { Args: never; Returns: number }
+      calculate_dossier_pricing: {
+        Args: { p_dossier_id: string }
+        Returns: undefined
+      }
       calculate_quote: {
         Args: {
           p_destination_city?: string
@@ -3225,7 +3313,16 @@ export type Database = {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
       }
+      is_dakar_zone: { Args: { p_address: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      lookup_default_rate: {
+        Args: { p_city?: string; p_country: string }
+        Returns: {
+          express_coeff: number
+          rate_per_kg: number
+          zone: string
+        }[]
+      }
       lookup_dossier_public: {
         Args: { p_tracking: string }
         Returns: {
