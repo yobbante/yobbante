@@ -58,7 +58,14 @@ const MAIN_MENU = `Bonjour ! Je suis l assistant Yobbante.
 4 - Obtenir un devis
 5 - Parler a un agent`;
 
-const SHORT_MENU = `Tapez 1-Departs 2-Suivi 3-Expedition 4-Devis 5-Agent`;
+const SHORT_MENU = `Choisissez :
+
+1 - Departs
+2 - Suivi
+3 - Expedition
+4 - Devis
+5 - Agent`;
+
 
 const SESSION_EXPIRED = `Votre session a expire.
 
