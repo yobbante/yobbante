@@ -412,7 +412,7 @@ export function RequestsTab() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => navigate(`/app/dossier/${d.id}`)}
+                        onClick={() => window.open(`/app/dossier/${d.id}`, '_blank', 'noopener,noreferrer')}
                         className="text-xs h-8"
                       >
                         Ouvrir la fiche
