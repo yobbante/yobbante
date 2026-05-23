@@ -1,6 +1,9 @@
-// gp-smart-invite — Envoie une invitation/onboarding GP en respectant la fenetre 24h Meta.
-// Si le GP n'a jamais ecrit, ouvre la conversation avec le template hello_world,
-// puis envoie le message libre. Notifie systematiquement le super admin.
+// gp-smart-invite — Envoie un message GP en respectant la fenetre 24h Meta.
+// Meta bloque les templates "hello_world" sur les numeros de production
+// (erreur #131058). On tente donc directement le texte libre :
+//   - si le GP a deja ecrit au 122 dans les 24h -> message envoye via API
+//   - sinon -> echec attendu, on bascule sur wa.me et on notifie l'admin
+//     en lui rappelant d'envoyer depuis le compte 122 (+221 78 122 18 91).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -10,6 +13,7 @@ const corsHeaders = {
 };
 
 const SUPER_ADMIN_PHONE = '+221784604003';
+const GP_LINE_DISPLAY = '+221 78 122 18 91';
 
 type InviteKind = 'bot_onboard' | 'konnekt_invite' | 'konnekt_signup';
 
@@ -63,19 +67,17 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const supa = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
 
-  // 1. Verifier historique WhatsApp GP
+  // 1. Verifier historique WhatsApp GP dans les 24 dernieres heures
   let hasHistory = false;
   try {
-    const phoneVariants = [
-      phoneDigits,
-      `+${phoneDigits}`,
-      body.phone,
-    ];
+    const phoneVariants = [phoneDigits, `+${phoneDigits}`, body.phone];
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await supa
       .from('whatsapp_inbound_messages')
       .select('id', { count: 'exact', head: true })
       .eq('channel', 'gp')
-      .in('from_phone', phoneVariants);
+      .in('from_phone', phoneVariants)
+      .gte('received_at', cutoff);
     hasHistory = (count ?? 0) > 0;
   } catch (e) {
     console.warn('gp-smart-invite history check failed', e instanceof Error ? e.message : String(e));
@@ -95,33 +97,13 @@ Deno.serve(async (req) => {
     }
   };
 
-  let mode: 'free_text' | 'template_then_text' = hasHistory ? 'free_text' : 'template_then_text';
-  let templateOk = true;
   let messageOk = false;
   let blockedReason: string | null = null;
 
-  // 2. Premier contact si pas d'historique
-  if (!hasHistory) {
-    const tpl = await callWa({
-      recipient_phone: body.phone,
-      recipient_type: 'gp',
-      template_name: 'hello_world',
-      template_language: 'en_US',
-      transporteur_id: body.transporteur_id,
-      trigger_type: `${body.trigger_type ?? 'gp_smart_invite'}::open_window`,
-    });
-    templateOk = tpl.ok;
-    if (!templateOk) {
-      blockedReason = tpl.json?.error?.message ?? tpl.status ?? 'template_failed';
-      console.warn('gp-smart-invite hello_world failed', tpl.status);
-    } else {
-      // Laisser Meta enregistrer la conversation avant le 2eme envoi
-      await new Promise((r) => setTimeout(r, 1500));
-    }
-  }
-
-  // 3. Envoyer le message principal
-  if (hasHistory || templateOk) {
+  // 2. Tenter directement le texte libre — seul moyen fiable en production.
+  //    Si le GP n'a pas ecrit dans les 24h, Meta refusera (#131047) et on
+  //    bascule sur wa.me cote admin.
+  if (hasHistory) {
     const main = await callWa({
       recipient_phone: body.phone,
       recipient_type: 'gp',
@@ -130,15 +112,17 @@ Deno.serve(async (req) => {
       trigger_type: body.trigger_type ?? 'gp_smart_invite',
     });
     messageOk = main.ok;
-    if (!messageOk && !blockedReason) {
+    if (!messageOk) {
       blockedReason = main.json?.error?.message ?? main.status ?? 'message_failed';
     }
+  } else {
+    blockedReason = 'no_inbound_history_24h';
   }
 
   const overallOk = messageOk;
   const fallbackLink = waLink(body.phone, body.message);
 
-  // 4. Notif super admin
+  // 3. Notif super admin (depuis le 607)
   const gpLabel = `${body.gp_name ?? 'GP'}${body.gp_ref ? ` (${body.gp_ref})` : ''}`;
   let adminMsg: string;
   if (overallOk) {
@@ -146,16 +130,19 @@ Deno.serve(async (req) => {
       `GP onboarde via API :`,
       gpLabel,
       `Tel : ${body.phone}`,
-      `Statut bot : ${hasHistory ? 'Relance' : 'Premier contact'}`,
     ].join('\n');
   } else {
     adminMsg = [
-      `Invitation GP echouee (hors fenetre) :`,
+      `Invitation GP a envoyer manuellement :`,
       `${gpLabel} - ${body.phone}`,
-      blockedReason ? `Cause Meta : ${blockedReason}` : null,
-      `Action requise : envoyer manuellement`,
+      hasHistory
+        ? (blockedReason ? `Cause Meta : ${blockedReason}` : `Echec API`)
+        : `Cause : pas d'historique WhatsApp 24h (fenetre Meta fermee)`,
+      ``,
+      `Ouvrir WhatsApp depuis le compte ${GP_LINE_DISPLAY} (122),`,
+      `pas depuis votre numero personnel :`,
       `wa.me/${phoneDigits}`,
-    ].filter(Boolean).join('\n');
+    ].join('\n');
   }
   await callWa({
     recipient_phone: SUPER_ADMIN_PHONE,
@@ -167,13 +154,12 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify({
     ok: overallOk,
-    mode,
-    template_ok: templateOk,
-    message_ok: messageOk,
     has_history: hasHistory,
+    message_ok: messageOk,
     wa_link: fallbackLink,
     blocked_reason: blockedReason,
     fallback_required: !overallOk,
+    gp_line: GP_LINE_DISPLAY,
   }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
