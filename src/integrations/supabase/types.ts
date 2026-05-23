@@ -873,6 +873,7 @@ export type Database = {
           invoice_number: string | null
           invoice_url: string | null
           is_express: boolean
+          is_gift: boolean
           is_outside_dakar: boolean
           konnekt_order_id: string | null
           konnekt_synced_at: string | null
@@ -1000,6 +1001,7 @@ export type Database = {
           invoice_number?: string | null
           invoice_url?: string | null
           is_express?: boolean
+          is_gift?: boolean
           is_outside_dakar?: boolean
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
           invoice_number?: string | null
           invoice_url?: string | null
           is_express?: boolean
+          is_gift?: boolean
           is_outside_dakar?: boolean
           konnekt_order_id?: string | null
           konnekt_synced_at?: string | null
