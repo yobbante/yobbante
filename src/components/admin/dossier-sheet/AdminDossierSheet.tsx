@@ -423,6 +423,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
             <Badge variant="secondary" className="ml-auto font-mono">{currentRef}</Badge>
           </div>
           <CurrentTransporteurInfo ref_={currentRef} />
+          <NotifyGpButton dossier={dossier} transporteurRef={currentRef} />
           <Button
             size="sm"
             variant="outline"
@@ -458,6 +459,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
 
     </div>
   );
+
 }
 
 function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
