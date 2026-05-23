@@ -192,6 +192,67 @@ export function ReceptionKanbanTab() {
 }
 
 // ============================================================================
+// CardActionsMenu — dropdown ··· on each Kanban card (quick status moves)
+// ============================================================================
+function CardActionsMenu({
+  order, onChanged, onView,
+}: {
+  order: ReceptionOrder;
+  onChanged: () => void;
+  onView: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const moveTo = async (next: string) => {
+    if (next === order.status) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from('reception_orders')
+      .update({ status: next })
+      .eq('id', order.id);
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success('Statut mis à jour'); onChanged(); }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          disabled={busy}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+          aria-label="Actions"
+        >
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MoreVertical className="w-3.5 h-3.5" />}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onClick={onView} className="text-xs">
+          <Package className="w-3.5 h-3.5 mr-2" /> Voir la fiche
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Changer le statut
+        </DropdownMenuLabel>
+        {COLUMNS.filter(c => c.id !== order.status).map(c => {
+          const Icon = c.icon;
+          return (
+            <DropdownMenuItem
+              key={c.id}
+              onClick={() => moveTo(c.id)}
+              className="text-xs"
+            >
+              <Icon className="w-3.5 h-3.5 mr-2" /> {c.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ============================================================================
 // Drawer / Order detail with "Mark as received" action
 // ============================================================================
 
