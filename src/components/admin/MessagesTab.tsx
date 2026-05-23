@@ -864,6 +864,13 @@ export function MessagesTab() {
           )}
         </section>
       </div>
+      <LinkDossierDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        transporteurRef={transporteurInfo?.reference ?? null}
+        phone={openPhone}
+        onPick={(d) => linkDossierToConv(d)}
+      />
     </div>
   );
 }
