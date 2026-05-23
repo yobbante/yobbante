@@ -825,12 +825,23 @@ function BotBlastDialog({
 }
 
 
-function KonnektStatus({ invitedAt, registered }: { invitedAt: string | null; registered: boolean }) {
+function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: string | null; registered: boolean; failed?: string | null; onRetry?: () => void }) {
   if (registered) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
         ✓ Inscrit
       </span>
+    );
+  }
+  if (failed) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-destructive">❌ Échec</div>
+        <div className="flex gap-1 mt-0.5">
+          {onRetry && <button onClick={onRetry} className="text-[10px] underline text-muted-foreground">Réessayer</button>}
+          <a href={failed} target="_blank" rel="noopener noreferrer" className="text-[10px] underline text-emerald-500">wa.me</a>
+        </div>
+      </div>
     );
   }
   if (invitedAt) {
