@@ -47,10 +47,14 @@ const TABS: { key: ExpedierMode; Icon: typeof Package; label: string; shortLabel
 const SEND_PRESET_KEY = 'send-flow:preset';
 const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 
-function resolveCityToCountry(cityLabel: string): { country: string; city: string } | null {
+function resolveCityToCountry(
+  cityLabel: string,
+  customs: { city: string; country: string; countryLabel: string }[] = [],
+): { country: string; city: string } | null {
   if (!cityLabel) return null;
   if (cityLabel === 'Dakar, Sénégal') return { country: 'SN', city: 'Dakar' };
-  const match = ALL_CITIES.find(
+  const pool = [...ALL_CITIES, ...customs];
+  const match = pool.find(
     c => cityLabel === `${c.city}, ${c.countryLabel}` || cityLabel === c.city,
   );
   if (match) return { country: match.country, city: match.city };
