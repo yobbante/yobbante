@@ -37,6 +37,8 @@ import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
 import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
+import KonnektLandingPage from "./pages/KonnektLandingPage";
+import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
