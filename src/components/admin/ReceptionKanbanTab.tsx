@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Inbox, Package, CheckCircle2, Truck, MapPin, Camera, Save, X, Calculator } from 'lucide-react';
+import { Loader2, Inbox, Package, CheckCircle2, Truck, MapPin, Camera, Save, X, Calculator, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -140,30 +144,33 @@ export function ReceptionKanbanTab() {
                     {items.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground text-center py-6">Aucune commande</p>
                     ) : items.map(o => (
-                      <button
-                        key={o.id}
-                        onClick={() => setSelected(o)}
-                        className={cn(
-                          'w-full text-left rounded-[12px] bg-card transition-colors p-3 space-y-1.5',
-                          selected?.id === o.id ? 'card-featured' : ''
-                        )}
-                        style={selected?.id === o.id ? undefined : { border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-[11px] font-mono text-muted-foreground truncate">{o.reference}</p>
-                          {o.final_price_eur != null && (
-                            <span className="text-[11px] font-medium text-success tabular-nums">{Math.round(o.final_price_eur)} €</span>
+                      <div key={o.id} className="relative group">
+                        <button
+                          onClick={() => setSelected(o)}
+                          className={cn(
+                            'w-full text-left rounded-[12px] bg-card transition-colors p-3 space-y-1.5',
+                            selected?.id === o.id ? 'card-featured' : ''
                           )}
-                        </div>
-                        <p className="text-sm font-semibold text-foreground truncate">{o.merchant_name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{o.order_description}</p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{o.relay_addresses?.city || '—'}</span>
-                          <span>·</span>
-                          <span>{o.profiles?.full_name || o.profiles?.email || 'Client'}</span>
-                        </div>
-                      </button>
+                          style={selected?.id === o.id ? undefined : { border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+                        >
+                          <div className="flex items-center justify-between gap-2 pr-6">
+                            <p className="text-[11px] font-mono text-muted-foreground truncate">{o.reference}</p>
+                            {o.final_price_eur != null && (
+                              <span className="text-[11px] font-medium text-success tabular-nums">{Math.round(o.final_price_eur)} €</span>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-foreground truncate">{o.merchant_name}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{o.order_description}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{o.relay_addresses?.city || '—'}</span>
+                            <span>·</span>
+                            <span>{o.profiles?.full_name || o.profiles?.email || 'Client'}</span>
+                          </div>
+                        </button>
+
+                        <CardActionsMenu order={o} onChanged={refresh} onView={() => setSelected(o)} />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -181,6 +188,67 @@ export function ReceptionKanbanTab() {
         />
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// CardActionsMenu — dropdown ··· on each Kanban card (quick status moves)
+// ============================================================================
+function CardActionsMenu({
+  order, onChanged, onView,
+}: {
+  order: ReceptionOrder;
+  onChanged: () => void;
+  onView: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const moveTo = async (next: string) => {
+    if (next === order.status) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from('reception_orders')
+      .update({ status: next })
+      .eq('id', order.id);
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success('Statut mis à jour'); onChanged(); }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          disabled={busy}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+          aria-label="Actions"
+        >
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MoreVertical className="w-3.5 h-3.5" />}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onClick={onView} className="text-xs">
+          <Package className="w-3.5 h-3.5 mr-2" /> Voir la fiche
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Changer le statut
+        </DropdownMenuLabel>
+        {COLUMNS.filter(c => c.id !== order.status).map(c => {
+          const Icon = c.icon;
+          return (
+            <DropdownMenuItem
+              key={c.id}
+              onClick={() => moveTo(c.id)}
+              className="text-xs"
+            >
+              <Icon className="w-3.5 h-3.5 mr-2" /> {c.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

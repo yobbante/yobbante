@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as SheetPrimitive from '@radix-ui/react-dialog';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -15,8 +16,9 @@ import { Switch } from '@/components/ui/switch';
 import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
-  Scale, MapPin, Download, Upload, Trash2,
+  Scale, MapPin, Download, Upload, Trash2, X,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDossierSheet } from './useDossierSheet';
@@ -46,13 +48,39 @@ function copy(s: string) {
 
 export function AdminDossierSheet() {
   const { dossierId, close } = useDossierSheet();
+  const isMobile = useIsMobile();
   const open = !!dossierId;
 
+  // Desktop ≥ md : panneau latéral persistant, non modal, sans overlay sombre
+  if (!isMobile) {
+    return (
+      <SheetPrimitive.Root open={open} onOpenChange={(v) => { if (!v) close(); }} modal={false}>
+        <SheetPrimitive.Portal>
+          <SheetPrimitive.Content
+            onInteractOutside={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+            className="fixed top-0 right-0 bottom-0 z-40 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right data-[state=open]:duration-200 data-[state=closed]:duration-150"
+          >
+            <button
+              onClick={close}
+              className="absolute right-3 top-3 z-10 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+              aria-label="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {dossierId ? <DossierSheetBody id={dossierId} /> : null}
+          </SheetPrimitive.Content>
+        </SheetPrimitive.Portal>
+      </SheetPrimitive.Root>
+    );
+  }
+
+  // Mobile : Sheet plein écran (comportement actuel)
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) close(); }}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[960px] p-0 flex flex-col"
+        className="w-full sm:max-w-[640px] p-0 flex flex-col"
       >
         {dossierId ? <DossierSheetBody id={dossierId} /> : null}
       </SheetContent>
