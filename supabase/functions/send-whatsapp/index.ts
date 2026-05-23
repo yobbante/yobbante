@@ -15,6 +15,8 @@ interface SendPayload {
   recipient_type?: RecipientType;
   template_name?: string;
   template_params?: string[];
+  /** Code langue du template (par défaut 'fr'). hello_world doit utiliser 'en_US'. */
+  template_language?: string;
   /** Ancien nom Meta — utilisé en repli si `template_name` n'est pas approuvé. */
   template_fallback_name?: string;
   message?: string;
