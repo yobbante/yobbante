@@ -1852,8 +1852,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                     <CreditCard className="w-3 h-3" /> Détail du coût
                   </p>
-                  <RecapRow label="Collecte" value="Incluse" />
-                  <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
+                  <RecapRow label="Fret Yobbanté" value={formatLocalAmount(transportPriceEur, originProfile)} />
                   {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
                   {fraisEnlevement.surcharge > 0 && (
                     <RecapRow
@@ -1861,12 +1860,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       value={`+ ${formatFcfa(fraisEnlevement.surcharge)}`}
                     />
                   )}
+                  {deliveryMode === 'home_delivery' && deliveryCarrier && (
+                    <RecapRow
+                      label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
+                      value="Sur devis"
+                    />
+                  )}
                   <RecapRow label="Paiement" value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
                   <div className="pt-2.5 mt-1 border-t border-border">
-                    <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+                    <RecapRow label="TOTAL" value={formatLocalAmount(totalEur, originProfile)} strong />
                   </div>
                   <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Prix définitif confirmé après pesée. Si différence &gt; 10 %, notification avant facturation.
+                    {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
                   </p>
                 </div>
               </div>
