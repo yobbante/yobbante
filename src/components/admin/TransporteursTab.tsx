@@ -901,13 +901,13 @@ function EditDrawer({
     setSaving(true);
     try {
       await onSave({
+        ...(transporteur?.id ? { id: transporteur.id } : {}),
         reference: ref,
         prenom: prenom.trim(),
         nom: nom.trim(),
         photo_url: photoUrl || null,
         telephone_1: tel1.trim(),
         telephone_2: tel2.trim() || null,
-        // Keep legacy fields in sync to avoid breaking old code paths
         adresse_1: adrDakar1.trim(),
         adresse_2: adrDakar2.trim() || null,
         ville: 'Dakar',
@@ -919,7 +919,10 @@ function EditDrawer({
         default_rate_per_kg: defaultRate ? Number(defaultRate) : null,
         default_routes: cleanRates,
         notes: notes.trim() || null,
-      });
+      } as any);
+    } catch (e: any) {
+      console.error('Transporteur save failed', e);
+      toast.error('Échec de l’enregistrement', { description: e?.message ?? String(e) });
     } finally {
       setSaving(false);
     }
