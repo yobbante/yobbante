@@ -895,6 +895,7 @@ export type Database = {
           pickup_zone: string | null
           poids_livreur: number | null
           price_is_estimate: boolean
+          price_volatility_coefficient: number | null
           product_description: string
           quantity: number | null
           recipient_address: string | null
@@ -1023,6 +1024,7 @@ export type Database = {
           pickup_zone?: string | null
           poids_livreur?: number | null
           price_is_estimate?: boolean
+          price_volatility_coefficient?: number | null
           product_description: string
           quantity?: number | null
           recipient_address?: string | null
@@ -1151,6 +1153,7 @@ export type Database = {
           pickup_zone?: string | null
           poids_livreur?: number | null
           price_is_estimate?: boolean
+          price_volatility_coefficient?: number | null
           product_description?: string
           quantity?: number | null
           recipient_address?: string | null

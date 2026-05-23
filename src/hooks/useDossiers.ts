@@ -24,6 +24,7 @@ export interface CreateDossierInput {
   enlevement_surcharge?: number;
   is_outside_dakar?: boolean;
   is_gift?: boolean;
+  price_volatility_coefficient?: number | null;
 }
 
 export function useDossiers() {
@@ -71,6 +72,7 @@ export function useDossiers() {
           ...(input.enlevement_surcharge !== undefined ? { enlevement_surcharge: input.enlevement_surcharge } : {}),
           ...(input.is_outside_dakar !== undefined ? { is_outside_dakar: input.is_outside_dakar } : {}),
           ...(input.is_gift !== undefined ? { is_gift: input.is_gift } : {}),
+          ...(input.price_volatility_coefficient !== undefined ? { price_volatility_coefficient: input.price_volatility_coefficient } : {}),
         })
         .select()
         .single();

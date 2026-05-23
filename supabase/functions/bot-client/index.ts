@@ -233,23 +233,17 @@ async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise
     const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pricing-calculate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
-      body: JSON.stringify({ destination_country: destCountry, real_weight_kg: weight, transport_mode: 'air' }),
+      body: JSON.stringify({ destination_country: destCountry, real_weight_kg: weight, transport_mode: 'air', priority: 'standard' }),
     });
-    const air = await res.json().catch(() => null);
-    const res2 = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pricing-calculate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
-      body: JSON.stringify({ destination_country: destCountry, real_weight_kg: weight, transport_mode: 'sea_lcl' }),
-    });
-    const sea = await res2.json().catch(() => null);
+    const std = await res.json().catch(() => null);
+    const stdPrice = std?.price_xof ?? std?.total_xof ?? null;
+    const expressPrice = stdPrice ? Math.round(stdPrice * 1.45) : null;
 
-    const airPrice = air?.price_xof ?? air?.total_xof ?? null;
-    const seaPrice = sea?.price_xof ?? sea?.total_xof ?? null;
-    let body = `Estimation Yobbante :\nDakar -> ${dest} - ${weight}kg :\n`;
-    if (airPrice) body += `Aerien : ${airPrice.toLocaleString('fr-FR')} XOF (3-7 jours)\n`;
-    if (seaPrice) body += `Maritime : ${seaPrice.toLocaleString('fr-FR')} XOF (25-30 jours)\n`;
-    if (!airPrice && !seaPrice) body += `Nous recherchons la meilleure option. Un agent vous contactera.\n`;
-    body += `\nPour reserver : yobbante.com`;
+    let body = `Estimation Yobbante :\nDakar -> ${dest} - ${weight}kg :\n\n`;
+    if (stdPrice) body += `Standard : ${stdPrice.toLocaleString('fr-FR')} FCFA (3 jours)\n`;
+    if (expressPrice) body += `Express : ${expressPrice.toLocaleString('fr-FR')} FCFA (24h)\n`;
+    if (!stdPrice) body += `Nous recherchons la meilleure option. Un agent vous contactera.\n`;
+    body += `\nEnlevement inclus a Dakar.\n\nPour reserver : yobbante.com\nou repondez OUI`;
     return body;
   } catch (e) {
     console.error('BOT_CLIENT pricing err', e);
