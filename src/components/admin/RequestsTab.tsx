@@ -103,13 +103,16 @@ export function RequestsTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, product_description, status, origin_country, destination_country, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, estimated_delivery_date, notes, created_at')
+        .select('id, reference, product_description, status, origin_country, destination_country, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, estimated_delivery_date, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id')
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
-      return (data || []) as Dossier[];
+      return (data || []) as any[];
     },
   });
+
+  const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null } | null>(null);
+
 
 
   const updateStatus = useMutation({
