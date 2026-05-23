@@ -18,7 +18,11 @@ import {
   type Dossier, type DossierStatus,
 } from '@/lib/types';
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
+import { getDossierBadges } from '@/lib/dossierBadges';
+import { GpAssignBadge } from './dossiers/GpAssignBadge';
+import { QuickAssignGpDialog } from './dossiers/QuickAssignGpDialog';
 import { toast } from 'sonner';
+
 
 const TYPE_FILTERS = [
   { id: 'all',      label: 'Tous' },
