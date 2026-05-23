@@ -191,8 +191,17 @@ const MainRoutes = () => (
   </Routes>
 );
 
+const KonnektRoutes = () => (
+  <Routes>
+    <Route path="/" element={<KonnektLandingPage />} />
+    <Route path="/inscription" element={<Navigate to="/#inscription" replace />} />
+    <Route path="*" element={<KonnektLandingPage />} />
+  </Routes>
+);
+
 const App = () => {
   const dekkMode = isDekkSubdomain();
+  const konnektMode = !dekkMode && isKonnektDomain();
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -203,8 +212,8 @@ const App = () => {
         <MaintenanceGate>
           <GlobalNotifiers />
           <AdminOnlyGuard />
-          {dekkMode ? <DekkRoutes /> : <MainRoutes />}
-          {!dekkMode && <FloatingWhatsApp />}
+          {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}
+          {!dekkMode && !konnektMode && <FloatingWhatsApp />}
           <CookieBanner />
           <InstallAppPrompt />
         </MaintenanceGate>
