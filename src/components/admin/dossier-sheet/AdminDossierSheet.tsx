@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
+  Scale, MapPin, Download, Upload, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type DossierStatus } from '@/lib/types';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
+import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
+import { WeighingDialog, type WeighingDossier } from '@/components/admin/WeighingDialog';
 import { format } from 'date-fns';
 
 type DossierRow = Record<string, any>;
