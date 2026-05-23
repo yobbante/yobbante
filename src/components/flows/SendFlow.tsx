@@ -1275,18 +1275,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
+              <div className="flex items-center gap-1 mb-1 text-[12px] font-medium">
+                <span>Valeur déclarée</span>
+                <span className="text-red-500" aria-hidden>*</span>
+                <span className="text-muted-foreground">({originProfile.currencySymbol})</span>
+                <span
+                  className="cursor-help text-muted-foreground"
+                  title="Valeur marchande approximative du contenu. Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte."
+                  aria-label="Aide valeur déclarée"
+                >ⓘ</span>
+              </div>
               <TextField
-                label={
-                  <span className="inline-flex items-center gap-1">
-                    Valeur déclarée <span className="text-red-500" aria-hidden>*</span>
-                    <span className="text-muted-foreground">({originProfile.currencySymbol})</span>
-                    <span
-                      className="cursor-help text-muted-foreground"
-                      title="Valeur marchande approximative du contenu. Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte."
-                      aria-label="Aide valeur déclarée"
-                    >ⓘ</span>
-                  </span>
-                }
+                label=""
                 value={declaredLocal} onChange={setDeclaredLocal}
                 placeholder={originProfile.currency === 'XOF' ? 'Ex. : 50 000 FCFA' : 'Ex. : 120'}
                 suffix={originProfile.currencySymbol}
