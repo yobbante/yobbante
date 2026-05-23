@@ -400,9 +400,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-const inputClass = 'w-full rounded-lg px-3 py-2.5 text-[14px] outline-none transition-colors';
-// Inline styles for input
-const _ = ''; // keep tree-shaker quiet
+const inputClass = 'w-full rounded-lg px-3 py-2.5 text-[14px] outline-none transition-colors text-white placeholder:text-white/40 bg-white/[0.04] border border-white/10 focus:border-yellow-400/60';
 
 function Footer() {
   return (
