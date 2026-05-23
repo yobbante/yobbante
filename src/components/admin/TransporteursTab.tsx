@@ -25,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { SendEditLinkDialog } from './SendEditLinkDialog';
 import { Pencil as PencilIcon } from 'lucide-react';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
