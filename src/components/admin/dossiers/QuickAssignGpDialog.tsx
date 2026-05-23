@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Loader2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
+import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 
 interface Props {
   open: boolean;
