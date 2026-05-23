@@ -15,6 +15,8 @@ interface SendPayload {
   recipient_type?: RecipientType;
   template_name?: string;
   template_params?: string[];
+  /** Ancien nom Meta — utilisé en repli si `template_name` n'est pas approuvé. */
+  template_fallback_name?: string;
   message?: string;
   dossier_id?: string;
   transporteur_id?: string;
@@ -26,6 +28,21 @@ interface SendPayload {
   destination?: string;
   weight?: string | number;
 }
+
+// Mapping serveur (miroir de src/lib/whatsappTemplates.ts) — utilisé quand
+// l'appelant n'envoie pas explicitement `template_fallback_name`.
+const TEMPLATE_FALLBACKS: Record<string, string> = {
+  order_confirmation_v2: 'order_confirmation',
+  departure_assigned_v2: 'departure_assigned',
+  package_collected_v2: 'package_collected',
+  package_in_transit_v2: 'package_in_transit',
+  package_arrived_v2: 'package_arrived',
+  package_delivered_v2: 'package_delivered',
+  weight_confirmation_v2: 'weight_confirmation',
+  payment_reminder_48h_v2: 'payment_reminder_48h',
+  mission_assigned_gp_v2: 'mission_assigned_gp',
+  gp_mission_recap_j1_v2: 'gp_mission_recap_j1',
+};
 
 function normalizePhone(input: string): string {
   return (input || '').toString().replace(/\D/g, '');
