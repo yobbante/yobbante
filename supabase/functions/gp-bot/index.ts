@@ -727,6 +727,35 @@ Voir : yobbante.com/admin`);
         await reply(`Adresse de remise a ${villes[nextIdx]} ?\n(ou SKIP)`, 'onb_ask_addr_next');
         return new Response('ok', { headers: corsHeaders });
       }
+      // ----- Passage aux TARIFS par ville -----
+      await onbSave('onb_tarifs', { ...data, adresses_villes: adresses, tarif_idx: 0, rates_per_city: {} });
+      await reply(
+        `Super ! Maintenant vos TARIFS.\n\nPour chaque ville, donnez votre prix par kg en FCFA.\n(ou tapez SKIP pour utiliser le tarif par defaut)\n\nTarif par kg pour ${villes[0]} ?`,
+        'onb_ask_tarif_first',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_tarifs') {
+      const villes = (data.villes ?? []) as string[];
+      const adresses = (data.adresses_villes ?? {}) as Record<string, string>;
+      const idx = (data.tarif_idx ?? 0) as number;
+      const rates = (data.rates_per_city ?? {}) as Record<string, number>;
+      const currentVille = villes[idx];
+      const raw = rawMsg.trim();
+      if (!/^skip$/i.test(raw)) {
+        const num = parseInt(raw.replace(/[^\d]/g, ''), 10);
+        if (!Number.isFinite(num) || num < 500 || num > 50000) {
+          await reply(`Prix invalide. Donnez un montant en FCFA (ex: 6500), ou SKIP.`, 'onb_tarif_retry');
+          return new Response('ok', { headers: corsHeaders });
+        }
+        rates[currentVille] = num;
+      }
+      const nextIdx = idx + 1;
+      if (nextIdx < villes.length) {
+        await onbSave('onb_tarifs', { ...data, tarif_idx: nextIdx, rates_per_city: rates });
+        await reply(`Tarif par kg pour ${villes[nextIdx]} ?\n(ou SKIP)`, 'onb_ask_tarif_next');
+        return new Response('ok', { headers: corsHeaders });
+      }
       // ----- Finalisation : creer le transporteur -----
       let reference = String(Math.floor(1000 + Math.random() * 9000));
       for (let i = 0; i < 5; i++) {
@@ -753,6 +782,7 @@ Voir : yobbante.com/admin`);
         zone: data.zone_dakar,
         adresses_remise: adresses,
         navettes,
+        rates_per_city: rates,
         actif: true,
         konnekt_registered: false,
         notes: 'Inscrit via WhatsApp 122',
@@ -768,12 +798,13 @@ Voir : yobbante.com/admin`);
         return new Response('ok', { headers: corsHeaders });
       }
 
+      const tarifsLines = Object.entries(rates).map(([v, p]) => `• ${v}: ${p} FCFA/kg`).join('\n') || '(aucun — tarifs par defaut)';
       await reply(
-        `Felicitations ! 🎉\nVotre profil est cree.\n\nReference : GP${created.reference}\n\nVous recevrez bientot des missions correspondant a vos navettes.\n\nTapez AIDE pour voir vos commandes.`,
+        `Felicitations ! 🎉\nVotre profil est cree.\n\nReference : GP${created.reference}\n\nVos tarifs :\n${tarifsLines}\n\nVous recevrez bientot des missions correspondant a vos navettes.\n\nTapez AIDE pour voir vos commandes.`,
         'onb_done',
       );
       await notifyAdmin(
-        `✅ Nouveau GP inscrit via le bot :\nGP${created.reference} — ${data.prenom} ${data.nom}\nTel : ${fromPhone}\nNavette : Dakar → ${villes.join(', ')}`,
+        `✅ Nouveau GP inscrit via le bot :\nGP${created.reference} — ${data.prenom} ${data.nom}\nTel : ${fromPhone}\nNavette : Dakar → ${villes.join(', ')}\nTarifs : ${Object.keys(rates).length}/${villes.length} renseignes`,
       );
       return new Response('ok', { headers: corsHeaders });
     }

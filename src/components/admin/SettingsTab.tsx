@@ -1,6 +1,7 @@
 import { UsersTab } from './UsersTab';
 import { RelayAddressesPanel } from './RelayAddressesPanel';
 import { WhatsAppTestPanel } from './WhatsAppTestPanel';
+import { RouteRatesPanel } from './RouteRatesPanel';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export function SettingsTab() {
@@ -20,6 +21,9 @@ export function SettingsTab() {
       </div>
 
       <RelayAddressesPanel />
+
+      <RouteRatesPanel />
+
 
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Notifications</p>
