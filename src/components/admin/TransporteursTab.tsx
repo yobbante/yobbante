@@ -290,6 +290,9 @@ export function TransporteursTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher : référence · nom · téléphone · ville" className="pl-9" />
         </div>
+        <Button variant={onlyIncomplete ? 'default' : 'outline'} size="sm" onClick={() => setOnlyIncomplete(s => !s)}>
+          ⚠️ Profils incomplets
+        </Button>
         <Button variant={showInactive ? 'default' : 'outline'} size="sm" onClick={() => setShowInactive(s => !s)}>
           {showInactive ? 'Masquer inactifs' : 'Afficher inactifs'}
         </Button>
