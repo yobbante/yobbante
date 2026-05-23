@@ -453,20 +453,44 @@ export function MessagesTab() {
     }
   }
 
-  const gpCtx = useMemo(() => {
+  const gpCtx: GpCtx = useMemo(() => {
     const prenom = transporteurInfo?.prenom || activeConv?.name?.split(' ')[0] || 'GP';
     const dest = linkedDossier?.destination_country || 'destination';
     const orig = linkedDossier?.origin_country || 'origine';
     return {
       gp_prenom: prenom,
+      client_name: linkedDossier?.buyer_name || linkedDossier?.sender_name || 'le client',
+      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '—',
       route: `${orig} - ${dest}`,
-      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      origin: orig,
       destination: dest,
-      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '',
+      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      pickup_address: linkedDossier?.sender_address || transporteurInfo?.adresse_collecte_dakar || 'a confirmer',
       date: linkedDossier?.estimated_delivery_date || 'bientot',
       departure_date: linkedDossier?.estimated_delivery_date || 'bientot',
     };
   }, [transporteurInfo, linkedDossier, activeConv]);
+
+  // ---------- Auto-fill client template params from linked dossier ----------
+  useEffect(() => {
+    if (!linkedDossier || !activeConv || activeConv.channel !== 'client') return;
+    const tpl = getTemplate(templateKey);
+    const map: Record<string, string> = {
+      client_name: linkedDossier.buyer_name || linkedDossier.recipient_name || activeConv.name || '',
+      tracking_id: linkedDossier.tracking_id || linkedDossier.reference || '',
+      destination: linkedDossier.destination_country || '',
+      origin: linkedDossier.origin_country || '',
+      amount: linkedDossier.final_amount_xof ? `${linkedDossier.final_amount_xof} FCFA` : '',
+      eta: linkedDossier.estimated_delivery_date || '',
+      departure_date: linkedDossier.estimated_delivery_date || '',
+      review_link: linkedDossier.tracking_id ? `https://yobbante.com/avis/${linkedDossier.tracking_id}` : '',
+      payment_link: linkedDossier.tracking_id ? `https://yobbante.com/payer/${linkedDossier.tracking_id}` : '',
+    };
+    const next: Record<string, string> = {};
+    tpl.params.forEach((p) => { if (map[p]) next[p] = map[p]; });
+    setParams((prev) => ({ ...next, ...prev }));
+  }, [linkedDossier, templateKey, activeConv]);
+
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
     if (!transporteurInfo) {
