@@ -191,7 +191,7 @@ export function IntentSearchBar({
         />
         {intent === 'send' && (
           <datalist id={`${id}-cities`}>
-            {ALL_CITIES.map(c => (
+            {[...ALL_CITIES, ...customCities].map(c => (
               <option key={c.id} value={c.city}>{c.flag} {c.countryLabel}</option>
             ))}
           </datalist>
