@@ -440,13 +440,22 @@ Deno.serve(async (req) => {
 
     let reply = '';
 
+    // PRIORITY 0: back-to-menu commands (0 / menu / retour / annuler)
+    if (BACK_TO_MENU.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      reply = MAIN_MENU;
+    }
     // PRIORITY 1: greetings / menu triggers always reset session
-    if (MENU_TRIGGERS.test(nMsg)) {
+    else if (MENU_TRIGGERS.test(nMsg)) {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
     // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
     else if (/^[1-5]$/.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
+    }
+
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
     }
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
