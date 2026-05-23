@@ -241,23 +241,50 @@ export default function PayPage() {
   );
 }
 
-function SuccessCard({ trackingId }: { trackingId: string }) {
+function SuccessCard({ trackingId, pending }: { trackingId: string; pending?: boolean }) {
   return (
     <div className="surface-card text-center py-10">
-      <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: '#1D9E75' }} />
-      <h2 className="mb-2">Paiement reçu !</h2>
+      {pending ? (
+        <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin" style={{ color: '#F5C518' }} />
+      ) : (
+        <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: '#1D9E75' }} />
+      )}
+      <h2 className="mb-2">{pending ? 'Paiement en cours de validation…' : 'Paiement confirmé !'}</h2>
       <p className="text-muted-foreground text-sm mb-2">
-        Votre colis <span className="font-mono">{trackingId}</span> va maintenant prendre la route.
+        {pending
+          ? 'Vous recevrez une confirmation WhatsApp dans quelques instants.'
+          : <>Votre colis <span className="font-mono">{trackingId}</span> prend la route.</>}
       </p>
-      <p className="text-muted-foreground text-sm mb-6">
-        Vous recevrez une confirmation WhatsApp dans quelques instants.
-      </p>
-      <Link to={`/suivre/${trackingId}`} className="btn-cta inline-flex items-center gap-2">
+      <Link to={`/suivre/${trackingId}`} className="btn-cta inline-flex items-center gap-2 mt-4">
         <Truck className="w-4 h-4" /> Suivre mon colis
       </Link>
     </div>
   );
 }
+
+function CancelCard({ trackingId }: { trackingId: string }) {
+  return (
+    <div className="surface-card text-center py-10">
+      <XCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#E53E3E' }} />
+      <h2 className="mb-2">Paiement annulé</h2>
+      <p className="text-muted-foreground text-sm mb-6">Vous pouvez réessayer quand vous voulez.</p>
+      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+        <Link to={`/pay/${trackingId}`} className="btn-cta inline-flex items-center justify-center gap-2">
+          Réessayer
+        </Link>
+        <a
+          href={`https://wa.me/${SUPPORT_TEL.replace('+', '')}`}
+          target="_blank" rel="noreferrer"
+          className="inline-flex items-center justify-center gap-2 rounded-[12px] py-3 px-5 border font-medium hover:bg-secondary"
+          style={{ borderColor: 'hsl(var(--border))' }}
+        >
+          <MessageCircle className="w-4 h-4" /> Nous contacter
+        </a>
+      </div>
+    </div>
+  );
+}
+
 
 function ErrorCard({ trackingId }: { trackingId: string }) {
   return (
