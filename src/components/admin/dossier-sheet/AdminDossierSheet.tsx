@@ -15,8 +15,9 @@ import { Switch } from '@/components/ui/switch';
 import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
-  Scale, MapPin, Download, Upload, Trash2,
+  Scale, MapPin, Download, Upload, Trash2, X,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDossierSheet } from './useDossierSheet';
