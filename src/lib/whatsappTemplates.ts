@@ -151,7 +151,7 @@ export function getTemplate(key: WaTemplateKey): WaTemplateSpec {
  * essaie l'ancien template si le _v2 n'est pas (encore) approuvé Meta.
  */
 export function getTemplateFallback(name: string): string | undefined {
-  for (const t of Object.values(WA_TEMPLATES)) {
+  for (const t of Object.values(WA_TEMPLATES) as WaTemplateSpec[]) {
     if (t.name === name && t.fallbackName) return t.fallbackName;
   }
   return undefined;
