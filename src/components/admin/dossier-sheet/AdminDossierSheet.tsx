@@ -51,23 +51,27 @@ export function AdminDossierSheet() {
   const isMobile = useIsMobile();
   const open = !!dossierId;
 
-  // Desktop ≥ md : panneau latéral persistant, non modal, ne bloque pas la liste
+  // Desktop ≥ md : panneau latéral persistant, non modal, sans overlay sombre
   if (!isMobile) {
-    if (!open) return null;
     return (
-      <aside
-        className="hidden md:flex fixed top-0 right-0 bottom-0 z-40 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex-col animate-in slide-in-from-right duration-200"
-        aria-label="Détail dossier"
-      >
-        <button
-          onClick={close}
-          className="absolute right-3 top-3 z-10 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
-          aria-label="Fermer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-        {dossierId ? <DossierSheetBody id={dossierId} /> : null}
-      </aside>
+      <SheetPrimitive.Root open={open} onOpenChange={(v) => { if (!v) close(); }} modal={false}>
+        <SheetPrimitive.Portal>
+          <SheetPrimitive.Content
+            onInteractOutside={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+            className="fixed top-0 right-0 bottom-0 z-40 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right data-[state=open]:duration-200 data-[state=closed]:duration-150"
+          >
+            <button
+              onClick={close}
+              className="absolute right-3 top-3 z-10 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+              aria-label="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {dossierId ? <DossierSheetBody id={dossierId} /> : null}
+          </SheetPrimitive.Content>
+        </SheetPrimitive.Portal>
+      </SheetPrimitive.Root>
     );
   }
 
