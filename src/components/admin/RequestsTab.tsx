@@ -287,7 +287,7 @@ export function RequestsTab() {
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}
-                  onDoubleClick={() => navigate(`/app/dossier/${d.id}`)}
+                  onDoubleClick={() => sheet.open(d.id)}
                   className={cn(
                     'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
                     isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
