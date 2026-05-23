@@ -316,7 +316,64 @@ EN ROUTE ${d.tracking_id}`;
     }
   } catch (e) { console.error('RELANCE G', e); stats.errors++; }
 
-  return new Response(JSON.stringify({ ok: true, stats }), {
+  // ============================================================
+  // RELANCE H — GP sans tarifs apres 24h, alerte admin a 48h
+  // ============================================================
+  try {
+    const { data: gps } = await supa
+      .from('transporteurs')
+      .select('id, reference, prenom, nom, telephone_1, whatsapp, rates_per_city, created_at, notes, last_bot_activity_at')
+      .eq('actif', true)
+      .lt('created_at', iso(now - 24 * 3600_000))
+      .limit(100);
+
+    for (const gp of gps ?? []) {
+      const rates = (gp.rates_per_city ?? {}) as Record<string, unknown>;
+      if (Object.keys(rates).length > 0) continue;
+
+      const ageH = (now - new Date(gp.created_at).getTime()) / 3600_000;
+      const noted = (gp.notes ?? '').includes('[tarifs_reminder_24h]');
+      const adminNoted = (gp.notes ?? '').includes('[tarifs_alert_48h]');
+
+      // 24h : relance GP via WhatsApp
+      if (ageH >= 24 && !noted) {
+        const phone = gpPhone(gp);
+        if (phone) {
+          await sendWa({
+            recipient_phone: phone,
+            recipient_type: 'gp',
+            message: `Bonjour ${prenomOf(gp)} 👋
+
+Pour recevoir des missions, vous devez renseigner vos tarifs par ville.
+
+Tapez TARIFS pour voir vos tarifs actuels, puis :
+TARIF [ville] [prix]
+Ex : TARIF Paris 6500`,
+            transporteur_id: gp.id,
+            trigger_type: 'gp_tarifs_reminder_24h',
+          });
+          await supa.from('transporteurs').update({
+            notes: `${gp.notes ?? ''}\n[tarifs_reminder_24h ${new Date().toISOString()}]`,
+          }).eq('id', gp.id);
+        }
+      }
+
+      // 48h : alerte admin
+      if (ageH >= 48 && !adminNoted) {
+        await sendWa({
+          recipient_phone: ADMIN_PHONE,
+          recipient_type: 'admin',
+          message: `⚠️ GP${gp.reference} (${gp.prenom ?? ''} ${gp.nom ?? ''}) inscrit depuis +48h sans aucun tarif renseigne.\nTel : ${gp.telephone_1 ?? gp.whatsapp ?? '—'}`,
+          trigger_type: 'admin_gp_no_tarifs_48h',
+        });
+        await supa.from('transporteurs').update({
+          notes: `${gp.notes ?? ''}\n[tarifs_alert_48h ${new Date().toISOString()}]`,
+        }).eq('id', gp.id);
+      }
+    }
+  } catch (e) { console.error('RELANCE H', e); stats.errors++; }
+
+
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
