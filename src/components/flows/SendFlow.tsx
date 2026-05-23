@@ -1918,3 +1918,60 @@ function CoverageBadge({ level, city, loading }: { level: 'direct' | 'partner' |
     </div>
   );
 }
+
+// ─── Quartier Dakar picker (dropdown groupé) ───────────────────────────
+function QuartierDakarPicker({
+  value, onChange, label,
+}: { value: string; onChange: (v: string) => void; label?: string }) {
+  return (
+    <label className="block">
+      <span className="block text-xs mb-1.5 font-medium text-muted-foreground">
+        {label ?? 'Quartier de collecte'} <span className="text-muted-foreground/60">(optionnel)</span>
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-all"
+      >
+        <option value="">— Sélectionner un quartier —</option>
+        {QUARTIER_GROUPS.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.quartiers.map((q) => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+// ─── Zone Dakar badge — affiche frais d'enlèvement / livraison ─────────
+function ZoneBadge({
+  frais, mode = 'enlevement',
+}: {
+  frais: { zone: DakarZoneCategory; surcharge: number; gratuit: boolean; message: string };
+  mode?: 'enlevement' | 'livraison';
+}) {
+  if (frais.gratuit) {
+    return (
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-[12px] text-emerald-300 inline-flex items-center gap-2">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        {mode === 'livraison' ? 'Livraison gratuite dans votre zone' : 'Enlèvement gratuit dans votre zone'}
+      </div>
+    );
+  }
+  const icon = frais.zone === 'hors_dakar' ? '⚠️' : '📍';
+  const label = mode === 'livraison'
+    ? (frais.zone === 'hors_dakar' ? 'Livraison hors Dakar' : 'Livraison en banlieue')
+    : (frais.zone === 'hors_dakar' ? 'Adresse hors Dakar' : 'Zone périphérique Dakar');
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
+      <span aria-hidden>{icon}</span>
+      <span>
+        {label} — frais de déplacement&nbsp;:
+        <strong className="ml-1">+ {formatFcfa(frais.surcharge)}</strong>
+      </span>
+    </div>
+  );
+}
