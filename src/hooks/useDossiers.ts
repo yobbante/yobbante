@@ -24,6 +24,7 @@ export interface CreateDossierInput {
   enlevement_surcharge?: number;
   is_outside_dakar?: boolean;
   is_gift?: boolean;
+  price_volatility_coefficient?: number | null;
 }
 
 export function useDossiers() {
