@@ -639,29 +639,34 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         },
       });
 
+      const trackingId = (dossier as any).tracking_id || dossier.reference;
+      const arrival = (await import('@/lib/deliveryEta')).estimateArrivalDate({
+        destinationCountry: destCity?.country,
+        departureDate: matchOption.departure_date ?? null,
+      });
+      const arrivalLabel = (await import('@/lib/deliveryEta')).formatFrenchDate(arrival);
+
       setConfirmed({
         reference: dossier.reference,
-        trackingId: (dossier as any).tracking_id || dossier.reference,
+        trackingId,
         price: totalEur,
         eta: matchOption.eta_days,
+        dossierId: (dossier as any).id,
+        arrivalDate: arrivalLabel,
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
-      console.log('WA_INVOKE_START');
-      supabase.functions.invoke('send-whatsapp', {
-        body: {
-          client_name: senderName || 'Client',
-          service_type: 'Expédition',
-          origin: originCity?.city || originCity?.country || 'Non précisé',
-          destination: destCity?.city || destCity?.country || 'Non précisé',
-          weight: weight,
-          recipient_phone: '+221781221891'
-        }
-      }).then(({ data, error }) => {
-        if (error) console.error('WA_INVOKE_ERROR:', error);
-        else console.log('WA_INVOKE_SUCCESS:', JSON.stringify(data));
-      });
+
+      // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
+      const prenom = (senderName || 'Client').split(' ')[0];
+      const waPhone = (senderPhone || '').trim();
+      if (waPhone) {
+        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\n\nQuestions : +221786078080`;
+        supabase.functions.invoke('send-whatsapp', {
+          body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
+        }).catch((e) => console.error('WA recap error', e));
+      }
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
