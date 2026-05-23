@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
+import { PaytechTransactionsPanel } from './PaytechTransactionsPanel';
 
 const YELLOW = '#F5C518';
 
@@ -464,6 +465,8 @@ export function RevenusTab() {
           </div>
         )}
       </section>
+
+      <PaytechTransactionsPanel />
     </div>
   );
 }

@@ -883,6 +883,7 @@ export type Database = {
           notes: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at: string | null
+          payment_external_id: string | null
           payment_method: string | null
           payment_provider_ref: string | null
           payment_reminders_count: number
@@ -1006,6 +1007,7 @@ export type Database = {
           notes?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
+          payment_external_id?: string | null
           payment_method?: string | null
           payment_provider_ref?: string | null
           payment_reminders_count?: number
@@ -1129,6 +1131,7 @@ export type Database = {
           notes?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
+          payment_external_id?: string | null
           payment_method?: string | null
           payment_provider_ref?: string | null
           payment_reminders_count?: number
