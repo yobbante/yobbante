@@ -1915,6 +1915,47 @@ function RecapGroup({
   );
 }
 
+function EmailRecapCard({ dossierId }: { dossierId: string }) {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const onSend = async () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Email invalide'); return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-confirmation-email', {
+        body: { dossier_id: dossierId, email },
+      });
+      if (error) throw error;
+      setSent(true);
+      toast.success('Récapitulatif envoyé !');
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur d'envoi");
+    } finally { setSending(false); }
+  };
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+      <p className="text-sm font-semibold mb-1">📧 Recevoir votre récapitulatif</p>
+      <p className="text-[11px] text-muted-foreground mb-3">Recommandé si vous n'avez pas de compte Yobbanté.</p>
+      {sent ? (
+        <p className="text-sm text-emerald-600">Envoyé ✓</p>
+      ) : (
+        <div className="flex gap-2">
+          <input type="email" inputMode="email" placeholder="votre@email.com"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          <button onClick={onSend} disabled={sending}
+            className="rounded-lg bg-foreground text-background px-3 py-2 text-sm font-semibold disabled:opacity-60">
+            {sending ? '…' : 'Envoyer →'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepCollapsed({ title, lines, onEdit }: { title: string; lines: string[]; onEdit: () => void }) {
   return (
     <button type="button" onClick={onEdit}
