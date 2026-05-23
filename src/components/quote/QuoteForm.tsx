@@ -7,14 +7,16 @@ import {
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateTransport } from '@/lib/pricing';
 
 const SEND_PRESET_KEY = 'send-flow:preset';
 
-function resolveCityToCountry(label: string): { country: string; city: string } | null {
+function resolveCityToCountry(label: string, customs: { city: string; country: string; countryLabel: string }[] = []): { country: string; city: string } | null {
   if (!label) return null;
   if (label === 'Dakar, Sénégal' || label === 'Dakar') return { country: 'SN', city: 'Dakar' };
-  const m = ALL_CITIES.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
+  const pool = [...ALL_CITIES, ...customs];
+  const m = pool.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
   return m ? { country: m.country, city: m.city } : null;
 }
 
