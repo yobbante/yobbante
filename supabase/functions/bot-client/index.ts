@@ -523,15 +523,16 @@ Deno.serve(async (req) => {
     else if (intent === 'quote_origin' && msg) {
       data.origin = msg;
       await saveSession(supa, phone, 'quote_dest', data);
-      reply = `Vers quelle ville ?`;
+      reply = withBack(`Vers quelle ville ?`);
     } else if (intent === 'quote_dest' && msg) {
       data.dest = msg;
       await saveSession(supa, phone, 'quote_weight', data);
-      reply = `Poids (kg) ?`;
+      reply = withBack(`Poids (kg) ?`);
     } else if (intent === 'quote_weight' && msg) {
       const w = parseFloat(nMsg.replace(',', '.'));
       if (!w || w <= 0) {
-        reply = `Poids invalide. Indiquez en kg (ex: 5)`;
+        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
+
       } else {
         const r = await handleQuoteCalc(supa, data.dest, w);
         await saveSession(supa, phone, null, {});
