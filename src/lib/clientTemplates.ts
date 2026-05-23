@@ -42,7 +42,7 @@ export const CLIENT_TEMPLATES: ClientTemplate[] = [
     description: 'Confirmer la prise en charge',
     build: (ctx) =>
       fill(
-        `Bonjour {prenom},\n\nVotre dossier {tracking_id} a bien ete pris en charge.\nRoute : {origin} -> {destination}\nUn transporteur vous contactera sous 24h.\n\n— Equipe Yobbante`,
+        `Bonjour {prenom},\n\nVotre dossier {tracking_id} a bien ete pris en charge.\nRoute : {origin} -> {destination}\n\nNotre equipe passera collecter votre colis a votre adresse.\nUn agent vous contactera sous 24h pour confirmer le creneau.\n\n— Equipe Yobbante`,
         ctx,
       ),
   },
