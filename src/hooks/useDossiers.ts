@@ -19,6 +19,10 @@ export interface CreateDossierInput {
   relay_point_address?: string | null;
   delivery_carrier?: string | null;
   delivery_cost_xof?: number | null;
+  pickup_quartier?: string | null;
+  pickup_zone?: string | null;
+  enlevement_surcharge?: number;
+  is_outside_dakar?: boolean;
 }
 
 export function useDossiers() {
@@ -61,6 +65,10 @@ export function useDossiers() {
           ...(input.relay_point_address !== undefined ? { relay_point_address: input.relay_point_address } : {}),
           ...(input.delivery_carrier !== undefined ? { delivery_carrier: input.delivery_carrier } : {}),
           ...(input.delivery_cost_xof !== undefined ? { delivery_cost_xof: input.delivery_cost_xof } : {}),
+          ...(input.pickup_quartier !== undefined ? { pickup_quartier: input.pickup_quartier } : {}),
+          ...(input.pickup_zone !== undefined ? { pickup_zone: input.pickup_zone } : {}),
+          ...(input.enlevement_surcharge !== undefined ? { enlevement_surcharge: input.enlevement_surcharge } : {}),
+          ...(input.is_outside_dakar !== undefined ? { is_outside_dakar: input.is_outside_dakar } : {}),
         })
         .select()
         .single();
