@@ -274,7 +274,7 @@ export function RequestsTab() {
         <KanbanView
           dossiers={filtered}
           onMove={(id, status) => updateStatus.mutate({ id, status })}
-          onOpen={(id) => navigate(`/app/dossier/${id}`)}
+          onOpen={(id) => sheet.open(id)}
         />
       ) : (
         <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
