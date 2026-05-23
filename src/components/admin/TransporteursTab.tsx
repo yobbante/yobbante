@@ -32,7 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { NavettesEditor } from './transporteur/NavettesEditor';
 import {
-  DAKAR_ZONES, DAKAR_CRENEAUX, uniqueCitiesFromNavettes, type Navette,
+  DAKAR_ZONES, DAKAR_CRENEAUX, QUARTIER_GROUPS, uniqueCitiesFromNavettes, type Navette,
 } from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
