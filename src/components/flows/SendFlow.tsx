@@ -384,7 +384,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // ── Pricing breakdown (in EUR for internal math)
   // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
-  const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
+  const rawTransportEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
+  // Volatilité ±3 % appliquée UNIQUEMENT quand aucun GP n'est assigné (chosen=null).
+  // Coefficient stable pour la session (useMemo sans deps) — tracé en BDD à la création.
+  const priceVolatilityCoeff = useMemo(() => Math.random() * 0.06 + 0.97, []);
+  const transportPriceEur = chosen
+    ? rawTransportEur
+    : Math.round(rawTransportEur * priceVolatilityCoeff);
   const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
   const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
 
