@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useDossierSheet } from './dossier-sheet/useDossierSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -67,7 +67,7 @@ const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
 ];
 
 export function RequestsTab() {
-  const navigate = useNavigate();
+  const sheet = useDossierSheet();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
@@ -274,7 +274,7 @@ export function RequestsTab() {
         <KanbanView
           dossiers={filtered}
           onMove={(id, status) => updateStatus.mutate({ id, status })}
-          onOpen={(id) => navigate(`/app/dossier/${id}`)}
+          onOpen={(id) => sheet.open(id)}
         />
       ) : (
         <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
@@ -287,7 +287,7 @@ export function RequestsTab() {
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}
-                  onDoubleClick={() => navigate(`/app/dossier/${d.id}`)}
+                  onDoubleClick={() => sheet.open(d.id)}
                   className={cn(
                     'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
                     isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
@@ -411,12 +411,11 @@ export function RequestsTab() {
                       </div>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => window.open(`/app/dossier/${d.id}`, '_blank', 'noopener,noreferrer')}
+                        onClick={() => sheet.open(d.id)}
                         className="text-xs h-8"
                       >
                         Ouvrir la fiche
-                        <ExternalLink className="w-3 h-3 ml-1.5" />
+                        <ChevronRight className="w-3 h-3 ml-1.5" />
                       </Button>
                     </div>
                   </div>

@@ -1,71 +1,67 @@
-## Réorganisation Dashboard Admin — Plan d'exécution
+## Objectif
 
-L'ampleur du chantier (12+ pages fusionnées, nouveau dashboard, page Dossiers unifiée avec vue liste/kanban/hover-card, nouvelle page Revenus, 11 redirections) ne tient pas en une seule passe sans risque. Je propose 4 phases incrémentales, chacune livrable et testable.
+Remplacer la redirection « Ouvrir la fiche » par un **panneau latéral plein écran** (`Sheet` à droite, largeur ~960px sur desktop, plein écran sur mobile) qui s'ouvre **par-dessus le dashboard admin**, sans quitter la liste des dossiers ni perdre les filtres en place.
 
-### Architecture cible
+L'admin doit pouvoir tout faire depuis ce panneau, sans naviguer ailleurs.
 
-```text
-🏠 Vue globale        → /admin               (refonte Overview)
-📦 Dossiers           → /admin/dossiers      (NEW — 4 onglets)
-─ OPÉRATIONS ─
-🚚 Départs            → /admin/departs       (NEW — 3 onglets)
-👥 Équipe terrain     → /admin/terrain       (NEW — 3 onglets)
-─ CONTACTS ─
-👤 Clients            → /admin/clients       (existant)
-💬 Messages           → /admin/messages      (existant)
-📋 Leads & devis      → /admin/leads         (NEW — 2 onglets)
-─ FINANCES ─
-💰 Revenus            → /admin/revenus       (NEW)
-💳 Paiements GP       → /admin/finances      (existant)
-─ SYSTÈME ─
-🛒 Boutique Dëkk      → /admin/boutique      (existant)
-🌐 Hubs               → /admin/hubs          (+ Konnekt en sous-onglet)
-⚙️ Paramètres         → /admin/settings      (existant)
+---
+
+## Nouveau composant : `AdminDossierSheet`
+
+Fichier : `src/components/admin/AdminDossierSheet.tsx`
+
+Props :
+```
+{ dossierId: string | null; onClose: () => void }
 ```
 
-### Phase 1 — Sidebar + redirections (livrable seul)
+Monté **une seule fois** dans `DossiersHubTab` ; les sous-composants (`RequestsTab`, `InboxTab`, `ReceptionKanbanTab`, `SourcingTab`) déclenchent l'ouverture via un contexte léger `DossierSheetContext` (`open(id)`), pour qu'un même clic « Ouvrir la fiche » fonctionne dans les 4 onglets.
 
-- Réécrire `AdminSidebar.tsx` avec les 6 sections groupées (icônes, labels, ordre exacts du brief).
-- Ajouter table `LEGACY_REDIRECTS` dans `AdminPage.tsx` qui mappe les anciens slugs (`inbox`, `shipments`, `orders`, `reception`, `transporteurs`, `livreurs`, `gp-operations`, `transport`, `departures`, `manual-quotes`, `enterprise`) vers les nouveaux paths + querystring (`?tab=...`), via `<Navigate replace>` côté React Router (équivalent 301 client).
-- Les **anciennes pages restent fonctionnelles** sous leurs nouveaux paths — c'est de la tuyauterie, zéro perte de fonctionnalité.
-- Mobile : drawer hamburger existant, juste mis à jour avec les 6 sections.
+### Header collant
+- Référence + tracking_id (copier en 1 clic)
+- Badge statut + sélecteur de transition (réutilise `getStatutsPourDossier`)
+- Pays origine → destination avec drapeaux
+- Boutons rapides : *WhatsApp client*, *Envoyer lien d'édition*, *Imprimer étiquette*, *Fermer*
 
-À la fin de la phase 1 : nouvelle sidebar visible, toutes les URLs anciennes redirigent, tout marche comme avant.
+### Corps en onglets (`Tabs`)
+1. **Aperçu** — fiche éditable inline (`AdminInlineEditor` déjà présent) sur :
+   expéditeur (nom/tel/adresse/date enlèvement), destinataire (nom/tel/adresse), produit, poids estimé, valeur, notes admin. Sauvegarde optimistic via mutation `updateDossier`.
+2. **Colis & poids** — liste des packages liés + bouton « Rattacher des colis » (`AttachPackagesDialog`) + bouton « Peser » (`WeighingDialog`) qui passe le dossier en `WEIGHED` et calcule `final_amount_xof`.
+3. **Transport** — section clé :
+   - Si pas encore assigné : `TransporteurReferenceLookup` + liste des départs ouverts compatibles (route + poids) issus de `all_active_departures`. Un clic → met à jour `assigned_transporteur_ref`, `assigned_departure_id`, recalcule la capacité réservée via `recompute_departure_reserved_capacity`.
+   - Si assigné : carte transporteur (nom, tel, capacité restante, date départ) + bouton « Détacher / Réassigner ».
+4. **Paiement** — statut paiement, montant final, COD on/off (`set_dossier_cod_public` côté SQL), bouton « Marquer payé » (réutilise la mutation déjà créée en Phase 3 dans `RevenusTab`), lien facture (`invoice_url`).
+5. **Livraison (dernier km)** — réutilise `DernierKmPanel` existant.
+6. **Messages** — `useDossierMessages` (public + interne staff), composer avec switch « Note interne ».
+7. **Documents** — `DossierDocuments` existant.
+8. **Historique** — flux `dossier_events` (lecture seule, ordre antéchronologique).
 
-### Phase 2 — Pages onglets fusionnés (Dossiers v1, Départs, Terrain, Leads)
+### Footer collant
+Statut + dernière mise à jour à gauche, à droite : « Annuler le dossier » (rouge, confirmation, appelle un trigger `cancel_dossier` ou met à jour status `CANCELLED`), « Voir la page publique » (lien tracking).
 
-Chacune est un wrapper léger `<Tabs>` qui réutilise les composants `*Tab.tsx` existants — pas de refonte interne, juste un regroupement visuel.
+---
 
-- **`/admin/dossiers`** — `[Tous] [Expédier] [Réception] [Sourcing]` : vue "Tous" = nouveau composant `AllDossiersTab` (table simple sur `dossiers` toutes catégories) ; les 3 autres réutilisent `RequestsTab`, `ReceptionKanbanTab`, `SourcingTab`. **L'Inbox** devient un 5e onglet `[Demandes entrantes]` (réutilise `InboxTab`).
-- **`/admin/departs`** — `[Vue semaine] [Liste] [Publication]` : réutilise `DeparturesWeekPage` (semaine), `DeparturesTab` (liste), `KonnektMonitorTab` (publication/monitoring).
-- **`/admin/terrain`** — `[Transporteurs GP] [Livreurs Dakar] [Opérations du jour]` : réutilise `TransporteursTab`, `LivreursTab`, `GpOperationsTab`.
-- **`/admin/leads`** — `[Particuliers] [Entreprises B2B]` : réutilise `ManualQuotesTab`, `EnterpriseQuotesTab`.
+## Câblage
 
-L'URL synchronise l'onglet via `?tab=...` (déjà le pattern dans `InboxTab`).
+- Le bouton actuel `onClick={() => navigate(...)}` dans `RequestsTab.tsx` (ligne 412) appelle désormais `sheet.open(d.id)`.
+- Idem dans `InboxTab`, `ReceptionKanbanTab`, `SourcingTab` (remplace les anciens drawers/dialog par le même `open(id)`).
+- Synchro URL : `?dossier=<id>` poussé en query string pour partage / refresh sans perdre la fiche ouverte.
+- Realtime : abonnement `dossiers:id=eq.<id>` pour refléter automatiquement les changements externes (paiement webhook, nouveau message client).
 
-À la fin de la phase 2 : les 6 sections sont navigables, structure cible en place.
+---
 
-### Phase 3 — Page Revenus (nouvelle)
+## Couches techniques
 
-- `/admin/revenus` avec 4 sections (KPIs, paiements reçus, paiements en attente, export CSV).
-- Source : table `dossiers` (`payment_status`, `final_amount_xof`, `paid_at`, `payment_method`, `payment_provider_ref`, `invoice_url`) — toutes les colonnes existent déjà.
-- KPIs : agrégats SQL via `supabase.from('dossiers').select(...)` côté client.
-- Bouton "Marquer payé" → update `payment_status = 'paid'`.
-- Bouton "Relancer client" → invoke `send-whatsapp` avec template de relance.
-- Export CSV : génération côté client (papaparse déjà dans le bundle, sinon `Blob` natif).
+- **Hook** `useAdminDossier(id)` → fetch dossier + packages + events + messages, expose toutes les mutations (`updateField`, `setStatus`, `assignTransporteur`, `markPaid`, `cancel`).
+- **Permissions** : guard via `useUserRole().isStaff` ; les actions destructives requièrent `isAdmin`.
+- **Réutilisation maximale** : aucun composant existant n'est dupliqué (`AttachPackagesDialog`, `WeighingDialog`, `DernierKmPanel`, `DossierDocuments`, `useDossierMessages`, `TransporteurReferenceLookup` sont tous montés tels quels).
+- **Mobile (< 768px)** : `Sheet` plein écran, onglets scrollables horizontalement.
 
-### Phase 4 — Vue globale redesignée + Dossiers v2 (avancé)
+---
 
-Les éléments les plus complexes, livrés en dernier :
+## Livraison en 2 étapes
 
-- **Overview redesigné** : bandeau alertes urgentes (4 conditions SQL), 4 KPIs, 2 colonnes "À traiter" / "Départs du jour", feed activité (`dossier_events`).
-- **Dossiers v2** : actions inline (dropdown statut, dropdown GP), filtres pills, recherche full-text, hover-card mini-timeline, toggle vue Kanban avec drag-drop (`@dnd-kit/core` déjà installé pour la boutique je vérifierai).
+1. **Étape A (ce tour)** — Créer `AdminDossierSheet` + contexte + hook, brancher dans `DossiersHubTab` et `RequestsTab`. Onglets *Aperçu*, *Transport*, *Paiement*, *Messages* fonctionnels. Le reste sous forme de placeholders bien identifiés.
+2. **Étape B (tour suivant)** — Brancher *Colis & poids*, *Livraison*, *Documents*, *Historique* + brancher les autres entrées (`InboxTab`, `ReceptionKanbanTab`, `SourcingTab`) sur le même contexte, et la synchro URL.
 
-### Hors scope (à confirmer si on les ajoute)
-
-- Le drag-drop Kanban sur Dossiers — si pas de lib dispo, je propose un changement de colonne via dropdown au lieu d'installer une nouvelle dépendance.
-- Réécriture des composants existants (`RequestsTab`, etc.) : on les garde tels quels, ils sont juste remontés sous les nouveaux onglets.
-
-### Question avant de démarrer
-
-Plutôt que de tout livrer d'un coup (risque élevé de casser des flux opérationnels en prod), **je commence par la Phase 1 + Phase 2** dans ce tour (sidebar + 4 pages onglets + redirections), puis tu valides en navigant avant que j'enchaîne Phase 3 et 4. OK pour toi ?
+Cette séparation évite un commit géant et permet de valider l'ergonomie avant d'investir sur les onglets secondaires.
