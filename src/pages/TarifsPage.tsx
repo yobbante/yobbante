@@ -46,6 +46,41 @@ export default function TarifsPage() {
           <PricingSimulator />
         </section>
 
+        <section className="space-y-3">
+          <h2>Tarifs indicatifs — Dakar → Monde</h2>
+          <p className="text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+            Prix par kg, hors enlèvement (gratuit à Dakar centre).
+          </p>
+          <div
+            className="rounded-[12px] overflow-hidden"
+            style={{ background: 'hsl(var(--background-surface))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
+          >
+            <div
+              className="grid grid-cols-[1.4fr_1fr_1fr] px-4 py-2.5 text-label"
+              style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}
+            >
+              <span>Route</span><span>Standard</span><span>Express</span>
+            </div>
+            {INDICATIVE_ROUTES.map((r, i) => (
+              <div
+                key={r.label}
+                className="grid grid-cols-[1.4fr_1fr_1fr] px-4 py-3 text-[13px] items-center"
+                style={{
+                  background: i % 2 === 0 ? 'transparent' : 'hsl(var(--secondary))',
+                  borderTop: i === 0 ? 'none' : '0.5px solid hsl(var(--color-border-tertiary))',
+                }}
+              >
+                <span className="text-foreground">{r.label}</span>
+                <span className="font-medium text-foreground">{fmt(r.standard)} FCFA</span>
+                <span className="font-medium" style={{ color: '#F5C518' }}>{fmt(Math.round(r.standard * 1.45))} FCFA</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px]" style={{ color: 'hsl(var(--text-tertiary))' }}>
+            Tarifs définitifs confirmés à la soumission de votre commande.
+          </p>
+        </section>
+
         <section className="space-y-4">
           <h2>Grille de référence</h2>
           <div className="flex gap-2">
