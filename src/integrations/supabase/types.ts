@@ -842,6 +842,7 @@ export type Database = {
           displayed_price_per_kg: number | null
           dossier_type: Database["public"]["Enums"]["dossier_type"]
           enlevement_amount: number
+          enlevement_surcharge: number
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
@@ -889,6 +890,8 @@ export type Database = {
           payment_reminders_count: number
           payment_status: string
           pickup_date: string | null
+          pickup_quartier: string | null
+          pickup_zone: string | null
           poids_livreur: number | null
           price_is_estimate: boolean
           product_description: string
@@ -966,6 +969,7 @@ export type Database = {
           displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           enlevement_amount?: number
+          enlevement_surcharge?: number
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
@@ -1013,6 +1017,8 @@ export type Database = {
           payment_reminders_count?: number
           payment_status?: string
           pickup_date?: string | null
+          pickup_quartier?: string | null
+          pickup_zone?: string | null
           poids_livreur?: number | null
           price_is_estimate?: boolean
           product_description: string
@@ -1090,6 +1096,7 @@ export type Database = {
           displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
           enlevement_amount?: number
+          enlevement_surcharge?: number
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
@@ -1137,6 +1144,8 @@ export type Database = {
           payment_reminders_count?: number
           payment_status?: string
           pickup_date?: string | null
+          pickup_quartier?: string | null
+          pickup_zone?: string | null
           poids_livreur?: number | null
           price_is_estimate?: boolean
           product_description?: string
