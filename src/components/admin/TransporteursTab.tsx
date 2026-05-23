@@ -24,6 +24,16 @@ import { sendGpMessage } from '@/lib/sendGpMessage';
 import { Progress } from '@/components/ui/progress';
 import { SendEditLinkDialog } from './SendEditLinkDialog';
 import { Pencil as PencilIcon } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { NavettesEditor } from './transporteur/NavettesEditor';
+import {
+  DAKAR_ZONES, DAKAR_CRENEAUX, uniqueCitiesFromNavettes, type Navette,
+} from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 
