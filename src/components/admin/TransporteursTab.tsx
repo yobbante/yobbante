@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle } from 'lucide-react';
 import { GpImportDialog } from './GpImportDialog';
@@ -829,9 +829,8 @@ function EditDrawer({
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     if (transporteur) {
-      // Auto-generate a 4-digit reference for new transporteurs
       if (!transporteur.id && !transporteur.reference) {
         setRef(String(Math.floor(1000 + Math.random() * 9000)));
       } else {
@@ -851,7 +850,9 @@ function EditDrawer({
       setRatesPerCity((transporteur.default_routes as any) ?? {});
       setNotes(transporteur.notes ?? '');
     }
-  }, [transporteur]);
+    // Only re-init when switching to a different transporteur, not on every list refetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transporteur?.id]);
 
   const citiesFromNavettes = useMemo(() => uniqueCitiesFromNavettes(navettes), [navettes]);
 
@@ -900,13 +901,13 @@ function EditDrawer({
     setSaving(true);
     try {
       await onSave({
+        ...(transporteur?.id ? { id: transporteur.id } : {}),
         reference: ref,
         prenom: prenom.trim(),
         nom: nom.trim(),
         photo_url: photoUrl || null,
         telephone_1: tel1.trim(),
         telephone_2: tel2.trim() || null,
-        // Keep legacy fields in sync to avoid breaking old code paths
         adresse_1: adrDakar1.trim(),
         adresse_2: adrDakar2.trim() || null,
         ville: 'Dakar',
@@ -918,7 +919,10 @@ function EditDrawer({
         default_rate_per_kg: defaultRate ? Number(defaultRate) : null,
         default_routes: cleanRates,
         notes: notes.trim() || null,
-      });
+      } as any);
+    } catch (e: any) {
+      console.error('Transporteur save failed', e);
+      toast.error('Échec de l’enregistrement', { description: e?.message ?? String(e) });
     } finally {
       setSaving(false);
     }
