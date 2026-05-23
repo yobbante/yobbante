@@ -579,12 +579,23 @@ export function TransporteursTab() {
   );
 }
 
-function BotStatus({ invitedAt, active }: { invitedAt: string | null; active: boolean }) {
+function BotStatus({ invitedAt, active, failed, onRetry }: { invitedAt: string | null; active: boolean; failed?: string | null; onRetry?: () => void }) {
   if (active) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
         ✅ Actif
       </span>
+    );
+  }
+  if (failed) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-destructive">❌ Échec</div>
+        <div className="flex gap-1 mt-0.5">
+          {onRetry && <button onClick={onRetry} className="text-[10px] underline text-muted-foreground">Réessayer</button>}
+          <a href={failed} target="_blank" rel="noopener noreferrer" className="text-[10px] underline text-emerald-500">wa.me</a>
+        </div>
+      </div>
     );
   }
   if (invitedAt) {
