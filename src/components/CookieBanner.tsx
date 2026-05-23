@@ -4,6 +4,26 @@ import { X } from 'lucide-react';
 import { enableAnalytics } from '@/lib/analytics';
 
 const STORAGE_KEY = 'yobbante.cookies.v1';
+const COOKIE_NAME = 'yb_cookies_v1';
+const ONE_YEAR = 60 * 60 * 24 * 365;
+
+function readChoice(): string | null {
+  try {
+    const ls = localStorage.getItem(STORAGE_KEY);
+    if (ls) return ls;
+  } catch { /* ignore */ }
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch { return null; }
+}
+
+function writeChoice(choice: string) {
+  try { localStorage.setItem(STORAGE_KEY, choice); } catch { /* ignore */ }
+  try {
+    document.cookie = `${COOKIE_NAME}=${encodeURIComponent(choice)}; max-age=${ONE_YEAR}; path=/; SameSite=Lax`;
+  } catch { /* ignore */ }
+}
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -12,18 +32,13 @@ export function CookieBanner() {
 
   useEffect(() => {
     if (isAdmin) return;
-    try {
-      if (!localStorage.getItem(STORAGE_KEY)) {
-        const t = setTimeout(() => setVisible(true), 600);
-        return () => clearTimeout(t);
-      }
-    } catch {
-      // localStorage unavailable, skip
-    }
+    if (readChoice()) return;
+    const t = setTimeout(() => setVisible(true), 600);
+    return () => clearTimeout(t);
   }, [isAdmin]);
 
   const dismiss = (choice: 'accept' | 'decline') => {
-    try { localStorage.setItem(STORAGE_KEY, choice); } catch { /* ignore */ }
+    writeChoice(choice);
     if (choice === 'accept') enableAnalytics();
     setVisible(false);
   };
