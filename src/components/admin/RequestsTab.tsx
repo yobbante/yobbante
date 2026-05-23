@@ -67,7 +67,7 @@ const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
 ];
 
 export function RequestsTab() {
-  const navigate = useNavigate();
+  const sheet = useDossierSheet();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<TypeFilter>('all');
