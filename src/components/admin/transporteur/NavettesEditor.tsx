@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Trash2, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,10 @@ import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CITIES_BY_REGION, type Navette, newNavette } from '@/lib/dakarZones';
+import { type Navette, newNavette } from '@/lib/dakarZones';
+import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   value: Navette[];
@@ -17,6 +21,33 @@ const CUSTOM_CITY = '__custom__';
 
 export function NavettesEditor({ value, onChange }: Props) {
   const navettes = Array.isArray(value) ? value : [];
+  const { cities: customCities, addCustomCity } = useCustomCities();
+  const { toast } = useToast();
+
+  // Inline "Autre ville" form state, keyed by `${navIdx}-${escIdx}`
+  const [customForm, setCustomForm] = useState<Record<string, { city: string; countryCode: string; countryLabel: string; flag: string; busy?: boolean }>>({});
+
+  // Group all 36 + custom cities by country label
+  const groupedCities = useMemo(() => {
+    const pool = [...ALL_CITIES, ...customCities];
+    const map = new Map<string, typeof pool>();
+    pool.forEach(c => {
+      const k = c.countryLabel;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(c);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'fr'))
+      .map(([label, cities]) => ({
+        label,
+        cities: [...cities].sort((a, b) => a.city.localeCompare(b.city, 'fr')),
+      }));
+  }, [customCities]);
+
+  const knownCityNames = useMemo(
+    () => new Set([...ALL_CITIES, ...customCities].map(c => c.city)),
+    [customCities],
+  );
 
   const updateNavette = (idx: number, patch: Partial<Navette>) => {
     const next = navettes.slice();
@@ -39,6 +70,36 @@ export function NavettesEditor({ value, onChange }: Props) {
     const villes = nav.villes.slice();
     villes[escIdx] = { ...villes[escIdx], ...patch };
     updateNavette(navIdx, { villes });
+  };
+
+  const formKey = (n: number, e: number) => `${n}-${e}`;
+
+  const submitCustom = async (navIdx: number, escIdx: number) => {
+    const k = formKey(navIdx, escIdx);
+    const f = customForm[k];
+    if (!f?.city.trim() || !f?.countryCode.trim() || !f?.countryLabel.trim()) {
+      toast({ title: 'Champs incomplets', description: 'Renseignez la ville, le code pays (ex: FR) et le nom du pays.', variant: 'destructive' });
+      return;
+    }
+    setCustomForm(s => ({ ...s, [k]: { ...f, busy: true } }));
+    try {
+      const created = await addCustomCity({
+        city: f.city,
+        country_code: f.countryCode,
+        country_label: f.countryLabel,
+        flag: f.flag || '🏳️',
+      });
+      setEscale(navIdx, escIdx, { ville: created.city });
+      setCustomForm(s => {
+        const next = { ...s };
+        delete next[k];
+        return next;
+      });
+      toast({ title: 'Ville ajoutée', description: `${created.flag} ${created.city} est désormais sélectionnable partout sur le site.` });
+    } catch (e: any) {
+      toast({ title: 'Erreur', description: e?.message ?? 'Impossible d\'enregistrer la ville.', variant: 'destructive' });
+      setCustomForm(s => ({ ...s, [k]: { ...f, busy: false } }));
+    }
   };
 
   return (
@@ -74,7 +135,9 @@ export function NavettesEditor({ value, onChange }: Props) {
 
           <div className="space-y-3">
             {nav.villes.map((esc, escIdx) => {
-              const isCustom = !!esc.ville && !Object.values(CITIES_BY_REGION).flat().includes(esc.ville);
+              const k = formKey(navIdx, escIdx);
+              const showCustomForm = !!customForm[k];
+              const isUnknown = !!esc.ville && !knownCityNames.has(esc.ville);
               return (
                 <div key={escIdx} className="rounded-md border border-border bg-background p-3 space-y-2">
                   <div className="flex items-center justify-between">
@@ -94,33 +157,86 @@ export function NavettesEditor({ value, onChange }: Props) {
                     <div>
                       <Label className="text-[11px]">Ville *</Label>
                       <Select
-                        value={isCustom ? CUSTOM_CITY : (esc.ville || '')}
+                        value={showCustomForm ? CUSTOM_CITY : (esc.ville || '')}
                         onValueChange={(v) => {
-                          if (v === CUSTOM_CITY) setEscale(navIdx, escIdx, { ville: '' });
-                          else setEscale(navIdx, escIdx, { ville: v });
+                          if (v === CUSTOM_CITY) {
+                            setCustomForm(s => ({ ...s, [k]: { city: '', countryCode: '', countryLabel: '', flag: '🏳️' } }));
+                            setEscale(navIdx, escIdx, { ville: '' });
+                          } else {
+                            setEscale(navIdx, escIdx, { ville: v });
+                          }
                         }}
                       >
                         <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(CITIES_BY_REGION).map(([region, cities]) => (
-                            <SelectGroup key={region}>
-                              <SelectLabel>{region}</SelectLabel>
-                              {cities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        <SelectContent className="max-h-[320px]">
+                          {groupedCities.map(group => (
+                            <SelectGroup key={group.label}>
+                              <SelectLabel>{group.label}</SelectLabel>
+                              {group.cities.map(c => (
+                                <SelectItem key={c.id} value={c.city}>
+                                  {c.flag} {c.city}
+                                </SelectItem>
+                              ))}
                             </SelectGroup>
                           ))}
                           <SelectGroup>
                             <SelectLabel>Autre</SelectLabel>
-                            <SelectItem value={CUSTOM_CITY}>Saisir une autre ville…</SelectItem>
+                            <SelectItem value={CUSTOM_CITY}>+ Ajouter une nouvelle ville…</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      {isCustom && (
-                        <Input
-                          className="mt-1 h-9 text-sm"
-                          placeholder="Nom de la ville"
-                          value={esc.ville}
-                          onChange={(e) => setEscale(navIdx, escIdx, { ville: e.target.value })}
-                        />
+                      {isUnknown && !showCustomForm && (
+                        <p className="text-[10px] text-amber-600 mt-1">⚠ "{esc.ville}" n'est pas dans le catalogue.</p>
+                      )}
+
+                      {showCustomForm && (
+                        <div className="mt-2 space-y-2 rounded-md border border-dashed border-border p-2 bg-secondary/30">
+                          <p className="text-[11px] text-muted-foreground">
+                            Cette ville sera enregistrée en base et disponible partout sur le site.
+                          </p>
+                          <Input
+                            className="h-9 text-sm"
+                            placeholder="Nom de la ville (ex: Lisbonne)"
+                            value={customForm[k].city}
+                            onChange={(e) => setCustomForm(s => ({ ...s, [k]: { ...s[k], city: e.target.value } }))}
+                          />
+                          <div className="grid grid-cols-3 gap-2">
+                            <Input
+                              className="h-9 text-sm"
+                              placeholder="Code (PT)"
+                              maxLength={2}
+                              value={customForm[k].countryCode}
+                              onChange={(e) => setCustomForm(s => ({ ...s, [k]: { ...s[k], countryCode: e.target.value.toUpperCase() } }))}
+                            />
+                            <Input
+                              className="h-9 text-sm col-span-2"
+                              placeholder="Pays (Portugal)"
+                              value={customForm[k].countryLabel}
+                              onChange={(e) => setCustomForm(s => ({ ...s, [k]: { ...s[k], countryLabel: e.target.value } }))}
+                            />
+                          </div>
+                          <Input
+                            className="h-9 text-sm"
+                            placeholder="Drapeau (🇵🇹)"
+                            value={customForm[k].flag}
+                            onChange={(e) => setCustomForm(s => ({ ...s, [k]: { ...s[k], flag: e.target.value } }))}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="button" size="sm"
+                              disabled={customForm[k].busy}
+                              onClick={() => submitCustom(navIdx, escIdx)}
+                            >
+                              {customForm[k].busy ? 'Ajout…' : 'Ajouter et sélectionner'}
+                            </Button>
+                            <Button
+                              type="button" size="sm" variant="ghost"
+                              onClick={() => setCustomForm(s => { const n = { ...s }; delete n[k]; return n; })}
+                            >
+                              Annuler
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                     <div>
