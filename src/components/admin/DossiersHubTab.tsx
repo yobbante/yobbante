@@ -4,6 +4,8 @@ import { InboxTab } from './inbox/InboxTab';
 import { RequestsTab } from './RequestsTab';
 import { ReceptionKanbanTab } from './ReceptionKanbanTab';
 import { SourcingTab } from './SourcingTab';
+import { DossierSheetProvider } from './dossier-sheet/useDossierSheet';
+import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 
 const TABS = ['tous', 'demandes', 'reception', 'sourcing'] as const;
 type TabId = typeof TABS[number];
@@ -21,25 +23,29 @@ export function DossiersHubTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dossiers</h1>
-        <p className="text-sm text-muted-foreground">Toutes les demandes et expéditions, par catégorie.</p>
+    <DossierSheetProvider>
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dossiers</h1>
+          <p className="text-sm text-muted-foreground">Toutes les demandes et expéditions, par catégorie.</p>
+        </div>
+
+        <Tabs value={tab} onValueChange={onChange}>
+          <TabsList>
+            <TabsTrigger value="tous">Tous</TabsTrigger>
+            <TabsTrigger value="demandes">Demandes entrantes</TabsTrigger>
+            <TabsTrigger value="reception">Réception</TabsTrigger>
+            <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
+          <TabsContent value="demandes"  className="mt-4"><InboxTab /></TabsContent>
+          <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
+          <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
+        </Tabs>
       </div>
 
-      <Tabs value={tab} onValueChange={onChange}>
-        <TabsList>
-          <TabsTrigger value="tous">Tous</TabsTrigger>
-          <TabsTrigger value="demandes">Demandes entrantes</TabsTrigger>
-          <TabsTrigger value="reception">Réception</TabsTrigger>
-          <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
-        <TabsContent value="demandes"  className="mt-4"><InboxTab /></TabsContent>
-        <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
-        <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
-      </Tabs>
-    </div>
+      <AdminDossierSheet />
+    </DossierSheetProvider>
   );
 }
