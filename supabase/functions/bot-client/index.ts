@@ -68,7 +68,8 @@ const SESSION_EXPIRED = `Votre session a expire.
 4 - Obtenir un devis
 5 - Parler a un agent`;
 
-const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/;
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
+const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
 const FALLBACK = `Je n ai pas compris.`;
 
@@ -77,8 +78,13 @@ function withShortMenu(reply: string): string {
   return `${reply}\n\n${SHORT_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\nQue souhaitez-vous faire ?\n1 - Prochains departs\n2 - Suivre mon colis\n3 - Nouvelle expedition\n4 - Obtenir un devis\n5 - Parler a un agent`;
+  return `${reply}\n\n${MAIN_MENU}`;
 }
+// Used while a session is waiting for a precise input (tracking, weight, etc.)
+function withBack(reply: string): string {
+  return `${reply}\n\nOu tapez 0 pour revenir au menu.`;
+}
+
 
 async function sendWa(supa: any, phone: string, message: string, trigger: string) {
   try {
