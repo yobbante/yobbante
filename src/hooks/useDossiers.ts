@@ -23,6 +23,7 @@ export interface CreateDossierInput {
   pickup_zone?: string | null;
   enlevement_surcharge?: number;
   is_outside_dakar?: boolean;
+  is_gift?: boolean;
 }
 
 export function useDossiers() {
