@@ -26,13 +26,14 @@ const INTENTS: Array<{
 ];
 
 /** Best-effort match for a free-text city input against the catalog. */
-function matchCity(input: string) {
+function matchCity(input: string, customs: typeof ALL_CITIES = []) {
   const v = input.trim().toLowerCase();
   if (!v) return null;
+  const pool = [...ALL_CITIES, ...customs];
   return (
-    ALL_CITIES.find(c => c.city.toLowerCase() === v) ??
-    ALL_CITIES.find(c => c.city.toLowerCase().startsWith(v)) ??
-    ALL_CITIES.find(c => c.city.toLowerCase().includes(v) || c.countryLabel.toLowerCase().includes(v)) ??
+    pool.find(c => c.city.toLowerCase() === v) ??
+    pool.find(c => c.city.toLowerCase().startsWith(v)) ??
+    pool.find(c => c.city.toLowerCase().includes(v) || c.countryLabel.toLowerCase().includes(v)) ??
     null
   );
 }
