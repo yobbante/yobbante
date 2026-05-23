@@ -411,12 +411,11 @@ export function RequestsTab() {
                       </div>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => window.open(`/app/dossier/${d.id}`, '_blank', 'noopener,noreferrer')}
+                        onClick={() => sheet.open(d.id)}
                         className="text-xs h-8"
                       >
                         Ouvrir la fiche
-                        <ExternalLink className="w-3 h-3 ml-1.5" />
+                        <ChevronRight className="w-3 h-3 ml-1.5" />
                       </Button>
                     </div>
                   </div>
