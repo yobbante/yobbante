@@ -903,9 +903,85 @@ Voir : yobbante.com/admin`);
   if (isMesMissions) return await runMesMissions();
 
   // =================================================================
+  //  TARIFS — consultation & modification
+  // =================================================================
+  const DEFAULT_ZONE_RATES: Record<string, number> = {
+    europe: 6000, amerique_nord: 8000, amerique_canada: 7500,
+    asie: 9000, afrique: 3500, moyen_orient: 7000,
+  };
+
+  function stripDiacritics(s: string): string {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
+  async function runTarifs() {
+    await clearSession();
+    const rates = (transporteur.rates_per_city ?? {}) as Record<string, number>;
+    const keys = Object.keys(rates);
+    if (keys.length === 0) {
+      await reply(
+        `Aucun tarif renseigne.\n\nPour ajouter un tarif :\nTARIF [ville] [prix_par_kg]\nEx: TARIF Paris 6500`,
+        'tarifs_empty',
+      );
+    } else {
+      const lines = keys
+        .sort()
+        .map((k) => `${k} : ${Number(rates[k]).toLocaleString('fr-FR')} FCFA/kg`)
+        .join('\n');
+      await reply(
+        `Vos tarifs actuels :\n${lines}\n\nPour modifier :\nTARIF [ville] [nouveau_prix]\nEx: TARIF Paris 7000`,
+        'tarifs_list',
+      );
+    }
+    return new Response('ok', { headers: corsHeaders });
+  }
+  if (/^tarifs?$/i.test(msg)) return await runTarifs();
+
+  // TARIF Paris 6500
+  const mTarif = rawMsg.match(/^tarif\s+([a-zA-ZÀ-ÿ' \-]+?)\s+(\d{3,6})\s*$/i);
+  if (mTarif) {
+    await clearSession();
+    const ville = mTarif[1].trim().replace(/\b\w/g, (c) => c.toUpperCase());
+    const prix = parseInt(mTarif[2], 10);
+    if (prix < 1000 || prix > 50000) {
+      await reply(`Prix invalide. Donnez un montant entre 1000 et 50000 FCFA/kg.`, 'tarif_invalid');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const current = (transporteur.rates_per_city ?? {}) as Record<string, number>;
+    const updated = { ...current, [ville]: prix };
+    const { error } = await supa
+      .from('transporteurs')
+      .update({ rates_per_city: updated, rates_collected_at: new Date().toISOString() })
+      .eq('id', transporteur.id);
+    if (error) {
+      await reply(`Erreur technique. Reessayez plus tard.`, 'tarif_error');
+    } else {
+      await reply(
+        `Tarif ${ville} mis a jour :\n${prix.toLocaleString('fr-FR')} FCFA/kg`,
+        'tarif_ok',
+      );
+      // Notify super admin
+      try {
+        const adminPhone = '+221784604003';
+        await supa.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: adminPhone,
+            recipient_type: 'admin',
+            message: `Tarif GP mis a jour\n${transporteur.prenom ?? ''} ${transporteur.nom ?? ''} (${transporteur.reference})\n${ville} : ${prix.toLocaleString('fr-FR')} FCFA/kg`,
+            transporteur_id: transporteur.id,
+            trigger_type: 'gp_rate_updated',
+          },
+        });
+      } catch { /* best effort */ }
+    }
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
   //  Menu numerote : 1..6 (ou "un", "deux", ...)
   // =================================================================
   const MENU_MAP: Record<string, string> = {
+
     '1': '1', 'un': '1', 'une': '1',
     '2': '2', 'deux': '2',
     '3': '3', 'trois': '3',
