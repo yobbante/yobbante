@@ -43,6 +43,7 @@ function buildClientRecap(d: InboxDossier) {
 }
 
 export function InboxTab() {
+  const sheet = useDossierSheet();
   const { data: dossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
   const stats = useInboxStats(dossiers);
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
