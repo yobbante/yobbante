@@ -147,26 +147,44 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 3. WhatsApp GP (free text — pas de template dédié, 24h non garanti mais on tente)
+  // 3. WhatsApp GP via gp-smart-invite (gere fenetre 24h + template hello_world si premier contact)
   const villesTxt = (villes_desservies || []).join(', ') || ville;
   const gpMsg = [
     `Salam ${prenom},`,
-    `Merci pour votre inscription sur Konnekt !`,
     ``,
-    `Votre demande est en cours d'examen. Nous vous contactons sous 24h.`,
+    `Bienvenue sur Konnekt !`,
     ``,
-    `En attendant, enregistrez ce numero : ${KONNEKT_GP_PHONE}`,
+    `Konnekt est la plateforme des transporteurs partenaires Yobbante.`,
+    ``,
+    `Etape 1 : Enregistrez ce numero`,
+    `${KONNEKT_GP_PHONE}`,
     `Nom : Konnekt GP`,
     ``,
-    `A bientot !`,
+    `Etape 2 : Envoyez le mot AIDE`,
+    ``,
+    `Etape 3 : Recevez vos missions`,
+    ``,
+    `Votre inscription est en cours d'examen. Vous serez confirme sous 24h.`,
+    ``,
+    `usekonnekt.com`,
   ].join('\n');
 
-  await sendWhatsapp(supaUrl, anonKey, {
-    recipient_phone: telephone,
-    recipient_type: 'gp',
-    message: gpMsg,
-    trigger_type: 'konnekt_beta_signup',
-  });
+  try {
+    await fetch(`${supaUrl}/functions/v1/gp-smart-invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+      body: JSON.stringify({
+        phone: telephone,
+        message: gpMsg,
+        gp_name: `${prenom} ${nom}`,
+        gp_ref: reference,
+        kind: 'konnekt_signup',
+        trigger_type: 'konnekt_beta_signup',
+      }),
+    });
+  } catch (e) {
+    console.error('KONNEKT_SIGNUP smart_invite_error', e instanceof Error ? e.message : String(e));
+  }
 
   // 4. Notif admin
   const adminMsg = [
