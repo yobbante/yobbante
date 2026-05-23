@@ -131,6 +131,7 @@ export function TransporteursTab() {
   const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
+  const [failedMap, setFailedMap] = useState<Record<string, { kind: 'bot' | 'konnekt'; wa: string; name: string }>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
