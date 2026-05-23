@@ -256,6 +256,17 @@ function InscriptionForm({
             />
           </Field>
 
+          <Field label="Email (optionnel)" hint="Pour recevoir votre confirmation par email en plus du WhatsApp">
+            <input
+              className={inputClass}
+              placeholder="votre@email.com"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              inputMode="email"
+              type="email"
+            />
+          </Field>
+
           <Field label="Ville de résidence *">
             <select className={inputClass} value={form.ville} onChange={e => setForm({ ...form, ville: e.target.value })}>
               <option value="">Choisir...</option>
