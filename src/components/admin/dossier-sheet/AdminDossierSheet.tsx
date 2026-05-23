@@ -104,8 +104,30 @@ function DossierSheetBody({ id }: { id: string }) {
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
 
+      <div className="px-6 py-3 border-b border-border grid grid-cols-1 md:grid-cols-2 gap-3 bg-secondary/20">
+        <ContactBlock
+          title="Expéditeur"
+          accent="sender"
+          name={dossier.sender_name || dossier.contact_phone ? (dossier.sender_name || '—') : null}
+          phone={dossier.sender_phone || dossier.contact_phone}
+          address={dossier.sender_address}
+          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+        />
+        <ContactBlock
+          title="Destinataire"
+          accent="recipient"
+          name={dossier.recipient_name}
+          phone={dossier.recipient_phone}
+          address={dossier.recipient_address}
+          extra={
+            [dossier.destination_country].filter(Boolean).join(' · ') || null
+          }
+        />
+      </div>
+
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
         <div className="px-6 border-b border-border overflow-x-auto">
+
           <TabsList className="h-10">
             <TabsTrigger value="apercu" className="text-xs">Aperçu</TabsTrigger>
             <TabsTrigger value="colis" className="text-xs">
