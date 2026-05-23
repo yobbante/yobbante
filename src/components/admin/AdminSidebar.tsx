@@ -85,7 +85,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
     }
     loadCount();
     const ch = supabase
-      .channel('sidebar-wa-unread')
+      .channel(`sidebar-wa-unread-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
