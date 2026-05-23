@@ -1848,13 +1848,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         onSubmit={submit}
         submitting={submitting}
         priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}
-        priceHint="Estimation"
+        priceHint={destCity
+          ? `${priority === 'express' ? 'Express' : 'Standard'} · ${getDeliveryDelay(destCity.city, priority === 'express' ? 'express' : 'standard').label}`
+          : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
             <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
             <RecapRow label="Poids"  value={`${weight} kg · ${parcelCount} colis`} />
             <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
+            {destCity && (
+              <>
+                <RecapRow label="Standard" value={`${formatLocalAmount(Math.round(totalEur), originProfile)} · ${getDeliveryDelay(destCity.city, 'standard').label}`} />
+                <RecapRow label="Express" value={`${getDeliveryDelay(destCity.city, 'express').label}`} />
+              </>
+            )}
             <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
             <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
           </div>
