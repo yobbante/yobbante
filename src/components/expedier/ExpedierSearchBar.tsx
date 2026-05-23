@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
 
 /* =========================================================================
