@@ -41,6 +41,44 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          dossier_id: string | null
+          event_type: string
+          id: string
+          message: string
+          notified_at: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          dossier_id?: string | null
+          event_type: string
+          id?: string
+          message: string
+          notified_at?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          dossier_id?: string | null
+          event_type?: string
+          id?: string
+          message?: string
+          notified_at?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_account_managers: {
         Row: {
           business_id: string
@@ -685,6 +723,7 @@ export type Database = {
       }
       dossier_events: {
         Row: {
+          admin_notified_at: string | null
           created_at: string
           created_by: string | null
           dossier_id: string
@@ -694,6 +733,7 @@ export type Database = {
           visible_to_client: boolean
         }
         Insert: {
+          admin_notified_at?: string | null
           created_at?: string
           created_by?: string | null
           dossier_id: string
@@ -703,6 +743,7 @@ export type Database = {
           visible_to_client?: boolean
         }
         Update: {
+          admin_notified_at?: string | null
           created_at?: string
           created_by?: string | null
           dossier_id?: string
@@ -3137,6 +3178,15 @@ export type Database = {
           promo_id: string
           total_eur: number
         }[]
+      }
+      enqueue_admin_notification: {
+        Args: {
+          p_dossier_id?: string
+          p_event_type: string
+          p_message: string
+          p_payload?: Json
+        }
+        Returns: string
       }
       expire_past_manual_departures: { Args: never; Returns: number }
       expire_unpaid_shipments: { Args: never; Returns: number }
