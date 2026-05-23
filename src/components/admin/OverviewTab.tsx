@@ -10,7 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
+import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
 import type { AdminSection } from './AdminSidebar';
+
 
 /* ───────────────────────── helpers ───────────────────────── */
 const fmtN = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
