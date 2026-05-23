@@ -226,7 +226,8 @@ export function TransporteursTab() {
 
   const filtered = useMemo(() => {
     const all = list.data ?? [];
-    const base = showInactive ? all : all.filter(t => t.actif);
+    let base = showInactive ? all : all.filter(t => t.actif);
+    if (onlyIncomplete) base = base.filter(t => !t.profile_complete);
     if (!q.trim()) return base;
     const s = q.trim().toLowerCase();
     return base.filter(t =>
@@ -235,9 +236,10 @@ export function TransporteursTab() {
       (t.prenom ?? '').toLowerCase().includes(s) ||
       t.telephone_1.toLowerCase().includes(s) ||
       (t.telephone_2 ?? '').toLowerCase().includes(s) ||
-      t.ville.toLowerCase().includes(s),
+      t.ville.toLowerCase().includes(s) ||
+      uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
     );
-  }, [list.data, q, showInactive]);
+  }, [list.data, q, showInactive, onlyIncomplete]);
 
   return (
     <div className="space-y-5">
