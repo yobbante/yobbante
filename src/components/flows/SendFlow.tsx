@@ -199,7 +199,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
-  const [confirmed, setConfirmed]         = useState<{ reference: string; price: number; eta: string } | null>(null);
+  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -518,15 +518,31 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
     requestAnimationFrame(() => {
-      document.getElementById(firstBadId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const section = document.getElementById(firstBadId);
+      if (!section) return;
+      // Find first invalid input inside the failing section and focus it.
+      const invalid = section.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        '[aria-invalid="true"], [data-invalid="true"], input:invalid, textarea:invalid'
+      );
+      const target: HTMLElement = invalid || section;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Focus after the scroll has had a beat
+      setTimeout(() => {
+        if (invalid && typeof (invalid as HTMLElement).focus === 'function') {
+          (invalid as HTMLElement).focus({ preventScroll: true });
+        }
+      }, 400);
     });
   }
 
   async function submit() {
     if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
       setSubmitAttempted(true);
-      toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      // Scroll first, then toast — so the user sees the error context immediately.
       scrollToFirstError();
+      setTimeout(() => {
+        toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      }, 350);
       return;
     }
     if (!dakarRouteOk) {
@@ -623,6 +639,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       setConfirmed({
         reference: dossier.reference,
+        trackingId: (dossier as any).tracking_id || dossier.reference,
         price: totalEur,
         eta: matchOption.eta_days,
       });
@@ -689,11 +706,36 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return (
       <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
-          reference={confirmed.reference}
+          reference={confirmed.trackingId}
           title="Expédition enregistrée."
           subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)} · ETA ${confirmed.eta}.`}
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
+
+        {/* Dual reference block — tracking + order */}
+        <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">
+            🔍 Pour suivre votre colis
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Référence suivi</p>
+              <p className="font-mono text-sm font-bold">{confirmed.trackingId}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">À utiliser sur la page de suivi.</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Référence commande</p>
+              <p className="font-mono text-sm font-bold">{confirmed.reference}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Pour vos échanges avec notre équipe.</p>
+            </div>
+          </div>
+          <p className="text-[12px] text-foreground/80 break-all">
+            <span className="text-muted-foreground">Lien direct&nbsp;: </span>
+            <a href={`/suivre/${confirmed.trackingId}`} className="underline font-medium">
+              yobbante.com/suivre/{confirmed.trackingId}
+            </a>
+          </p>
+        </div>
 
         {/* Quick actions */}
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -707,8 +749,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <button
             type="button"
             onClick={() => {
-              navigator.clipboard.writeText(confirmed.reference);
-              toast.success('Référence copiée');
+              navigator.clipboard.writeText(confirmed.trackingId);
+              toast.success('Référence suivi copiée');
             }}
             className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-accent transition-colors px-3 py-2.5 text-sm font-medium"
           >
@@ -716,7 +758,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </button>
           <button
             type="button"
-            onClick={() => navigate('/app')}
+            onClick={() => navigate(`/suivre/${confirmed.trackingId}`)}
             className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-accent transition-colors px-3 py-2.5 text-sm font-medium"
           >
             <Search className="w-4 h-4 text-primary" /> Suivre l'envoi
@@ -980,9 +1022,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
                       placeholder={`Personne qui remet le colis à ${originCity.city}`}
                       invalid={fieldErrors.senderName} />
-                    <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                      invalid={fieldErrors.senderPhone} />
+                    <div>
+                      <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                        placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                        invalid={fieldErrors.senderPhone} />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -998,7 +1045,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <AddressField
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
-                placeholder="N°, rue, quartier, code postal…"
+                placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
                 invalid={fieldErrors.pickupAddress}
               />
 
@@ -1227,17 +1274,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           )}
 
           <div className="grid sm:grid-cols-2 gap-3">
-            <TextField
-              label={`Valeur déclarée * (${originProfile.currencySymbol})`}
-              value={declaredLocal} onChange={setDeclaredLocal}
-              placeholder={originProfile.currency === 'XOF' ? '85 000' : '120'}
-              suffix={originProfile.currencySymbol}
-              type="number"
-              invalid={fieldErrors.declaredLocal}
-            />
+            <div>
+              <div className="flex items-center gap-1 mb-1 text-[12px] font-medium">
+                <span>Valeur déclarée</span>
+                <span className="text-red-500" aria-hidden>*</span>
+                <span className="text-muted-foreground">({originProfile.currencySymbol})</span>
+                <span
+                  className="cursor-help text-muted-foreground"
+                  title="Valeur marchande approximative du contenu. Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte."
+                  aria-label="Aide valeur déclarée"
+                >ⓘ</span>
+              </div>
+              <TextField
+                label=""
+                value={declaredLocal} onChange={setDeclaredLocal}
+                placeholder={originProfile.currency === 'XOF' ? 'Ex. : 50 000 FCFA' : 'Ex. : 120'}
+                suffix={originProfile.currencySymbol}
+                type="number"
+                invalid={fieldErrors.declaredLocal}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground italic">
+                Optionnel — recommandé pour l'assurance.
+              </p>
+            </div>
             <div className="flex items-end">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Utilisée pour la douane et l'assurance. Conversion automatique côté système.
+                Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte.
               </p>
             </div>
           </div>
