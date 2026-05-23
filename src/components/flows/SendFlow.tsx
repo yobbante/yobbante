@@ -992,6 +992,33 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     Replier ce bloc
                   </button>
                 )}
+
+                {/* Récap par email — optionnel */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={wantRecapEmail}
+                      onChange={(e) => setWantRecapEmail(e.target.checked)}
+                      className="mt-1 w-4 h-4 accent-foreground"
+                    />
+                    <span className="text-[13px] font-medium">
+                      📧 Recevoir le récapitulatif par email
+                      <span className="block text-[11px] text-muted-foreground font-normal mt-0.5">
+                        En complément du WhatsApp envoyé automatiquement.
+                      </span>
+                    </span>
+                  </label>
+                  {wantRecapEmail && (
+                    <TextField
+                      label="Votre email"
+                      value={recapEmail}
+                      onChange={setRecapEmail}
+                      placeholder="votre@email.com"
+                      type="email"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           )}
