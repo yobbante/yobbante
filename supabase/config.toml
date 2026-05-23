@@ -51,4 +51,9 @@ verify_jwt = false
 [functions.backfill-voice-messages]
 verify_jwt = false
 
+[functions.send-confirmation-email]
+verify_jwt = false
+
+
+
 
