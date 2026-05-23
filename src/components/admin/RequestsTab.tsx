@@ -289,6 +289,13 @@ export function RequestsTab() {
 
             const k = getKind(d);
             const isOpen = expandedId === d.id;
+            const badges = getDossierBadges({
+              status: d.status,
+              created_at: d.created_at,
+              assigned_transporteur_ref: (d as any).assigned_transporteur_ref,
+              assigned_departure_id: (d as any).assigned_departure_id,
+              departure_date: (d as any).estimated_delivery_date,
+            });
             return (
               <li key={d.id} data-dossier-id={d.id}>
                 {/* Header — click to toggle */}
@@ -305,6 +312,18 @@ export function RequestsTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-[11px] flex-wrap">
                       <span className="font-mono text-foreground font-semibold">{d.reference}</span>
+                      {badges.map(b => (
+                        <span
+                          key={b.kind}
+                          title={b.reason}
+                          className={cn(
+                            'px-1.5 py-0.5 rounded uppercase tracking-wide text-[10px] font-bold',
+                            b.className,
+                          )}
+                        >
+                          {b.label}
+                        </span>
+                      ))}
                       <span className={cn(
                         'px-1.5 py-0.5 rounded border uppercase tracking-wide text-[10px]',
                         KIND_BADGE[k],
@@ -325,7 +344,15 @@ export function RequestsTab() {
                     </div>
                     <p className="text-sm text-foreground truncate mt-0.5">{d.product_description}</p>
                   </div>
-                  <span className="text-[11px] text-muted-foreground tabular-nums hidden sm:inline">
+                  <div className="hidden sm:flex items-center" onClick={(e) => e.stopPropagation()}>
+                    <GpAssignBadge
+                      transporteurRef={(d as any).assigned_transporteur_ref}
+                      onAssignClick={() =>
+                        setQuickAssign({ id: d.id, destCountry: d.destination_country })
+                      }
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground tabular-nums hidden md:inline">
                     {new Date(d.created_at).toLocaleDateString('fr-FR')}
                   </span>
                   <ChevronRight
@@ -335,6 +362,7 @@ export function RequestsTab() {
                     )}
                   />
                 </button>
+
 
                 {/* Expandable details */}
                 {isOpen && (
