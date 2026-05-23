@@ -23,6 +23,7 @@ export interface CreateDossierInput {
   pickup_zone?: string | null;
   enlevement_surcharge?: number;
   is_outside_dakar?: boolean;
+  is_gift?: boolean;
 }
 
 export function useDossiers() {
@@ -69,6 +70,7 @@ export function useDossiers() {
           ...(input.pickup_zone !== undefined ? { pickup_zone: input.pickup_zone } : {}),
           ...(input.enlevement_surcharge !== undefined ? { enlevement_surcharge: input.enlevement_surcharge } : {}),
           ...(input.is_outside_dakar !== undefined ? { is_outside_dakar: input.is_outside_dakar } : {}),
+          ...(input.is_gift !== undefined ? { is_gift: input.is_gift } : {}),
         })
         .select()
         .single();

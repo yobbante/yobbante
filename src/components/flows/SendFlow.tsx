@@ -172,6 +172,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [parcelCount, setParcelCount]     = useState(1);
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
+  const [isGift, setIsGift]               = useState<boolean>(false);
   const [goodsAutoDetected, setGoodsAutoDetected] = useState<{ id: GoodsId; confidence: 'high'|'medium'|'low'; rationale: string } | null>(null);
   const [goodsManualOverride, setGoodsManualOverride] = useState(false);
   const [goodsDetecting, setGoodsDetecting] = useState(false);
@@ -199,7 +200,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
-  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string } | null>(null);
+  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string; dossierId?: string; arrivalDate?: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -578,6 +579,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         pickup_zone: fraisEnlevement.zone,
         enlevement_surcharge: fraisEnlevement.surcharge,
         is_outside_dakar: fraisEnlevement.zone !== 'dakar_centre',
+        is_gift: isGift,
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,
@@ -637,29 +639,34 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         },
       });
 
+      const trackingId = (dossier as any).tracking_id || dossier.reference;
+      const arrival = (await import('@/lib/deliveryEta')).estimateArrivalDate({
+        destinationCountry: destCity?.country,
+        departureDate: matchOption.departure_date ?? null,
+      });
+      const arrivalLabel = (await import('@/lib/deliveryEta')).formatFrenchDate(arrival);
+
       setConfirmed({
         reference: dossier.reference,
-        trackingId: (dossier as any).tracking_id || dossier.reference,
+        trackingId,
         price: totalEur,
         eta: matchOption.eta_days,
+        dossierId: (dossier as any).id,
+        arrivalDate: arrivalLabel,
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       toast.success('Expédition confirmée 🚀');
-      console.log('WA_INVOKE_START');
-      supabase.functions.invoke('send-whatsapp', {
-        body: {
-          client_name: senderName || 'Client',
-          service_type: 'Expédition',
-          origin: originCity?.city || originCity?.country || 'Non précisé',
-          destination: destCity?.city || destCity?.country || 'Non précisé',
-          weight: weight,
-          recipient_phone: '+221781221891'
-        }
-      }).then(({ data, error }) => {
-        if (error) console.error('WA_INVOKE_ERROR:', error);
-        else console.log('WA_INVOKE_SUCCESS:', JSON.stringify(data));
-      });
+
+      // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
+      const prenom = (senderName || 'Client').split(' ')[0];
+      const waPhone = (senderPhone || '').trim();
+      if (waPhone) {
+        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\n\nQuestions : +221786078080`;
+        supabase.functions.invoke('send-whatsapp', {
+          body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
+        }).catch((e) => console.error('WA recap error', e));
+      }
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
@@ -708,7 +715,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         <FlowSuccess
           reference={confirmed.trackingId}
           title="Expédition enregistrée."
-          subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)} · ETA ${confirmed.eta}.`}
+          subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)}${confirmed.arrivalDate ? ` · Arrivée estimée le ${confirmed.arrivalDate} (estimation)` : ` · ETA ${confirmed.eta}`}.`}
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
 
@@ -736,6 +743,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </a>
           </p>
         </div>
+
+        {/* Email récap optionnel */}
+        {confirmed.dossierId && <EmailRecapCard dossierId={confirmed.dossierId} />}
 
         {/* Quick actions */}
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1395,6 +1405,27 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <span>{corridorWarning}</span>
                 </div>
               )}
+
+              {/* Toggle cadeau / don personnel — déclaration douanière simplifiée */}
+              <div className="mt-4 rounded-xl border border-border bg-card p-3">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm font-medium">🎁 C'est un cadeau ou don personnel</span>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-9 appearance-none rounded-full bg-border transition-colors checked:bg-foreground relative cursor-pointer
+                      before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:bg-background before:transition-transform
+                      checked:before:translate-x-4"
+                    checked={isGift}
+                    onChange={(e) => setIsGift(e.target.checked)}
+                  />
+                </label>
+                {isGift && (
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-900 text-xs p-3 leading-relaxed">
+                    ✅ Déclaration douanière simplifiée applicable pour les envois personnels. La valeur déclarée doit rester inférieure à 45&nbsp;€ pour l'exonération de droits de douane en France.
+                  </div>
+                )}
+              </div>
+
               <StepContinueBar enabled={goodsOk} onContinue={() => advanceFromStep(4)} />
             </>
           )}
@@ -1880,6 +1911,47 @@ function RecapGroup({
         )}
       </div>
       {children}
+    </div>
+  );
+}
+
+function EmailRecapCard({ dossierId }: { dossierId: string }) {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const onSend = async () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Email invalide'); return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-confirmation-email', {
+        body: { dossier_id: dossierId, email },
+      });
+      if (error) throw error;
+      setSent(true);
+      toast.success('Récapitulatif envoyé !');
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur d'envoi");
+    } finally { setSending(false); }
+  };
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+      <p className="text-sm font-semibold mb-1">📧 Recevoir votre récapitulatif</p>
+      <p className="text-[11px] text-muted-foreground mb-3">Recommandé si vous n'avez pas de compte Yobbanté.</p>
+      {sent ? (
+        <p className="text-sm text-emerald-600">Envoyé ✓</p>
+      ) : (
+        <div className="flex gap-2">
+          <input type="email" inputMode="email" placeholder="votre@email.com"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          <button onClick={onSend} disabled={sending}
+            className="rounded-lg bg-foreground text-background px-3 py-2 text-sm font-semibold disabled:opacity-60">
+            {sending ? '…' : 'Envoyer →'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
