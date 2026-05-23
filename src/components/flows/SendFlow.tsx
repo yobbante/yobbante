@@ -518,15 +518,31 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
     requestAnimationFrame(() => {
-      document.getElementById(firstBadId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const section = document.getElementById(firstBadId);
+      if (!section) return;
+      // Find first invalid input inside the failing section and focus it.
+      const invalid = section.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        '[aria-invalid="true"], [data-invalid="true"], input:invalid, textarea:invalid'
+      );
+      const target: HTMLElement = invalid || section;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Focus after the scroll has had a beat
+      setTimeout(() => {
+        if (invalid && typeof (invalid as HTMLElement).focus === 'function') {
+          (invalid as HTMLElement).focus({ preventScroll: true });
+        }
+      }, 400);
     });
   }
 
   async function submit() {
     if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
       setSubmitAttempted(true);
-      toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      // Scroll first, then toast — so the user sees the error context immediately.
       scrollToFirstError();
+      setTimeout(() => {
+        toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+      }, 350);
       return;
     }
     if (!dakarRouteOk) {
@@ -1006,9 +1022,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
                       placeholder={`Personne qui remet le colis à ${originCity.city}`}
                       invalid={fieldErrors.senderName} />
-                    <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                      placeholder={`${originProfile.phonePrefix} · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                      invalid={fieldErrors.senderPhone} />
+                    <div>
+                      <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                        placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                        invalid={fieldErrors.senderPhone} />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1024,7 +1045,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <AddressField
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
-                placeholder="N°, rue, quartier, code postal…"
+                placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
                 invalid={fieldErrors.pickupAddress}
               />
 
@@ -1253,17 +1274,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           )}
 
           <div className="grid sm:grid-cols-2 gap-3">
-            <TextField
-              label={`Valeur déclarée * (${originProfile.currencySymbol})`}
-              value={declaredLocal} onChange={setDeclaredLocal}
-              placeholder={originProfile.currency === 'XOF' ? '85 000' : '120'}
-              suffix={originProfile.currencySymbol}
-              type="number"
-              invalid={fieldErrors.declaredLocal}
-            />
+            <div>
+              <TextField
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    Valeur déclarée <span className="text-red-500" aria-hidden>*</span>
+                    <span className="text-muted-foreground">({originProfile.currencySymbol})</span>
+                    <span
+                      className="cursor-help text-muted-foreground"
+                      title="Valeur marchande approximative du contenu. Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte."
+                      aria-label="Aide valeur déclarée"
+                    >ⓘ</span>
+                  </span>
+                }
+                value={declaredLocal} onChange={setDeclaredLocal}
+                placeholder={originProfile.currency === 'XOF' ? 'Ex. : 50 000 FCFA' : 'Ex. : 120'}
+                suffix={originProfile.currencySymbol}
+                type="number"
+                invalid={fieldErrors.declaredLocal}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground italic">
+                Optionnel — recommandé pour l'assurance.
+              </p>
+            </div>
             <div className="flex items-end">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Utilisée pour la douane et l'assurance. Conversion automatique côté système.
+                Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte.
               </p>
             </div>
           </div>
