@@ -21,6 +21,7 @@ import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendGpMessage } from '@/lib/sendGpMessage';
+import { sendSmartInvite, waLinkFor } from '@/lib/sendSmartInvite';
 import { Progress } from '@/components/ui/progress';
 import { SendEditLinkDialog } from './SendEditLinkDialog';
 import { Pencil as PencilIcon } from 'lucide-react';
