@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 type Row = {
   id: string;
-  zone_code: string;
+  zone: string;
   zone_label: string;
   default_rate_per_kg: number;
   express_coefficient: number;
@@ -22,7 +22,7 @@ export function RouteRatesPanel() {
     (async () => {
       const { data, error } = await supabase
         .from('route_default_rates')
-        .select('id, zone_code, zone_label, default_rate_per_kg, express_coefficient')
+        .select('id, zone, zone_label, default_rate_per_kg, express_coefficient')
         .order('zone_label');
       if (error) toast.error('Erreur de chargement des tarifs');
       else setRows((data ?? []) as Row[]);
@@ -75,7 +75,7 @@ export function RouteRatesPanel() {
             <div key={r.id} className="grid grid-cols-12 gap-2 items-center bg-background/40 rounded-lg p-2">
               <div className="col-span-5">
                 <div className="text-sm font-medium">{r.zone_label}</div>
-                <div className="text-xs text-muted-foreground">{r.zone_code}</div>
+                <div className="text-xs text-muted-foreground">{r.zone}</div>
               </div>
               <div className="col-span-3">
                 <Input
