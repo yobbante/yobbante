@@ -175,14 +175,23 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    const res = await sendGpMessage({
+    const name = formatTransporteurName(gp.prenom, gp.nom);
+    const message = buildInviteMessage(gp);
+    const res = await sendSmartInvite({
       phone: gp.telephone_1,
-      message: buildInviteMessage(gp),
+      message,
+      gp_name: name,
+      gp_ref: gpRef(gp.reference),
       transporteur_id: gp.id,
+      kind: 'konnekt_invite',
       trigger_type: 'admin_invite_konnekt',
     });
-    if (res.ok) toast.success('Invitation Konnekt envoyée');
     await markInvited(gp);
+    if (!res.ok) {
+      setFailedMap(prev => ({ ...prev, [gp.id]: { kind: 'konnekt', wa: res.wa_link, name } }));
+    } else {
+      setFailedMap(prev => { const { [gp.id]: _, ...rest } = prev; return rest; });
+    }
   };
 
   const openBotInvite = async (gp: Transporteur) => {
@@ -191,14 +200,23 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    const res = await sendGpMessage({
+    const name = formatTransporteurName(gp.prenom, gp.nom);
+    const message = buildBotInviteMessage(gp);
+    const res = await sendSmartInvite({
       phone: gp.telephone_1,
-      message: buildBotInviteMessage(gp),
+      message,
+      gp_name: name,
+      gp_ref: gpRef(gp.reference),
       transporteur_id: gp.id,
+      kind: 'bot_onboard',
       trigger_type: 'admin_onboard_bot',
     });
-    if (res.ok) toast.success('Invitation bot envoyée');
     await markBotInvited(gp);
+    if (!res.ok) {
+      setFailedMap(prev => ({ ...prev, [gp.id]: { kind: 'bot', wa: res.wa_link, name } }));
+    } else {
+      setFailedMap(prev => { const { [gp.id]: _, ...rest } = prev; return rest; });
+    }
   };
 
   const eligible = useMemo(
