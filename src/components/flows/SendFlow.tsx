@@ -20,7 +20,8 @@ import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
-import { isDakarZone, HORS_DAKAR_SURCHARGE, formatFcfa } from '@/lib/yobbantePricing';
+import { formatFcfa } from '@/lib/yobbantePricing';
+import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
@@ -148,6 +149,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 2 — pickup
   const [originCityId, setOriginCity]     = useState<string | null>(presetOriginCityId);
   const [pickupAddress, setPickup]        = useState('');
+  const [pickupQuartier, setPickupQuartier] = useState<string>('');
   const [pickupDate, setPickupDate]       = useState<string>(preset?.departure_date ?? '');
   const [pickupSlot, setPickupSlot]       = useState<typeof TIME_SLOTS[number]['id'] | null>(null);
   // Step 3 — destination
