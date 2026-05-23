@@ -597,9 +597,20 @@ export function MessagesTab() {
               </span>
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Clients : 607 · GP : 122</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 122</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => loadMessages().then(() => toast.success('Messagerie rechargée'))}
+          disabled={reloading}
+          className="h-8 text-xs gap-1.5"
+        >
+          <RefreshCcw className={cn('w-3.5 h-3.5', reloading && 'animate-spin')} />
+          Recharger
+        </Button>
       </header>
+
 
       <div className="flex flex-1 min-h-0 bg-card overflow-hidden">
         {/* ===== LEFT — conversations ===== */}
