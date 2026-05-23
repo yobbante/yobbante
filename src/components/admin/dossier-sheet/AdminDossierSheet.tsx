@@ -424,13 +424,6 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         </div>
       )}
 
-      <div className="rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground space-y-1">
-        <div className="flex items-center gap-2">
-          <PackageIcon className="w-3.5 h-3.5" />
-          <span className="font-medium">Départ & colis</span>
-        </div>
-        <p>Liaison à un départ et gestion des colis rattachés arrivent dans la prochaine itération.</p>
-      </div>
     </div>
   );
 }
