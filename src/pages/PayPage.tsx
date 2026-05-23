@@ -41,6 +41,7 @@ export default function PayPage() {
   useSeo({ title: `Paiement ${trackingId ?? ''} | Yobbanté`, path: `/pay/${trackingId ?? ''}` });
 
   const [loading, setLoading] = useState(true);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [dossier, setDossier] = useState<PublicDossier | null>(null);
   const [busy, setBusy] = useState<'paytech' | 'cod' | null>(null);
   const [polling, setPolling] = useState(false);
@@ -58,11 +59,12 @@ export default function PayPage() {
   useEffect(() => {
     if (!trackingId) { setLoading(false); return; }
     let cancelled = false;
+    const slowTimer = setTimeout(() => { if (!cancelled) setSlowLoad(true); }, 5000);
     (async () => {
       await refresh();
-      if (!cancelled) setLoading(false);
+      if (!cancelled) { setLoading(false); setSlowLoad(false); clearTimeout(slowTimer); }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(slowTimer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingId]);
 
@@ -142,11 +144,32 @@ export default function PayPage() {
       <PublicNav />
       <main className="flex-1 max-w-xl w-full mx-auto px-6 py-8">
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" /> Chargement…
+          <div className="surface-card">
+            <div className="space-y-3">
+              <div className="h-3 w-32 rounded bg-secondary animate-pulse" />
+              <div className="h-7 w-2/3 rounded bg-secondary animate-pulse" />
+              <div className="h-24 w-full rounded-[12px] bg-secondary animate-pulse mt-4" />
+              <div className="h-12 w-full rounded-[12px] bg-secondary animate-pulse" />
+              <p className="text-sm text-muted-foreground text-center pt-2">
+                {slowLoad
+                  ? <>Problème de chargement. Appelez le <a href={`tel:${SUPPORT_TEL}`} className="underline">{SUPPORT_PHONE}</a> pour connaître votre montant.</>
+                  : 'Chargement de votre commande…'}
+              </p>
+            </div>
           </div>
         ) : !dossier ? (
           <EmptyState icon={CreditCard} title="Lien invalide" description="Ce lien de paiement n’est pas valide." />
+        ) : !amountXof ? (
+          <div className="surface-card text-center py-10">
+            <CreditCard className="w-12 h-12 mx-auto mb-3" style={{ color: '#F5C518' }} />
+            <h2 className="mb-2">Montant en cours de confirmation</h2>
+            <p className="text-muted-foreground text-sm mb-4">
+              Nous finalisons le calcul de votre commande. Contactez-nous pour connaître le montant exact.
+            </p>
+            <a href={`tel:+221786078080`} className="btn-cta inline-flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Appeler le +221 78 607 80 80
+            </a>
+          </div>
         ) : dossier.payment_status === 'paid' ? (
           <SuccessCard trackingId={dossier.tracking_id || dossier.reference} pending={false} />
         ) : successFlag ? (
