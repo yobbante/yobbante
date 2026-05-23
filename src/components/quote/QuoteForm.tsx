@@ -64,6 +64,7 @@ const TABS: TabDef[] = [
 
 export function QuoteForm() {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const [service, setService] = useState<ServiceMode>('send');
 
   // Shared — Dakar est toujours verrouillé sur une extrémité de la route.
