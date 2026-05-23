@@ -711,6 +711,7 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
   const qc = useQueryClient();
   const [attachOpen, setAttachOpen] = useState(false);
   const [weighOpen, setWeighOpen] = useState(false);
+  const [draftWeights, setDraftWeights] = useState<Record<string, string>>({});
 
   const { data: packages = [], isLoading } = useQuery({
     queryKey: ['dossier-packages', dossier.id],
@@ -725,7 +726,43 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
     },
   });
 
+  // Realtime — refresh on any packages change for this dossier
+  useEffect(() => {
+    const ch = supabase
+      .channel(`dossier-packages-${dossier.id}-${crypto.randomUUID()}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'packages', filter: `dossier_id=eq.${dossier.id}` },
+        () => qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dossier.id, qc]);
+
   const totalDeclared = packages.reduce((s, p: any) => s + (Number(p.weight) || 0), 0);
+
+  const updateWeight = useMutation({
+    mutationFn: async ({ id, weight }: { id: string; weight: number | null }) => {
+      const { error } = await supabase.from('packages').update({ weight }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Poids mis à jour');
+      qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
+  const detachPackage = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('packages').update({ dossier_id: null }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Colis détaché');
+      qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
 
   const weighingDossier: WeighingDossier = {
     id: dossier.id,
@@ -767,18 +804,57 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
           </div>
         ) : (
           <ul className="space-y-2">
-            {packages.map((p: any) => (
-              <li key={p.id} className="rounded-lg border border-border p-3 text-xs flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-mono text-foreground">{p.id.slice(0, 8)}</div>
-                  <div className="text-muted-foreground truncate">{p.description || 'Sans description'}</div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
+            {packages.map((p: any) => {
+              const draft = draftWeights[p.id];
+              const currentVal = draft !== undefined ? draft : (p.weight != null ? String(p.weight) : '');
+              const changed = draft !== undefined && draft !== (p.weight != null ? String(p.weight) : '');
+              return (
+                <li key={p.id} className="rounded-lg border border-border p-3 text-xs flex items-center gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-foreground">{p.id.slice(0, 8)}</div>
+                    <div className="text-muted-foreground truncate">{p.description || 'Sans description'}</div>
+                  </div>
                   <Badge variant="secondary" className="text-[10px]">{p.status}</Badge>
-                  <span className="font-medium">{p.weight ? `${p.weight} kg` : '—'}</span>
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentVal}
+                      onChange={(e) => setDraftWeights(d => ({ ...d, [p.id]: e.target.value }))}
+                      className="h-7 w-20 text-xs"
+                      placeholder="kg"
+                    />
+                    <span className="text-muted-foreground">kg</span>
+                    {changed && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                        disabled={updateWeight.isPending}
+                        onClick={() => {
+                          const w = currentVal === '' ? null : Number(currentVal);
+                          updateWeight.mutate({ id: p.id, weight: w }, {
+                            onSuccess: () => setDraftWeights(d => { const { [p.id]: _, ...rest } = d; return rest; }),
+                          });
+                        }}
+                      >
+                        OK
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => { if (confirm('Détacher ce colis du dossier ?')) detachPackage.mutate(p.id); }}
+                    disabled={detachPackage.isPending}
+                    title="Détacher"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -801,6 +877,7 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
     </div>
   );
 }
+
 
 /* ---------------- Livraison (dernier km) ---------------- */
 
