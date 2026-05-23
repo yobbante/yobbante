@@ -174,6 +174,26 @@ export default function TrackPage() {
                   {data.transport_type || ''}
                   {data.departure_date ? ` · Départ ${new Date(data.departure_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}
                 </p>
+                {(() => {
+                  const mode: DeliveryMode = data.priority === 'express' ? 'express' : 'standard';
+                  if (data.departure_date && data.destination_city) {
+                    const a = getArrivalFromDeparture(data.departure_date, data.destination_city, mode);
+                    return (
+                      <p className="text-[12px] mt-1" style={{ color: 'hsl(var(--foreground))' }}>
+                        Arrivée estimée le <strong>{a.arrivalLabel}</strong> <span style={{ color: 'hsl(var(--text-tertiary))' }}>(estimation)</span>
+                      </p>
+                    );
+                  }
+                  if (data.destination_city) {
+                    const a = getDeliveryDelay(data.destination_city, mode);
+                    return (
+                      <p className="text-[12px] mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        Délai estimé : <strong>{a.label}</strong> après le départ
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
                 {data.source === 'db+konnekt' && (
                   <p className="text-[10px] mt-1" style={{ color: '#1D9E75' }}>● Suivi en temps réel · Konnekt</p>
                 )}
