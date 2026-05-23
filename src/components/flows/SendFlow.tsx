@@ -1477,13 +1477,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             'Dédouanement express',
           ];
 
+          const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
+          const expressDelay  = getDeliveryDelay(destCity?.city, 'express');
+
           const cards = [
             {
               id: 'normal' as const,
               label: 'Standard',
               tagline: 'Via transporteur partenaire',
               icon: <Clock className="w-4 h-4" />,
-              eta: `${standardEtaMin}-${standardEtaMax} jours`,
+              eta: destCity ? `Livraison en ${standardDelay.label}` : `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
               perks: STANDARD_PERKS,
               recommended: true,
@@ -1493,7 +1496,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               label: 'Express ⚡',
               tagline: 'Priorité absolue — premier départ',
               icon: <Zap className="w-4 h-4" />,
-              eta: `${expressEtaMin}-${expressEtaMax} jours`,
+              eta: destCity ? `Livraison en ${expressDelay.label}` : `${expressEtaMin}-${expressEtaMax} jours`,
               price: expressPrice,
               perks: EXPRESS_PERKS,
             },
