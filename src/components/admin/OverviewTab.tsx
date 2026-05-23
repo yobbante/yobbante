@@ -213,8 +213,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      <DossierAlertsBar onJump={(s) => onJump(s)} />
+
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-border">
+
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
             Tableau de bord · {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
