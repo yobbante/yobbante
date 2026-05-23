@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, CreditCard, Smartphone, CheckCircle2, XCircle, Scale, MapPin, MessageCircle, Truck } from 'lucide-react';
+import { Loader2, CreditCard, CheckCircle2, XCircle, Scale, MapPin, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { EmptyState } from '@/components/EmptyState';
@@ -29,51 +29,77 @@ interface PublicDossier {
 
 const SUPPORT_PHONE = '+221 78 460 4003';
 const SUPPORT_TEL = '+221784604003';
+const SUPPORT_ALT = '+221786078080';
 
 export default function PayPage() {
   const { trackingId } = useParams();
   const [params] = useSearchParams();
   const successFlag = params.get('success') === '1';
+  const cancelFlag = params.get('cancel') === '1';
   const errorFlag = params.get('error') === '1';
 
   useSeo({ title: `Paiement ${trackingId ?? ''} | Yobbanté`, path: `/pay/${trackingId ?? ''}` });
 
   const [loading, setLoading] = useState(true);
   const [dossier, setDossier] = useState<PublicDossier | null>(null);
-  const [busy, setBusy] = useState<'wave' | 'om' | 'cod' | null>(null);
+  const [busy, setBusy] = useState<'paytech' | 'cod' | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  async function refresh() {
+    if (!trackingId) return null;
+    const { data } = await supabase.rpc('lookup_dossier_public', { p_tracking: trackingId });
+    if (data && data.length) {
+      setDossier(data[0] as PublicDossier);
+      return data[0] as PublicDossier;
+    }
+    return null;
+  }
 
   useEffect(() => {
     if (!trackingId) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc('lookup_dossier_public', { p_tracking: trackingId });
-      if (cancelled) return;
-      if (data && data.length) setDossier(data[0] as PublicDossier);
-      setLoading(false);
+      await refresh();
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingId]);
+
+  // Polling on ?success=1 (max 5s, every 1s) waiting for IPN
+  useEffect(() => {
+    if (!successFlag || !dossier || dossier.payment_status === 'paid') return;
+    setPolling(true);
+    let tries = 0;
+    const id = setInterval(async () => {
+      tries++;
+      const d = await refresh();
+      if (d?.payment_status === 'paid' || tries >= 5) {
+        clearInterval(id);
+        setPolling(false);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [successFlag, dossier?.id]);
 
   const amountXof = dossier?.final_amount_xof
     ?? (dossier?.estimated_cost ? Math.round(dossier.estimated_cost * 655.957) : null);
 
-  async function payWith(provider: 'wave' | 'om') {
+  async function payWithPaytech() {
     if (!trackingId) return;
-    setBusy(provider);
+    setBusy('paytech');
     try {
-      const fn = provider === 'wave' ? 'create-wave-payment' : 'create-om-payment';
-      const { data, error } = await supabase.functions.invoke(fn, { body: { tracking_id: trackingId } });
+      const { data, error } = await supabase.functions.invoke('paytech-payment', {
+        body: { tracking_id: trackingId },
+      });
       if (error) throw error;
       if (data?.available === false) {
-        toast.info(
-          provider === 'wave'
-            ? `Wave disponible bientôt. Contactez-nous : ${SUPPORT_PHONE}`
-            : `Orange Money disponible bientôt. Contactez-nous : ${SUPPORT_PHONE}`,
-        );
+        toast.info(`Paiement temporairement indisponible. Contactez-nous : ${SUPPORT_ALT}`);
         return;
       }
-      if (data?.url) {
-        window.location.href = data.url;
+      if (data?.redirect_url) {
+        window.location.href = data.redirect_url;
         return;
       }
       toast.error('Réponse de paiement invalide. Réessayez.');
@@ -83,6 +109,7 @@ export default function PayPage() {
       setBusy(null);
     }
   }
+
 
   async function payOnDelivery() {
     if (!trackingId || !dossier) return;
