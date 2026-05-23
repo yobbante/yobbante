@@ -829,9 +829,8 @@ function EditDrawer({
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     if (transporteur) {
-      // Auto-generate a 4-digit reference for new transporteurs
       if (!transporteur.id && !transporteur.reference) {
         setRef(String(Math.floor(1000 + Math.random() * 9000)));
       } else {
@@ -851,7 +850,9 @@ function EditDrawer({
       setRatesPerCity((transporteur.default_routes as any) ?? {});
       setNotes(transporteur.notes ?? '');
     }
-  }, [transporteur]);
+    // Only re-init when switching to a different transporteur, not on every list refetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transporteur?.id]);
 
   const citiesFromNavettes = useMemo(() => uniqueCitiesFromNavettes(navettes), [navettes]);
 
