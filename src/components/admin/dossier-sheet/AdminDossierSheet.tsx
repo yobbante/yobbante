@@ -32,6 +32,7 @@ import { WeighingDialog, type WeighingDossier } from '@/components/admin/Weighin
 import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
 import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
+import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 import { format } from 'date-fns';
 
 
@@ -425,14 +426,21 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
 
   const assign = useMutation({
     mutationFn: async (newRef: string | null) => {
-      const { error } = await supabase
-        .from('dossiers')
-        .update({ assigned_transporteur_ref: newRef })
-        .eq('id', dossier.id);
-      if (error) throw error;
+      if (!newRef) {
+        const { error } = await supabase
+          .from('dossiers')
+          .update({ assigned_transporteur_ref: null })
+          .eq('id', dossier.id);
+        if (error) throw error;
+        return;
+      }
+      const res = await assignTransporteurAndNotify({
+        dossierId: dossier.id,
+        transporteurRef: newRef,
+      });
+      if (!res.ok) throw new Error('Echec');
     },
     onSuccess: () => {
-      toast.success(ref ? 'Transporteur assigné' : 'Transporteur détaché');
       qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
     },

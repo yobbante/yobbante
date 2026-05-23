@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Loader2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
+import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 
 interface Props {
   open: boolean;
@@ -25,14 +25,13 @@ export function QuickAssignGpDialog({
 
   const assign = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('dossiers')
-        .update({ assigned_transporteur_ref: ref || null })
-        .eq('id', dossierId);
-      if (error) throw error;
+      const res = await assignTransporteurAndNotify({
+        dossierId,
+        transporteurRef: ref,
+      });
+      if (!res.ok) throw new Error('Echec');
     },
     onSuccess: () => {
-      toast.success('Transporteur assigné');
       qc.invalidateQueries({ queryKey: ['admin-requests'] });
       qc.invalidateQueries({ queryKey: ['admin-dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
