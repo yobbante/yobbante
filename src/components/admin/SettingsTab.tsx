@@ -1,6 +1,7 @@
 import { UsersTab } from './UsersTab';
 import { RelayAddressesPanel } from './RelayAddressesPanel';
 import { WhatsAppTestPanel } from './WhatsAppTestPanel';
+import { RouteRatesPanel } from './RouteRatesPanel';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export function SettingsTab() {
