@@ -984,12 +984,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               )}
 
 
+              {isFromDakar && (
+                <QuartierDakarPicker
+                  value={pickupQuartier}
+                  onChange={setPickupQuartier}
+                />
+              )}
+
               <AddressField
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier, code postal…"
                 invalid={fieldErrors.pickupAddress}
               />
+
+              {isFromDakar && (pickupAddress.trim() || pickupQuartier) && (
+                <ZoneBadge frais={fraisEnlevement} />
+              )}
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="block">
