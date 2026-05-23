@@ -579,6 +579,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         pickup_zone: fraisEnlevement.zone,
         enlevement_surcharge: fraisEnlevement.surcharge,
         is_outside_dakar: fraisEnlevement.zone !== 'dakar_centre',
+        is_gift: isGift,
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,
