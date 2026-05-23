@@ -116,6 +116,7 @@ export function TransporteursTab() {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Transporteur | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [blastOpen, setBlastOpen] = useState(false);
   const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
