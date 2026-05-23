@@ -1843,6 +1843,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
+        priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}
+        priceHint="Estimation"
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
@@ -1850,6 +1852,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <RecapRow label="Poids"  value={`${weight} kg · ${parcelCount} colis`} />
             <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
             <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
+            <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
           </div>
         }
       />
