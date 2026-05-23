@@ -764,7 +764,7 @@ export function MatchOptionCard({
 /* ─────────── Live summary sticky bar ─────────── */
 
 export function LiveSummaryBar({
-  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details,
+  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details, priceLabel, priceHint,
 }: {
   visible: boolean;
   summary: string;
@@ -774,6 +774,10 @@ export function LiveSummaryBar({
   sideContent?: ReactNode;
   /** Optional rich content shown when the user expands the recap. */
   details?: ReactNode;
+  /** Optional sticky price (e.g. "12 500 FCFA") shown before the CTA. */
+  priceLabel?: string;
+  /** Optional short price hint shown under the price (e.g. "estimation"). */
+  priceHint?: string;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
@@ -859,6 +863,14 @@ export function LiveSummaryBar({
               <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
               {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
             </button>
+            {priceLabel && (
+              <div className="shrink-0 text-right hidden xs:block sm:block">
+                <p className={cn('text-[9px] uppercase tracking-[0.18em] font-medium leading-none', t.muted)}>
+                  {priceHint || 'Total estimé'}
+                </p>
+                <p className="mt-1 text-base sm:text-lg font-bold tabular-nums leading-none">{priceLabel}</p>
+              </div>
+            )}
             <button
               onClick={onSubmit}
               disabled={submitting}
