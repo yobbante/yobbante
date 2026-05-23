@@ -650,17 +650,21 @@ function BotBlastDialog({
     setBlasting(true);
     setBlastProgress({ done: 0, ok: 0, fail: 0 });
     let ok = 0, fail = 0;
+    const failures: string[] = [];
     for (let i = 0; i < eligible.length; i++) {
       const gp = eligible[i];
-      const res = await sendGpMessage({
+      const name = formatTransporteurName(gp.prenom, gp.nom);
+      const res = await sendSmartInvite({
         phone: gp.telephone_1,
         message: buildBotInviteMessage(gp),
+        gp_name: name,
+        gp_ref: gpRef(gp.reference),
         transporteur_id: gp.id,
+        kind: 'bot_onboard',
         trigger_type: 'admin_onboard_bot_blast',
         silent: true,
       });
-      if (res.ok) ok += 1; else fail += 1;
-      // Mark invited regardless (we attempted contact)
+      if (res.ok) ok += 1; else { fail += 1; failures.push(name); }
       try {
         await supabase
           .from('transporteurs' as any)
@@ -668,10 +672,25 @@ function BotBlastDialog({
           .eq('id', gp.id);
       } catch { /* non-bloquant */ }
       setBlastProgress({ done: i + 1, ok, fail });
-      // 1s rate-limit between sends
       if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
     setBlasting(false);
+    // Notif super admin — bulk summary
+    try {
+      const summary = [
+        `Onboarding bulk termine :`,
+        `${ok} envoyes avec succes`,
+        `${fail} a envoyer manuellement`,
+        failures.length > 0 ? `Liste manuelle : ${failures.slice(0, 10).join(', ')}${failures.length > 10 ? '…' : ''}` : null,
+      ].filter(Boolean).join('\n');
+      await sendGpMessage({
+        phone: '+221784604003',
+        message: summary,
+        trigger_type: 'admin_onboard_bulk_summary',
+        silent: true,
+        openFallback: false,
+      });
+    } catch { /* non-bloquant */ }
     toast.success(`${ok} envoyés, ${fail} échecs (fallback wa.me disponible)`);
   };
 
