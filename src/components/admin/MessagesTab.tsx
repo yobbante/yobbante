@@ -612,13 +612,16 @@ export function MessagesTab() {
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-xs text-muted-foreground">Aucune conversation</div>
             ) : (
-              conversations.map((c) => (
+              conversations.map((c) => {
+                const isUnread = c.unread > 0;
+                return (
                 <button
                   key={c.phone}
                   onClick={() => setOpenPhone(c.phone)}
                   className={cn(
                     'w-full text-left px-3 py-2.5 flex items-center gap-2.5 border-b border-border/50 hover:bg-muted/50 transition-colors',
-                    openPhone === c.phone && 'bg-muted'
+                    openPhone === c.phone && 'bg-muted',
+                    isUnread && openPhone !== c.phone && 'bg-primary/5 border-l-2 border-l-primary',
                   )}
                 >
                   <div
@@ -629,23 +632,42 @@ export function MessagesTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-foreground truncate flex items-center gap-1">
+                      <span className={cn(
+                        'text-xs truncate flex items-center gap-1',
+                        isUnread ? 'font-bold text-foreground' : 'font-semibold text-foreground',
+                      )}>
                         {c.name || c.phone}
                         {c.channel === 'gp' && <Truck className="w-3 h-3 text-emerald-500" />}
                       </span>
-                      <span className="text-[10px] text-muted-foreground flex-shrink-0">{formatTime(c.lastAt)}</span>
+                      <span className={cn(
+                        'text-[10px] flex-shrink-0',
+                        isUnread ? 'text-primary font-semibold' : 'text-muted-foreground',
+                      )}>
+                        {formatTime(c.lastAt)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <span className="text-[11px] text-muted-foreground truncate">{c.lastBody.slice(0, 50)}</span>
+                      <span className={cn(
+                        'text-[11px] truncate flex items-center gap-1',
+                        isUnread ? 'text-foreground font-medium' : 'text-muted-foreground',
+                      )}>
+                        {c.lastDir === 'out' && (
+                          <CheckCheck className="w-3 h-3 text-primary/70 flex-shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {c.lastDir === 'out' ? 'Vous : ' : ''}{c.lastBody.slice(0, 60)}
+                        </span>
+                      </span>
                       {c.unread > 0 && (
-                        <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold">
+                        <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full flex-shrink-0 font-bold min-w-[18px] text-center">
                           {c.unread}
                         </span>
                       )}
                     </div>
                   </div>
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         </aside>
