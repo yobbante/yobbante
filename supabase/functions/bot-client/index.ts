@@ -265,15 +265,15 @@ async function handleMenuChoice(
   }
   if (choice === '2') {
     await saveSession(supa, phone, 'await_tracking', {});
-    return `Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`;
+    return withBack(`Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`);
   }
   if (choice === '3') {
     await saveSession(supa, phone, 'ship_origin', {});
-    return `D ou part votre colis ?`;
+    return withBack(`D ou part votre colis ?`);
   }
   if (choice === '4') {
     await saveSession(supa, phone, 'quote_origin', {});
-    return `Origine ?`;
+    return withBack(`Origine ?`);
   }
   // 5
   const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
@@ -284,8 +284,9 @@ async function handleMenuChoice(
     `Client ${fromName ?? phone} (${phone}) demande un agent.\nDernier message : "${lastMsg.slice(0, 200)}"`,
     'agent_handoff',
   );
-  return `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
+  return withShortMenu(`Un agent vous contacte sous 2h.\nMerci de votre patience.`);
 }
+
 
 // Generate an edit link for the client's most recent active dossier.
 async function handleModifierClient(supa: any, phone: string): Promise<string> {
