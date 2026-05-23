@@ -37,6 +37,7 @@ export default function KonnektLandingPage() {
     prenom: '',
     nom: '',
     telephone: '',
+    email: '',
     ville: '',
     villes_desservies: [] as string[],
     frequence: 'mensuel' as typeof FREQUENCES[number]['id'],
