@@ -764,7 +764,7 @@ export function MatchOptionCard({
 /* ─────────── Live summary sticky bar ─────────── */
 
 export function LiveSummaryBar({
-  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details,
+  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details, priceLabel, priceHint,
 }: {
   visible: boolean;
   summary: string;
@@ -774,6 +774,10 @@ export function LiveSummaryBar({
   sideContent?: ReactNode;
   /** Optional rich content shown when the user expands the recap. */
   details?: ReactNode;
+  /** Optional sticky price (e.g. "12 500 FCFA") shown before the CTA. */
+  priceLabel?: string;
+  /** Optional short price hint shown under the price (e.g. "estimation"). */
+  priceHint?: string;
 }) {
   const theme = useFlowTheme();
   const t = T[theme];
