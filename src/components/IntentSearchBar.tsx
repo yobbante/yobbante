@@ -77,7 +77,7 @@ export function IntentSearchBar({
       return;
     }
     // SEND — Dakar toujours sur une extrémité.
-    const matched = matchCity(q);
+    const matched = matchCity(q, customCities);
     const foreignCountry = matched?.country ?? undefined;
     const foreignCity    = matched?.city ?? (q || undefined);
     const preset = direction === 'from_dakar'
