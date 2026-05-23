@@ -935,19 +935,57 @@ Voir : yobbante.com/admin`);
   }
 
   // =================================================================
-  //  MODIFIER : génère un lien public pour modifier les infos GP
+  //  PROFIL : affiche la fiche complete du transporteur
+  // =================================================================
+  if (/^(profil|profile|mon\s+profil|ma\s+fiche)$/i.test(msg)) {
+    await clearSession();
+    const navettes = Array.isArray(transporteur.navettes) ? transporteur.navettes : [];
+    const villesSet = new Set<string>();
+    navettes.forEach((n: any) => (n.villes ?? []).forEach((v: any) => v.ville && villesSet.add(v.ville)));
+    const villes = Array.from(villesSet).filter(v => v.toLowerCase() !== 'dakar');
+    const lines = [
+      `📇 Votre profil Yobbante GP`,
+      ``,
+      `Ref : GP${transporteur.reference}`,
+      `Nom : ${transporteur.prenom ?? ''} ${transporteur.nom ?? ''}`.trim(),
+      `Tel : ${transporteur.telephone_1 ?? '—'}`,
+      `Adresse Dakar : ${transporteur.adresse_collecte_dakar ?? transporteur.adresse_1 ?? '—'}`,
+      `Zone : ${transporteur.zone ?? '—'}`,
+      `Navettes : ${villes.length ? villes.join(', ') : '—'}`,
+      ``,
+      transporteur.profile_complete ? `✅ Profil complet` : `⚠️ Profil incomplet`,
+      ``,
+      `Pour modifier :`,
+      `• MODIFIER TEL`,
+      `• MODIFIER ADRESSE`,
+      `• MODIFIER NAVETTE`,
+      `• MODIFIER (tout)`,
+    ];
+    await reply(lines.join('\n'), 'profil');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
+  //  MODIFIER [TEL|ADRESSE|NAVETTE] : génère un lien public
   // =================================================================
   if (/^modifier\b/.test(msg)) {
     if (!transporteur) {
       await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
+    // Sous-commandes
+    let fields: string[] = ['telephone_1', 'adresse_collecte_dakar', 'adresses_remise', 'navettes'];
+    let scope = 'tout';
+    if (/\btel\b|telephone|phone/.test(msg))         { fields = ['telephone_1']; scope = 'le telephone'; }
+    else if (/\badresse\b|addr/.test(msg))           { fields = ['adresse_collecte_dakar', 'adresse_dakar_2']; scope = "l'adresse Dakar"; }
+    else if (/\bnavette\b|trajet|ville/.test(msg))   { fields = ['navettes', 'adresses_remise']; scope = 'vos navettes'; }
+
     const { data: tok, error } = await supa
       .from('edit_tokens')
       .insert({
         entity_type: 'transporteur',
         entity_id: transporteur.id,
-        fields_allowed: ['telephone_1', 'adresse_collecte_dakar', 'adresses_remise'],
+        fields_allowed: fields,
       })
       .select('token')
       .single();
@@ -957,7 +995,7 @@ Voir : yobbante.com/admin`);
     }
     const link = `https://yobbante.com/modifier/${tok.token}`;
     await reply(
-      `Voici votre lien de modification (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`,
+      `Pour modifier ${scope}, ouvrez ce lien (valide 24h) :\n${link}\n\nSi vous avez des questions, tapez AIDE.`,
       'modifier_link',
     );
     return new Response('ok', { headers: corsHeaders });
