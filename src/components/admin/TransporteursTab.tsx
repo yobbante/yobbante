@@ -1002,8 +1002,15 @@ function EditDrawer({
                   <Label>Zone / Quartier *</Label>
                   <Select value={zoneDakar} onValueChange={setZoneDakar}>
                     <SelectTrigger><SelectValue placeholder="Choisir un quartier…" /></SelectTrigger>
-                    <SelectContent>
-                      {DAKAR_ZONES.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                    <SelectContent className="max-h-[320px]">
+                      {QUARTIER_GROUPS.map(group => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel className="text-[11px]">{group.label}</SelectLabel>
+                          {group.quartiers.map(q => (
+                            <SelectItem key={q} value={q}>{q}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
