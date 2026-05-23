@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
   let mode: 'free_text' | 'template_then_text' = hasHistory ? 'free_text' : 'template_then_text';
   let templateOk = true;
   let messageOk = false;
+  let blockedReason: string | null = null;
 
   // 2. Premier contact si pas d'historique
   if (!hasHistory) {
@@ -111,6 +112,7 @@ Deno.serve(async (req) => {
     });
     templateOk = tpl.ok;
     if (!templateOk) {
+      blockedReason = tpl.json?.error?.message ?? tpl.status ?? 'template_failed';
       console.warn('gp-smart-invite hello_world failed', tpl.status);
     } else {
       // Laisser Meta enregistrer la conversation avant le 2eme envoi
@@ -119,14 +121,19 @@ Deno.serve(async (req) => {
   }
 
   // 3. Envoyer le message principal
-  const main = await callWa({
-    recipient_phone: body.phone,
-    recipient_type: 'gp',
-    message: body.message,
-    transporteur_id: body.transporteur_id,
-    trigger_type: body.trigger_type ?? 'gp_smart_invite',
-  });
-  messageOk = main.ok;
+  if (hasHistory || templateOk) {
+    const main = await callWa({
+      recipient_phone: body.phone,
+      recipient_type: 'gp',
+      message: body.message,
+      transporteur_id: body.transporteur_id,
+      trigger_type: body.trigger_type ?? 'gp_smart_invite',
+    });
+    messageOk = main.ok;
+    if (!messageOk && !blockedReason) {
+      blockedReason = main.json?.error?.message ?? main.status ?? 'message_failed';
+    }
+  }
 
   const overallOk = messageOk;
   const fallbackLink = waLink(body.phone, body.message);
@@ -145,9 +152,10 @@ Deno.serve(async (req) => {
     adminMsg = [
       `Invitation GP echouee (hors fenetre) :`,
       `${gpLabel} - ${body.phone}`,
+      blockedReason ? `Cause Meta : ${blockedReason}` : null,
       `Action requise : envoyer manuellement`,
       `wa.me/${phoneDigits}`,
-    ].join('\n');
+    ].filter(Boolean).join('\n');
   }
   await callWa({
     recipient_phone: SUPER_ADMIN_PHONE,
@@ -164,6 +172,7 @@ Deno.serve(async (req) => {
     message_ok: messageOk,
     has_history: hasHistory,
     wa_link: fallbackLink,
+    blocked_reason: blockedReason,
     fallback_required: !overallOk,
   }), {
     status: 200,
