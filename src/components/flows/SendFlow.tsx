@@ -172,6 +172,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [parcelCount, setParcelCount]     = useState(1);
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
+  const [isGift, setIsGift]               = useState<boolean>(false);
   const [goodsAutoDetected, setGoodsAutoDetected] = useState<{ id: GoodsId; confidence: 'high'|'medium'|'low'; rationale: string } | null>(null);
   const [goodsManualOverride, setGoodsManualOverride] = useState(false);
   const [goodsDetecting, setGoodsDetecting] = useState(false);
