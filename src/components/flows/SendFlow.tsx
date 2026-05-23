@@ -1334,13 +1334,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
         {(() => {
-          // ── Prix venant du moteur (pricing engine v2). On y ajoute la
-          // surcharge hors-Dakar si l'enlèvement n'est pas dans l'agglo.
+          // ── Prix venant du moteur (pricing engine v2). Le surcoût d'enlèvement
+          // (banlieue / hors-Dakar) est déjà calculé en haut (surchargeEur).
           const fallbackBase = Math.max(15, Math.round(weight * 4));
-          const isFromDakar = direction === 'from_dakar';
-          const outsideDakar = isFromDakar && pickupAddress.trim().length > 3 && !isDakarZone(pickupAddress);
-          // Surcharge ~ 5 000 FCFA ≈ 7,6 € (655 FCFA / €)
-          const surchargeEur = outsideDakar ? Math.round(HORS_DAKAR_SURCHARGE / 655) : 0;
+          const outsideDakar = fraisEnlevement.zone !== 'dakar_centre';
 
           const standardPrice = (quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase) + surchargeEur;
           const expressPrice  = (quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.45)) + surchargeEur;
@@ -1481,10 +1478,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
                   {outsideDakar && (
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
-                      <span aria-hidden>📍</span>
+                      <span aria-hidden>{fraisEnlevement.zone === 'hors_dakar' ? '⚠️' : '📍'}</span>
                       <span>
-                        Adresse hors Dakar — frais de déplacement&nbsp;:
-                        <strong className="ml-1">+ {formatFcfa(HORS_DAKAR_SURCHARGE)}</strong>
+                        {fraisEnlevement.message}&nbsp;:
+                        <strong className="ml-1">+ {formatFcfa(fraisEnlevement.surcharge)}</strong>
                       </span>
                     </div>
                   )}
