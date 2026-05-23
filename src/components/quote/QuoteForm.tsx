@@ -115,8 +115,8 @@ export function QuoteForm() {
       // shape ExpedierSearchBar consumes, so the flow shows the price
       // section without a separate /devis detour. Hash #tarifs lets
       // SendFlow auto-scroll to the pricing step once the route is ready.
-      const o = resolveCityToCountry(origin);
-      const d = resolveCityToCountry(destination);
+      const o = resolveCityToCountry(origin, customCities);
+      const d = resolveCityToCountry(destination, customCities);
       if (!o || !d) return;
       const transport: 'AIR' | 'SEA' | 'ROAD' =
         mode === 'air' ? 'AIR' : mode === 'sea' ? 'SEA' : 'ROAD';
