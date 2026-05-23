@@ -493,10 +493,25 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         </div>
       )}
 
+      <PricingBreakdownPanel
+        gpRatePerKg={(dossier as any).gp_rate_per_kg}
+        yobbanteMarginPct={(dossier as any).yobbante_margin_pct}
+        enlevementAmount={(dossier as any).enlevement_amount}
+        horsDakarSurcharge={(dossier as any).hors_dakar_surcharge}
+        deliveryCarrierCost={(dossier as any).delivery_carrier_cost}
+        displayedPricePerKg={(dossier as any).displayed_price_per_kg}
+        totalDisplayedPrice={(dossier as any).total_displayed_price}
+        totalCostPrice={(dossier as any).total_cost_price}
+        yobbanteGrossMargin={(dossier as any).yobbante_gross_margin}
+        weightKg={dossier.actual_weight_kg ?? dossier.estimated_weight}
+        isExpress={(dossier as any).is_express}
+        isEstimate={(dossier as any).price_is_estimate ?? true}
+      />
     </div>
   );
 
 }
+
 
 function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
   const { data } = useQuery({
