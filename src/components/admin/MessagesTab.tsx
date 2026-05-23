@@ -115,6 +115,8 @@ interface ConversationGroup {
   channel: Channel;
   lastAt: string;
   lastBody: string;
+  /** 'in' = received, 'out' = sent by us */
+  lastDir: 'in' | 'out';
   unread: number;
   dossier_id: string | null;
 }
