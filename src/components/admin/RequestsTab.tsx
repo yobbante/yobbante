@@ -473,9 +473,19 @@ export function RequestsTab() {
           </Button>
         </div>
       )}
+
+      {quickAssign && (
+        <QuickAssignGpDialog
+          open={!!quickAssign}
+          onOpenChange={(v) => { if (!v) setQuickAssign(null); }}
+          dossierId={quickAssign.id}
+          destinationCountry={quickAssign.destCountry}
+        />
+      )}
     </div>
   );
 }
+
 
 
 /* ──────────────────────── Kanban view ──────────────────────── */
