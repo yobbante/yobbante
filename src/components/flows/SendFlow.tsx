@@ -671,6 +671,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
         }).catch((e) => console.error('WA recap error', e));
       }
+
+      // Récap email automatique si demandé
+      if (wantRecapEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recapEmail) && (dossier as any)?.id) {
+        supabase.functions.invoke('send-confirmation-email', {
+          body: { dossier_id: (dossier as any).id, email: recapEmail.trim() },
+        }).then(({ error }) => {
+          if (error) console.error('Email recap error', error);
+          else toast.success('Récapitulatif envoyé par email');
+        }).catch((e) => console.error('Email recap error', e));
+      }
     } catch (e: any) {
       toast.error(e?.message ?? 'Erreur');
     } finally { setSubmitting(false); }
