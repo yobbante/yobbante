@@ -465,6 +465,8 @@ export function RevenusTab() {
           </div>
         )}
       </section>
+
+      <PaytechTransactionsPanel />
     </div>
   );
 }
