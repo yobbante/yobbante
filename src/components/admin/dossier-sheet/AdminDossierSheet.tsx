@@ -47,13 +47,35 @@ function copy(s: string) {
 
 export function AdminDossierSheet() {
   const { dossierId, close } = useDossierSheet();
+  const isMobile = useIsMobile();
   const open = !!dossierId;
 
+  // Desktop ≥ md : panneau latéral persistant, non modal, ne bloque pas la liste
+  if (!isMobile) {
+    if (!open) return null;
+    return (
+      <aside
+        className="hidden md:flex fixed top-0 right-0 bottom-0 z-40 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex-col animate-in slide-in-from-right duration-200"
+        aria-label="Détail dossier"
+      >
+        <button
+          onClick={close}
+          className="absolute right-3 top-3 z-10 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+          aria-label="Fermer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        {dossierId ? <DossierSheetBody id={dossierId} /> : null}
+      </aside>
+    );
+  }
+
+  // Mobile : Sheet plein écran (comportement actuel)
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) close(); }}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[960px] p-0 flex flex-col"
+        className="w-full sm:max-w-[640px] p-0 flex flex-col"
       >
         {dossierId ? <DossierSheetBody id={dossierId} /> : null}
       </SheetContent>
