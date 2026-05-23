@@ -704,6 +704,31 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
       </div>
 
       <div className="border-t border-border pt-3 mt-3 space-y-2">
+        {!internal && (
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground self-center mr-1">
+              Templates :
+            </span>
+            {CLIENT_TEMPLATES.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setBody(t.build({
+                  prenom: dossier.sender_name || dossier.recipient_name,
+                  tracking_id: dossier.tracking_id,
+                  reference: dossier.reference,
+                  origin: dossier.origin_country,
+                  destination: dossier.destination_country,
+                  status: dossier.status,
+                }))}
+                title={t.description}
+                className="px-2 py-1 rounded-md text-[11px] bg-secondary text-muted-foreground hover:bg-[#F5C518]/15 hover:text-[#F5C518] border border-border transition-colors"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         {isStaff && (
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             <Switch checked={internal} onCheckedChange={setInternal} />
@@ -715,7 +740,7 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={internal ? 'Note interne…' : 'Message au client…'}
-            rows={2}
+            rows={3}
             className="text-sm flex-1"
           />
           <Button onClick={send} disabled={!body.trim() || sendMessage.isPending} size="sm">
@@ -723,6 +748,7 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
           </Button>
         </div>
       </div>
+
     </div>
   );
 }
