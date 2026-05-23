@@ -199,7 +199,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
-  const [confirmed, setConfirmed]         = useState<{ reference: string; price: number; eta: string } | null>(null);
+  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -623,6 +623,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       setConfirmed({
         reference: dossier.reference,
+        trackingId: (dossier as any).tracking_id || dossier.reference,
         price: totalEur,
         eta: matchOption.eta_days,
       });
@@ -689,11 +690,36 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return (
       <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
-          reference={confirmed.reference}
+          reference={confirmed.trackingId}
           title="Expédition enregistrée."
           subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)} · ETA ${confirmed.eta}.`}
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
+
+        {/* Dual reference block — tracking + order */}
+        <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">
+            🔍 Pour suivre votre colis
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Référence suivi</p>
+              <p className="font-mono text-sm font-bold">{confirmed.trackingId}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">À utiliser sur la page de suivi.</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Référence commande</p>
+              <p className="font-mono text-sm font-bold">{confirmed.reference}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Pour vos échanges avec notre équipe.</p>
+            </div>
+          </div>
+          <p className="text-[12px] text-foreground/80 break-all">
+            <span className="text-muted-foreground">Lien direct&nbsp;: </span>
+            <a href={`/suivre/${confirmed.trackingId}`} className="underline font-medium">
+              yobbante.com/suivre/{confirmed.trackingId}
+            </a>
+          </p>
+        </div>
 
         {/* Quick actions */}
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -707,8 +733,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <button
             type="button"
             onClick={() => {
-              navigator.clipboard.writeText(confirmed.reference);
-              toast.success('Référence copiée');
+              navigator.clipboard.writeText(confirmed.trackingId);
+              toast.success('Référence suivi copiée');
             }}
             className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-accent transition-colors px-3 py-2.5 text-sm font-medium"
           >
@@ -716,7 +742,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           </button>
           <button
             type="button"
-            onClick={() => navigate('/app')}
+            onClick={() => navigate(`/suivre/${confirmed.trackingId}`)}
             className="col-span-2 sm:col-span-1 flex items-center justify-center gap-2 rounded-xl border border-border bg-card hover:bg-accent transition-colors px-3 py-2.5 text-sm font-medium"
           >
             <Search className="w-4 h-4 text-primary" /> Suivre l'envoi
