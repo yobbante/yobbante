@@ -18,6 +18,7 @@ import {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useDossierSheet } from './dossier-sheet/useDossierSheet';
 
 interface ParsedNotes {
   intent?: string;
