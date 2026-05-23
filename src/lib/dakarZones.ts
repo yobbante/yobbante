@@ -34,6 +34,118 @@ export const CITIES_BY_REGION: Record<string, string[]> = {
 
 export const ALL_CITIES: string[] = Object.values(CITIES_BY_REGION).flat();
 
+// ─────────────────────────────────────────────────────────────────────
+// Pricing zones — enlèvement / livraison Dakar
+// Base intégrée invisible : 5 000 FCFA. Surcoût affiché client = montant − 5000.
+// ─────────────────────────────────────────────────────────────────────
+
+export const ZONES_DAKAR_GRATUITES = {
+  centre_ville: [
+    'Dakar Plateau', 'Plateau', 'Médina', 'Medina', 'Fann', 'Point E',
+    'Amitié', 'Amitie', 'Gueule Tapée', 'Gueule Tapee', 'Fass', 'Colobane', 'Rebeuss',
+  ],
+  ouakam: [
+    'Ouakam', 'Mamelles', 'Almadies', 'Ngor', 'Mermoz',
+    'Sacré-Cœur', 'Sacre-Coeur', 'Sacré Cœur', 'Sacre Coeur',
+  ],
+  grand_dakar: [
+    'Liberté', 'Liberte', 'Liberté 1', 'Liberté 2', 'Liberté 3',
+    'Liberté 4', 'Liberté 5', 'Liberté 6',
+    'Sicap', 'Sicap Baobabs', 'Sicap Karak',
+    'Grand Dakar', 'Dieuppeul', 'Derklé', 'Derkle', 'Castors', 'HLM',
+  ],
+  nord_foire: [
+    'Nord Foire', 'Sud Foire', 'Yoff', 'Pères Maristes', 'Peres Maristes',
+    'Hann Bel-Air', 'Hann', 'Grand Yoff', 'Scat Urbam',
+    'Parcelles Assainies', 'Parcelles', "Patte d'Oie", 'Ouest Foire',
+  ],
+} as const;
+
+export const ALL_ZONES_GRATUITES: string[] = Object.values(ZONES_DAKAR_GRATUITES).flat() as string[];
+
+export const ZONES_DAKAR_PAYANTES = [
+  'Pikine', 'Guédiawaye', 'Guediawaye', 'Thiaroye', 'Mbao',
+  'Rufisque', 'Bargny', 'Sébikotane', 'Sebikotane', 'Diamniadio',
+  'Keur Massar', 'Sangalkam', 'Malika', 'Yeumbeul', 'Diamaguene',
+  'Thiaroye Gare', 'Cambérène', 'Camberene', 'Pout',
+] as const;
+
+export type DakarZoneCategory = 'dakar_centre' | 'dakar_banlieue' | 'hors_dakar';
+
+function norm(s: string): string {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+export function isZoneGratuite(adresse: string): boolean {
+  if (!adresse) return false;
+  const a = norm(adresse);
+  return ALL_ZONES_GRATUITES.some((z) => a.includes(norm(z)));
+}
+
+export function isZoneDakarPayante(adresse: string): boolean {
+  if (!adresse) return false;
+  const a = norm(adresse);
+  return ZONES_DAKAR_PAYANTES.some((z) => a.includes(norm(z)));
+}
+
+export interface FraisEnlevement {
+  montant: number;            // total intégré (base 5000 + surcoût éventuel)
+  surcharge: number;          // surcoût visible client (0, 5000, 10000)
+  gratuit: boolean;
+  zone: DakarZoneCategory;
+  message: string;
+}
+
+export function calculerFraisEnlevement(adresse: string): FraisEnlevement {
+  if (isZoneGratuite(adresse)) {
+    return {
+      montant: 5000, surcharge: 0, gratuit: true,
+      zone: 'dakar_centre',
+      message: 'Enlèvement gratuit dans votre zone',
+    };
+  }
+  if (isZoneDakarPayante(adresse)) {
+    return {
+      montant: 10000, surcharge: 5000, gratuit: false,
+      zone: 'dakar_banlieue',
+      message: 'Zone périphérique Dakar — Frais de déplacement : +5 000 FCFA',
+    };
+  }
+  return {
+    montant: 15000, surcharge: 10000, gratuit: false,
+    zone: 'hors_dakar',
+    message: 'Adresse hors Dakar — Frais de déplacement : +10 000 FCFA',
+  };
+}
+
+// Dropdown groupé pour la sélection de quartier (UI)
+export const QUARTIER_GROUPS: Array<{ label: string; zone: DakarZoneCategory; surcharge: number; quartiers: string[] }> = [
+  {
+    label: 'Centre-ville', zone: 'dakar_centre', surcharge: 0,
+    quartiers: ['Dakar Plateau', 'Médina', 'Fann / Point E', 'Amitié', 'Gueule Tapée / Fass / Colobane', 'Rebeuss'],
+  },
+  {
+    label: 'Ouakam & Almadies', zone: 'dakar_centre', surcharge: 0,
+    quartiers: ['Ouakam', 'Mamelles', 'Almadies', 'Ngor', 'Mermoz', 'Sacré-Cœur 1', 'Sacré-Cœur 2', 'Sacré-Cœur 3'],
+  },
+  {
+    label: 'Grand Dakar & Liberté', zone: 'dakar_centre', surcharge: 0,
+    quartiers: ['Liberté 1', 'Liberté 2', 'Liberté 3', 'Liberté 4', 'Liberté 5', 'Liberté 6', 'Sicap Baobabs', 'Sicap Karak', 'Grand Dakar', 'Dieuppeul / Derklé', 'Castors / HLM'],
+  },
+  {
+    label: 'Nord & Parcelles', zone: 'dakar_centre', surcharge: 0,
+    quartiers: ['Nord Foire', 'Sud Foire', 'Yoff', 'Hann Bel-Air', 'Grand Yoff', 'Scat Urbam', 'Parcelles Assainies', "Patte d'Oie", 'Ouest Foire'],
+  },
+  {
+    label: 'Banlieue (+5 000 FCFA)', zone: 'dakar_banlieue', surcharge: 5000,
+    quartiers: ['Pikine', 'Guédiawaye', 'Thiaroye', 'Mbao', 'Rufisque', 'Bargny', 'Keur Massar', 'Yeumbeul', 'Cambérène'],
+  },
+  {
+    label: 'Hors Dakar (+10 000 FCFA)', zone: 'hors_dakar', surcharge: 10000,
+    quartiers: ['Thiès', 'Mbour', 'Saint-Louis', 'Touba', 'Kaolack', 'Ziguinchor', 'Autre'],
+  },
+];
+
 // ----- Navettes typings & helpers --------------------------------------
 
 export interface NavetteEscale {
