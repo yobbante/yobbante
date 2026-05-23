@@ -75,27 +75,37 @@ export function buildGpAssignMessage(args: {
   origin?: string | null;
   destination?: string | null;
   client_name?: string | null;
+  client_phone?: string | null;
   weight?: number | string | null;
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
+  departure_date?: string | Date | null;
 }): string {
   const ref = args.tracking_id || args.reference || '';
-  const date = args.pickup_date
-    ? new Date(args.pickup_date).toLocaleDateString('fr-FR')
+  const dateSrc = args.departure_date ?? args.pickup_date;
+  const date = dateSrc
+    ? new Date(dateSrc).toLocaleDateString('fr-FR')
     : 'a confirmer';
   const weight = args.weight ? `${args.weight} kg` : 'a confirmer';
   return [
     `Salam ${firstName(args.gp_prenom)},`,
     ``,
-    `Nouveau dossier Yobbante.`,
+    `Nouveau colis assigne.`,
     `Ref : ${ref}`,
     `Route : ${args.origin || '-'} -> ${args.destination || '-'}`,
     `Client : ${args.client_name || '-'}`,
-    `Poids : ${weight}`,
-    `Collecte : ${args.pickup_address || 'a confirmer'}`,
-    `Date : ${date}`,
+    args.client_phone ? `Tel client : ${args.client_phone}` : null,
+    args.pickup_address ? `Adresse collecte client : ${args.pickup_address}` : null,
     ``,
-    `Confirmez : COLLECTE ${ref}`,
+    `(Notre livreur deposera le colis`,
+    ` a votre adresse Dakar avant le depart.`,
+    ` Vous n'avez pas a collecter chez le client.)`,
+    ``,
+    `Poids : ${weight}`,
+    `Date depart : ${date}`,
+    ``,
+    `Confirmez reception : RECU ${ref}`,
     `Tapez AIDE pour les commandes.`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
+
