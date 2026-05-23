@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
+import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
+import { AudioMessage } from './messages/AudioMessage';
 
 interface LinkedDossier {
   id: string;
@@ -20,43 +22,62 @@ interface LinkedDossier {
   estimated_weight: number | null;
   assigned_transporteur_ref: string | null;
   estimated_delivery_date: string | null;
+  buyer_name: string | null;
+  contact_phone: string | null;
+  sender_name: string | null;
+  sender_phone: string | null;
+  sender_address: string | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  recipient_address: string | null;
+  final_amount_xof: number | null;
 }
+
+const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
 
 interface GpTemplate {
   key: string;
   label: string;
-  build: (ctx: { gp_prenom: string; route: string; poids: string; destination: string; tracking_id: string; date: string; departure_date: string }) => string;
+  build: (ctx: GpCtx) => string;
 }
 
-function gpTemplatesForStatus(status: string | undefined): GpTemplate[] {
-  const map: Record<string, GpTemplate[]> = {
-    NEW: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    SUBMITTED: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    CONFIRMED: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    AWAITING_ADDRESS: [
-      { key: 'pickup', label: 'Adresse collecte Dakar', build: () => `C'est quoi ton adresse de collecte a Dakar ?` },
-      { key: 'dropoff', label: 'Adresse remise', build: (c) => `Et l'adresse de remise a ${c.destination} ?` },
-    ],
-    ASSIGNED: [
-      { key: 'confirm', label: 'Confirmer la mission', build: (c) => `Salam ${c.gp_prenom}, je t'amene le colis ${c.tracking_id} le ${c.date}. Confirme-moi que c'est bon.` },
-      { key: 'dep', label: 'Confirmer le depart', build: (c) => `Tu pars bien le ${c.departure_date} ?` },
-    ],
-    COLLECTED: [
-      { key: 'ok', label: 'Collecte ok ?', build: () => `Tout s'est bien passe pour la collecte ?` },
-      { key: 'flight', label: 'Vol confirme ?', build: () => `Tu es parti ? Le vol est confirme ?` },
-    ],
-  };
-  return map[status ?? ''] ?? [
+interface GpCtx {
+  gp_prenom: string;
+  client_name: string;
+  tracking_id: string;
+  route: string;
+  origin: string;
+  destination: string;
+  poids: string;
+  pickup_address: string;
+  date: string;
+  departure_date: string;
+}
+
+/** Templates GP contextuels (utilisés quand un dossier est lié). */
+function gpTemplatesForDossier(): GpTemplate[] {
+  return [
+    { key: 'recap', label: '📋 Récap mission', build: (c) =>
+      `Salam ${c.gp_prenom},\n\nRecap dossier ${c.tracking_id} :\nRoute : ${c.origin} → ${c.destination}\nClient : ${c.client_name}\nPoids : ${c.poids}kg\nAdresse collecte : ${c.pickup_address}`,
+    },
+    { key: 'collecte', label: '🔵 Confirmer collecte', build: (c) =>
+      `Salam ${c.gp_prenom}, avez-vous collecte le colis ${c.tracking_id} chez ${c.client_name} ?\n\nConfirmez en repondant : COLLECTE ${c.tracking_id}`,
+    },
+    { key: 'poids', label: '🟡 Enregistrer poids', build: (c) =>
+      `Salam ${c.gp_prenom}, pensez a enregistrer le poids reel du colis ${c.tracking_id}.\n\nFormat : POIDS ${c.tracking_id} [poids]kg`,
+    },
+    { key: 'livre', label: '✅ Confirmer livraison', build: (c) =>
+      `Salam ${c.gp_prenom}, le colis ${c.tracking_id} est-il livre a ${c.destination} ?\n\nConfirmez en repondant : LIVRE ${c.tracking_id}`,
+    },
+  ];
+}
+
+/** Fallback générique quand aucun dossier n'est lié. */
+function gpTemplatesGeneric(): GpTemplate[] {
+  return [
     { key: 'hello', label: 'Salutation', build: (c) => `Salam ${c.gp_prenom}, comment tu vas ?` },
+    { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis a envoyer. Tu as de la place sur ton prochain depart ?` },
+    { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart ?` },
   ];
 }
 
@@ -134,7 +155,9 @@ export function MessagesTab() {
   const [gpMode, setGpMode] = useState<'libre' | 'templates'>('libre');
   const [gpText, setGpText] = useState('');
   const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
-  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
+  const [availableDossiers, setAvailableDossiers] = useState<LinkableDossier[]>([]);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
 
@@ -286,9 +309,32 @@ export function MessagesTab() {
     toast.success('Conversation marquée comme traitée');
   }
 
-  // ---------- Load linked dossier + transporteur for active GP conversation ----------
+  // ---------- Persist a dossier link for the whole conversation ----------
+  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier) => {
+    if (!openPhone) return;
+    try {
+      await supabase
+        .from('whatsapp_inbound_messages')
+        .update({ dossier_id: d.id })
+        .eq('from_phone', openPhone);
+      setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
+      // Re-fetch full dossier for templates
+      const { data: full } = await supabase
+        .from('dossiers')
+        .select(DOSSIER_SELECT)
+        .eq('id', d.id)
+        .maybeSingle();
+      if (full) setLinkedDossier(full as unknown as LinkedDossier);
+      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié`);
+    } catch (e) {
+      toast.error('Echec liaison', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [openPhone]);
+
+  // ---------- Load linked dossier + transporteur for active conversation ----------
   useEffect(() => {
     setLinkedDossier(null);
+    setAvailableDossiers([]);
     setTransporteurInfo(null);
     setGpText('');
     if (!openPhone) return;
@@ -296,30 +342,77 @@ export function MessagesTab() {
     if (!conv) return;
 
     (async () => {
+      // 1) Dossier déjà lié sur l'inbound
       if (conv.dossier_id) {
         const { data } = await supabase
           .from('dossiers')
-          .select('id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date')
+          .select(DOSSIER_SELECT)
           .eq('id', conv.dossier_id)
           .maybeSingle();
         if (data) setLinkedDossier(data as unknown as LinkedDossier);
       }
+
+      // 2) GP : résoudre transporteur par id OU par téléphone
       if (conv.channel === 'gp') {
-        const tid = conv.transporteur_id;
-        if (tid) {
+        let trData: any = null;
+        if (conv.transporteur_id) {
           const { data } = await supabase
             .from('transporteurs' as any)
-            .select('id, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
-            .eq('id', tid)
+            .select('id, reference, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .eq('id', conv.transporteur_id)
             .maybeSingle();
-          if (data) setTransporteurInfo({
-            ...(data as any),
-            adresses_remise: ((data as any).adresses_remise ?? {}) as Record<string, string>,
+          trData = data;
+        }
+        if (!trData) {
+          const tail = openPhone.replace(/\D/g, '').slice(-9);
+          const { data } = await supabase
+            .from('transporteurs' as any)
+            .select('id, reference, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .or(`telephone_1.ilike.%${tail}%,telephone_2.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+            .limit(1)
+            .maybeSingle();
+          trData = data;
+        }
+        if (trData) {
+          setTransporteurInfo({
+            ...trData,
+            adresses_remise: (trData.adresses_remise ?? {}) as Record<string, string>,
           });
+
+          // 3) Dossiers actifs assignés à ce GP
+          const { data: dList } = await supabase
+            .from('dossiers')
+            .select(DOSSIER_SELECT)
+            .eq('assigned_transporteur_ref', trData.reference)
+            .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          const list = (dList ?? []) as unknown as LinkableDossier[];
+          setAvailableDossiers(list);
+
+          // 4) Auto-link si exactement 1 et rien encore lié
+          if (!conv.dossier_id && list.length === 1) {
+            await linkDossierToConv(list[0]);
+          }
         }
       }
+
+      // 5) Client : si non lié, chercher dossier par téléphone
+      if (conv.channel === 'client' && !conv.dossier_id) {
+        const tail = openPhone.replace(/\D/g, '').slice(-9);
+        const { data: dList } = await supabase
+          .from('dossiers')
+          .select(DOSSIER_SELECT)
+          .or(`contact_phone.ilike.%${tail}%,sender_phone.ilike.%${tail}%,recipient_phone.ilike.%${tail}%,buyer_contact.ilike.%${tail}%`)
+          .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        const list = (dList ?? []) as unknown as LinkableDossier[];
+        setAvailableDossiers(list);
+        if (list.length === 1) await linkDossierToConv(list[0]);
+      }
     })();
-  }, [openPhone, inbound]);
+  }, [openPhone, inbound, linkDossierToConv]);
 
   // ---------- Pause/resume GP bot ----------
   const pauseBot = useCallback(async (minutes = 5) => {
@@ -360,20 +453,44 @@ export function MessagesTab() {
     }
   }
 
-  const gpCtx = useMemo(() => {
+  const gpCtx: GpCtx = useMemo(() => {
     const prenom = transporteurInfo?.prenom || activeConv?.name?.split(' ')[0] || 'GP';
     const dest = linkedDossier?.destination_country || 'destination';
     const orig = linkedDossier?.origin_country || 'origine';
     return {
       gp_prenom: prenom,
+      client_name: linkedDossier?.buyer_name || linkedDossier?.sender_name || 'le client',
+      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '—',
       route: `${orig} - ${dest}`,
-      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      origin: orig,
       destination: dest,
-      tracking_id: linkedDossier?.tracking_id || linkedDossier?.reference || '',
+      poids: linkedDossier?.estimated_weight ? String(linkedDossier.estimated_weight) : '?',
+      pickup_address: linkedDossier?.sender_address || transporteurInfo?.adresse_collecte_dakar || 'a confirmer',
       date: linkedDossier?.estimated_delivery_date || 'bientot',
       departure_date: linkedDossier?.estimated_delivery_date || 'bientot',
     };
   }, [transporteurInfo, linkedDossier, activeConv]);
+
+  // ---------- Auto-fill client template params from linked dossier ----------
+  useEffect(() => {
+    if (!linkedDossier || !activeConv || activeConv.channel !== 'client') return;
+    const tpl = getTemplate(templateKey);
+    const map: Record<string, string> = {
+      client_name: linkedDossier.buyer_name || linkedDossier.recipient_name || activeConv.name || '',
+      tracking_id: linkedDossier.tracking_id || linkedDossier.reference || '',
+      destination: linkedDossier.destination_country || '',
+      origin: linkedDossier.origin_country || '',
+      amount: linkedDossier.final_amount_xof ? `${linkedDossier.final_amount_xof} FCFA` : '',
+      eta: linkedDossier.estimated_delivery_date || '',
+      departure_date: linkedDossier.estimated_delivery_date || '',
+      review_link: linkedDossier.tracking_id ? `https://yobbante.com/avis/${linkedDossier.tracking_id}` : '',
+      payment_link: linkedDossier.tracking_id ? `https://yobbante.com/payer/${linkedDossier.tracking_id}` : '',
+    };
+    const next: Record<string, string> = {};
+    tpl.params.forEach((p) => { if (map[p]) next[p] = map[p]; });
+    setParams((prev) => ({ ...next, ...prev }));
+  }, [linkedDossier, templateKey, activeConv]);
+
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
     if (!transporteurInfo) {
@@ -546,17 +663,47 @@ export function MessagesTab() {
                 </Button>
               </header>
 
-              {/* Linked dossier mini-card */}
-              {activeConv.dossier_id && (
-                <div className="px-4 py-2 bg-muted/30 border-b border-border flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Package className="w-3.5 h-3.5" /> Dossier lié
-                  </span>
-                  <a href={`/admin/orders?dossier=${activeConv.dossier_id}`} className="text-primary hover:underline flex items-center gap-1">
-                    Voir <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+              {/* Linked dossier card */}
+              <div className="px-4 py-2 bg-muted/30 border-b border-border flex items-center justify-between gap-2 text-xs">
+                {linkedDossier ? (
+                  <>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Package className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                      <span className="font-semibold text-foreground truncate">
+                        {linkedDossier.tracking_id || linkedDossier.reference}
+                      </span>
+                      <span className="text-muted-foreground hidden sm:inline truncate">
+                        · {linkedDossier.origin_country || '—'} → {linkedDossier.destination_country || '—'}
+                      </span>
+                      <Badge variant="outline" className="h-4 text-[9px] flex-shrink-0">{linkedDossier.status}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => setLinkDialogOpen(true)} className="text-muted-foreground hover:text-primary flex items-center gap-1">
+                        <RefreshCcw className="w-3 h-3" /> Changer
+                      </button>
+                      <a href={`/admin/orders?dossier=${linkedDossier.id}`} className="text-primary hover:underline flex items-center gap-1">
+                        Voir <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Package className="w-3.5 h-3.5" />
+                      Aucun dossier lié
+                      {availableDossiers.length > 1 && (
+                        <Badge variant="outline" className="h-4 text-[9px]">{availableDossiers.length} candidats</Badge>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => setLinkDialogOpen(true)}
+                      className="text-[#F5C518] hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <Link2 className="w-3 h-3" /> Lier un dossier
+                    </button>
+                  </>
+                )}
+              </div>
 
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
@@ -574,11 +721,9 @@ export function MessagesTab() {
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
                       {isAudio ? (
-                        <audio
-                          controls
-                          preload="metadata"
-                          src={(t.m as InboundMsg).media_url!}
-                          className="w-[240px] max-w-full"
+                        <AudioMessage
+                          mediaUrl={(t.m as InboundMsg).media_url!}
+                          wamid={(t.m as any).wamid ?? null}
                         />
                       ) : (
                         t.body
@@ -697,7 +842,7 @@ export function MessagesTab() {
                           Aucun dossier lie — templates generiques affiches
                         </p>
                       )}
-                      {gpTemplatesForStatus(linkedDossier?.status).map((tpl) => {
+                      {(linkedDossier ? gpTemplatesForDossier() : gpTemplatesGeneric()).map((tpl) => {
                         const msg = tpl.build(gpCtx);
                         return (
                           <button
@@ -719,6 +864,13 @@ export function MessagesTab() {
           )}
         </section>
       </div>
+      <LinkDossierDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        transporteurRef={transporteurInfo?.reference ?? null}
+        phone={openPhone}
+        onPick={(d) => linkDossierToConv(d)}
+      />
     </div>
   );
 }
