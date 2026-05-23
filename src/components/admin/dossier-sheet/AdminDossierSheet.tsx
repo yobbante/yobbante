@@ -412,7 +412,13 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
           <div className="text-sm text-muted-foreground">
             Saisis la référence à 4 chiffres du transporteur (GP) à qui confier ce dossier.
           </div>
-          <TransporteurReferenceLookup value={ref} onChange={setRef} onMatch={setMatched} />
+          <TransporteurReferenceLookup
+            value={ref}
+            onChange={setRef}
+            onMatch={setMatched}
+            destinationCity={(dossier as any).destination_city ?? null}
+            destinationCountry={dossier.destination_country ?? null}
+          />
           <Button
             size="sm"
             onClick={() => assign.mutate(ref)}

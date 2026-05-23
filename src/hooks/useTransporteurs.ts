@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Navette } from '@/lib/dakarZones';
 
 export interface Transporteur {
   id: string;
@@ -20,11 +21,18 @@ export interface Transporteur {
   invitation_bot_sent_at?: string | null;
   default_rate_per_kg?: number | null;
   default_routes?: Record<string, number> | null;
+  // GP profile extension
+  adresse_collecte_dakar?: string | null;
+  adresse_dakar_2?: string | null;
+  creneau_dakar?: string[] | null;
+  navettes?: Navette[] | null;
+  photo_url?: string | null;
+  profile_complete?: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export type TransporteurInput = Omit<Transporteur, 'id' | 'created_at' | 'updated_at' | 'actif'> & { actif?: boolean };
+export type TransporteurInput = Omit<Transporteur, 'id' | 'created_at' | 'updated_at' | 'actif' | 'profile_complete'> & { actif?: boolean };
 
 export function useTransporteurs() {
   const qc = useQueryClient();

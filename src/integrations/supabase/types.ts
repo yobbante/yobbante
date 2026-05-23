@@ -2580,10 +2580,12 @@ export type Database = {
           adresse_1: string
           adresse_2: string | null
           adresse_collecte_dakar: string | null
+          adresse_dakar_2: string | null
           adresses_remise: Json
           beta_invite_sent_at: string | null
           bot_paused_until: string | null
           created_at: string
+          creneau_dakar: string[] | null
           default_rate_per_kg: number | null
           default_routes: Json
           destinations: string[] | null
@@ -2593,9 +2595,12 @@ export type Database = {
           konnekt_registered_at: string | null
           last_bot_activity_at: string | null
           modes_transport: string[] | null
+          navettes: Json
           nom: string
           notes: string | null
+          photo_url: string | null
           prenom: string | null
+          profile_complete: boolean | null
           reference: string
           telephone_1: string
           telephone_2: string | null
@@ -2609,10 +2614,12 @@ export type Database = {
           adresse_1: string
           adresse_2?: string | null
           adresse_collecte_dakar?: string | null
+          adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
+          creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
           default_routes?: Json
           destinations?: string[] | null
@@ -2622,9 +2629,12 @@ export type Database = {
           konnekt_registered_at?: string | null
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
+          navettes?: Json
           nom: string
           notes?: string | null
+          photo_url?: string | null
           prenom?: string | null
+          profile_complete?: boolean | null
           reference: string
           telephone_1: string
           telephone_2?: string | null
@@ -2638,10 +2648,12 @@ export type Database = {
           adresse_1?: string
           adresse_2?: string | null
           adresse_collecte_dakar?: string | null
+          adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
+          creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
           default_routes?: Json
           destinations?: string[] | null
@@ -2651,9 +2663,12 @@ export type Database = {
           konnekt_registered_at?: string | null
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
+          navettes?: Json
           nom?: string
           notes?: string | null
+          photo_url?: string | null
           prenom?: string | null
+          profile_complete?: boolean | null
           reference?: string
           telephone_1?: string
           telephone_2?: string | null
@@ -3217,6 +3232,10 @@ export type Database = {
       shipment_status_message: {
         Args: { _status: string; _tracking: string }
         Returns: string
+      }
+      transporteur_serves_city: {
+        Args: { p_city: string; p_transporteur_id: string }
+        Returns: boolean
       }
     }
     Enums: {
