@@ -106,7 +106,7 @@ export async function assignTransporteurAndNotify({
       `Route : ${d.origin_country || '-'} -> ${d.destination_country || '-'}`,
       g?.telephone_1 ? `Contact GP : ${g.telephone_1}` : null,
       ``,
-      `Il vous contactera prochainement pour la collecte.`,
+      `Notre equipe passera collecter votre colis a votre adresse.`,
       `Suivi : yobbante.com/suivre/${ref}`,
       ``,
       `— Equipe Yobbante`,
