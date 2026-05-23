@@ -125,6 +125,10 @@ Que voulez-vous faire ?
 5 - Mes missions en cours
 6 - Mes prochains departs
 
+Autres commandes :
+• PROFIL — voir votre fiche
+• MODIFIER TEL / ADRESSE / NAVETTE
+
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
 Ex: DEP Paris 28/05 25kg
@@ -605,19 +609,172 @@ Voir : yobbante.com/admin`);
   }
 
   if (!transporteur) {
-    try {
-      await supa.from('gp_unknown_contacts').insert({
-        phone: fromPhone,
-        from_name: input.from_name ?? null,
-        message: rawMsg.slice(0, 500),
-      });
-    } catch (e) {
-      console.error('WA_ERROR log unknown', e);
+    // -----------------------------------------------------------------
+    // ONBOARDING bot 122 — guidé, crée un transporteur partenaire
+    // -----------------------------------------------------------------
+    const { data: onbSession } = await supa
+      .from('gp_bot_sessions')
+      .select('*')
+      .eq('from_phone', fromPhone)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const onbActive = onbSession
+      && (onbSession.pending_intent ?? '').startsWith('onb_')
+      && (Date.now() - new Date(onbSession.updated_at).getTime()) < 60 * 60 * 1000;
+
+    async function onbSave(intent: string, data: Record<string, unknown>) {
+      if (onbSession?.id) {
+        await supa.from('gp_bot_sessions').update({ pending_intent: intent, pending_data: data }).eq('id', onbSession.id);
+      } else {
+        await supa.from('gp_bot_sessions').insert({ from_phone: fromPhone, pending_intent: intent, pending_data: data });
+      }
     }
-    await reply(ONBOARDING_TEXT, 'onboarding_unknown');
-    await notifyAdmin(`Nouveau contact sur le 122 :
-${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
-"${rawMsg.slice(0, 100)}"`);
+    async function onbClear() {
+      if (onbSession?.id) await supa.from('gp_bot_sessions').delete().eq('id', onbSession.id);
+    }
+
+    // STOP — abandon
+    if (onbActive && /^(stop|annul|cancel|quit)/i.test(msg)) {
+      await onbClear();
+      await reply(`Inscription annulee. Tapez START pour reprendre.`, 'onb_cancel');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Bootstrap : premier message → demande prénom
+    if (!onbActive) {
+      try {
+        await supa.from('gp_unknown_contacts').insert({
+          phone: fromPhone, from_name: input.from_name ?? null, message: rawMsg.slice(0, 500),
+        });
+      } catch (_) { /* noop */ }
+      await onbSave('onb_prenom', {});
+      await reply(
+        `Bienvenue sur Yobbante GP ! 👋\n\nPour vous inscrire en tant que transporteur partenaire, j'ai besoin de quelques infos.\n\nQuel est votre PRENOM ?`,
+        'onb_start',
+      );
+      await notifyAdmin(`Nouveau contact sur le 122 — onboarding lance :\n${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}`);
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Étapes guidées
+    const intent = onbSession!.pending_intent as string;
+    const data = (onbSession!.pending_data ?? {}) as Record<string, any>;
+
+    if (intent === 'onb_prenom') {
+      const v = rawMsg.trim();
+      if (v.length < 2) { await reply(`Prenom trop court. Donnez votre prenom.`, 'onb_prenom_retry'); return new Response('ok', { headers: corsHeaders }); }
+      await onbSave('onb_nom', { ...data, prenom: v });
+      await reply(`Merci ${v} !\n\nQuel est votre NOM de famille ?`, 'onb_ask_nom');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_nom') {
+      const v = rawMsg.trim();
+      if (v.length < 2) { await reply(`Nom trop court.`, 'onb_nom_retry'); return new Response('ok', { headers: corsHeaders }); }
+      await onbSave('onb_adresse', { ...data, nom: v });
+      await reply(`Quelle est votre ADRESSE de collecte a Dakar ?\n(Ex : Villa 123, Sacre-Coeur 3)`, 'onb_ask_adresse');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_adresse') {
+      const v = rawMsg.trim();
+      if (v.length < 5) { await reply(`Adresse trop courte. Soyez precis.`, 'onb_adresse_retry'); return new Response('ok', { headers: corsHeaders }); }
+      await onbSave('onb_zone', { ...data, adresse_dakar: v });
+      await reply(
+        `Quelle ZONE de Dakar ?\n\n1 - Plateau / Medina\n2 - HLM / Liberte / Point E\n3 - Sacre-Coeur / Mermoz\n4 - Almadies / Ngor / Yoff\n5 - Pikine / Guediawaye\n6 - Rufisque / Bargny\n\nTapez le numero.`,
+        'onb_ask_zone',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_zone') {
+      const zMap: Record<string, string> = {
+        '1': 'Plateau', '2': 'HLM', '3': 'Sacre-Coeur', '4': 'Almadies', '5': 'Pikine', '6': 'Rufisque',
+      };
+      const z = zMap[msg];
+      if (!z) { await reply(`Tapez 1, 2, 3, 4, 5 ou 6.`, 'onb_zone_retry'); return new Response('ok', { headers: corsHeaders }); }
+      await onbSave('onb_villes', { ...data, zone_dakar: z });
+      await reply(
+        `Vers quelles VILLES voyagez-vous ?\n\nListez les villes separees par une virgule.\nEx : Paris, Lyon, Marseille\n\n(Ce sera votre navette principale.)`,
+        'onb_ask_villes',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_villes') {
+      const villes = rawMsg.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length >= 2).slice(0, 8);
+      if (villes.length === 0) { await reply(`Listez au moins une ville. Ex : Paris, Lyon`, 'onb_villes_retry'); return new Response('ok', { headers: corsHeaders }); }
+      await onbSave('onb_adresses_villes', { ...data, villes, ville_idx: 0, adresses_villes: {} });
+      await reply(
+        `Super ! Vous desservez : ${villes.join(', ')}\n\nMaintenant, donnez votre adresse de remise a ${villes[0]} ?\n(ou tapez SKIP pour passer)`,
+        'onb_ask_addr_first',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (intent === 'onb_adresses_villes') {
+      const villes = (data.villes ?? []) as string[];
+      const idx = (data.ville_idx ?? 0) as number;
+      const adresses = (data.adresses_villes ?? {}) as Record<string, string>;
+      const currentVille = villes[idx];
+      const v = rawMsg.trim();
+      if (!/^skip$/i.test(v) && v.length >= 5) adresses[currentVille] = v;
+      const nextIdx = idx + 1;
+      if (nextIdx < villes.length) {
+        await onbSave('onb_adresses_villes', { ...data, ville_idx: nextIdx, adresses_villes: adresses });
+        await reply(`Adresse de remise a ${villes[nextIdx]} ?\n(ou SKIP)`, 'onb_ask_addr_next');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      // ----- Finalisation : creer le transporteur -----
+      let reference = String(Math.floor(1000 + Math.random() * 9000));
+      for (let i = 0; i < 5; i++) {
+        const { data: exists } = await supa.from('transporteurs').select('id').eq('reference', reference).maybeSingle();
+        if (!exists) break;
+        reference = String(Math.floor(1000 + Math.random() * 9000));
+      }
+      const navettes = [{
+        id: `nav_${Date.now().toString(36)}`,
+        villes: [
+          { ville: 'Dakar', adresse: data.adresse_dakar, creneau: undefined },
+          ...villes.map((vName: string) => ({ ville: vName, adresse: adresses[vName] || undefined })),
+        ],
+      }];
+      const { data: created, error: cErr } = await supa.from('transporteurs').insert({
+        reference,
+        prenom: data.prenom,
+        nom: data.nom,
+        telephone_1: fromPhone,
+        whatsapp: fromPhone,
+        adresse_1: data.adresse_dakar,
+        adresse_collecte_dakar: data.adresse_dakar,
+        ville: 'Dakar',
+        zone: data.zone_dakar,
+        adresses_remise: adresses,
+        navettes,
+        actif: true,
+        konnekt_registered: false,
+        notes: 'Inscrit via WhatsApp 122',
+        last_bot_activity_at: new Date().toISOString(),
+      }).select('id, reference').single();
+
+      await onbClear();
+
+      if (cErr || !created) {
+        console.error('ONB insert error', cErr);
+        await reply(`Erreur technique. Un agent va vous recontacter.`, 'onb_error');
+        await notifyAdmin(`ECHEC onboarding GP ${fromPhone} :\n${cErr?.message ?? 'unknown'}\nDonnees : ${JSON.stringify(data).slice(0, 300)}`);
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      await reply(
+        `Felicitations ! 🎉\nVotre profil est cree.\n\nReference : GP${created.reference}\n\nVous recevrez bientot des missions correspondant a vos navettes.\n\nTapez AIDE pour voir vos commandes.`,
+        'onb_done',
+      );
+      await notifyAdmin(
+        `✅ Nouveau GP inscrit via le bot :\nGP${created.reference} — ${data.prenom} ${data.nom}\nTel : ${fromPhone}\nNavette : Dakar → ${villes.join(', ')}`,
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // Sécurité : intent inconnu → reset
+    await onbClear();
+    await reply(`Tapez START pour commencer votre inscription.`, 'onb_reset');
     return new Response('ok', { headers: corsHeaders });
   }
 
@@ -782,19 +939,57 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
   }
 
   // =================================================================
-  //  MODIFIER : génère un lien public pour modifier les infos GP
+  //  PROFIL : affiche la fiche complete du transporteur
+  // =================================================================
+  if (/^(profil|profile|mon\s+profil|ma\s+fiche)$/i.test(msg)) {
+    await clearSession();
+    const navettes = Array.isArray(transporteur.navettes) ? transporteur.navettes : [];
+    const villesSet = new Set<string>();
+    navettes.forEach((n: any) => (n.villes ?? []).forEach((v: any) => v.ville && villesSet.add(v.ville)));
+    const villes = Array.from(villesSet).filter(v => v.toLowerCase() !== 'dakar');
+    const lines = [
+      `📇 Votre profil Yobbante GP`,
+      ``,
+      `Ref : GP${transporteur.reference}`,
+      `Nom : ${transporteur.prenom ?? ''} ${transporteur.nom ?? ''}`.trim(),
+      `Tel : ${transporteur.telephone_1 ?? '—'}`,
+      `Adresse Dakar : ${transporteur.adresse_collecte_dakar ?? transporteur.adresse_1 ?? '—'}`,
+      `Zone : ${transporteur.zone ?? '—'}`,
+      `Navettes : ${villes.length ? villes.join(', ') : '—'}`,
+      ``,
+      transporteur.profile_complete ? `✅ Profil complet` : `⚠️ Profil incomplet`,
+      ``,
+      `Pour modifier :`,
+      `• MODIFIER TEL`,
+      `• MODIFIER ADRESSE`,
+      `• MODIFIER NAVETTE`,
+      `• MODIFIER (tout)`,
+    ];
+    await reply(lines.join('\n'), 'profil');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
+  //  MODIFIER [TEL|ADRESSE|NAVETTE] : génère un lien public
   // =================================================================
   if (/^modifier\b/.test(msg)) {
     if (!transporteur) {
       await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
+    // Sous-commandes
+    let fields: string[] = ['telephone_1', 'adresse_collecte_dakar', 'adresses_remise', 'navettes'];
+    let scope = 'tout';
+    if (/\btel\b|telephone|phone/.test(msg))         { fields = ['telephone_1']; scope = 'le telephone'; }
+    else if (/\badresse\b|addr/.test(msg))           { fields = ['adresse_collecte_dakar', 'adresse_dakar_2']; scope = "l'adresse Dakar"; }
+    else if (/\bnavette\b|trajet|ville/.test(msg))   { fields = ['navettes', 'adresses_remise']; scope = 'vos navettes'; }
+
     const { data: tok, error } = await supa
       .from('edit_tokens')
       .insert({
         entity_type: 'transporteur',
         entity_id: transporteur.id,
-        fields_allowed: ['telephone_1', 'adresse_collecte_dakar', 'adresses_remise'],
+        fields_allowed: fields,
       })
       .select('token')
       .single();
@@ -804,7 +999,7 @@ ${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}
     }
     const link = `https://yobbante.com/modifier/${tok.token}`;
     await reply(
-      `Voici votre lien de modification (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`,
+      `Pour modifier ${scope}, ouvrez ce lien (valide 24h) :\n${link}\n\nSi vous avez des questions, tapez AIDE.`,
       'modifier_link',
     );
     return new Response('ok', { headers: corsHeaders });

@@ -296,6 +296,43 @@ export function TransporteursTab() {
         <Button variant={onlyIncomplete ? 'default' : 'outline'} size="sm" onClick={() => setOnlyIncomplete(s => !s)}>
           ⚠️ Profils incomplets
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            const incomplete = (list.data ?? []).filter(t => t.actif && !t.profile_complete && t.telephone_1);
+            if (incomplete.length === 0) { toast.info('Aucun profil incomplet à relancer.'); return; }
+            if (!confirm(`Envoyer un rappel WhatsApp à ${incomplete.length} GP avec profil incomplet ?`)) return;
+            let ok = 0, fail = 0;
+            const { data: { user } } = await supabase.auth.getUser();
+            for (const t of incomplete) {
+              try {
+                const { data: tok, error } = await supabase.from('edit_tokens').insert({
+                  entity_type: 'transporteur',
+                  entity_id: t.id,
+                  fields_allowed: ['telephone_1', 'adresse_collecte_dakar', 'adresse_dakar_2', 'adresses_remise', 'navettes'],
+                  created_by: user?.id ?? null,
+                }).select('token').single();
+                if (error || !tok) throw error;
+                const link = `https://yobbante.com/modifier/${tok.token}`;
+                const prenom = t.prenom || t.nom?.split(' ')[0] || 'partenaire';
+                const message =
+                  `Bonjour ${prenom},\n\n` +
+                  `Votre profil Yobbante GP est incomplet. ` +
+                  `Completez-le pour recevoir plus de missions :\n${link}\n\n` +
+                  `Lien valide 24h.`;
+                const { error: waErr } = await supabase.functions.invoke('send-whatsapp', {
+                  body: { recipient_phone: t.telephone_1, recipient_type: 'transporteur', message, trigger_type: 'profile_reminder_blast' },
+                });
+                if (waErr) throw waErr;
+                ok++;
+              } catch (_e) { fail++; }
+            }
+            toast.success(`Campagne envoyée : ${ok} OK · ${fail} échecs`);
+          }}
+        >
+          📣 Relance incomplets
+        </Button>
         <Button variant={showInactive ? 'default' : 'outline'} size="sm" onClick={() => setShowInactive(s => !s)}>
           {showInactive ? 'Masquer inactifs' : 'Afficher inactifs'}
         </Button>
