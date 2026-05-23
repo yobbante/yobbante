@@ -32,6 +32,7 @@ import { WeighingDialog, type WeighingDossier } from '@/components/admin/Weighin
 import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
 import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
+import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 import { format } from 'date-fns';
 
 
