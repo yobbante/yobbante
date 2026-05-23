@@ -327,25 +327,34 @@ function LivreurDialog({ livreur, onClose, onSave }: {
           </div>
           <div>
             <Label>Zones couvertes</Label>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {DAKAR_ZONES.map(z => {
-                const active = (form.zone_couverte ?? []).includes(z);
-                return (
-                  <button
-                    type="button"
-                    key={z}
-                    onClick={() => toggleZone(z)}
-                    className="text-xs px-2 py-1 rounded border transition-colors"
-                    style={{
-                      borderColor: active ? '#F5C518' : 'hsl(var(--border))',
-                      background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
-                      color: active ? '#F5C518' : 'hsl(var(--foreground))',
-                    }}
-                  >
-                    {z}
-                  </button>
-                );
-              })}
+            <div className="space-y-3 mt-1.5 max-h-72 overflow-y-auto pr-1">
+              {QUARTIER_GROUPS.map(group => (
+                <div key={group.label}>
+                  <div className="text-xs font-medium text-muted-foreground mb-1.5">
+                    {group.label}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.quartiers.map(z => {
+                      const active = (form.zone_couverte ?? []).includes(z);
+                      return (
+                        <button
+                          type="button"
+                          key={z}
+                          onClick={() => toggleZone(z)}
+                          className="text-xs px-2 py-1 rounded border transition-colors"
+                          style={{
+                            borderColor: active ? '#F5C518' : 'hsl(var(--border))',
+                            background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
+                            color: active ? '#F5C518' : 'hsl(var(--foreground))',
+                          }}
+                        >
+                          {z}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div>
