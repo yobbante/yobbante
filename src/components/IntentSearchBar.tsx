@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Search, Inbox, ArrowRight, ArrowRightLeft, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 
 export type IntentKey = 'send' | 'sourcing' | 'receive';
 
