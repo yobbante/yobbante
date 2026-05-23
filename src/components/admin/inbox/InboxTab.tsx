@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SendEditLinkDialog } from '../SendEditLinkDialog';
 import { DeliveryFinalePanel } from './DeliveryFinalePanel';
 import { Pencil } from 'lucide-react';
+import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
 
 const COLS = [
   { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
