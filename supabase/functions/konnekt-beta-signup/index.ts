@@ -15,6 +15,7 @@ interface SignupBody {
   prenom?: string;
   nom?: string;
   telephone?: string;
+  email?: string;
   ville?: string;
   villes_desservies?: string[];
   frequence?: 'hebdomadaire' | 'mensuel' | 'occasionnel';
@@ -27,11 +28,14 @@ function normalizePhone(input: string): string {
   if (!v) return '';
   if (v.startsWith('00')) v = '+' + v.slice(2);
   if (!v.startsWith('+')) {
-    // Si 9 chiffres, on suppose +221
     if (v.length === 9) v = '+221' + v;
     else v = '+' + v;
   }
   return v;
+}
+
+function isValidEmail(e: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length <= 200;
 }
 
 function validate(b: SignupBody): { ok: true; data: Required<Pick<SignupBody, 'prenom' | 'nom' | 'telephone' | 'ville'>> & SignupBody } | { ok: false; error: string } {
@@ -39,12 +43,14 @@ function validate(b: SignupBody): { ok: true; data: Required<Pick<SignupBody, 'p
   const nom = (b.nom || '').trim();
   const ville = (b.ville || '').trim();
   const telephone = normalizePhone(b.telephone || '');
+  const email = (b.email || '').trim().toLowerCase();
   if (prenom.length < 2 || prenom.length > 60) return { ok: false, error: 'Prenom invalide' };
   if (nom.length < 2 || nom.length > 60) return { ok: false, error: 'Nom invalide' };
   if (!ville || ville.length > 60) return { ok: false, error: 'Ville invalide' };
   if (!telephone || telephone.length < 8 || telephone.length > 18) return { ok: false, error: 'Telephone invalide' };
+  if (email && !isValidEmail(email)) return { ok: false, error: 'Email invalide' };
   const villes = Array.isArray(b.villes_desservies) ? b.villes_desservies.filter(v => typeof v === 'string' && v.length > 0 && v.length < 60).slice(0, 20) : [];
-  return { ok: true, data: { prenom, nom, telephone, ville, villes_desservies: villes, frequence: b.frequence, source_decouverte: b.source_decouverte, ref_parrainage: b.ref_parrainage ?? null } };
+  return { ok: true, data: { prenom, nom, telephone, email, ville, villes_desservies: villes, frequence: b.frequence, source_decouverte: b.source_decouverte, ref_parrainage: b.ref_parrainage ?? null } };
 }
 
 /** Génère le prochain reference disponible (4 chiffres). */
