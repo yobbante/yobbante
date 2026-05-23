@@ -131,21 +131,26 @@ Deno.serve(async (req) => {
   const useTemplate = !!body.template_name;
   let metaBody: Record<string, unknown>;
   let messageBody: string | null = null;
+  let activeTemplateName: string | null = body.template_name ?? null;
 
-  if (useTemplate) {
+  const buildTemplateBody = (templateName: string): Record<string, unknown> => {
     const params = (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
-    metaBody = {
+    return {
       messaging_product: 'whatsapp',
       to: recipient,
       type: 'template',
       template: {
-        name: body.template_name,
+        name: templateName,
         language: { code: 'fr' },
         ...(params.length > 0 && {
           components: [{ type: 'body', parameters: params }],
         }),
       },
     };
+  };
+
+  if (useTemplate) {
+    metaBody = buildTemplateBody(body.template_name!);
   } else {
     // Free text fallback (24h window or admin notif)
     messageBody = body.message
@@ -173,18 +178,52 @@ Voir → https://yobbante.com/admin`;
   let errorMessage: string | null = null;
   let metaResult: any = null;
   let httpOk = false;
+  let usedFallback = false;
 
-  try {
+  const callMeta = async (payload: Record<string, unknown>) => {
     const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(metaBody),
+      body: JSON.stringify(payload),
     });
-    metaResult = await res.json();
+    const json: any = await res.json();
+    return { res, json };
+  };
+
+  const isTemplateNotApproved = (json: any, res: Response): boolean => {
+    if (res.ok) return false;
+    const code = json?.error?.code;
+    const msg: string = json?.error?.message ?? '';
+    return code === 132000 || code === 132001 || code === 132005 || /template/i.test(msg);
+  };
+
+  try {
+    let { res, json } = await callMeta(metaBody);
+    metaResult = json;
     httpOk = res.ok;
+
+    // Retry avec le fallback si template _v2 non approuvé
+    if (!res.ok && useTemplate && isTemplateNotApproved(json, res)) {
+      const fb = body.template_fallback_name
+        ?? TEMPLATE_FALLBACKS[body.template_name!]
+        ?? null;
+      if (fb && fb !== body.template_name) {
+        console.warn('WA_FALLBACK', JSON.stringify({ from: body.template_name, to: fb }));
+        const retry = await callMeta(buildTemplateBody(fb));
+        res = retry.res;
+        json = retry.json;
+        metaResult = json;
+        httpOk = res.ok;
+        if (res.ok) {
+          usedFallback = true;
+          activeTemplateName = fb;
+        }
+      }
+    }
+
     if (res.ok) {
       wamid = metaResult?.messages?.[0]?.id ?? null;
     } else {
@@ -192,12 +231,7 @@ Voir → https://yobbante.com/admin`;
       const sub = metaResult?.error?.error_subcode;
       const msg: string = metaResult?.error?.message ?? `HTTP ${res.status}`;
       errorMessage = msg;
-      // Template not approved / not found
-      if (code === 132000 || code === 132001 || code === 132005 || /template/i.test(msg)) {
-        status = 'template_not_approved';
-      } else {
-        status = 'failed';
-      }
+      status = isTemplateNotApproved(metaResult, res) ? 'template_not_approved' : 'failed';
       console.error('WA_ERROR', JSON.stringify({ code, sub, msg }));
     }
   } catch (err) {
@@ -212,7 +246,7 @@ Voir → https://yobbante.com/admin`;
       to_phone: recipient,
       from_number: fromNumber,
       recipient_type: recipientType,
-      template_name: body.template_name ?? null,
+      template_name: activeTemplateName,
       template_params: body.template_params ? body.template_params : null,
       message_body: messageBody,
       dossier_id: body.dossier_id ?? null,
@@ -220,7 +254,9 @@ Voir → https://yobbante.com/admin`;
       status,
       wamid,
       error_message: errorMessage,
-      trigger_type: body.trigger_type ?? null,
+      trigger_type: usedFallback
+        ? `${body.trigger_type ?? 'unknown'}::fallback`
+        : (body.trigger_type ?? null),
     });
   } catch (logErr) {
     console.error('WA_ERROR log', logErr instanceof Error ? logErr.message : String(logErr));
