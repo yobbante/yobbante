@@ -20,6 +20,8 @@ import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
+import { isDakarZone, HORS_DAKAR_SURCHARGE, formatFcfa } from '@/lib/yobbantePricing';
+
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
@@ -1317,38 +1319,55 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
         {(() => {
-          // ── Prix venant directement du moteur (pricing engine v2)
-          // Standard et Express sont calculés côté DB via urgency_mult.
+          // ── Prix venant du moteur (pricing engine v2). On y ajoute la
+          // surcharge hors-Dakar si l'enlèvement n'est pas dans l'agglo.
           const fallbackBase = Math.max(15, Math.round(weight * 4));
-          const standardPrice = quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase;
-          const expressPrice  = quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.35);
+          const isFromDakar = direction === 'from_dakar';
+          const outsideDakar = isFromDakar && pickupAddress.trim().length > 3 && !isDakarZone(pickupAddress);
+          // Surcharge ~ 5 000 FCFA ≈ 7,6 € (655 FCFA / €)
+          const surchargeEur = outsideDakar ? Math.round(HORS_DAKAR_SURCHARGE / 655) : 0;
+
+          const standardPrice = (quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase) + surchargeEur;
+          const expressPrice  = (quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.45)) + surchargeEur;
 
           const standardEtaMin = quoteStandard?.eta_min_days ?? 5;
           const standardEtaMax = quoteStandard?.eta_max_days ?? 9;
           const expressEtaMin  = quoteExpress?.eta_min_days  ?? Math.max(1, Math.ceil(standardEtaMin * 0.6));
           const expressEtaMax  = quoteExpress?.eta_max_days  ?? Math.max(expressEtaMin + 1, Math.ceil(standardEtaMax * 0.6));
 
+          const STANDARD_PERKS = [
+            'Enlèvement gratuit à Dakar',
+            'Suivi en temps réel',
+            'Dédouanement inclus',
+          ];
+          const EXPRESS_PERKS = [
+            'Enlèvement prioritaire à Dakar',
+            'Suivi renforcé',
+            'Dédouanement express',
+          ];
+
           const cards = [
-            {
-              id: 'express' as const,
-              label: 'Express',
-              tagline: 'Le plus rapide',
-              icon: <Zap className="w-4 h-4" />,
-              eta: `${expressEtaMin}-${expressEtaMax} jours`,
-              price: expressPrice,
-              perks: [...INCLUDED_PERKS, 'Traitement prioritaire'],
-            },
             {
               id: 'normal' as const,
               label: 'Standard',
-              tagline: 'Le meilleur rapport qualité/prix',
+              tagline: 'Via transporteur partenaire',
               icon: <Clock className="w-4 h-4" />,
               eta: `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
-              perks: [...INCLUDED_PERKS, 'Économique'],
+              perks: STANDARD_PERKS,
               recommended: true,
             },
+            {
+              id: 'express' as const,
+              label: 'Express ⚡',
+              tagline: 'Priorité absolue — premier départ',
+              icon: <Zap className="w-4 h-4" />,
+              eta: `${expressEtaMin}-${expressEtaMax} jours`,
+              price: expressPrice,
+              perks: EXPRESS_PERKS,
+            },
           ];
+
 
           const hasInstantDeparture = options.length > 0;
           const noInstant = !matching && !hasInstantDeparture && originCity && destCity && weightTouched;
@@ -1445,8 +1464,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     </div>
                   )}
 
+                  {outsideDakar && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
+                      <span aria-hidden>📍</span>
+                      <span>
+                        Adresse hors Dakar — frais de déplacement&nbsp;:
+                        <strong className="ml-1">+ {formatFcfa(HORS_DAKAR_SURCHARGE)}</strong>
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid sm:grid-cols-2 gap-3">
+
                     {cards.map(c => {
                       const active = priority === c.id;
                       return (
