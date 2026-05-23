@@ -81,6 +81,10 @@ const DekkRoutes = () => (
     <Route path="/auth" element={<Auth />} />
     <Route path="/mon-compte" element={<Index />} />
     <Route path="/app" element={<Index />} />
+    <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
+    <Route path="/app/mes-receptions" element={<Navigate to="/app?view=receptions" replace />} />
+    <Route path="/app/mon-sourcing" element={<Navigate to="/app?view=sourcing" replace />} />
+    <Route path="/app/profil" element={<Navigate to="/app?view=profile" replace />} />
     <Route path="/app/dossier/:id" element={<DossierDetail />} />
 
     {/* Suivi colis partagé */}
@@ -148,6 +152,10 @@ const MainRoutes = () => (
     <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/app" element={<Index />} />
+    <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
+    <Route path="/app/mes-receptions" element={<Navigate to="/app?view=receptions" replace />} />
+    <Route path="/app/mon-sourcing" element={<Navigate to="/app?view=sourcing" replace />} />
+    <Route path="/app/profil" element={<Navigate to="/app?view=profile" replace />} />
     <Route path="/app/dossier/:id" element={<DossierDetail />} />
     <Route path="/admin" element={<AdminPage />} />
     <Route path="/admin/inbox/import" element={<InboxImportPage />} />

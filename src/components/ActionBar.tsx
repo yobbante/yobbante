@@ -65,8 +65,8 @@ export function ActionBar({ onTrack, onEstimate }: ActionBarProps) {
       <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
         {[
           { icon: Search,    label: 'Sourcing',  desc: 'Fournisseurs', onClick: () => navigate('/acheter') },
-          { icon: Sparkles,  label: 'Estimer',   desc: 'IA',           onClick: onEstimate },
-          { icon: Package,   label: 'Suivre',    desc: 'Temps réel',   onClick: onTrack },
+          { icon: Sparkles,  label: 'Estimer',   desc: 'Devis IA',     onClick: () => navigate('/expedier/envoyer#tarifs') },
+          { icon: Package,   label: 'Suivre',    desc: 'YOB-XXXXXX',   onClick: () => navigate('/suivre') },
         ].map((a, i) => (
           <motion.button
             key={a.label}

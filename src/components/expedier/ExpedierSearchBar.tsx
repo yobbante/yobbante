@@ -241,10 +241,17 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
         {mode === 'recevoir' && (
           <button
             type="button"
+            aria-label="Mes commandes"
+            title="Mes commandes"
             onClick={() => window.dispatchEvent(new CustomEvent('yobbante:receive-flow:goto', { detail: { step: 'orders' } }))}
-            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] font-semibold rounded-md px-2 py-1 bg-yellow-400 text-zinc-950 hover:bg-yellow-300 transition-colors"
+            className={cn(
+              'inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors',
+              isDark
+                ? 'text-white/60 hover:text-yellow-400 hover:bg-white/5'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
+            )}
           >
-            <ListChecks className="w-3 h-3" /> Mes commandes
+            <ListChecks className="w-4 h-4" />
           </button>
         )}
       </div>
