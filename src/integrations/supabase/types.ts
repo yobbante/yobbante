@@ -402,6 +402,42 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_cities: {
+        Row: {
+          active: boolean
+          city: string
+          country_code: string
+          country_label: string
+          created_at: string
+          created_by: string | null
+          flag: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city: string
+          country_code: string
+          country_label: string
+          created_at?: string
+          created_by?: string | null
+          flag?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city?: string
+          country_code?: string
+          country_label?: string
+          created_at?: string
+          created_by?: string | null
+          flag?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_reviews: {
         Row: {
           comment: string | null

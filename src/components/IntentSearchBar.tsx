@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Search, Inbox, ArrowRight, ArrowRightLeft, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 
 export type IntentKey = 'send' | 'sourcing' | 'receive';
 
@@ -25,13 +26,14 @@ const INTENTS: Array<{
 ];
 
 /** Best-effort match for a free-text city input against the catalog. */
-function matchCity(input: string) {
+function matchCity(input: string, customs: typeof ALL_CITIES = []) {
   const v = input.trim().toLowerCase();
   if (!v) return null;
+  const pool = [...ALL_CITIES, ...customs];
   return (
-    ALL_CITIES.find(c => c.city.toLowerCase() === v) ??
-    ALL_CITIES.find(c => c.city.toLowerCase().startsWith(v)) ??
-    ALL_CITIES.find(c => c.city.toLowerCase().includes(v) || c.countryLabel.toLowerCase().includes(v)) ??
+    pool.find(c => c.city.toLowerCase() === v) ??
+    pool.find(c => c.city.toLowerCase().startsWith(v)) ??
+    pool.find(c => c.city.toLowerCase().includes(v) || c.countryLabel.toLowerCase().includes(v)) ??
     null
   );
 }
@@ -46,6 +48,7 @@ export function IntentSearchBar({
   className,
 }: IntentSearchBarProps) {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const [intent, setIntent] = useState<IntentKey>(defaultIntent);
   const [query, setQuery] = useState('');
   // Send-only: 'from_dakar' = Dakar → ville étrangère ; 'to_dakar' = ville → Dakar
@@ -74,7 +77,7 @@ export function IntentSearchBar({
       return;
     }
     // SEND — Dakar toujours sur une extrémité.
-    const matched = matchCity(q);
+    const matched = matchCity(q, customCities);
     const foreignCountry = matched?.country ?? undefined;
     const foreignCity    = matched?.city ?? (q || undefined);
     const preset = direction === 'from_dakar'
@@ -188,7 +191,7 @@ export function IntentSearchBar({
         />
         {intent === 'send' && (
           <datalist id={`${id}-cities`}>
-            {ALL_CITIES.map(c => (
+            {[...ALL_CITIES, ...customCities].map(c => (
               <option key={c.id} value={c.city}>{c.flag} {c.countryLabel}</option>
             ))}
           </datalist>

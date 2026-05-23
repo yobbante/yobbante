@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { ChevronDown, Search, X, MapPin } from 'lucide-react';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { cn } from '@/lib/utils';
 
 interface CityPickerProps {
@@ -44,9 +45,10 @@ export function CityPicker({
     return () => clearTimeout(t);
   }, [q]);
 
+  const { cities: customCities } = useCustomCities();
   const cities = useMemo(
-    () => ALL_CITIES.filter(c => !excludeCity || c.city !== excludeCity),
-    [excludeCity],
+    () => [...ALL_CITIES, ...customCities].filter(c => !excludeCity || c.city !== excludeCity),
+    [excludeCity, customCities],
   );
 
   const filtered = useMemo(() => {

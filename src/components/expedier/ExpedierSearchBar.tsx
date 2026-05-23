@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
 
 /* =========================================================================
@@ -46,10 +47,14 @@ const TABS: { key: ExpedierMode; Icon: typeof Package; label: string; shortLabel
 const SEND_PRESET_KEY = 'send-flow:preset';
 const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 
-function resolveCityToCountry(cityLabel: string): { country: string; city: string } | null {
+function resolveCityToCountry(
+  cityLabel: string,
+  customs: { city: string; country: string; countryLabel: string }[] = [],
+): { country: string; city: string } | null {
   if (!cityLabel) return null;
   if (cityLabel === 'Dakar, Sénégal') return { country: 'SN', city: 'Dakar' };
-  const match = ALL_CITIES.find(
+  const pool = [...ALL_CITIES, ...customs];
+  const match = pool.find(
     c => cityLabel === `${c.city}, ${c.countryLabel}` || cityLabel === c.city,
   );
   if (match) return { country: match.country, city: match.city };
@@ -68,6 +73,7 @@ interface Props {
 
 export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded = true }: Props) {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const theme: 'light' | 'dark' = mode === 'recevoir' ? 'dark' : 'light';
   const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -86,7 +92,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const buildCityLabel = (city?: string, country?: string) => {
     if (!city) return '';
     if (city === 'Dakar') return DAKAR;
-    const m = ALL_CITIES.find(c => c.city === city && (!country || c.country === country));
+    const pool = [...ALL_CITIES, ...customCities];
+    const m = pool.find(c => c.city === city && (!country || c.country === country));
     return m ? `${m.city}, ${m.countryLabel}` : city;
   };
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
@@ -145,8 +152,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
 
   // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
-    const o = resolveCityToCountry(origin);
-    const d = resolveCityToCountry(destination);
+    const o = resolveCityToCountry(origin, customCities);
+    const d = resolveCityToCountry(destination, customCities);
     if (!o || !d || !weight) return;
     const preset = {
       origin: o.country, destination: d.country,

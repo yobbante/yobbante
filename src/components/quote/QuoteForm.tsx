@@ -7,14 +7,16 @@ import {
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateTransport } from '@/lib/pricing';
 
 const SEND_PRESET_KEY = 'send-flow:preset';
 
-function resolveCityToCountry(label: string): { country: string; city: string } | null {
+function resolveCityToCountry(label: string, customs: { city: string; country: string; countryLabel: string }[] = []): { country: string; city: string } | null {
   if (!label) return null;
   if (label === 'Dakar, Sénégal' || label === 'Dakar') return { country: 'SN', city: 'Dakar' };
-  const m = ALL_CITIES.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
+  const pool = [...ALL_CITIES, ...customs];
+  const m = pool.find(c => label === `${c.city}, ${c.countryLabel}` || label === c.city);
   return m ? { country: m.country, city: m.city } : null;
 }
 
@@ -62,6 +64,7 @@ const TABS: TabDef[] = [
 
 export function QuoteForm() {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const [service, setService] = useState<ServiceMode>('send');
 
   // Shared — Dakar est toujours verrouillé sur une extrémité de la route.
@@ -112,8 +115,8 @@ export function QuoteForm() {
       // shape ExpedierSearchBar consumes, so the flow shows the price
       // section without a separate /devis detour. Hash #tarifs lets
       // SendFlow auto-scroll to the pricing step once the route is ready.
-      const o = resolveCityToCountry(origin);
-      const d = resolveCityToCountry(destination);
+      const o = resolveCityToCountry(origin, customCities);
+      const d = resolveCityToCountry(destination, customCities);
       if (!o || !d) return;
       const transport: 'AIR' | 'SEA' | 'ROAD' =
         mode === 'air' ? 'AIR' : mode === 'sea' ? 'SEA' : 'ROAD';

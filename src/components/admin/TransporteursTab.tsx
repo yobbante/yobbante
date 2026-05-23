@@ -25,14 +25,14 @@ import { Progress } from '@/components/ui/progress';
 import { SendEditLinkDialog } from './SendEditLinkDialog';
 import { Pencil as PencilIcon } from 'lucide-react';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { NavettesEditor } from './transporteur/NavettesEditor';
 import {
-  DAKAR_ZONES, DAKAR_CRENEAUX, uniqueCitiesFromNavettes, type Navette,
+  DAKAR_ZONES, DAKAR_CRENEAUX, QUARTIER_GROUPS, uniqueCitiesFromNavettes, type Navette,
 } from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
@@ -1002,8 +1002,15 @@ function EditDrawer({
                   <Label>Zone / Quartier *</Label>
                   <Select value={zoneDakar} onValueChange={setZoneDakar}>
                     <SelectTrigger><SelectValue placeholder="Choisir un quartier…" /></SelectTrigger>
-                    <SelectContent>
-                      {DAKAR_ZONES.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                    <SelectContent className="max-h-[320px]">
+                      {QUARTIER_GROUPS.map(group => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel className="text-[11px]">{group.label}</SelectLabel>
+                          {group.quartiers.map(q => (
+                            <SelectItem key={q} value={q}>{q}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
