@@ -35,6 +35,7 @@ import { NavettesEditor } from './transporteur/NavettesEditor';
 import {
   DAKAR_ZONES, DAKAR_CRENEAUX, QUARTIER_GROUPS, uniqueCitiesFromNavettes, type Navette,
 } from '@/lib/dakarZones';
+import { gpWhatsappLink, YOBBANTE_GP_WHATSAPP_DISPLAY } from '@/lib/contact';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
 const SUPER_ADMIN_PHONE = '+221784604003';
@@ -54,7 +55,7 @@ Envoyez AIDE pour voir comment fonctionne le systeme.
 
 Vous recevrez vos premieres missions directement sur WhatsApp.
 
-Questions : ${SUPER_ADMIN_PHONE}`;
+Si vous voulez nous ecrire, envoyez votre message sur WhatsApp au ${YOBBANTE_GP_WHATSAPP_DISPLAY}.`;
 }
 
 function buildBotWaUrl(gp: Transporteur) {
@@ -100,6 +101,8 @@ Etape 2 : Envoyez le mot AIDE
 
 Etape 3 : Recevez vos missions
 
+Si vous voulez envoyer un message, ecrivez directement au ${YOBBANTE_GP_WHATSAPP_DISPLAY}
+
 Votre profil est deja cree. Activez votre compte ici :
 yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
 
@@ -109,6 +112,11 @@ usekonnekt.com`;
 function buildWaUrl(gp: Transporteur) {
   const phone = (gp.telephone_1 || '').replace(/\D/g, '');
   return `https://wa.me/${phone}?text=${encodeURIComponent(buildInviteMessage(gp))}`;
+}
+
+function buildDirectMessageToGpLine(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+  return gpWhatsappLink(`Salam, ici ${prenom}. Je vous ecris au sujet de mon compte GP.`);
 }
 
 function formatShortDate(iso?: string | null) {
@@ -449,6 +457,9 @@ export function TransporteursTab() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`/admin/messages?gp=${t.id}`)}>
                         <MessageCircle className="w-4 h-4 mr-2" /> Voir conversation bot
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
+                        <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification

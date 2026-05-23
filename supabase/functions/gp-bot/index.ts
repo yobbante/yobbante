@@ -138,7 +138,7 @@ ou tapez directement votre commande.
 Ex: DEP Paris 28/05 25kg
 Ex: TARIF Paris 6500
 
-Pour toute urgence : +221784604003`;
+Si vous voulez nous ecrire : +221781221891`;
 
 
 const FALLBACK_TEXT = `Je n'ai pas compris.
@@ -160,7 +160,7 @@ Si vous etes transporteur et souhaitez rejoindre notre reseau :
 👉 yobbante.com/rejoindre-konnekt
 
 Si vous etes deja partenaire et avez un probleme d'acces, contactez-nous :
-+221784604003
++221781221891
 
 Merci !`;
 
@@ -1093,7 +1093,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   if (/^pause\b/i.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'pause_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'pause_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     const m = msg.match(/pause\s+(\d{1,3})/i);
@@ -1113,7 +1113,7 @@ Voir : yobbante.com/admin`);
   }
   if (/^(reprendre|reprise|resume|reactiver|on)$/i.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'resume_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'resume_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     await supa.from('transporteurs')
@@ -1129,7 +1129,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   if (/^modifier\b/.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'modifier_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     // Sous-commandes
