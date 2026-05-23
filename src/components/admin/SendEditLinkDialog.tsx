@@ -27,8 +27,9 @@ const PRESETS: Record<EntityType, FieldOption[]> = {
   ],
   transporteur: [
     { key: "phone", label: "Téléphone principal", fields: ["telephone_1"] },
-    { key: "addr_dkr", label: "Adresse de collecte (Dakar)", fields: ["adresse_collecte_dakar"] },
+    { key: "addr_dkr", label: "Adresse de collecte (Dakar)", fields: ["adresse_collecte_dakar", "adresse_dakar_2"] },
     { key: "addr_remise", label: "Adresses de remise", fields: ["adresses_remise"] },
+    { key: "navettes", label: "Navettes (villes desservies)", fields: ["navettes"] },
   ],
   client: [
     { key: "identity", label: "Nom + téléphone + email", fields: ["full_name", "phone", "email"] },

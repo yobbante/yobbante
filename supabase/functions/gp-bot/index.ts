@@ -125,6 +125,10 @@ Que voulez-vous faire ?
 5 - Mes missions en cours
 6 - Mes prochains departs
 
+Autres commandes :
+• PROFIL — voir votre fiche
+• MODIFIER TEL / ADRESSE / NAVETTE
+
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
 Ex: DEP Paris 28/05 25kg
