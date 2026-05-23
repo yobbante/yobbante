@@ -155,7 +155,9 @@ export function MessagesTab() {
   const [gpMode, setGpMode] = useState<'libre' | 'templates'>('libre');
   const [gpText, setGpText] = useState('');
   const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
-  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
+  const [availableDossiers, setAvailableDossiers] = useState<LinkableDossier[]>([]);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
 
