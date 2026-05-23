@@ -863,6 +863,14 @@ export function LiveSummaryBar({
               <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
               {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
             </button>
+            {priceLabel && (
+              <div className="shrink-0 text-right hidden xs:block sm:block">
+                <p className={cn('text-[9px] uppercase tracking-[0.18em] font-medium leading-none', t.muted)}>
+                  {priceHint || 'Total estimé'}
+                </p>
+                <p className="mt-1 text-base sm:text-lg font-bold tabular-nums leading-none">{priceLabel}</p>
+              </div>
+            )}
             <button
               onClick={onSubmit}
               disabled={submitting}
