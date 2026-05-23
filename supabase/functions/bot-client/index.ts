@@ -543,28 +543,29 @@ Deno.serve(async (req) => {
     else if (intent === 'ship_origin' && msg) {
       data.origin = msg;
       await saveSession(supa, phone, 'ship_dest', data);
-      reply = `Vers quelle ville ?`;
+      reply = withBack(`Vers quelle ville ?`);
     } else if (intent === 'ship_dest' && msg) {
       data.dest = msg;
       await saveSession(supa, phone, 'ship_weight', data);
-      reply = `Poids estime (kg) ?`;
+      reply = withBack(`Poids estime (kg) ?`);
     } else if (intent === 'ship_weight' && msg) {
       const w = parseFloat(nMsg.replace(',', '.'));
       if (!w || w <= 0) {
-        reply = `Poids invalide. Indiquez en kg (ex: 5)`;
+        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
       } else {
         data.weight = w;
         await saveSession(supa, phone, 'ship_name', data);
-        reply = `Merci. Quel est votre nom complet ?`;
+        reply = withBack(`Merci. Quel est votre nom complet ?`);
       }
     } else if (intent === 'ship_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'ship_phone', data);
-      reply = `Quel numero de telephone doit etre associe a l expedition ?`;
+      reply = withBack(`Quel numero de telephone doit etre associe a l expedition ?`);
     } else if (intent === 'ship_phone' && msg) {
       const digits = msg.replace(/\D/g, '');
       if (digits.length < 8) {
-        reply = `Numero invalide. Envoyez un numero complet.`;
+        reply = withBack(`Numero invalide. Envoyez un numero complet.`);
+
       } else {
         data.client_phone = msg;
         const est = await handleQuoteCalc(supa, data.dest, data.weight);
