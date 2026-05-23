@@ -1464,8 +1464,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     </div>
                   )}
 
+                  {outsideDakar && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
+                      <span aria-hidden>📍</span>
+                      <span>
+                        Adresse hors Dakar — frais de déplacement&nbsp;:
+                        <strong className="ml-1">+ {formatFcfa(HORS_DAKAR_SURCHARGE)}</strong>
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid sm:grid-cols-2 gap-3">
+
                     {cards.map(c => {
                       const active = priority === c.id;
                       return (
