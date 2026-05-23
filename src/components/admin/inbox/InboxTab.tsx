@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SendEditLinkDialog } from '../SendEditLinkDialog';
 import { DeliveryFinalePanel } from './DeliveryFinalePanel';
 import { Pencil } from 'lucide-react';
+import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
 
 const COLS = [
   { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
@@ -42,6 +43,7 @@ function buildClientRecap(d: InboxDossier) {
 }
 
 export function InboxTab() {
+  const sheet = useDossierSheet();
   const { data: dossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
   const stats = useInboxStats(dossiers);
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
@@ -136,7 +138,7 @@ export function InboxTab() {
                         <InboxCard
                           key={d.id}
                           dossier={d}
-                          onView={setDetail}
+                          onView={(d) => sheet.open(d.id)}
                           onConfirm={handleConfirm}
                           onWhatsApp={handleWhatsApp}
                         />

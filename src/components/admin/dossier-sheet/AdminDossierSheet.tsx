@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
+  Scale, MapPin, Download, Upload, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { COUNTRY_FLAGS, COUNTRY_NAMES, type DossierStatus } from '@/lib/types';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
+import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
+import { WeighingDialog, type WeighingDossier } from '@/components/admin/WeighingDialog';
 import { format } from 'date-fns';
 
 type DossierRow = Record<string, any>;
@@ -101,11 +104,20 @@ function DossierSheetBody({ id }: { id: string }) {
         <div className="px-6 border-b border-border overflow-x-auto">
           <TabsList className="h-10">
             <TabsTrigger value="apercu" className="text-xs">Aperçu</TabsTrigger>
+            <TabsTrigger value="colis" className="text-xs">
+              <Scale className="w-3.5 h-3.5 mr-1" /> Colis & poids
+            </TabsTrigger>
             <TabsTrigger value="transport" className="text-xs">
               <Truck className="w-3.5 h-3.5 mr-1" /> Transport
             </TabsTrigger>
+            <TabsTrigger value="livraison" className="text-xs">
+              <MapPin className="w-3.5 h-3.5 mr-1" /> Livraison
+            </TabsTrigger>
             <TabsTrigger value="paiement" className="text-xs">
               <CreditCard className="w-3.5 h-3.5 mr-1" /> Paiement
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs">
+              <FileText className="w-3.5 h-3.5 mr-1" /> Documents
             </TabsTrigger>
             <TabsTrigger value="messages" className="text-xs">
               <MessageCircle className="w-3.5 h-3.5 mr-1" /> Messages
@@ -118,8 +130,11 @@ function DossierSheetBody({ id }: { id: string }) {
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <TabsContent value="apercu"     className="mt-0"><ApercuTab dossier={dossier} /></TabsContent>
+          <TabsContent value="colis"      className="mt-0"><ColisTab dossier={dossier} /></TabsContent>
           <TabsContent value="transport"  className="mt-0"><TransportTab dossier={dossier} /></TabsContent>
+          <TabsContent value="livraison"  className="mt-0"><LivraisonTab dossier={dossier} /></TabsContent>
           <TabsContent value="paiement"   className="mt-0"><PaiementTab dossier={dossier} /></TabsContent>
+          <TabsContent value="documents"  className="mt-0"><DocumentsTab dossier={dossier} /></TabsContent>
           <TabsContent value="messages"   className="mt-0"><MessagesTab dossier={dossier} isStaff={isStaff} /></TabsContent>
           <TabsContent value="historique" className="mt-0"><HistoriqueTab id={dossier.id} /></TabsContent>
         </div>
@@ -409,13 +424,6 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         </div>
       )}
 
-      <div className="rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground space-y-1">
-        <div className="flex items-center gap-2">
-          <PackageIcon className="w-3.5 h-3.5" />
-          <span className="font-medium">Départ & colis</span>
-        </div>
-        <p>Liaison à un départ et gestion des colis rattachés arrivent dans la prochaine itération.</p>
-      </div>
     </div>
   );
 }
@@ -686,6 +694,375 @@ function DossierFooter({ dossier }: { dossier: DossierRow }) {
         >
           Annuler le dossier
         </Button>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Colis & poids ---------------- */
+
+function ColisTab({ dossier }: { dossier: DossierRow }) {
+  const qc = useQueryClient();
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [weighOpen, setWeighOpen] = useState(false);
+
+  const { data: packages = [], isLoading } = useQuery({
+    queryKey: ['dossier-packages', dossier.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('dossier_id', dossier.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const totalDeclared = packages.reduce((s, p: any) => s + (Number(p.weight) || 0), 0);
+
+  const weighingDossier: WeighingDossier = {
+    id: dossier.id,
+    reference: dossier.reference,
+    tracking_id: dossier.tracking_id,
+    buyer_name: dossier.buyer_name,
+    contact_phone: dossier.contact_phone,
+    estimated_weight: dossier.estimated_weight,
+    estimated_cost: dossier.estimated_cost,
+    destination_country: dossier.destination_country,
+    user_id: dossier.user_id,
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        <KV label="Poids estimé" value={dossier.estimated_weight ? `${dossier.estimated_weight} kg` : '—'} />
+        <KV label="Poids déclaré (colis)" value={totalDeclared ? `${totalDeclared.toFixed(2)} kg` : '—'} />
+        <KV label="Poids pesé" value={dossier.actual_weight_kg ? `${dossier.actual_weight_kg} kg` : '—'} />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setAttachOpen(true)}>
+          <PackageIcon className="w-3.5 h-3.5 mr-1" /> Attacher / détacher des colis
+        </Button>
+        <Button size="sm" onClick={() => setWeighOpen(true)}>
+          <Scale className="w-3.5 h-3.5 mr-1" />
+          {dossier.actual_weight_kg ? 'Re-peser' : 'Peser le dossier'}
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold">Colis rattachés ({packages.length})</h3>
+        {isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : packages.length === 0 ? (
+          <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-4 text-center">
+            Aucun colis n'est rattaché à ce dossier.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {packages.map((p: any) => (
+              <li key={p.id} className="rounded-lg border border-border p-3 text-xs flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono text-foreground">{p.id.slice(0, 8)}</div>
+                  <div className="text-muted-foreground truncate">{p.description || 'Sans description'}</div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Badge variant="secondary" className="text-[10px]">{p.status}</Badge>
+                  <span className="font-medium">{p.weight ? `${p.weight} kg` : '—'}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <AttachPackagesDialog
+        open={attachOpen}
+        onOpenChange={(v) => { setAttachOpen(v); if (!v) qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] }); }}
+        dossierId={dossier.id}
+        ownerUserId={dossier.user_id}
+      />
+      <WeighingDialog
+        dossier={weighOpen ? weighingDossier : null}
+        open={weighOpen}
+        onClose={() => setWeighOpen(false)}
+        onDone={() => {
+          setWeighOpen(false);
+          qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+        }}
+      />
+    </div>
+  );
+}
+
+/* ---------------- Livraison (dernier km) ---------------- */
+
+function LivraisonTab({ dossier }: { dossier: DossierRow }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    delivery_mode: dossier.delivery_mode ?? 'pickup_gp',
+    dernier_km_carrier: dossier.dernier_km_carrier ?? '',
+    dernier_km_tracking: dossier.dernier_km_tracking ?? '',
+    dernier_km_adresse: dossier.dernier_km_adresse ?? '',
+    dernier_km_prix: dossier.dernier_km_prix ?? '',
+    delivery_appointment: dossier.delivery_appointment ? new Date(dossier.delivery_appointment).toISOString().slice(0, 16) : '',
+  });
+
+  useEffect(() => {
+    setForm({
+      delivery_mode: dossier.delivery_mode ?? 'pickup_gp',
+      dernier_km_carrier: dossier.dernier_km_carrier ?? '',
+      dernier_km_tracking: dossier.dernier_km_tracking ?? '',
+      dernier_km_adresse: dossier.dernier_km_adresse ?? '',
+      dernier_km_prix: dossier.dernier_km_prix ?? '',
+      delivery_appointment: dossier.delivery_appointment ? new Date(dossier.delivery_appointment).toISOString().slice(0, 16) : '',
+    });
+  }, [dossier.id]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload: any = { ...form };
+      if (payload.dernier_km_prix === '') payload.dernier_km_prix = null;
+      if (payload.delivery_appointment === '') payload.delivery_appointment = null;
+      else payload.delivery_appointment = new Date(payload.delivery_appointment).toISOString();
+      const { error } = await supabase.from('dossiers').update(payload).eq('id', dossier.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Livraison mise à jour');
+      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
+  const markDelivered = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ status: 'DELIVERED' as DossierStatus, delivered_at: new Date().toISOString() })
+        .eq('id', dossier.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Dossier marqué livré');
+      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3">
+        <KV label="Mode de livraison" value={dossier.delivery_mode || '—'} />
+        <KV label="Livré le" value={dossier.delivered_at ? format(new Date(dossier.delivered_at), 'dd/MM/yyyy HH:mm') : '—'} />
+      </div>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Adresse destinataire (rappel)</h3>
+        <div className="text-xs text-muted-foreground rounded-lg bg-muted p-3 space-y-0.5">
+          <div className="font-medium text-foreground">{dossier.recipient_name || '—'}</div>
+          <div>{dossier.recipient_phone || '—'}</div>
+          <div className="whitespace-pre-wrap">{dossier.recipient_address || '—'}</div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Dernier kilomètre</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Mode</Label>
+            <Select value={form.delivery_mode} onValueChange={(v) => setForm(f => ({ ...f, delivery_mode: v }))}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pickup_gp">Retrait chez le GP</SelectItem>
+                <SelectItem value="relay_point">Point relais</SelectItem>
+                <SelectItem value="home_delivery">Livraison à domicile</SelectItem>
+                <SelectItem value="hub_pickup">Retrait en hub</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Transporteur dernier km</Label>
+            <Input value={form.dernier_km_carrier} onChange={(e) => setForm(f => ({ ...f, dernier_km_carrier: e.target.value }))} placeholder="Yango, livreur interne…" className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">N° de suivi</Label>
+            <Input value={form.dernier_km_tracking} onChange={(e) => setForm(f => ({ ...f, dernier_km_tracking: e.target.value }))} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Prix (XOF)</Label>
+            <Input type="number" value={form.dernier_km_prix as any} onChange={(e) => setForm(f => ({ ...f, dernier_km_prix: e.target.value as any }))} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Adresse précise de livraison</Label>
+            <Textarea value={form.dernier_km_adresse} onChange={(e) => setForm(f => ({ ...f, dernier_km_adresse: e.target.value }))} rows={2} className="text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Rendez-vous livraison</Label>
+            <Input type="datetime-local" value={form.delivery_appointment} onChange={(e) => setForm(f => ({ ...f, delivery_appointment: e.target.value }))} className="h-9 text-sm" />
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-wrap justify-between gap-2 sticky bottom-0 bg-background py-3 border-t border-border -mx-6 px-6">
+        <Button onClick={() => save.mutate()} disabled={save.isPending} size="sm" variant="outline">
+          {save.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+          Enregistrer
+        </Button>
+        {dossier.status !== 'DELIVERED' && (
+          <Button onClick={() => { if (confirm('Marquer ce dossier comme livré ?')) markDelivered.mutate(); }} disabled={markDelivered.isPending} size="sm">
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Marquer livré
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Documents ---------------- */
+
+function DocumentsTab({ dossier }: { dossier: DossierRow }) {
+  const qc = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+
+  const { data: docs = [], isLoading } = useQuery({
+    queryKey: ['dossier-documents', dossier.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossier_documents')
+        .select('*')
+        .eq('dossier_id', dossier.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: customs = [] } = useQuery({
+    queryKey: ['dossier-customs', dossier.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossier_customs_documents')
+        .select('*')
+        .eq('dossier_id', dossier.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) throw new Error('Non connecté');
+      const path = `${dossier.id}/${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from('dossier-documents').upload(path, file);
+      if (upErr) throw upErr;
+      const { error: insErr } = await supabase.from('dossier_documents').insert({
+        dossier_id: dossier.id,
+        file_path: path,
+        file_name: file.name,
+        mime_type: file.type,
+        size_bytes: file.size,
+        kind: 'other',
+        uploaded_by: u.user.id,
+      });
+      if (insErr) throw insErr;
+      toast.success('Document ajouté');
+      qc.invalidateQueries({ queryKey: ['dossier-documents', dossier.id] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Échec upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (path: string, name: string) => {
+    const { data, error } = await supabase.storage.from('dossier-documents').createSignedUrl(path, 60);
+    if (error || !data) { toast.error('Lien indisponible'); return; }
+    const a = document.createElement('a');
+    a.href = data.signedUrl;
+    a.download = name;
+    a.target = '_blank';
+    a.click();
+  };
+
+  const handleDelete = async (id: string, path: string) => {
+    if (!confirm('Supprimer ce document ?')) return;
+    await supabase.storage.from('dossier-documents').remove([path]);
+    const { error } = await supabase.from('dossier_documents').delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Supprimé');
+    qc.invalidateQueries({ queryKey: ['dossier-documents', dossier.id] });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold">Documents du dossier</h3>
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }}
+          />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card hover:bg-muted px-3 h-8 text-xs">
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            Uploader
+          </span>
+        </label>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : docs.length === 0 ? (
+        <div className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-4 text-center">
+          Aucun document.
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map((d: any) => (
+            <li key={d.id} className="rounded-lg border border-border p-3 text-xs flex items-center gap-3">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-foreground truncate">{d.file_name}</div>
+                <div className="text-muted-foreground">
+                  {d.kind} · {d.size_bytes ? `${Math.round(d.size_bytes / 1024)} ko` : ''} · {format(new Date(d.created_at), 'dd/MM/yyyy')}
+                </div>
+              </div>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(d.file_path, d.file_name)} title="Télécharger">
+                <Download className="w-3.5 h-3.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(d.id, d.file_path)} title="Supprimer">
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {customs.length > 0 && (
+        <section className="space-y-2 pt-3 border-t border-border">
+          <h3 className="text-sm font-semibold">Documents douane générés</h3>
+          <ul className="space-y-2">
+            {customs.map((d: any) => (
+              <li key={d.id} className="rounded-lg border border-border p-3 text-xs flex items-center gap-3">
+                <FileText className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground truncate">{d.file_name}</div>
+                  <div className="text-muted-foreground">{d.kind} · {d.reference}</div>
+                </div>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDownload(d.file_path, d.file_name)}>
+                  <Download className="w-3.5 h-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );

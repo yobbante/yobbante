@@ -18,6 +18,7 @@ import {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useDossierSheet } from './dossier-sheet/useDossierSheet';
 
 interface ParsedNotes {
   intent?: string;
@@ -289,6 +290,7 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isP
   onPushKonnekt: () => Promise<unknown>;
   isPushing: boolean;
 }) {
+  const sheet = useDossierSheet();
   const [status, setStatus] = useState<DossierStatus>(dossier.status);
   const [admin, setAdmin] = useState(dossier.admin_notes || '');
   const [gpId, setGpId] = useState(dossier.gp_id || '');
@@ -303,8 +305,13 @@ function SourcingPanel({ dossier, notes, onUpdate, isPending, onPushKonnekt, isP
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-      <div>
+      <div className="flex items-start justify-between gap-2">
         <p className="font-mono text-sm font-bold text-foreground">{dossier.reference}</p>
+        <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => sheet.open(dossier.id)}>
+          <ExternalLink className="w-3 h-3 mr-1" /> Fiche complète
+        </Button>
+      </div>
+      <div>
         <div className="mt-2 p-3 rounded-lg bg-secondary border border-border">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Produit demandé</p>
           {isUrl ? (
