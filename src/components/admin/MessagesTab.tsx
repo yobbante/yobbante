@@ -164,27 +164,32 @@ export function MessagesTab() {
   const pauseTimerRef = useRef<number | null>(null);
 
   // ---------- Initial load + realtime subscriptions ----------
+  const [reloading, setReloading] = useState(false);
+  const mountedRef = useRef(true);
+
+  const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setReloading(true);
+    const [{ data: inData }, { data: outData }] = await Promise.all([
+      supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(500),
+      supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
+    ]);
+    if (!mountedRef.current) return;
+    setInbound((inData ?? []) as InboundMsg[]);
+    setOutbound((outData ?? []) as OutboundMsg[]);
+    setLoading(false);
+    if (!opts?.silent) setReloading(false);
+  }, []);
+
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      const [{ data: inData }, { data: outData }] = await Promise.all([
-        supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(500),
-        supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
-      ]);
-      if (!mounted) return;
-      setInbound((inData ?? []) as InboundMsg[]);
-      setOutbound((outData ?? []) as OutboundMsg[]);
-      setLoading(false);
-    }
-    load();
+    mountedRef.current = true;
+    loadMessages({ silent: true });
 
     const ch = supabase
       .channel('admin-wa-messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const row = payload.new as InboundMsg;
-          setInbound((prev) => [row, ...prev]);
+          setInbound((prev) => prev.some((m) => m.id === row.id) ? prev : [row, ...prev]);
           toast(`Nouveau message de ${row.from_name || row.from_phone}`, {
             description: (row.message_body || '').slice(0, 60),
             action: { label: 'Ouvrir', onClick: () => setOpenPhone(row.from_phone) },
@@ -193,13 +198,27 @@ export function MessagesTab() {
           setInbound((prev) => prev.map((m) => (m.id === (payload.new as InboundMsg).id ? (payload.new as InboundMsg) : m)));
         }
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_outbound_messages' }, (payload) => {
-        setOutbound((prev) => [payload.new as OutboundMsg, ...prev]);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_outbound_messages' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const row = payload.new as OutboundMsg;
+          setOutbound((prev) => prev.some((m) => m.id === row.id) ? prev : [row, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setOutbound((prev) => prev.map((m) => (m.id === (payload.new as OutboundMsg).id ? (payload.new as OutboundMsg) : m)));
+        }
       })
       .subscribe();
 
-    return () => { mounted = false; supabase.removeChannel(ch); };
-  }, []);
+    // Refresh quand l'onglet redevient visible (filet de sécurité)
+    const onVisible = () => { if (document.visibilityState === 'visible') loadMessages({ silent: true }); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      mountedRef.current = false;
+      supabase.removeChannel(ch);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadMessages]);
+
 
   // ---------- Deep-link: ?gp=<transporteur_id> opens that GP conversation ----------
   useEffect(() => {
