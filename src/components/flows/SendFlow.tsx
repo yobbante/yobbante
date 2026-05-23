@@ -20,7 +20,8 @@ import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
-import { isDakarZone, HORS_DAKAR_SURCHARGE, formatFcfa } from '@/lib/yobbantePricing';
+import { formatFcfa } from '@/lib/yobbantePricing';
+import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
@@ -148,6 +149,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 2 — pickup
   const [originCityId, setOriginCity]     = useState<string | null>(presetOriginCityId);
   const [pickupAddress, setPickup]        = useState('');
+  const [pickupQuartier, setPickupQuartier] = useState<string>('');
   const [pickupDate, setPickupDate]       = useState<string>(preset?.departure_date ?? '');
   const [pickupSlot, setPickupSlot]       = useState<typeof TIME_SLOTS[number]['id'] | null>(null);
   // Step 3 — destination
@@ -380,7 +382,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
   const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
   const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
-  const totalEur = transportPriceEur + insuranceCostEur;
+
+  // ── Surcoût enlèvement / livraison à Dakar (zone-based, only when one side is Dakar)
+  const isFromDakar = direction === 'from_dakar';
+  const dakarAddress = isFromDakar
+    ? (pickupQuartier || pickupAddress)
+    : (pickupQuartier || deliveryAddress); // to_dakar : livraison à Dakar
+  const fraisEnlevement = (isFromDakar ? pickupAddress.trim() || pickupQuartier
+                                       : deliveryAddress.trim() || pickupQuartier)
+    ? calculerFraisEnlevement(dakarAddress)
+    : { montant: 5000, surcharge: 0, gratuit: true, zone: 'dakar_centre' as DakarZoneCategory, message: '' };
+  // Surcharge en EUR (655 FCFA / €)
+  const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
+
+  const totalEur = transportPriceEur + insuranceCostEur + surchargeEur;
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
 
@@ -543,6 +558,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         relay_point_name: deliveryMode === 'relay_point' ? relayPointName : null,
         relay_point_address: deliveryMode === 'relay_point' ? relayPointAddress : null,
         delivery_carrier: deliveryMode === 'home_delivery' ? (deliveryCarrier || null) : null,
+        pickup_quartier: pickupQuartier || null,
+        pickup_zone: fraisEnlevement.zone,
+        enlevement_surcharge: fraisEnlevement.surcharge,
+        is_outside_dakar: fraisEnlevement.zone !== 'dakar_centre',
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,
@@ -969,12 +988,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               )}
 
 
+              {isFromDakar && (
+                <QuartierDakarPicker
+                  value={pickupQuartier}
+                  onChange={setPickupQuartier}
+                />
+              )}
+
               <AddressField
                 label={`Adresse de collecte à ${originCity.city} *`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier, code postal…"
                 invalid={fieldErrors.pickupAddress}
               />
+
+              {isFromDakar && (pickupAddress.trim() || pickupQuartier) && (
+                <ZoneBadge frais={fraisEnlevement} />
+              )}
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="block">
@@ -1050,12 +1080,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
                 invalid={fieldErrors.recipientPhone} />
             </div>
+            {!isFromDakar && destIsSenegal && (
+              <QuartierDakarPicker
+                value={pickupQuartier}
+                onChange={setPickupQuartier}
+                label="Quartier de livraison à Dakar"
+              />
+            )}
             <AddressField
               label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
               value={deliveryAddress} onChange={setDelivery}
               placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
               invalid={fieldErrors.deliveryAddress}
             />
+            {!isFromDakar && destIsSenegal && (deliveryAddress.trim() || pickupQuartier) && (
+              <ZoneBadge frais={fraisEnlevement} mode="livraison" />
+            )}
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
 
@@ -1319,13 +1359,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
         {(() => {
-          // ── Prix venant du moteur (pricing engine v2). On y ajoute la
-          // surcharge hors-Dakar si l'enlèvement n'est pas dans l'agglo.
+          // ── Prix venant du moteur (pricing engine v2). Le surcoût d'enlèvement
+          // (banlieue / hors-Dakar) est déjà calculé en haut (surchargeEur).
           const fallbackBase = Math.max(15, Math.round(weight * 4));
-          const isFromDakar = direction === 'from_dakar';
-          const outsideDakar = isFromDakar && pickupAddress.trim().length > 3 && !isDakarZone(pickupAddress);
-          // Surcharge ~ 5 000 FCFA ≈ 7,6 € (655 FCFA / €)
-          const surchargeEur = outsideDakar ? Math.round(HORS_DAKAR_SURCHARGE / 655) : 0;
+          const outsideDakar = fraisEnlevement.zone !== 'dakar_centre';
 
           const standardPrice = (quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase) + surchargeEur;
           const expressPrice  = (quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.45)) + surchargeEur;
@@ -1466,10 +1503,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
                   {outsideDakar && (
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
-                      <span aria-hidden>📍</span>
+                      <span aria-hidden>{fraisEnlevement.zone === 'hors_dakar' ? '⚠️' : '📍'}</span>
                       <span>
-                        Adresse hors Dakar — frais de déplacement&nbsp;:
-                        <strong className="ml-1">+ {formatFcfa(HORS_DAKAR_SURCHARGE)}</strong>
+                        {fraisEnlevement.message}&nbsp;:
+                        <strong className="ml-1">+ {formatFcfa(fraisEnlevement.surcharge)}</strong>
                       </span>
                     </div>
                   )}
@@ -1681,6 +1718,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <RecapRow label="Collecte" value="Incluse" />
                   <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
                   {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
+                  {fraisEnlevement.surcharge > 0 && (
+                    <RecapRow
+                      label={`Déplacement ${fraisEnlevement.zone === 'hors_dakar' ? 'hors Dakar' : 'banlieue Dakar'}`}
+                      value={`+ ${formatFcfa(fraisEnlevement.surcharge)}`}
+                    />
+                  )}
                   <RecapRow label="Paiement" value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
                   <div className="pt-2.5 mt-1 border-t border-border">
                     <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
@@ -1878,6 +1921,63 @@ function CoverageBadge({ level, city, loading }: { level: 'direct' | 'partner' |
         className="inline-flex items-center gap-1 font-semibold underline">
         <MessageCircle className="w-3 h-3" /> Nous contacter
       </a>
+    </div>
+  );
+}
+
+// ─── Quartier Dakar picker (dropdown groupé) ───────────────────────────
+function QuartierDakarPicker({
+  value, onChange, label,
+}: { value: string; onChange: (v: string) => void; label?: string }) {
+  return (
+    <label className="block">
+      <span className="block text-xs mb-1.5 font-medium text-muted-foreground">
+        {label ?? 'Quartier de collecte'} <span className="text-muted-foreground/60">(optionnel)</span>
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-all"
+      >
+        <option value="">— Sélectionner un quartier —</option>
+        {QUARTIER_GROUPS.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.quartiers.map((q) => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+// ─── Zone Dakar badge — affiche frais d'enlèvement / livraison ─────────
+function ZoneBadge({
+  frais, mode = 'enlevement',
+}: {
+  frais: { zone: DakarZoneCategory; surcharge: number; gratuit: boolean; message: string };
+  mode?: 'enlevement' | 'livraison';
+}) {
+  if (frais.gratuit) {
+    return (
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-[12px] text-emerald-300 inline-flex items-center gap-2">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        {mode === 'livraison' ? 'Livraison gratuite dans votre zone' : 'Enlèvement gratuit dans votre zone'}
+      </div>
+    );
+  }
+  const icon = frais.zone === 'hors_dakar' ? '⚠️' : '📍';
+  const label = mode === 'livraison'
+    ? (frais.zone === 'hors_dakar' ? 'Livraison hors Dakar' : 'Livraison en banlieue')
+    : (frais.zone === 'hors_dakar' ? 'Adresse hors Dakar' : 'Zone périphérique Dakar');
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
+      <span aria-hidden>{icon}</span>
+      <span>
+        {label} — frais de déplacement&nbsp;:
+        <strong className="ml-1">+ {formatFcfa(frais.surcharge)}</strong>
+      </span>
     </div>
   );
 }

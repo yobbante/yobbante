@@ -1,0 +1,4 @@
+ALTER TABLE public.dossiers
+  ADD COLUMN IF NOT EXISTS pickup_quartier TEXT,
+  ADD COLUMN IF NOT EXISTS pickup_zone TEXT,
+  ADD COLUMN IF NOT EXISTS enlevement_surcharge NUMERIC NOT NULL DEFAULT 0;
