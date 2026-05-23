@@ -187,6 +187,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
+  // Récap par email (optionnel)
+  const [wantRecapEmail, setWantRecapEmail] = useState(false);
+  const [recapEmail, setRecapEmail]         = useState('');
   // Identité de la personne qui remplit le formulaire
   // 'sender' = je suis dans la ville d'origine (j'expédie)
   // 'recipient' = je suis dans la ville de destination (je recevrai)
