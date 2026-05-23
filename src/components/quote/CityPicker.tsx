@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { ChevronDown, Search, X, MapPin } from 'lucide-react';
 import { ALL_CITIES } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
 import { cn } from '@/lib/utils';
 
 interface CityPickerProps {
