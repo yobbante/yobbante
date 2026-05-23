@@ -445,10 +445,6 @@ Deno.serve(async (req) => {
     else if (/^modifier\b/.test(nMsg)) {
       reply = await handleModifierClient(supa, phone);
     }
-    // PRIORITY 3a: MODIFIER command → generate edit link
-    else if (/^modifier\b/.test(nMsg)) {
-      reply = await handleModifierClient(supa, phone);
-    }
     // PRIORITY 3: explicit RESERVER command
     else if (/^reserver\s/.test(nMsg)) {
       const p = parseReserver(msg);
