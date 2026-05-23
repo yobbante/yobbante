@@ -316,6 +316,72 @@ async function handleModifierClient(supa: any, phone: string): Promise<string> {
   return `Voici votre lien de modification pour ${ref} (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`;
 }
 
+// Find the most recent dossier for this phone that is awaiting a client decision
+// (status AWAITING_CLIENT or WEIGHED → paiement attendu, ou SUBMITTED).
+async function findPendingDossier(supa: any, phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  const variants = [phone, `+${digits}`, digits];
+  const { data } = await supa
+    .from('dossiers')
+    .select('id, tracking_id, reference, status, final_amount_xof, estimated_cost')
+    .in('status', ['AWAITING_CLIENT', 'SUBMITTED', 'WEIGHED', 'IN_REVIEW'])
+    .or(variants.map((v) => `contact_phone.eq.${v}`).join(','))
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+async function logDossierEvent(supa: any, dossierId: string, eventType: string, payload: Record<string, any>) {
+  try {
+    await supa.from('dossier_events').insert({
+      dossier_id: dossierId,
+      event_type: eventType,
+      event_data: payload,
+      visible_to_client: true,
+    });
+  } catch (e) {
+    console.error('BOT_CLIENT log event err', e);
+  }
+}
+
+async function handleOui(supa: any, phone: string, fromName: string | null): Promise<string> {
+  const d = await findPendingDossier(supa, phone);
+  if (!d) {
+    return withShortMenu(`Merci ! Aucune action en attente trouvee sur votre dossier.`);
+  }
+  const ref = d.tracking_id || d.reference;
+  await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
+  await sendWa(
+    supa,
+    ADMIN_PHONE,
+    `Client ${fromName ?? phone} a confirme (OUI) sur ${ref}\nStatut actuel : ${STATUS_FR[d.status] || d.status}`,
+    'admin_notification',
+  );
+  return withShortMenu(`Merci ! Votre confirmation pour ${ref} est enregistree.\nUn agent prend le relais.`);
+}
+
+async function handleNon(supa: any, phone: string, fromName: string | null): Promise<string> {
+  const d = await findPendingDossier(supa, phone);
+  if (!d) {
+    return withShortMenu(`Aucune action en attente trouvee. Tapez 5 pour parler a un agent.`);
+  }
+  const ref = d.tracking_id || d.reference;
+  try {
+    await supa.from('dossiers').update({ status: 'CANCELLED' }).eq('id', d.id);
+  } catch (e) {
+    console.error('BOT_CLIENT cancel err', e);
+  }
+  await logDossierEvent(supa, d.id, 'client_cancelled', { via: 'bot_client', previous_status: d.status });
+  await sendWa(
+    supa,
+    ADMIN_PHONE,
+    `Client ${fromName ?? phone} a refuse (NON) sur ${ref}\nDossier annule (etait : ${STATUS_FR[d.status] || d.status})`,
+    'admin_notification',
+  );
+  return withShortMenu(`Compris. Votre dossier ${ref} a ete annule.\nUn agent vous recontactera si besoin.`);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders });
