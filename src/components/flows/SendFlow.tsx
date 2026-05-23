@@ -21,6 +21,7 @@ import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { formatFcfa } from '@/lib/yobbantePricing';
+import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
@@ -1476,13 +1477,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             'Dédouanement express',
           ];
 
+          const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
+          const expressDelay  = getDeliveryDelay(destCity?.city, 'express');
+
           const cards = [
             {
               id: 'normal' as const,
               label: 'Standard',
               tagline: 'Via transporteur partenaire',
               icon: <Clock className="w-4 h-4" />,
-              eta: `${standardEtaMin}-${standardEtaMax} jours`,
+              eta: destCity ? `Livraison en ${standardDelay.label}` : `${standardEtaMin}-${standardEtaMax} jours`,
               price: standardPrice,
               perks: STANDARD_PERKS,
               recommended: true,
@@ -1492,7 +1496,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               label: 'Express ⚡',
               tagline: 'Priorité absolue — premier départ',
               icon: <Zap className="w-4 h-4" />,
-              eta: `${expressEtaMin}-${expressEtaMax} jours`,
+              eta: destCity ? `Livraison en ${expressDelay.label}` : `${expressEtaMin}-${expressEtaMax} jours`,
               price: expressPrice,
               perks: EXPRESS_PERKS,
             },
@@ -1844,13 +1848,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         onSubmit={submit}
         submitting={submitting}
         priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}
-        priceHint="Estimation"
+        priceHint={destCity
+          ? `${priority === 'express' ? 'Express' : 'Standard'} · ${getDeliveryDelay(destCity.city, priority === 'express' ? 'express' : 'standard').label}`
+          : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           <div className="space-y-2.5 text-sm">
             <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
             <RecapRow label="Poids"  value={`${weight} kg · ${parcelCount} colis`} />
             <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
+            {destCity && (
+              <>
+                <RecapRow label="Standard" value={`${formatLocalAmount(Math.round(totalEur), originProfile)} · ${getDeliveryDelay(destCity.city, 'standard').label}`} />
+                <RecapRow label="Express" value={`${getDeliveryDelay(destCity.city, 'express').label}`} />
+              </>
+            )}
             <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
             <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
           </div>
