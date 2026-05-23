@@ -48,11 +48,13 @@ export async function sendSmartInvite(opts: SmartInviteOptions): Promise<SmartIn
     const wa_link = (data as any)?.wa_link ?? fallback;
     if (!opts.silent) {
       if (ok) {
-        toast.success('Invitation envoyée via WhatsApp');
+        toast.success('Invitation envoyée via WhatsApp (122)');
       } else {
-        toast.error('Envoi API impossible. Ouvrez WhatsApp pour envoyer manuellement.', {
-          action: { label: 'WhatsApp', onClick: () => window.open(wa_link, '_blank', 'noopener,noreferrer') },
+        toast.error('Hors fenêtre 24h. Envoyez depuis le compte WhatsApp 122 (+221 78 122 18 91).', {
+          duration: 8000,
+          action: { label: 'Ouvrir wa.me', onClick: () => window.open(wa_link, '_blank', 'noopener,noreferrer') },
         });
+        try { window.open(wa_link, '_blank', 'noopener,noreferrer'); } catch { /* noop */ }
       }
     }
     return { ok, fallback_required, wa_link, has_history: (data as any)?.has_history,
