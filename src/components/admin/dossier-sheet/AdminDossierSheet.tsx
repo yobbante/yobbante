@@ -484,6 +484,79 @@ function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
   );
 }
 
+function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; transporteurRef: string }) {
+  const [sending, setSending] = useState(false);
+  const { data: gp } = useQuery({
+    queryKey: ['transporteur-by-ref', transporteurRef],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('transporteurs' as any)
+        .select('prenom, nom, telephone_1')
+        .eq('reference', transporteurRef)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const lastNotifiedAt = dossier.gp_reminded_at;
+
+  async function handleSend() {
+    if (!gp?.telephone_1) {
+      toast.error('Numéro du GP introuvable');
+      return;
+    }
+    setSending(true);
+    try {
+      const message = buildGpAssignMessage({
+        gp_prenom: gp.prenom,
+        tracking_id: dossier.tracking_id,
+        reference: dossier.reference,
+        origin: dossier.origin_country,
+        destination: dossier.destination_country,
+        client_name: dossier.sender_name || dossier.recipient_name,
+        weight: dossier.estimated_weight,
+        pickup_address: dossier.sender_address,
+        pickup_date: dossier.pickup_date,
+      });
+      const res = await sendGpMessage({
+        phone: gp.telephone_1,
+        message,
+        dossier_id: dossier.id,
+        trigger_type: 'gp_assignment_notice',
+      });
+      if (res.ok) {
+        toast.success('GP notifié sur WhatsApp');
+        await supabase
+          .from('dossiers')
+          .update({ gp_reminded_at: new Date().toISOString() })
+          .eq('id', dossier.id);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Button
+        size="sm"
+        onClick={handleSend}
+        disabled={sending || !gp?.telephone_1}
+        className="text-xs bg-green-600 hover:bg-green-700 text-white"
+      >
+        {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
+        Envoyer WhatsApp au GP
+      </Button>
+      {lastNotifiedAt && (
+        <div className="text-[10px] text-muted-foreground">
+          Notifié le {format(new Date(lastNotifiedAt), 'dd/MM/yyyy HH:mm')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 /* ---------------- Paiement ---------------- */
 
 function PaiementTab({ dossier }: { dossier: DossierRow }) {
