@@ -309,9 +309,32 @@ export function MessagesTab() {
     toast.success('Conversation marquée comme traitée');
   }
 
-  // ---------- Load linked dossier + transporteur for active GP conversation ----------
+  // ---------- Persist a dossier link for the whole conversation ----------
+  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier) => {
+    if (!openPhone) return;
+    try {
+      await supabase
+        .from('whatsapp_inbound_messages')
+        .update({ dossier_id: d.id })
+        .eq('from_phone', openPhone);
+      setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
+      // Re-fetch full dossier for templates
+      const { data: full } = await supabase
+        .from('dossiers')
+        .select(DOSSIER_SELECT)
+        .eq('id', d.id)
+        .maybeSingle();
+      if (full) setLinkedDossier(full as unknown as LinkedDossier);
+      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié`);
+    } catch (e) {
+      toast.error('Echec liaison', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }, [openPhone]);
+
+  // ---------- Load linked dossier + transporteur for active conversation ----------
   useEffect(() => {
     setLinkedDossier(null);
+    setAvailableDossiers([]);
     setTransporteurInfo(null);
     setGpText('');
     if (!openPhone) return;
@@ -319,30 +342,77 @@ export function MessagesTab() {
     if (!conv) return;
 
     (async () => {
+      // 1) Dossier déjà lié sur l'inbound
       if (conv.dossier_id) {
         const { data } = await supabase
           .from('dossiers')
-          .select('id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date')
+          .select(DOSSIER_SELECT)
           .eq('id', conv.dossier_id)
           .maybeSingle();
         if (data) setLinkedDossier(data as unknown as LinkedDossier);
       }
+
+      // 2) GP : résoudre transporteur par id OU par téléphone
       if (conv.channel === 'gp') {
-        const tid = conv.transporteur_id;
-        if (tid) {
+        let trData: any = null;
+        if (conv.transporteur_id) {
           const { data } = await supabase
             .from('transporteurs' as any)
-            .select('id, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
-            .eq('id', tid)
+            .select('id, reference, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .eq('id', conv.transporteur_id)
             .maybeSingle();
-          if (data) setTransporteurInfo({
-            ...(data as any),
-            adresses_remise: ((data as any).adresses_remise ?? {}) as Record<string, string>,
+          trData = data;
+        }
+        if (!trData) {
+          const tail = openPhone.replace(/\D/g, '').slice(-9);
+          const { data } = await supabase
+            .from('transporteurs' as any)
+            .select('id, reference, prenom, nom, ville, adresse_collecte_dakar, adresses_remise, bot_paused_until')
+            .or(`telephone_1.ilike.%${tail}%,telephone_2.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+            .limit(1)
+            .maybeSingle();
+          trData = data;
+        }
+        if (trData) {
+          setTransporteurInfo({
+            ...trData,
+            adresses_remise: (trData.adresses_remise ?? {}) as Record<string, string>,
           });
+
+          // 3) Dossiers actifs assignés à ce GP
+          const { data: dList } = await supabase
+            .from('dossiers')
+            .select(DOSSIER_SELECT)
+            .eq('assigned_transporteur_ref', trData.reference)
+            .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          const list = (dList ?? []) as unknown as LinkableDossier[];
+          setAvailableDossiers(list);
+
+          // 4) Auto-link si exactement 1 et rien encore lié
+          if (!conv.dossier_id && list.length === 1) {
+            await linkDossierToConv(list[0]);
+          }
         }
       }
+
+      // 5) Client : si non lié, chercher dossier par téléphone
+      if (conv.channel === 'client' && !conv.dossier_id) {
+        const tail = openPhone.replace(/\D/g, '').slice(-9);
+        const { data: dList } = await supabase
+          .from('dossiers')
+          .select(DOSSIER_SELECT)
+          .or(`contact_phone.ilike.%${tail}%,sender_phone.ilike.%${tail}%,recipient_phone.ilike.%${tail}%,buyer_contact.ilike.%${tail}%`)
+          .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        const list = (dList ?? []) as unknown as LinkableDossier[];
+        setAvailableDossiers(list);
+        if (list.length === 1) await linkDossierToConv(list[0]);
+      }
     })();
-  }, [openPhone, inbound]);
+  }, [openPhone, inbound, linkDossierToConv]);
 
   // ---------- Pause/resume GP bot ----------
   const pauseBot = useCallback(async (minutes = 5) => {
