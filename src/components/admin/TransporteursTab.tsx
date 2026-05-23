@@ -728,50 +728,274 @@ function EditDrawer({
 }) {
   const open = !!transporteur;
   const [ref, setRef] = useState('');
+  const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [tel1, setTel1] = useState('');
   const [tel2, setTel2] = useState('');
-  const [adr1, setAdr1] = useState('');
-  const [adr2, setAdr2] = useState('');
-  const [ville, setVille] = useState('Dakar');
-  const [zone, setZone] = useState('');
+  const [adrDakar1, setAdrDakar1] = useState('');
+  const [adrDakar2, setAdrDakar2] = useState('');
+  const [zoneDakar, setZoneDakar] = useState('');
+  const [creneauDakar, setCreneauDakar] = useState<string[]>([]);
+  const [navettes, setNavettes] = useState<Navette[]>([]);
+  const [defaultRate, setDefaultRate] = useState<string>('');
+  const [ratesPerCity, setRatesPerCity] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useMemo(() => {
     if (transporteur) {
-      setRef(transporteur.reference);
-      setNom(transporteur.nom);
-      setTel1(transporteur.telephone_1);
+      // Auto-generate a 4-digit reference for new transporteurs
+      if (!transporteur.id && !transporteur.reference) {
+        setRef(String(Math.floor(1000 + Math.random() * 9000)));
+      } else {
+        setRef(transporteur.reference);
+      }
+      setPrenom(transporteur.prenom ?? '');
+      setNom(transporteur.nom ?? '');
+      setPhotoUrl(transporteur.photo_url ?? '');
+      setTel1(transporteur.telephone_1 ?? '');
       setTel2(transporteur.telephone_2 ?? '');
-      setAdr1(transporteur.adresse_1);
-      setAdr2(transporteur.adresse_2 ?? '');
-      setVille(transporteur.ville || 'Dakar');
-      setZone(transporteur.zone ?? '');
+      setAdrDakar1(transporteur.adresse_collecte_dakar ?? transporteur.adresse_1 ?? '');
+      setAdrDakar2(transporteur.adresse_dakar_2 ?? transporteur.adresse_2 ?? '');
+      setZoneDakar(transporteur.zone ?? '');
+      setCreneauDakar(transporteur.creneau_dakar ?? []);
+      setNavettes(Array.isArray(transporteur.navettes) ? transporteur.navettes : []);
+      setDefaultRate(transporteur.default_rate_per_kg != null ? String(transporteur.default_rate_per_kg) : '');
+      setRatesPerCity((transporteur.default_routes as any) ?? {});
       setNotes(transporteur.notes ?? '');
     }
   }, [transporteur]);
 
+  const citiesFromNavettes = useMemo(() => uniqueCitiesFromNavettes(navettes), [navettes]);
+
+  const toggleCreneau = (id: string) => {
+    setCreneauDakar(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const onPhotoSelected = async (file: File | null) => {
+    if (!file) return;
+    setPhotoUploading(true);
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${ref || 'tmp'}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('transporteur-photos').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from('transporteur-photos').getPublicUrl(path);
+      setPhotoUrl(data.publicUrl);
+      toast.success('Photo téléchargée');
+    } catch (e: any) {
+      toast.error('Échec téléversement', { description: e?.message });
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!/^[0-9]{4}$/.test(ref)) { toast.error('Référence : 4 chiffres requis'); return; }
+    if (!prenom.trim()) { toast.error('Prénom obligatoire'); return; }
+    if (!nom.trim()) { toast.error('Nom obligatoire'); return; }
+    if (!tel1.trim() || !/^\+?[\d\s().-]{8,}$/.test(tel1.trim())) {
+      toast.error('Téléphone principal invalide (format international attendu)'); return;
+    }
+    if (!adrDakar1.trim()) { toast.error('Adresse Dakar obligatoire'); return; }
+    if (!zoneDakar) { toast.error('Zone / quartier obligatoire'); return; }
+
+    // Sanitize: remove navettes with no valid city, escales with no city
+    const cleanNavettes: Navette[] = navettes
+      .map(n => ({ ...n, villes: (n.villes ?? []).filter(v => (v.ville || '').trim().length > 0) }))
+      .filter(n => n.villes.length > 0);
+
+    const cleanRates: Record<string, number> = {};
+    Object.entries(ratesPerCity).forEach(([city, val]) => {
+      if (citiesFromNavettes.includes(city) && Number.isFinite(val) && val > 0) cleanRates[city] = val;
+    });
+
+    setSaving(true);
+    try {
+      await onSave({
+        reference: ref,
+        prenom: prenom.trim(),
+        nom: nom.trim(),
+        photo_url: photoUrl || null,
+        telephone_1: tel1.trim(),
+        telephone_2: tel2.trim() || null,
+        // Keep legacy fields in sync to avoid breaking old code paths
+        adresse_1: adrDakar1.trim(),
+        adresse_2: adrDakar2.trim() || null,
+        ville: 'Dakar',
+        zone: zoneDakar,
+        adresse_collecte_dakar: adrDakar1.trim(),
+        adresse_dakar_2: adrDakar2.trim() || null,
+        creneau_dakar: creneauDakar,
+        navettes: cleanNavettes,
+        default_rate_per_kg: defaultRate ? Number(defaultRate) : null,
+        default_routes: cleanRates,
+        notes: notes.trim() || null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader><SheetTitle>{transporteur?.id ? 'Modifier' : 'Nouveau'} transporteur</SheetTitle></SheetHeader>
-        <div className="mt-5 space-y-3">
-          <div><Label>Référence (4 chiffres) *</Label><Input value={ref} onChange={(e) => setRef(e.target.value.replace(/\D/g, '').slice(0, 4))} maxLength={4} inputMode="numeric" disabled={!!transporteur?.id} /></div>
-          <div><Label>Nom / Prénom *</Label><Input value={nom} onChange={(e) => setNom(e.target.value)} /></div>
-          <div><Label>Téléphone principal *</Label><Input value={tel1} onChange={(e) => setTel1(e.target.value)} /></div>
-          <div><Label>Téléphone secondaire</Label><Input value={tel2} onChange={(e) => setTel2(e.target.value)} /></div>
-          <div><Label>Adresse principale *</Label><Input value={adr1} onChange={(e) => setAdr1(e.target.value)} /></div>
-          <div><Label>Adresse secondaire</Label><Input value={adr2} onChange={(e) => setAdr2(e.target.value)} /></div>
-          <div><Label>Ville *</Label><Input value={ville} onChange={(e) => setVille(e.target.value)} /></div>
-          <div><Label>Zone / Quartier</Label><Input value={zone} onChange={(e) => setZone(e.target.value)} /></div>
-          <div><Label>Notes internes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
-          <div className="flex gap-2 pt-3">
-            <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
-            <Button onClick={() => onSave({
-              reference: ref, nom: nom.trim(), telephone_1: tel1.trim(),
-              telephone_2: tel2.trim() || null, adresse_1: adr1.trim(), adresse_2: adr2.trim() || null,
-              ville: ville.trim(), zone: zone.trim() || null, notes: notes.trim() || null,
-            })} className="flex-1">Enregistrer</Button>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{transporteur?.id ? 'Modifier' : 'Nouveau'} transporteur GP</SheetTitle>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-6">
+          {/* === SECTION 1 : Identité === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">1. Identité</h3>
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                <div className="h-20 w-20 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                  {photoUrl ? <img src={photoUrl} alt="" className="h-full w-full object-cover" /> : (prenom[0] || nom[0] || '?').toUpperCase()}
+                </div>
+                <label className="block mt-2 text-[11px] text-center cursor-pointer text-muted-foreground hover:text-foreground">
+                  {photoUploading ? '…' : 'Photo'}
+                  <input
+                    type="file" accept="image/*" className="hidden"
+                    onChange={(e) => onPhotoSelected(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Référence (4 chiffres) *</Label>
+                  <Input
+                    value={ref}
+                    onChange={(e) => setRef(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    maxLength={4} inputMode="numeric"
+                    disabled={!!transporteur?.id}
+                  />
+                </div>
+                <div className="hidden sm:block" />
+                <div><Label>Prénom *</Label><Input value={prenom} onChange={(e) => setPrenom(e.target.value)} /></div>
+                <div><Label>Nom *</Label><Input value={nom} onChange={(e) => setNom(e.target.value)} /></div>
+              </div>
+            </div>
+          </section>
+
+          {/* === SECTION 2 : Contact === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">2. Contact</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>Téléphone 1 * <span className="text-[10px] text-muted-foreground">(WhatsApp bot 122)</span></Label>
+                <Input value={tel1} onChange={(e) => setTel1(e.target.value)} placeholder="+221 XX XXX XX XX" />
+              </div>
+              <div>
+                <Label>Téléphone 2</Label>
+                <Input value={tel2} onChange={(e) => setTel2(e.target.value)} placeholder="Numéro secondaire" />
+              </div>
+            </div>
+          </section>
+
+          {/* === SECTION 3 : Adresses Dakar === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">3. Adresses Dakar</h3>
+            <p className="text-xs text-muted-foreground -mt-2">Où Yobbanté dépose vos colis avant le départ.</p>
+            <div className="space-y-3">
+              <div>
+                <Label>Adresse Dakar 1 *</Label>
+                <Input value={adrDakar1} onChange={(e) => setAdrDakar1(e.target.value)} placeholder="Ex: Villa 45, HLM Grand Yoff" />
+              </div>
+              <div>
+                <Label>Adresse Dakar 2</Label>
+                <Input value={adrDakar2} onChange={(e) => setAdrDakar2(e.target.value)} placeholder="Adresse alternative" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Zone / Quartier *</Label>
+                  <Select value={zoneDakar} onValueChange={setZoneDakar}>
+                    <SelectTrigger><SelectValue placeholder="Choisir un quartier…" /></SelectTrigger>
+                    <SelectContent>
+                      {DAKAR_ZONES.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Créneau disponibilité Dakar</Label>
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    {DAKAR_CRENEAUX.map(c => (
+                      <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={creneauDakar.includes(c.id)}
+                          onCheckedChange={() => toggleCreneau(c.id)}
+                        />
+                        {c.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* === SECTION 4 : Navettes === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">4. Navettes et villes desservies</h3>
+            <NavettesEditor value={navettes} onChange={setNavettes} />
+          </section>
+
+          {/* === SECTION 5 : Tarification === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">5. Tarification</h3>
+            <div>
+              <Label>Tarif par défaut (XOF/kg)</Label>
+              <Input
+                type="number" inputMode="numeric" min={0}
+                value={defaultRate}
+                onChange={(e) => setDefaultRate(e.target.value)}
+                placeholder="Ex: 5000"
+                className="max-w-[200px]"
+              />
+            </div>
+            {citiesFromNavettes.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Tarifs par ville (Dakar → ville)</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {citiesFromNavettes.map(city => (
+                    <div key={city} className="flex items-center gap-2">
+                      <span className="text-sm w-32 truncate">{city}</span>
+                      <Input
+                        type="number" inputMode="numeric" min={0}
+                        value={ratesPerCity[city] ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value === '' ? undefined : Number(e.target.value);
+                          setRatesPerCity(prev => {
+                            const next = { ...prev };
+                            if (v === undefined || !Number.isFinite(v)) delete next[city];
+                            else next[city] = v;
+                            return next;
+                          });
+                        }}
+                        placeholder="XOF/kg"
+                        className="h-8 flex-1"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* === SECTION 6 : Notes internes === */}
+          <section className="space-y-3">
+            <h3 className="text-base font-semibold border-b border-border pb-2">6. Notes internes</h3>
+            <p className="text-xs text-muted-foreground -mt-2">Visibles par l'admin uniquement.</p>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </section>
+
+          <div className="flex gap-2 pt-3 sticky bottom-0 bg-background pb-3 border-t border-border">
+            <Button variant="outline" onClick={onClose} className="flex-1" disabled={saving}>Annuler</Button>
+            <Button onClick={handleSave} className="flex-1" disabled={saving}>
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
           </div>
         </div>
       </SheetContent>
