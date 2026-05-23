@@ -1,84 +1,95 @@
-# Améliorations page Dossiers — Plan d'implémentation
+# Refonte Pricing Engine — Plan d'implémentation
 
-Demande large (8 parties). Je propose ce plan séquencé. Le travail est principalement frontend : tri, badges, side drawer, templates, raccourcis. Une seule fonction WhatsApp existante est réutilisée (`send-whatsapp`).
+Refonte complète de la logique tarifaire Yobbanté avec marge agence, enlèvement Dakar, livraison destination, et tarifs GP personnalisés via bot 122.
 
-## Fichiers principaux à toucher
+## Vue d'ensemble
 
-- `src/components/admin/RequestsTab.tsx` — liste, tri DESC, badges NOUVEAU/URGENT, colonne GP, ouverture side drawer
-- `src/components/admin/ReceptionKanbanTab.tsx` — menu contextuel `···` sur chaque carte
-- `src/components/admin/dossier-sheet/AdminDossierSheet.tsx` — blocs Expéditeur/Destinataire en tête, bouton WhatsApp GP onglet Transport, 3 templates onglet Messages
-- `src/components/admin/dossier-sheet/useDossierSheet.tsx` — ajouter mode "drawer latéral" sur desktop (40%) vs sheet plein écran mobile
-- `src/components/admin/OverviewTab.tsx` — barre d'alertes en haut (4 compteurs)
-- Nouveaux helpers :
-  - `src/components/admin/dossiers/ContactBlock.tsx` (réutilisable expéditeur/destinataire)
-  - `src/components/admin/dossiers/GpAssignBadge.tsx`
-  - `src/components/admin/dossiers/QuickAssignGpDialog.tsx` (sélecteur rapide)
-  - `src/components/admin/dossiers/DossierAlertsBar.tsx`
-  - `src/lib/dossierBadges.ts` (logique NOUVEAU/URGENT)
-  - `src/lib/clientTemplates.ts` (3 templates)
+Le système actuel utilise `calculate_quote_v2` basé sur des zones et coefficients. La nouvelle logique passe à un modèle **tarif GP + marge agence 20% + frais enlèvement intégrés + frais hors Dakar + carrier livraison destination**.
 
-## Détail par partie
+Tout est segmenté : **visible client** (prix final uniquement) vs **visible admin** (décomposition complète, marge nette).
 
-### P1 — Tri + badges
-- `dossiers` triés par `created_at DESC` (déjà le cas dans `useDossiers`, vérifier `RequestsTab`).
-- Badge vert "NOUVEAU" si `now - created_at < 24h`.
-- Badge rouge "URGENT" si :
-  - `status === 'SUBMITTED'` ET âge > 48h
-  - `status === 'CONFIRMED'` ET pas de GP ET âge > 24h
-  - `assigned_departure_id` présent ET `departure_date - now < 48h`
+---
 
-### P2 — Colonne GP
-- Lookup GP : `dossiers.assigned_transporteur_ref` → `transporteurs` (photo, prénom).
-- Si null → bouton orange "⚠ À assigner" → ouvre `QuickAssignGpDialog` directement (sans ouvrir la fiche).
+## Étape 1 — Base de données (migration)
 
-### P3 — Blocs contacts en tête de fiche
-- En tête de `AdminDossierSheet` (avant Tabs), 2 cartes :
-  - Expéditeur : `sender_name`, `sender_phone`, `sender_address`
-  - Destinataire : `recipient_name`, `recipient_phone`, `recipient_address` + ville/pays
-- Boutons : Appeler (`tel:`), WhatsApp (envoi via send-whatsapp, fallback wa.me), Copier (clipboard + toast).
+1. **Nouvelle table `route_default_rates`** — tarifs par défaut par zone (Europe, Amérique, Asie, etc.) avec coefficient express, modifiable depuis l'admin.
+2. **Seed initial** des 8 zones du brief (europe_ouest 6000, amerique_nord 8000, afrique_ouest 3500, asie 9000, etc.).
+3. **Étendre `transporteurs`** : `rates_per_city JSONB` (ex: `{"Paris": 6500, "New York": 8000}`).
+4. **Étendre `dossiers`** :
+   - `gp_rate_per_kg`, `yobbante_margin_pct` (default 0.20)
+   - `enlevement_amount` (default 5000), `hors_dakar_surcharge` (0 ou 5000)
+   - `delivery_carrier_cost`, `displayed_price_per_kg`, `total_displayed_price`
+   - `total_cost_price` (admin only), `yobbante_gross_margin` (admin only)
+   - `price_is_estimate` boolean
+5. **Fonction SQL `calculate_dossier_pricing(dossier_id)`** : recalcule et écrit toutes les colonnes ci-dessus à partir du GP assigné (ou tarif de zone par défaut si pas assigné).
+6. **Trigger** sur `dossiers` : recalcul auto à l'insert et quand `assigned_transporteur_ref`, `estimated_weight`, ou adresse change.
 
-### P4 — Bouton WhatsApp GP (onglet Transport)
-- Après assignation, bouton vert "Envoyer WhatsApp au GP".
-- Message templaté en français (sans accents) avec tracking_id, route, client, poids, adresse collecte, date.
-- Appelle `sendGpMessage` (déjà existant, gère fallback wa.me).
-- Affiche "Notifié le {date}" si `gp_reminded_at` ou un event log dédié existe.
+## Étape 2 — Bot GP (122) : onboarding tarifs + commandes
 
-### P5 — Templates messages (onglet Messages)
-- 3 boutons au-dessus de la zone de saisie qui pré-remplissent le textarea.
-- Variables remplacées : `{prenom}`, `{tracking_id}`, `{origin}`, `{destination}`, `{statut_label}`.
-- Envoi via `send-whatsapp` depuis le 607.
+Modifier `supabase/functions/gp-bot/index.ts` :
+- Après la saisie des navettes, lancer la **séquence tarifs** : pour chaque ville déclarée, demander le tarif/kg. SKIP → applique le tarif de zone par défaut.
+- Sauvegarder dans `transporteurs.rates_per_city`.
+- **Commande `TARIFS`** : affiche les tarifs courants + instructions de modif.
+- **Commande `TARIF {ville} {prix}`** : met à jour un tarif + notifie l'admin (+221784604003).
 
-### P6 — Side drawer persistant
-- Sur desktop (≥ md) : panel droit 40% qui ne bloque pas la liste.
-- Sur mobile : reste plein écran (comportement actuel).
-- Contenu : blocs contacts, statut+dropdown, GP+WhatsApp, timeline compacte (5 derniers `dossier_events`), 3 boutons rapides, lien "Ouvrir la fiche complète →" (route dossier détail).
-- Implémentation : remplacer `Sheet` actuel par un layout responsive — sur desktop un aside fixe à droite avec `lg:w-[40%]` ; sur mobile garde `Sheet` plein écran.
+## Étape 3 — Rappels automatiques
 
-### P7 — Menu Kanban
-- Sur `ReceptionKanbanTab`, sur chaque `InboxCard` (ou équivalent) : `DropdownMenu` avec icône `MoreVertical` :
-  - Changer statut (sous-menu)
-  - Assigner GP (ouvre `QuickAssignGpDialog`)
-  - WhatsApp GP (direct via `sendGpMessage` si GP assigné, sinon disabled)
-  - Voir la fiche (ouvre dossier-sheet)
+Étendre `cron-weekly-gp-reminder` (ou nouveau cron quotidien) :
+- GP avec navettes mais sans tarifs renseignés depuis 24h → message WhatsApp "Tapez TARIFS".
+- Après 48h sans tarifs → alerte admin via `enqueue_admin_notification`.
 
-### P8 — Barre d'alertes /admin
-- En haut de `OverviewTab` : 4 compteurs (requêtes ciblées Supabase).
-  - SUBMITTED > 48h : filter dossiers
-  - CONFIRMED sans GP, departure dans 24h : ouvre GpOperationsTab
-  - Messages non lus : ouvre /admin/messages
-  - Paiements en attente > 48h (`payment_status='pending'`) : ouvre Revenus
-- Composant masqué si total = 0.
+## Étape 4 — Lib pricing côté client (frontend)
 
-## Contraintes respectées
-- Aucune route modifiée
-- Couleurs/typo existantes (semantic tokens + `#F5C518` pour primary)
-- Mobile-first (sheet plein écran préservé)
-- WhatsApp via `send-whatsapp` avec fallback wa.me (helper `sendGpMessage` déjà en place)
-- Textes français sans accents dans les messages WhatsApp sortants
+Créer `src/lib/yobbantePricing.ts` :
+- `getDefaultRateForCountry(country)` → consulte cache `route_default_rates`.
+- `isDakarZone(address|city)` → liste blanche (Dakar, Pikine, Guédiawaye, Rufisque, Bargny, Sébikotane, Diamniadio).
+- `computeDisplayPrices({gpRate, weight, isExpress, isOutsideDakar})` → renvoie `{standard, express, perKgStandard, perKgExpress, outsideDakarSurcharge}`.
+- Coefficient express = 1.45, marge = 0.20, enlèvement = 5000.
 
-## Hors scope
-- Pas de changement schéma DB (toutes les colonnes existent)
-- Pas de nouvelles edge functions
-- Pas de modif du bot 607/122
+## Étape 5 — UI client (SendFlow)
 
-Si OK je commence par les parties 1, 2, 3, 5 (gain immédiat opérateur), puis 4, 6, 7, 8.
+Refondre l'étape Transport de `src/components/flows/SendFlow.tsx` :
+- Deux cartes : **Standard** et **Express** avec le format du brief (badges, délais, prix/kg).
+- Encart "Adresse hors Dakar — +5 000 FCFA" si détecté.
+- Badge "Prix estimatif — confirmé sous 2h" ou "Prix confirmé".
+- **Ne jamais** mentionner GP, tarif brut, ou marge.
+
+## Étape 6 — Étape "Mode de réception" (3 options)
+
+Mettre à jour l'écran déjà existant pour exposer :
+- **A. Récupération chez le partenaire** (gratuite)
+- **B. DHL / Colissimo / FedEx** (appel `get-shipping-rates`)
+- **C. Livreur Yobbanté local** (si dispo pour la ville)
+
+Mapping `delivery_mode` : `pickup_gp` / `carrier_postal` / `local_delivery`.
+
+## Étape 7 — Admin
+
+- **OrderDetailDrawer / AdminDossierSheet → onglet Transport** : panneau "Décomposition" admin-only (tarif GP brut, marge 20%, enlèvement, hors Dakar, total client, coût GP, marge nette).
+- **Page `/admin/parametres`** : nouvelle section "Tarifs par défaut" — table éditable de `route_default_rates` (tarif et coefficient express).
+
+## Étape 8 — Nettoyage textes site
+
+Recherche/remplacement dans les pages publiques (`TarifsPage`, `ServicesPage`, FAQ, footer, etc.) :
+- ❌ "Enlèvement payant" → ✅ "Enlèvement gratuit à Dakar"
+- ❌ "Nos GP livrent à domicile en Europe" → ✅ "Livraison via DHL, Colissimo ou FedEx"
+- Ajouter blocs explicatifs sur la page tarifs et FAQ.
+
+---
+
+## Détails techniques
+
+- Toutes les valeurs configurables (marge 20%, coef express 1.45, enlèvement 5000, hors-Dakar 5000) sont stockées en base ou dans une table `pricing_config` simple, modifiables par admin sans déploiement.
+- Le prix affiché client est **toujours** calculé via la fonction SQL côté serveur, jamais reconstruit côté front à partir du tarif GP.
+- Détection Dakar : matching insensible aux accents sur les noms de villes/zones connues.
+- La logique existante `calculate_quote_v2` reste pour les estimations rapides du devis instantané, mais elle est désormais alimentée par `route_default_rates` au lieu de `zone_pricing`.
+- Tous les triggers SQL sont SECURITY DEFINER avec `search_path = public`.
+- RLS : `route_default_rates` lecture publique, écriture admin seulement. Nouvelles colonnes `dossiers` admin-only protégées par RLS sur les colonnes `total_cost_price` et `yobbante_gross_margin` (vue masquée pour clients).
+
+## Risques / hors scope
+
+- **Hors scope** : refonte complète de `calculate_quote_v2`. On garde la fonction et on l'aligne sur les nouveaux tarifs par défaut. Cela évite de casser le simulator public.
+- **Risque** : si un dossier n'a ni GP ni tarif de zone, fallback sur 6000 FCFA/kg (Europe) avec flag `price_is_estimate = true`.
+- **Migration des dossiers existants** : on n'écrit pas rétroactivement les nouvelles colonnes — seuls les nouveaux dossiers et ceux qui sont édités/réassignés sont recalculés.
+
+Confirme et je commence par l'étape 1 (migration SQL).
