@@ -27,7 +27,11 @@ import { COUNTRY_FLAGS, COUNTRY_NAMES, type DossierStatus } from '@/lib/types';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
 import { WeighingDialog, type WeighingDossier } from '@/components/admin/WeighingDialog';
+import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
+import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
+import { sendGpMessage } from '@/lib/sendGpMessage';
 import { format } from 'date-fns';
+
 
 type DossierRow = Record<string, any>;
 
