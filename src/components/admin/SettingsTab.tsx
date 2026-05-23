@@ -22,6 +22,9 @@ export function SettingsTab() {
 
       <RelayAddressesPanel />
 
+      <RouteRatesPanel />
+
+
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Notifications</p>
         <WhatsAppTestPanel />
