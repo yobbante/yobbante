@@ -6,6 +6,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { EmptyState } from '@/components/EmptyState';
 import { useSeo } from '@/hooks/useSeo';
+import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
