@@ -715,7 +715,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         <FlowSuccess
           reference={confirmed.trackingId}
           title="Expédition enregistrée."
-          subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)} · ETA ${confirmed.eta}.`}
+          subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)}${confirmed.arrivalDate ? ` · Arrivée estimée le ${confirmed.arrivalDate} (estimation)` : ` · ETA ${confirmed.eta}`}.`}
           ctaHref="/app" ctaLabel="Voir mon espace"
         />
 
@@ -743,6 +743,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </a>
           </p>
         </div>
+
+        {/* Email récap optionnel */}
+        {confirmed.dossierId && <EmailRecapCard dossierId={confirmed.dossierId} />}
 
         {/* Quick actions */}
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2">
