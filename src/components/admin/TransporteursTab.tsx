@@ -427,8 +427,8 @@ export function TransporteursTab() {
                     </button>
                   )}
                 </div>
-                <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} /></div>
-                <div><BotStatus invitedAt={botInviteAt} active={botActive} /></div>
+                <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} failed={failedMap[t.id]?.kind === 'konnekt' ? failedMap[t.id].wa : null} onRetry={() => openInvite(t)} /></div>
+                <div><BotStatus invitedAt={botInviteAt} active={botActive} failed={failedMap[t.id]?.kind === 'bot' ? failedMap[t.id].wa : null} onRetry={() => openBotInvite(t)} /></div>
                 <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
