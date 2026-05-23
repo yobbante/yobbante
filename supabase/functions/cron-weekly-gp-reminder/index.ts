@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
 
     const { data: gps, error: gpErr } = await supa
       .from('transporteurs')
-      .select('id, reference, prenom, nom, telephone_1, actif')
+      .select('id, reference, prenom, nom, telephone_1, actif, bot_paused_until')
       .in('id', gpIds)
-      .eq('actif', true);
+      .eq('actif', true)
+      .or(`bot_paused_until.is.null,bot_paused_until.lt.${new Date().toISOString()}`);
     if (gpErr) throw gpErr;
 
     for (const gp of (gps ?? []) as any[]) {
