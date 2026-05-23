@@ -842,7 +842,7 @@ export function MessagesTab() {
                           Aucun dossier lie — templates generiques affiches
                         </p>
                       )}
-                      {gpTemplatesForStatus(linkedDossier?.status).map((tpl) => {
+                      {(linkedDossier ? gpTemplatesForDossier() : gpTemplatesGeneric()).map((tpl) => {
                         const msg = tpl.build(gpCtx);
                         return (
                           <button
