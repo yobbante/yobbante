@@ -20,6 +20,8 @@ import { useShipments } from '@/hooks/useShipments';
 import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
+import { isDakarZone, HORS_DAKAR_SURCHARGE, formatFcfa } from '@/lib/yobbantePricing';
+
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
