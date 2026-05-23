@@ -200,7 +200,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Match + submit
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
-  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string } | null>(null);
+  const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string; dossierId?: string; arrivalDate?: string } | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
