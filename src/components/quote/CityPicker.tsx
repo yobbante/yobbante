@@ -45,9 +45,10 @@ export function CityPicker({
     return () => clearTimeout(t);
   }, [q]);
 
+  const { cities: customCities } = useCustomCities();
   const cities = useMemo(
-    () => ALL_CITIES.filter(c => !excludeCity || c.city !== excludeCity),
-    [excludeCity],
+    () => [...ALL_CITIES, ...customCities].filter(c => !excludeCity || c.city !== excludeCity),
+    [excludeCity, customCities],
   );
 
   const filtered = useMemo(() => {
