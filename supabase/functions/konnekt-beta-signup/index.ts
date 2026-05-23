@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
     nom: `${prenom} ${nom}`.trim(),
     telephone_1: telephone,
     whatsapp: telephone,
+    email: email || null,
     ville,
     adresse_1: ville,
     actif: false,
