@@ -382,7 +382,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const transportPriceEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
   const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
   const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
-  const totalEur = transportPriceEur + insuranceCostEur;
+
+  // ── Surcoût enlèvement / livraison à Dakar (zone-based, only when one side is Dakar)
+  const isFromDakar = direction === 'from_dakar';
+  const dakarAddress = isFromDakar
+    ? (pickupQuartier || pickupAddress)
+    : (pickupQuartier || deliveryAddress); // to_dakar : livraison à Dakar
+  const fraisEnlevement = (isFromDakar ? pickupAddress.trim() || pickupQuartier
+                                       : deliveryAddress.trim() || pickupQuartier)
+    ? calculerFraisEnlevement(dakarAddress)
+    : { montant: 5000, surcharge: 0, gratuit: true, zone: 'dakar_centre' as DakarZoneCategory, message: '' };
+  // Surcharge en EUR (655 FCFA / €)
+  const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
+
+  const totalEur = transportPriceEur + insuranceCostEur + surchargeEur;
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
 
