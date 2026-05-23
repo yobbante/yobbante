@@ -434,6 +434,17 @@ Deno.serve(async (req) => {
     else if (/^[1-5]$/.test(nMsg)) {
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
     }
+    // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
+    else if (/^(oui|ok|yes|y|confirme|confirmer|valide|valider|d accord|daccord)\b/.test(nMsg)) {
+      reply = await handleOui(supa, phone, input.from_name ?? null);
+    }
+    else if (/^(non|no|annul|annuler|refuse|refuser)\b/.test(nMsg)) {
+      reply = await handleNon(supa, phone, input.from_name ?? null);
+    }
+    // PRIORITY 3a: MODIFIER command → generate edit link
+    else if (/^modifier\b/.test(nMsg)) {
+      reply = await handleModifierClient(supa, phone);
+    }
     // PRIORITY 3a: MODIFIER command → generate edit link
     else if (/^modifier\b/.test(nMsg)) {
       reply = await handleModifierClient(supa, phone);
