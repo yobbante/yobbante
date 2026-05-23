@@ -411,6 +411,15 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
+  // SECURITY: super admin must never be handled by bot-client
+  const phoneDigits = phone.replace(/\D/g, '');
+  const adminDigits = ADMIN_PHONE.replace(/\D/g, '');
+  if (phoneDigits === adminDigits) {
+    console.log('BOT_CLIENT skipping super admin', phone);
+    return new Response(JSON.stringify({ ok: true, skipped: 'super_admin' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+
   try {
     const { session, expired } = await getSession(supa, phone);
 
