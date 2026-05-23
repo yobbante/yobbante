@@ -147,10 +147,15 @@ export default function PayPage() {
           </div>
         ) : !dossier ? (
           <EmptyState icon={CreditCard} title="Lien invalide" description="Ce lien de paiement n’est pas valide." />
-        ) : successFlag || dossier.payment_status === 'paid' ? (
-          <SuccessCard trackingId={dossier.tracking_id || dossier.reference} />
+        ) : dossier.payment_status === 'paid' ? (
+          <SuccessCard trackingId={dossier.tracking_id || dossier.reference} pending={false} />
+        ) : successFlag ? (
+          <SuccessCard trackingId={dossier.tracking_id || dossier.reference} pending={polling || dossier.payment_status !== 'paid'} />
+        ) : cancelFlag ? (
+          <CancelCard trackingId={dossier.tracking_id || dossier.reference} />
         ) : errorFlag ? (
           <ErrorCard trackingId={dossier.tracking_id || dossier.reference} />
+
         ) : dossier.cash_on_delivery || dossier.payment_status === 'pending_delivery' || dossier.payment_status === 'not_required' ? (
           <div className="surface-card text-center py-10">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#F5C518' }} />
