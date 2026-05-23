@@ -22,43 +22,62 @@ interface LinkedDossier {
   estimated_weight: number | null;
   assigned_transporteur_ref: string | null;
   estimated_delivery_date: string | null;
+  buyer_name: string | null;
+  contact_phone: string | null;
+  sender_name: string | null;
+  sender_phone: string | null;
+  sender_address: string | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  recipient_address: string | null;
+  final_amount_xof: number | null;
 }
+
+const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
 
 interface GpTemplate {
   key: string;
   label: string;
-  build: (ctx: { gp_prenom: string; route: string; poids: string; destination: string; tracking_id: string; date: string; departure_date: string }) => string;
+  build: (ctx: GpCtx) => string;
 }
 
-function gpTemplatesForStatus(status: string | undefined): GpTemplate[] {
-  const map: Record<string, GpTemplate[]> = {
-    NEW: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    SUBMITTED: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    CONFIRMED: [
-      { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis ${c.route} ${c.poids}kg, tu as de la place ?` },
-      { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart pour ${c.destination} ?` },
-    ],
-    AWAITING_ADDRESS: [
-      { key: 'pickup', label: 'Adresse collecte Dakar', build: () => `C'est quoi ton adresse de collecte a Dakar ?` },
-      { key: 'dropoff', label: 'Adresse remise', build: (c) => `Et l'adresse de remise a ${c.destination} ?` },
-    ],
-    ASSIGNED: [
-      { key: 'confirm', label: 'Confirmer la mission', build: (c) => `Salam ${c.gp_prenom}, je t'amene le colis ${c.tracking_id} le ${c.date}. Confirme-moi que c'est bon.` },
-      { key: 'dep', label: 'Confirmer le depart', build: (c) => `Tu pars bien le ${c.departure_date} ?` },
-    ],
-    COLLECTED: [
-      { key: 'ok', label: 'Collecte ok ?', build: () => `Tout s'est bien passe pour la collecte ?` },
-      { key: 'flight', label: 'Vol confirme ?', build: () => `Tu es parti ? Le vol est confirme ?` },
-    ],
-  };
-  return map[status ?? ''] ?? [
+interface GpCtx {
+  gp_prenom: string;
+  client_name: string;
+  tracking_id: string;
+  route: string;
+  origin: string;
+  destination: string;
+  poids: string;
+  pickup_address: string;
+  date: string;
+  departure_date: string;
+}
+
+/** Templates GP contextuels (utilisés quand un dossier est lié). */
+function gpTemplatesForDossier(): GpTemplate[] {
+  return [
+    { key: 'recap', label: '📋 Récap mission', build: (c) =>
+      `Salam ${c.gp_prenom},\n\nRecap dossier ${c.tracking_id} :\nRoute : ${c.origin} → ${c.destination}\nClient : ${c.client_name}\nPoids : ${c.poids}kg\nAdresse collecte : ${c.pickup_address}`,
+    },
+    { key: 'collecte', label: '🔵 Confirmer collecte', build: (c) =>
+      `Salam ${c.gp_prenom}, avez-vous collecte le colis ${c.tracking_id} chez ${c.client_name} ?\n\nConfirmez en repondant : COLLECTE ${c.tracking_id}`,
+    },
+    { key: 'poids', label: '🟡 Enregistrer poids', build: (c) =>
+      `Salam ${c.gp_prenom}, pensez a enregistrer le poids reel du colis ${c.tracking_id}.\n\nFormat : POIDS ${c.tracking_id} [poids]kg`,
+    },
+    { key: 'livre', label: '✅ Confirmer livraison', build: (c) =>
+      `Salam ${c.gp_prenom}, le colis ${c.tracking_id} est-il livre a ${c.destination} ?\n\nConfirmez en repondant : LIVRE ${c.tracking_id}`,
+    },
+  ];
+}
+
+/** Fallback générique quand aucun dossier n'est lié. */
+function gpTemplatesGeneric(): GpTemplate[] {
+  return [
     { key: 'hello', label: 'Salutation', build: (c) => `Salam ${c.gp_prenom}, comment tu vas ?` },
+    { key: 'cap', label: 'Demander capacite', build: (c) => `Salam ${c.gp_prenom}, j'ai un colis a envoyer. Tu as de la place sur ton prochain depart ?` },
+    { key: 'next', label: 'Prochain depart', build: (c) => `Quand est ton prochain depart ?` },
   ];
 }
 
