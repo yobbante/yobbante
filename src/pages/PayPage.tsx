@@ -201,25 +201,27 @@ export default function PayPage() {
 
             <div className="space-y-2">
               <button
-                onClick={() => payWith('wave')}
+                onClick={payWithPaytech}
                 disabled={!!busy}
                 className="btn-cta w-full flex items-center justify-center gap-2"
               >
-                {busy === 'wave' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
-                Payer avec Wave
+                {busy === 'paytech' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Payer maintenant
               </button>
-              <button
-                onClick={() => payWith('om')}
-                disabled={!!busy}
-                className="btn-cta w-full flex items-center justify-center gap-2"
-              >
-                {busy === 'om' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
-                Payer avec Orange Money
-              </button>
+
+              <div className="flex items-center justify-center gap-3 py-2 text-[11px] text-muted-foreground">
+                <span className="px-2 py-1 rounded bg-secondary">Wave</span>
+                <span className="px-2 py-1 rounded bg-secondary">Orange Money</span>
+                <span className="px-2 py-1 rounded bg-secondary">Carte bancaire</span>
+              </div>
+              <p className="text-[11px] text-center text-muted-foreground flex items-center justify-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> Paiement sécurisé via PayTech
+              </p>
+
               <button
                 onClick={payOnDelivery}
                 disabled={!!busy}
-                className="w-full flex items-center justify-center gap-2 rounded-[12px] py-3 border font-medium transition hover:bg-secondary"
+                className="w-full flex items-center justify-center gap-2 rounded-[12px] py-3 border font-medium transition hover:bg-secondary mt-3"
                 style={{ borderColor: 'hsl(var(--border))' }}
               >
                 {busy === 'cod' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
@@ -230,6 +232,7 @@ export default function PayPage() {
             <p className="text-xs text-center text-muted-foreground mt-4">
               Besoin d’aide ? Appelez le <a href={`tel:${SUPPORT_TEL}`} className="underline">{SUPPORT_PHONE}</a>.
             </p>
+
           </div>
         )}
       </main>
