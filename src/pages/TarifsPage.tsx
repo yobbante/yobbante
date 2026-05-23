@@ -222,3 +222,13 @@ const FAQ = [
   { q: 'Les prix sont-ils les mêmes pour tout le monde ?', a: 'Les particuliers bénéficient des tarifs affichés. Les clients Business bénéficient de réductions : -8% (Starter) à -15% (Business) sur tous les transports.' },
   { q: 'Que se passe-t-il si mon colis est plus lourd que déclaré ?', a: "Le poids est vérifié à réception au relais. Si le poids réel dépasse de plus de 10% le poids déclaré, une régularisation est appliquée. Vous êtes notifié avant tout débit supplémentaire." },
 ];
+
+// Tarifs indicatifs Standard (FCFA/kg) — Express = Standard × 1.45.
+// Calculés depuis route_default_rates × 1.20 marge.
+const INDICATIVE_ROUTES = [
+  { label: 'Dakar → Paris',   standard: 8500 },
+  { label: 'Dakar → New York', standard: 11000 },
+  { label: 'Dakar → Dubai',   standard: 9500 },
+  { label: 'Dakar → Abidjan', standard: 4500 },
+  { label: 'Dakar → Londres', standard: 9000 },
+];
