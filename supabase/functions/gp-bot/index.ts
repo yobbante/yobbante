@@ -127,6 +127,8 @@ Que voulez-vous faire ?
 
 Autres commandes :
 • PROFIL — voir votre fiche
+• TARIFS — voir vos tarifs par ville
+• TARIF [ville] [prix] — modifier un tarif
 • MODIFIER TEL / ADRESSE / NAVETTE
 • PAUSE [N] — suspendre les notifs N jours (defaut 30)
 • REPRENDRE — reactiver les notifs
@@ -134,8 +136,10 @@ Autres commandes :
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
 Ex: DEP Paris 28/05 25kg
+Ex: TARIF Paris 6500
 
 Pour toute urgence : +221784604003`;
+
 
 const FALLBACK_TEXT = `Je n'ai pas compris.
 Tapez AIDE pour voir le menu
