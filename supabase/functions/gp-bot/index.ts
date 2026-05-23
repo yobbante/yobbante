@@ -142,10 +142,16 @@ Pour toute urgence : +221784604003`;
 
 
 const FALLBACK_TEXT = `Je n'ai pas compris.
-Tapez AIDE pour voir le menu
+Tapez AIDE pour le menu
 ou choisissez :
-1-Depart  2-Collecte  3-Poids
-4-Livraison  5-Missions  6-Departs`;
+
+1 - Depart
+2 - Collecte
+3 - Poids
+4 - Livraison
+5 - Mes missions
+6 - Mes departs`;
+
 
 const ONBOARDING_TEXT = `Bonjour ! 👋
 Ce numero est reserve aux transporteurs partenaires de Yobbante.

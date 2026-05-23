@@ -42,7 +42,7 @@ export const CLIENT_TEMPLATES: ClientTemplate[] = [
     description: 'Confirmer la prise en charge',
     build: (ctx) =>
       fill(
-        `Bonjour {prenom},\n\nVotre dossier {tracking_id} a bien ete pris en charge.\nRoute : {origin} -> {destination}\nUn transporteur vous contactera sous 24h.\n\n— Equipe Yobbante`,
+        `Bonjour {prenom},\n\nVotre dossier {tracking_id} a bien ete pris en charge.\nRoute : {origin} -> {destination}\n\nNotre equipe passera collecter votre colis a votre adresse.\nUn agent vous contactera sous 24h pour confirmer le creneau.\n\n— Equipe Yobbante`,
         ctx,
       ),
   },
@@ -75,27 +75,37 @@ export function buildGpAssignMessage(args: {
   origin?: string | null;
   destination?: string | null;
   client_name?: string | null;
+  client_phone?: string | null;
   weight?: number | string | null;
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
+  departure_date?: string | Date | null;
 }): string {
   const ref = args.tracking_id || args.reference || '';
-  const date = args.pickup_date
-    ? new Date(args.pickup_date).toLocaleDateString('fr-FR')
+  const dateSrc = args.departure_date ?? args.pickup_date;
+  const date = dateSrc
+    ? new Date(dateSrc).toLocaleDateString('fr-FR')
     : 'a confirmer';
   const weight = args.weight ? `${args.weight} kg` : 'a confirmer';
   return [
     `Salam ${firstName(args.gp_prenom)},`,
     ``,
-    `Nouveau dossier Yobbante.`,
+    `Nouveau colis assigne.`,
     `Ref : ${ref}`,
     `Route : ${args.origin || '-'} -> ${args.destination || '-'}`,
     `Client : ${args.client_name || '-'}`,
-    `Poids : ${weight}`,
-    `Collecte : ${args.pickup_address || 'a confirmer'}`,
-    `Date : ${date}`,
+    args.client_phone ? `Tel client : ${args.client_phone}` : null,
+    args.pickup_address ? `Adresse collecte client : ${args.pickup_address}` : null,
     ``,
-    `Confirmez : COLLECTE ${ref}`,
+    `(Notre livreur deposera le colis`,
+    ` a votre adresse Dakar avant le depart.`,
+    ` Vous n'avez pas a collecter chez le client.)`,
+    ``,
+    `Poids : ${weight}`,
+    `Date depart : ${date}`,
+    ``,
+    `Confirmez reception : RECU ${ref}`,
     `Tapez AIDE pour les commandes.`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
+

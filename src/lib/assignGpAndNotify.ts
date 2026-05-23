@@ -54,6 +54,8 @@ export async function assignTransporteurAndNotify({
 
   // 3) Notify GP
   if (g?.telephone_1) {
+    const clientPhoneForGp =
+      d.contact_phone || d.sender_phone || d.recipient_phone || null;
     const gpMsg = buildGpAssignMessage({
       gp_prenom: g.prenom,
       tracking_id: d.tracking_id,
@@ -61,10 +63,13 @@ export async function assignTransporteurAndNotify({
       origin: d.origin_country,
       destination: d.destination_country,
       client_name: d.sender_name || d.recipient_name || d.buyer_name,
+      client_phone: clientPhoneForGp,
       weight: d.estimated_weight,
       pickup_address: d.sender_address,
       pickup_date: d.pickup_date,
+      departure_date: d.pickup_date,
     });
+
     const res = await sendGpMessage({
       phone: g.telephone_1,
       message: gpMsg,
@@ -101,7 +106,7 @@ export async function assignTransporteurAndNotify({
       `Route : ${d.origin_country || '-'} -> ${d.destination_country || '-'}`,
       g?.telephone_1 ? `Contact GP : ${g.telephone_1}` : null,
       ``,
-      `Il vous contactera prochainement pour la collecte.`,
+      `Notre equipe passera collecter votre colis a votre adresse.`,
       `Suivi : yobbante.com/suivre/${ref}`,
       ``,
       `— Equipe Yobbante`,
