@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
   if (!v.ok) {
     return new Response(JSON.stringify({ error: v.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  const { prenom, nom, telephone, ville, villes_desservies, frequence, source_decouverte, ref_parrainage } = v.data;
+  const { prenom, nom, telephone, email, ville, villes_desservies, frequence, source_decouverte, ref_parrainage } = v.data;
 
   const supaUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
