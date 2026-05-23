@@ -558,6 +558,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         relay_point_name: deliveryMode === 'relay_point' ? relayPointName : null,
         relay_point_address: deliveryMode === 'relay_point' ? relayPointAddress : null,
         delivery_carrier: deliveryMode === 'home_delivery' ? (deliveryCarrier || null) : null,
+        pickup_quartier: pickupQuartier || null,
+        pickup_zone: fraisEnlevement.zone,
+        enlevement_surcharge: fraisEnlevement.surcharge,
+        is_outside_dakar: fraisEnlevement.zone !== 'dakar_centre',
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,
