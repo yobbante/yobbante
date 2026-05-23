@@ -1718,6 +1718,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <RecapRow label="Collecte" value="Incluse" />
                   <RecapRow label="Transport" value={formatLocalAmount(transportPriceEur, originProfile)} />
                   {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
+                  {fraisEnlevement.surcharge > 0 && (
+                    <RecapRow
+                      label={`Déplacement ${fraisEnlevement.zone === 'hors_dakar' ? 'hors Dakar' : 'banlieue Dakar'}`}
+                      value={`+ ${formatFcfa(fraisEnlevement.surcharge)}`}
+                    />
+                  )}
                   <RecapRow label="Paiement" value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
                   <div className="pt-2.5 mt-1 border-t border-border">
                     <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
