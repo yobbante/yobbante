@@ -1076,12 +1076,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
                 invalid={fieldErrors.recipientPhone} />
             </div>
+            {!isFromDakar && destIsSenegal && (
+              <QuartierDakarPicker
+                value={pickupQuartier}
+                onChange={setPickupQuartier}
+                label="Quartier de livraison à Dakar"
+              />
+            )}
             <AddressField
               label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
               value={deliveryAddress} onChange={setDelivery}
               placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
               invalid={fieldErrors.deliveryAddress}
             />
+            {!isFromDakar && destIsSenegal && (deliveryAddress.trim() || pickupQuartier) && (
+              <ZoneBadge frais={fraisEnlevement} mode="livraison" />
+            )}
             <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
               placeholder="ahmed@example.com" type="email" />
 
