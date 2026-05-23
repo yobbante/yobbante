@@ -128,6 +128,8 @@ Que voulez-vous faire ?
 Autres commandes :
 • PROFIL — voir votre fiche
 • MODIFIER TEL / ADRESSE / NAVETTE
+• PAUSE [N] — suspendre les notifs N jours (defaut 30)
+• REPRENDRE — reactiver les notifs
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
