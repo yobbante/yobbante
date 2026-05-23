@@ -721,11 +721,9 @@ export function MessagesTab() {
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
                       {isAudio ? (
-                        <audio
-                          controls
-                          preload="metadata"
-                          src={(t.m as InboundMsg).media_url!}
-                          className="w-[240px] max-w-full"
+                        <AudioMessage
+                          mediaUrl={(t.m as InboundMsg).media_url!}
+                          wamid={(t.m as any).wamid ?? null}
                         />
                       ) : (
                         t.body
