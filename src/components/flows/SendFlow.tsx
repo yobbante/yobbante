@@ -590,6 +590,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         enlevement_surcharge: fraisEnlevement.surcharge,
         is_outside_dakar: fraisEnlevement.zone !== 'dakar_centre',
         is_gift: isGift,
+        price_volatility_coefficient: chosen ? null : Number(priceVolatilityCoeff.toFixed(4)),
         notes: [
           `Profil: ${senderKind === 'business' ? 'Entreprise' : 'Particulier'}`,
           `Type marchandise: ${goodsType}`,
