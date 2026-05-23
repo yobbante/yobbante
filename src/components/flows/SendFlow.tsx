@@ -1396,6 +1396,27 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   <span>{corridorWarning}</span>
                 </div>
               )}
+
+              {/* Toggle cadeau / don personnel — déclaration douanière simplifiée */}
+              <div className="mt-4 rounded-xl border border-border bg-card p-3">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm font-medium">🎁 C'est un cadeau ou don personnel</span>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-9 appearance-none rounded-full bg-border transition-colors checked:bg-foreground relative cursor-pointer
+                      before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:bg-background before:transition-transform
+                      checked:before:translate-x-4"
+                    checked={isGift}
+                    onChange={(e) => setIsGift(e.target.checked)}
+                  />
+                </label>
+                {isGift && (
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-900 text-xs p-3 leading-relaxed">
+                    ✅ Déclaration douanière simplifiée applicable pour les envois personnels. La valeur déclarée doit rester inférieure à 45&nbsp;€ pour l'exonération de droits de douane en France.
+                  </div>
+                )}
+              </div>
+
               <StepContinueBar enabled={goodsOk} onContinue={() => advanceFromStep(4)} />
             </>
           )}
