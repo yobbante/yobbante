@@ -21,6 +21,7 @@ import { useGpBotActive } from '@/hooks/useGpBotActive';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendGpMessage } from '@/lib/sendGpMessage';
+import { sendSmartInvite, waLinkFor } from '@/lib/sendSmartInvite';
 import { Progress } from '@/components/ui/progress';
 import { SendEditLinkDialog } from './SendEditLinkDialog';
 import { Pencil as PencilIcon } from 'lucide-react';
@@ -36,23 +37,24 @@ import {
 } from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
+const SUPER_ADMIN_PHONE = '+221784604003';
 
 /** Build the personalized bot-onboarding message (no accents for WhatsApp). */
 function buildBotInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-J ai mis en place un assistant automatique pour gerer nos colis ensemble.
+Yobbante vous invite a rejoindre notre reseau de transporteurs.
 
-Enregistre ce numero dans tes contacts :
+Enregistrez ce numero dans vos contacts :
 ${YOBBANTE_BOT_NUMBER}
 Nom : Yobbante GP
 
-Envoie le mot AIDE pour voir comment ca marche.
+Envoyez AIDE pour voir comment fonctionne le systeme.
 
-On continue nos echanges comme avant.
+Vous recevrez vos premieres missions directement sur WhatsApp.
 
-A bientot !`;
+Questions : ${SUPER_ADMIN_PHONE}`;
 }
 
 function buildBotWaUrl(gp: Transporteur) {
@@ -86,14 +88,22 @@ function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-Yobbante vous invite a rejoindre Konnekt, la plateforme officielle de nos transporteurs.
+Bienvenue sur Konnekt !
+
+Konnekt est la plateforme des transporteurs partenaires Yobbante.
+
+Etape 1 : Enregistrez ce numero
+${YOBBANTE_BOT_NUMBER}
+Nom : Konnekt GP
+
+Etape 2 : Envoyez le mot AIDE
+
+Etape 3 : Recevez vos missions
 
 Votre profil est deja cree. Activez votre compte ici :
 yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
 
-Une fois inscrit, vous recevrez vos missions directement sur votre telephone.
-
-Questions ? Repondez a ce message.`;
+usekonnekt.com`;
 }
 
 function buildWaUrl(gp: Transporteur) {
@@ -121,6 +131,7 @@ export function TransporteursTab() {
   const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
+  const [failedMap, setFailedMap] = useState<Record<string, { kind: 'bot' | 'konnekt'; wa: string; name: string }>>({});
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
@@ -164,14 +175,23 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    const res = await sendGpMessage({
+    const name = formatTransporteurName(gp.prenom, gp.nom);
+    const message = buildInviteMessage(gp);
+    const res = await sendSmartInvite({
       phone: gp.telephone_1,
-      message: buildInviteMessage(gp),
+      message,
+      gp_name: name,
+      gp_ref: gpRef(gp.reference),
       transporteur_id: gp.id,
+      kind: 'konnekt_invite',
       trigger_type: 'admin_invite_konnekt',
     });
-    if (res.ok) toast.success('Invitation Konnekt envoyée');
     await markInvited(gp);
+    if (!res.ok) {
+      setFailedMap(prev => ({ ...prev, [gp.id]: { kind: 'konnekt', wa: res.wa_link, name } }));
+    } else {
+      setFailedMap(prev => { const { [gp.id]: _, ...rest } = prev; return rest; });
+    }
   };
 
   const openBotInvite = async (gp: Transporteur) => {
@@ -180,14 +200,23 @@ export function TransporteursTab() {
       toast.error('Numéro de téléphone manquant');
       return;
     }
-    const res = await sendGpMessage({
+    const name = formatTransporteurName(gp.prenom, gp.nom);
+    const message = buildBotInviteMessage(gp);
+    const res = await sendSmartInvite({
       phone: gp.telephone_1,
-      message: buildBotInviteMessage(gp),
+      message,
+      gp_name: name,
+      gp_ref: gpRef(gp.reference),
       transporteur_id: gp.id,
+      kind: 'bot_onboard',
       trigger_type: 'admin_onboard_bot',
     });
-    if (res.ok) toast.success('Invitation bot envoyée');
     await markBotInvited(gp);
+    if (!res.ok) {
+      setFailedMap(prev => ({ ...prev, [gp.id]: { kind: 'bot', wa: res.wa_link, name } }));
+    } else {
+      setFailedMap(prev => { const { [gp.id]: _, ...rest } = prev; return rest; });
+    }
   };
 
   const eligible = useMemo(
@@ -398,8 +427,8 @@ export function TransporteursTab() {
                     </button>
                   )}
                 </div>
-                <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} /></div>
-                <div><BotStatus invitedAt={botInviteAt} active={botActive} /></div>
+                <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} failed={failedMap[t.id]?.kind === 'konnekt' ? failedMap[t.id].wa : null} onRetry={() => openInvite(t)} /></div>
+                <div><BotStatus invitedAt={botInviteAt} active={botActive} failed={failedMap[t.id]?.kind === 'bot' ? failedMap[t.id].wa : null} onRetry={() => openBotInvite(t)} /></div>
                 <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -550,12 +579,23 @@ export function TransporteursTab() {
   );
 }
 
-function BotStatus({ invitedAt, active }: { invitedAt: string | null; active: boolean }) {
+function BotStatus({ invitedAt, active, failed, onRetry }: { invitedAt: string | null; active: boolean; failed?: string | null; onRetry?: () => void }) {
   if (active) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
         ✅ Actif
       </span>
+    );
+  }
+  if (failed) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-destructive">❌ Échec</div>
+        <div className="flex gap-1 mt-0.5">
+          {onRetry && <button onClick={onRetry} className="text-[10px] underline text-muted-foreground">Réessayer</button>}
+          <a href={failed} target="_blank" rel="noopener noreferrer" className="text-[10px] underline text-emerald-500">wa.me</a>
+        </div>
+      </div>
     );
   }
   if (invitedAt) {
@@ -610,17 +650,21 @@ function BotBlastDialog({
     setBlasting(true);
     setBlastProgress({ done: 0, ok: 0, fail: 0 });
     let ok = 0, fail = 0;
+    const failures: string[] = [];
     for (let i = 0; i < eligible.length; i++) {
       const gp = eligible[i];
-      const res = await sendGpMessage({
+      const name = formatTransporteurName(gp.prenom, gp.nom);
+      const res = await sendSmartInvite({
         phone: gp.telephone_1,
         message: buildBotInviteMessage(gp),
+        gp_name: name,
+        gp_ref: gpRef(gp.reference),
         transporteur_id: gp.id,
+        kind: 'bot_onboard',
         trigger_type: 'admin_onboard_bot_blast',
         silent: true,
       });
-      if (res.ok) ok += 1; else fail += 1;
-      // Mark invited regardless (we attempted contact)
+      if (res.ok) ok += 1; else { fail += 1; failures.push(name); }
       try {
         await supabase
           .from('transporteurs' as any)
@@ -628,10 +672,25 @@ function BotBlastDialog({
           .eq('id', gp.id);
       } catch { /* non-bloquant */ }
       setBlastProgress({ done: i + 1, ok, fail });
-      // 1s rate-limit between sends
       if (i < eligible.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
     setBlasting(false);
+    // Notif super admin — bulk summary
+    try {
+      const summary = [
+        `Onboarding bulk termine :`,
+        `${ok} envoyes avec succes`,
+        `${fail} a envoyer manuellement`,
+        failures.length > 0 ? `Liste manuelle : ${failures.slice(0, 10).join(', ')}${failures.length > 10 ? '…' : ''}` : null,
+      ].filter(Boolean).join('\n');
+      await sendGpMessage({
+        phone: '+221784604003',
+        message: summary,
+        trigger_type: 'admin_onboard_bulk_summary',
+        silent: true,
+        openFallback: false,
+      });
+    } catch { /* non-bloquant */ }
     toast.success(`${ok} envoyés, ${fail} échecs (fallback wa.me disponible)`);
   };
 
@@ -785,12 +844,23 @@ function BotBlastDialog({
 }
 
 
-function KonnektStatus({ invitedAt, registered }: { invitedAt: string | null; registered: boolean }) {
+function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: string | null; registered: boolean; failed?: string | null; onRetry?: () => void }) {
   if (registered) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
         ✓ Inscrit
       </span>
+    );
+  }
+  if (failed) {
+    return (
+      <div className="leading-tight">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-destructive">❌ Échec</div>
+        <div className="flex gap-1 mt-0.5">
+          {onRetry && <button onClick={onRetry} className="text-[10px] underline text-muted-foreground">Réessayer</button>}
+          <a href={failed} target="_blank" rel="noopener noreferrer" className="text-[10px] underline text-emerald-500">wa.me</a>
+        </div>
+      </div>
     );
   }
   if (invitedAt) {
