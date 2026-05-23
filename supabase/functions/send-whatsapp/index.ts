@@ -137,13 +137,15 @@ Deno.serve(async (req) => {
 
   const buildTemplateBody = (templateName: string): Record<string, unknown> => {
     const params = (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
+    const langCode = body.template_language
+      ?? (templateName === 'hello_world' ? 'en_US' : 'fr');
     return {
       messaging_product: 'whatsapp',
       to: recipient,
       type: 'template',
       template: {
         name: templateName,
-        language: { code: 'fr' },
+        language: { code: langCode },
         ...(params.length > 0 && {
           components: [{ type: 'body', parameters: params }],
         }),
