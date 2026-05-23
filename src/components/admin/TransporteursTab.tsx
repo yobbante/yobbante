@@ -309,28 +309,60 @@ export function TransporteursTab() {
         </div>
       ) : (
         <div className="border border-border rounded-lg overflow-hidden">
-          <div className="hidden md:grid grid-cols-[80px_1fr_140px_120px_60px_100px_120px_120px_60px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
-            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Ville</div><div>Dép.</div><div>Dernier</div><div>Statut Konnekt</div><div>Statut Bot</div><div></div>
+          <div className="hidden md:grid grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
+            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Navettes</div><div>Profil</div><div>Konnekt</div><div>Bot</div><div></div>
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
             const inviteAt = sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
             const botInviteAt = botSentMap[t.id] ?? t.invitation_bot_sent_at ?? null;
             const botActive = !!botActiveIds?.has(t.id);
+            const cities = uniqueCitiesFromNavettes(t.navettes);
             return (
-              <div key={t.id} className={`grid md:grid-cols-[80px_1fr_140px_120px_60px_100px_120px_120px_60px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
+              <div key={t.id} className={`grid md:grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
-                <div className="font-medium">{formatTransporteurName(t.prenom, t.nom)}{!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}</div>
-                <div className="text-muted-foreground">{t.telephone_1}</div>
-                <div>{t.ville}</div>
-                <div>{c.count}</div>
-                <div className="text-muted-foreground">{c.last ?? '—'}</div>
-                <div>
-                  <KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} />
+                <div className="font-medium min-w-0 truncate">
+                  {formatTransporteurName(t.prenom, t.nom)}
+                  {!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}
+                </div>
+                <div className="text-muted-foreground truncate">{t.telephone_1} <span className="text-[10px] block text-muted-foreground/70">{c.count} dép.</span></div>
+                <div className="flex flex-wrap gap-1">
+                  {cities.length === 0 ? (
+                    <span className="text-[11px] text-muted-foreground">—</span>
+                  ) : (
+                    <>
+                      {cities.slice(0, 3).map(city => (
+                        <Badge key={city} variant="secondary" className="text-[10px] font-normal">{city}</Badge>
+                      ))}
+                      {cities.length > 3 && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[10px] font-normal cursor-help">+{cities.length - 3} autres</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-[200px] text-xs">{cities.slice(3).join(', ')}</div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div>
-                  <BotStatus invitedAt={botInviteAt} active={botActive} />
+                  {t.profile_complete ? (
+                    <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-500">✅ Complet</Badge>
+                  ) : (
+                    <button
+                      onClick={() => setEditing(t)}
+                      className="text-[10px] inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                    >
+                      ⚠️ Compléter
+                    </button>
+                  )}
                 </div>
+                <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} /></div>
+                <div><BotStatus invitedAt={botInviteAt} active={botActive} /></div>
                 <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
