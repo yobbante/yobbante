@@ -68,7 +68,8 @@ const SESSION_EXPIRED = `Votre session a expire.
 4 - Obtenir un devis
 5 - Parler a un agent`;
 
-const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou)\b/;
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
+const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
 const FALLBACK = `Je n ai pas compris.`;
 
@@ -77,8 +78,13 @@ function withShortMenu(reply: string): string {
   return `${reply}\n\n${SHORT_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\nQue souhaitez-vous faire ?\n1 - Prochains departs\n2 - Suivre mon colis\n3 - Nouvelle expedition\n4 - Obtenir un devis\n5 - Parler a un agent`;
+  return `${reply}\n\n${MAIN_MENU}`;
 }
+// Used while a session is waiting for a precise input (tracking, weight, etc.)
+function withBack(reply: string): string {
+  return `${reply}\n\nOu tapez 0 pour revenir au menu.`;
+}
+
 
 async function sendWa(supa: any, phone: string, message: string, trigger: string) {
   try {
@@ -259,15 +265,15 @@ async function handleMenuChoice(
   }
   if (choice === '2') {
     await saveSession(supa, phone, 'await_tracking', {});
-    return `Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`;
+    return withBack(`Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`);
   }
   if (choice === '3') {
     await saveSession(supa, phone, 'ship_origin', {});
-    return `D ou part votre colis ?`;
+    return withBack(`D ou part votre colis ?`);
   }
   if (choice === '4') {
     await saveSession(supa, phone, 'quote_origin', {});
-    return `Origine ?`;
+    return withBack(`Origine ?`);
   }
   // 5
   const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
@@ -278,8 +284,9 @@ async function handleMenuChoice(
     `Client ${fromName ?? phone} (${phone}) demande un agent.\nDernier message : "${lastMsg.slice(0, 200)}"`,
     'agent_handoff',
   );
-  return `Un agent vous contacte sous 2h.\nMerci de votre patience.`;
+  return withShortMenu(`Un agent vous contacte sous 2h.\nMerci de votre patience.`);
 }
+
 
 // Generate an edit link for the client's most recent active dossier.
 async function handleModifierClient(supa: any, phone: string): Promise<string> {
@@ -405,6 +412,15 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
+  // SECURITY: super admin must never be handled by bot-client
+  const phoneDigits = phone.replace(/\D/g, '');
+  const adminDigits = ADMIN_PHONE.replace(/\D/g, '');
+  if (phoneDigits === adminDigits) {
+    console.log('BOT_CLIENT skipping super admin', phone);
+    return new Response(JSON.stringify({ ok: true, skipped: 'super_admin' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+
   try {
     const { session, expired } = await getSession(supa, phone);
 
@@ -425,15 +441,22 @@ Deno.serve(async (req) => {
 
     let reply = '';
 
+    // PRIORITY 0: back-to-menu commands (0 / menu / retour / annuler)
+    if (BACK_TO_MENU.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      reply = MAIN_MENU;
+    }
     // PRIORITY 1: greetings / menu triggers always reset session
-    if (MENU_TRIGGERS.test(nMsg)) {
+    else if (MENU_TRIGGERS.test(nMsg)) {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
     // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
     else if (/^[1-5]$/.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
     }
+
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
     else if (/^(oui|ok|yes|y|confirme|confirmer|valide|valider|d accord|daccord)\b/.test(nMsg)) {
       reply = await handleOui(supa, phone, input.from_name ?? null);
@@ -459,11 +482,12 @@ Deno.serve(async (req) => {
     else if (intent === 'reserve_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'reserve_address', data);
-      reply = `Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`;
+      reply = withBack(`Merci ${msg.split(' ')[0]} !\nQuelle est l adresse de collecte (Dakar) ?`);
     } else if (intent === 'reserve_address' && msg) {
       data.address = msg;
       await saveSession(supa, phone, 'reserve_description', data);
-      reply = `Bien recu.\nDecrivez votre colis (contenu + valeur estimee) ?`;
+      reply = withBack(`Bien recu.\nDecrivez votre colis (contenu + valeur estimee) ?`);
+
     } else if (intent === 'reserve_description' && msg) {
       data.description = msg;
       const { data: dossier, error } = await supa
@@ -499,15 +523,16 @@ Deno.serve(async (req) => {
     else if (intent === 'quote_origin' && msg) {
       data.origin = msg;
       await saveSession(supa, phone, 'quote_dest', data);
-      reply = `Vers quelle ville ?`;
+      reply = withBack(`Vers quelle ville ?`);
     } else if (intent === 'quote_dest' && msg) {
       data.dest = msg;
       await saveSession(supa, phone, 'quote_weight', data);
-      reply = `Poids (kg) ?`;
+      reply = withBack(`Poids (kg) ?`);
     } else if (intent === 'quote_weight' && msg) {
       const w = parseFloat(nMsg.replace(',', '.'));
       if (!w || w <= 0) {
-        reply = `Poids invalide. Indiquez en kg (ex: 5)`;
+        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
+
       } else {
         const r = await handleQuoteCalc(supa, data.dest, w);
         await saveSession(supa, phone, null, {});
@@ -518,28 +543,29 @@ Deno.serve(async (req) => {
     else if (intent === 'ship_origin' && msg) {
       data.origin = msg;
       await saveSession(supa, phone, 'ship_dest', data);
-      reply = `Vers quelle ville ?`;
+      reply = withBack(`Vers quelle ville ?`);
     } else if (intent === 'ship_dest' && msg) {
       data.dest = msg;
       await saveSession(supa, phone, 'ship_weight', data);
-      reply = `Poids estime (kg) ?`;
+      reply = withBack(`Poids estime (kg) ?`);
     } else if (intent === 'ship_weight' && msg) {
       const w = parseFloat(nMsg.replace(',', '.'));
       if (!w || w <= 0) {
-        reply = `Poids invalide. Indiquez en kg (ex: 5)`;
+        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
       } else {
         data.weight = w;
         await saveSession(supa, phone, 'ship_name', data);
-        reply = `Merci. Quel est votre nom complet ?`;
+        reply = withBack(`Merci. Quel est votre nom complet ?`);
       }
     } else if (intent === 'ship_name' && msg) {
       data.name = msg;
       await saveSession(supa, phone, 'ship_phone', data);
-      reply = `Quel numero de telephone doit etre associe a l expedition ?`;
+      reply = withBack(`Quel numero de telephone doit etre associe a l expedition ?`);
     } else if (intent === 'ship_phone' && msg) {
       const digits = msg.replace(/\D/g, '');
       if (digits.length < 8) {
-        reply = `Numero invalide. Envoyez un numero complet.`;
+        reply = withBack(`Numero invalide. Envoyez un numero complet.`);
+
       } else {
         data.client_phone = msg;
         const est = await handleQuoteCalc(supa, data.dest, data.weight);
