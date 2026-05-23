@@ -36,23 +36,24 @@ import {
 } from '@/lib/dakarZones';
 
 const YOBBANTE_BOT_NUMBER = '+221781221891';
+const SUPER_ADMIN_PHONE = '+221784604003';
 
 /** Build the personalized bot-onboarding message (no accents for WhatsApp). */
 function buildBotInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-J ai mis en place un assistant automatique pour gerer nos colis ensemble.
+Yobbante vous invite a rejoindre notre reseau de transporteurs.
 
-Enregistre ce numero dans tes contacts :
+Enregistrez ce numero dans vos contacts :
 ${YOBBANTE_BOT_NUMBER}
 Nom : Yobbante GP
 
-Envoie le mot AIDE pour voir comment ca marche.
+Envoyez AIDE pour voir comment fonctionne le systeme.
 
-On continue nos echanges comme avant.
+Vous recevrez vos premieres missions directement sur WhatsApp.
 
-A bientot !`;
+Questions : ${SUPER_ADMIN_PHONE}`;
 }
 
 function buildBotWaUrl(gp: Transporteur) {
@@ -86,14 +87,22 @@ function buildInviteMessage(gp: Transporteur) {
   const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
-Yobbante vous invite a rejoindre Konnekt, la plateforme officielle de nos transporteurs.
+Bienvenue sur Konnekt !
+
+Konnekt est la plateforme des transporteurs partenaires Yobbante.
+
+Etape 1 : Enregistrez ce numero
+${YOBBANTE_BOT_NUMBER}
+Nom : Konnekt GP
+
+Etape 2 : Envoyez le mot AIDE
+
+Etape 3 : Recevez vos missions
 
 Votre profil est deja cree. Activez votre compte ici :
 yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
 
-Une fois inscrit, vous recevrez vos missions directement sur votre telephone.
-
-Questions ? Repondez a ce message.`;
+usekonnekt.com`;
 }
 
 function buildWaUrl(gp: Transporteur) {
