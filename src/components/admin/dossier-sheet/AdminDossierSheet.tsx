@@ -626,9 +626,54 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
   );
 }
 
-/* ---------------- Historique ---------------- */
+/* ---------------- Historique (timeline) ---------------- */
+
+const EVENT_META: Record<string, { label: string; icon: string; tone: string }> = {
+  dossier_created:        { label: 'Dossier créé',           icon: '📦', tone: 'text-primary' },
+  status_changed:         { label: 'Changement de statut',   icon: '🔄', tone: 'text-blue-500' },
+  payment_received:       { label: 'Paiement reçu',          icon: '💰', tone: 'text-green-500' },
+  payment_status_changed: { label: 'Statut paiement modifié', icon: '💳', tone: 'text-amber-500' },
+  package_attached:       { label: 'Colis rattaché',         icon: '➕', tone: 'text-foreground' },
+  package_detached:       { label: 'Colis détaché',          icon: '➖', tone: 'text-muted-foreground' },
+  weighed:                { label: 'Dossier pesé',           icon: '⚖️', tone: 'text-primary' },
+  transporteur_assigned:  { label: 'Transporteur assigné',   icon: '🚚', tone: 'text-primary' },
+  transporteur_detached:  { label: 'Transporteur détaché',   icon: '🚫', tone: 'text-muted-foreground' },
+  collected:              { label: 'Collecté chez le client', icon: '📥', tone: 'text-blue-500' },
+  in_transit:             { label: 'En transit',             icon: '✈️', tone: 'text-blue-500' },
+  arrived_hub:            { label: 'Arrivé au hub',          icon: '🏁', tone: 'text-primary' },
+  delivered:              { label: 'Livré',                  icon: '✅', tone: 'text-green-500' },
+  dossier_cancelled:      { label: 'Dossier annulé',         icon: '⛔', tone: 'text-destructive' },
+  public_edit_applied:    { label: 'Édition publique',       icon: '✏️', tone: 'text-muted-foreground' },
+  document_uploaded:      { label: 'Document ajouté',        icon: '📄', tone: 'text-foreground' },
+  message_sent:           { label: 'Message envoyé',         icon: '💬', tone: 'text-muted-foreground' },
+};
+
+function summarizeEvent(e: any): string | null {
+  const d = e.event_data || {};
+  switch (e.event_type) {
+    case 'status_changed':
+      return d.from && d.to ? `${d.from} → ${d.to}` : (d.to ?? null);
+    case 'transporteur_assigned':
+      return d.reference ? `GP${d.reference}` : (d.transporteur_ref ?? null);
+    case 'weighed':
+      return d.weight_kg ? `${d.weight_kg} kg` : null;
+    case 'payment_status_changed':
+      return d.from && d.to ? `${d.from} → ${d.to}` : null;
+    case 'public_edit_applied':
+      if (Array.isArray(d.changes) && d.changes.length) {
+        return d.changes.map((c: any) => c.field).join(', ');
+      }
+      return null;
+    case 'package_attached':
+    case 'package_detached':
+      return d.package_id ? String(d.package_id).slice(0, 8) : null;
+    default:
+      return d.note ?? d.message ?? null;
+  }
+}
 
 function HistoriqueTab({ id }: { id: string }) {
+  const qc = useQueryClient();
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['dossier-events', id],
     queryFn: async () => {
@@ -637,11 +682,23 @@ function HistoriqueTab({ id }: { id: string }) {
         .select('*')
         .eq('dossier_id', id)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
       return data || [];
     },
   });
+
+  // Realtime
+  useEffect(() => {
+    const ch = supabase
+      .channel(`dossier-events-${id}-${crypto.randomUUID()}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dossier_events', filter: `dossier_id=eq.${id}` },
+        () => qc.invalidateQueries({ queryKey: ['dossier-events', id] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, qc]);
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (events.length === 0) {
@@ -649,23 +706,39 @@ function HistoriqueTab({ id }: { id: string }) {
   }
 
   return (
-    <ul className="space-y-2">
-      {events.map((e: any) => (
-        <li key={e.id} className="rounded-lg border border-border p-3 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="font-mono font-medium text-foreground">{e.event_type}</span>
-            <span className="text-muted-foreground">{format(new Date(e.created_at), 'dd/MM/yyyy HH:mm')}</span>
-          </div>
-          {e.event_data && (
-            <pre className="mt-1 text-[10px] text-muted-foreground bg-muted rounded p-2 overflow-x-auto">
-              {JSON.stringify(e.event_data, null, 2)}
-            </pre>
-          )}
-        </li>
-      ))}
-    </ul>
+    <ol className="relative border-l border-border pl-5 space-y-4">
+      {events.map((e: any) => {
+        const meta = EVENT_META[e.event_type] ?? { label: e.event_type, icon: '•', tone: 'text-muted-foreground' };
+        const summary = summarizeEvent(e);
+        return (
+          <li key={e.id} className="relative">
+            <span className="absolute -left-[27px] top-0 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center text-[12px]">
+              {meta.icon}
+            </span>
+            <div className="rounded-lg border border-border bg-card p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-xs font-semibold ${meta.tone}`}>{meta.label}</span>
+                <span className="text-[10px] text-muted-foreground">{format(new Date(e.created_at), 'dd/MM/yyyy HH:mm')}</span>
+              </div>
+              {summary && (
+                <div className="mt-1 text-xs text-muted-foreground">{summary}</div>
+              )}
+              {!summary && e.event_data && Object.keys(e.event_data).length > 0 && (
+                <details className="mt-1">
+                  <summary className="text-[10px] text-muted-foreground cursor-pointer">Détails techniques</summary>
+                  <pre className="mt-1 text-[10px] text-muted-foreground bg-muted rounded p-2 overflow-x-auto">
+                    {JSON.stringify(e.event_data, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
+
 
 /* ---------------- Footer ---------------- */
 
@@ -711,6 +784,7 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
   const qc = useQueryClient();
   const [attachOpen, setAttachOpen] = useState(false);
   const [weighOpen, setWeighOpen] = useState(false);
+  const [draftWeights, setDraftWeights] = useState<Record<string, string>>({});
 
   const { data: packages = [], isLoading } = useQuery({
     queryKey: ['dossier-packages', dossier.id],
@@ -725,7 +799,43 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
     },
   });
 
+  // Realtime — refresh on any packages change for this dossier
+  useEffect(() => {
+    const ch = supabase
+      .channel(`dossier-packages-${dossier.id}-${crypto.randomUUID()}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'packages', filter: `dossier_id=eq.${dossier.id}` },
+        () => qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] })
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dossier.id, qc]);
+
   const totalDeclared = packages.reduce((s, p: any) => s + (Number(p.weight) || 0), 0);
+
+  const updateWeight = useMutation({
+    mutationFn: async ({ id, weight }: { id: string; weight: number | null }) => {
+      const { error } = await supabase.from('packages').update({ weight }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Poids mis à jour');
+      qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
+  const detachPackage = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('packages').update({ dossier_id: null }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Colis détaché');
+      qc.invalidateQueries({ queryKey: ['dossier-packages', dossier.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
 
   const weighingDossier: WeighingDossier = {
     id: dossier.id,
@@ -767,18 +877,57 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
           </div>
         ) : (
           <ul className="space-y-2">
-            {packages.map((p: any) => (
-              <li key={p.id} className="rounded-lg border border-border p-3 text-xs flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-mono text-foreground">{p.id.slice(0, 8)}</div>
-                  <div className="text-muted-foreground truncate">{p.description || 'Sans description'}</div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
+            {packages.map((p: any) => {
+              const draft = draftWeights[p.id];
+              const currentVal = draft !== undefined ? draft : (p.weight != null ? String(p.weight) : '');
+              const changed = draft !== undefined && draft !== (p.weight != null ? String(p.weight) : '');
+              return (
+                <li key={p.id} className="rounded-lg border border-border p-3 text-xs flex items-center gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-foreground">{p.id.slice(0, 8)}</div>
+                    <div className="text-muted-foreground truncate">{p.description || 'Sans description'}</div>
+                  </div>
                   <Badge variant="secondary" className="text-[10px]">{p.status}</Badge>
-                  <span className="font-medium">{p.weight ? `${p.weight} kg` : '—'}</span>
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentVal}
+                      onChange={(e) => setDraftWeights(d => ({ ...d, [p.id]: e.target.value }))}
+                      className="h-7 w-20 text-xs"
+                      placeholder="kg"
+                    />
+                    <span className="text-muted-foreground">kg</span>
+                    {changed && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[10px]"
+                        disabled={updateWeight.isPending}
+                        onClick={() => {
+                          const w = currentVal === '' ? null : Number(currentVal);
+                          updateWeight.mutate({ id: p.id, weight: w }, {
+                            onSuccess: () => setDraftWeights(d => { const { [p.id]: _, ...rest } = d; return rest; }),
+                          });
+                        }}
+                      >
+                        OK
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => { if (confirm('Détacher ce colis du dossier ?')) detachPackage.mutate(p.id); }}
+                    disabled={detachPackage.isPending}
+                    title="Détacher"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -801,6 +950,7 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
     </div>
   );
 }
+
 
 /* ---------------- Livraison (dernier km) ---------------- */
 

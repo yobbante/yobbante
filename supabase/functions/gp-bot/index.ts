@@ -128,6 +128,8 @@ Que voulez-vous faire ?
 Autres commandes :
 • PROFIL — voir votre fiche
 • MODIFIER TEL / ADRESSE / NAVETTE
+• PAUSE [N] — suspendre les notifs N jours (defaut 30)
+• REPRENDRE — reactiver les notifs
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
@@ -966,6 +968,42 @@ Voir : yobbante.com/admin`);
       `• MODIFIER (tout)`,
     ];
     await reply(lines.join('\n'), 'profil');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
+  //  PAUSE / REPRENDRE : suspendre ou reactiver les notifications
+  // =================================================================
+  if (/^pause\b/i.test(msg)) {
+    if (!transporteur) {
+      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'pause_unknown');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const m = msg.match(/pause\s+(\d{1,3})/i);
+    const days = m ? Math.min(180, Math.max(1, parseInt(m[1], 10))) : 30;
+    const until = new Date(Date.now() + days * 24 * 3600 * 1000);
+    await supa.from('transporteurs')
+      .update({ bot_paused_until: until.toISOString() })
+      .eq('id', transporteur.id);
+    await clearSession();
+    await reply(
+      `OK, vos notifications sont suspendues pendant ${days} jour${days > 1 ? 's' : ''}.\n` +
+      `Reprise prevue le ${until.toLocaleDateString('fr-FR')}.\n\n` +
+      `Tapez REPRENDRE a tout moment pour reactiver.`,
+      'pause_set',
+    );
+    return new Response('ok', { headers: corsHeaders });
+  }
+  if (/^(reprendre|reprise|resume|reactiver|on)$/i.test(msg)) {
+    if (!transporteur) {
+      await reply(`Numero inconnu. Contactez-nous : +221 78 460 40 03`, 'resume_unknown');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    await supa.from('transporteurs')
+      .update({ bot_paused_until: null })
+      .eq('id', transporteur.id);
+    await clearSession();
+    await reply(`Bon retour ! Vos notifications sont reactivees.`, 'pause_cleared');
     return new Response('ok', { headers: corsHeaders });
   }
 
