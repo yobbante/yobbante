@@ -10,7 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
+import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
 import type { AdminSection } from './AdminSidebar';
+
 
 /* ───────────────────────── helpers ───────────────────────── */
 const fmtN = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
@@ -211,8 +213,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      <DossierAlertsBar onJump={(s) => onJump(s)} />
+
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-border">
+
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
             Tableau de bord · {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}

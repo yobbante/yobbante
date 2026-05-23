@@ -27,7 +27,11 @@ import { COUNTRY_FLAGS, COUNTRY_NAMES, type DossierStatus } from '@/lib/types';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
 import { WeighingDialog, type WeighingDossier } from '@/components/admin/WeighingDialog';
+import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
+import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
+import { sendGpMessage } from '@/lib/sendGpMessage';
 import { format } from 'date-fns';
+
 
 type DossierRow = Record<string, any>;
 
@@ -100,8 +104,30 @@ function DossierSheetBody({ id }: { id: string }) {
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
 
+      <div className="px-6 py-3 border-b border-border grid grid-cols-1 md:grid-cols-2 gap-3 bg-secondary/20">
+        <ContactBlock
+          title="Expéditeur"
+          accent="sender"
+          name={dossier.sender_name || dossier.contact_phone ? (dossier.sender_name || '—') : null}
+          phone={dossier.sender_phone || dossier.contact_phone}
+          address={dossier.sender_address}
+          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+        />
+        <ContactBlock
+          title="Destinataire"
+          accent="recipient"
+          name={dossier.recipient_name}
+          phone={dossier.recipient_phone}
+          address={dossier.recipient_address}
+          extra={
+            [dossier.destination_country].filter(Boolean).join(' · ') || null
+          }
+        />
+      </div>
+
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
         <div className="px-6 border-b border-border overflow-x-auto">
+
           <TabsList className="h-10">
             <TabsTrigger value="apercu" className="text-xs">Aperçu</TabsTrigger>
             <TabsTrigger value="colis" className="text-xs">
@@ -397,6 +423,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
             <Badge variant="secondary" className="ml-auto font-mono">{currentRef}</Badge>
           </div>
           <CurrentTransporteurInfo ref_={currentRef} />
+          <NotifyGpButton dossier={dossier} transporteurRef={currentRef} />
           <Button
             size="sm"
             variant="outline"
@@ -432,6 +459,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
 
     </div>
   );
+
 }
 
 function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
@@ -455,6 +483,79 @@ function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
     </div>
   );
 }
+
+function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; transporteurRef: string }) {
+  const [sending, setSending] = useState(false);
+  const { data: gp } = useQuery({
+    queryKey: ['transporteur-by-ref', transporteurRef],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('transporteurs' as any)
+        .select('prenom, nom, telephone_1')
+        .eq('reference', transporteurRef)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const lastNotifiedAt = dossier.gp_reminded_at;
+
+  async function handleSend() {
+    if (!gp?.telephone_1) {
+      toast.error('Numéro du GP introuvable');
+      return;
+    }
+    setSending(true);
+    try {
+      const message = buildGpAssignMessage({
+        gp_prenom: gp.prenom,
+        tracking_id: dossier.tracking_id,
+        reference: dossier.reference,
+        origin: dossier.origin_country,
+        destination: dossier.destination_country,
+        client_name: dossier.sender_name || dossier.recipient_name,
+        weight: dossier.estimated_weight,
+        pickup_address: dossier.sender_address,
+        pickup_date: dossier.pickup_date,
+      });
+      const res = await sendGpMessage({
+        phone: gp.telephone_1,
+        message,
+        dossier_id: dossier.id,
+        trigger_type: 'gp_assignment_notice',
+      });
+      if (res.ok) {
+        toast.success('GP notifié sur WhatsApp');
+        await supabase
+          .from('dossiers')
+          .update({ gp_reminded_at: new Date().toISOString() })
+          .eq('id', dossier.id);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Button
+        size="sm"
+        onClick={handleSend}
+        disabled={sending || !gp?.telephone_1}
+        className="text-xs bg-green-600 hover:bg-green-700 text-white"
+      >
+        {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
+        Envoyer WhatsApp au GP
+      </Button>
+      {lastNotifiedAt && (
+        <div className="text-[10px] text-muted-foreground">
+          Notifié le {format(new Date(lastNotifiedAt), 'dd/MM/yyyy HH:mm')}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /* ---------------- Paiement ---------------- */
 
@@ -603,6 +704,31 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
       </div>
 
       <div className="border-t border-border pt-3 mt-3 space-y-2">
+        {!internal && (
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground self-center mr-1">
+              Templates :
+            </span>
+            {CLIENT_TEMPLATES.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setBody(t.build({
+                  prenom: dossier.sender_name || dossier.recipient_name,
+                  tracking_id: dossier.tracking_id,
+                  reference: dossier.reference,
+                  origin: dossier.origin_country,
+                  destination: dossier.destination_country,
+                  status: dossier.status,
+                }))}
+                title={t.description}
+                className="px-2 py-1 rounded-md text-[11px] bg-secondary text-muted-foreground hover:bg-[#F5C518]/15 hover:text-[#F5C518] border border-border transition-colors"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         {isStaff && (
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             <Switch checked={internal} onCheckedChange={setInternal} />
@@ -614,7 +740,7 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={internal ? 'Note interne…' : 'Message au client…'}
-            rows={2}
+            rows={3}
             className="text-sm flex-1"
           />
           <Button onClick={send} disabled={!body.trim() || sendMessage.isPending} size="sm">
@@ -622,6 +748,7 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
           </Button>
         </div>
       </div>
+
     </div>
   );
 }
