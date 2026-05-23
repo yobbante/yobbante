@@ -48,6 +48,7 @@ export function IntentSearchBar({
   className,
 }: IntentSearchBarProps) {
   const navigate = useNavigate();
+  const { cities: customCities } = useCustomCities();
   const [intent, setIntent] = useState<IntentKey>(defaultIntent);
   const [query, setQuery] = useState('');
   // Send-only: 'from_dakar' = Dakar → ville étrangère ; 'to_dakar' = ville → Dakar
