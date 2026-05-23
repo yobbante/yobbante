@@ -37,6 +37,8 @@ import BusinessJoinPage from "./pages/BusinessJoinPage";
 import BusinessPricingPage from "./pages/BusinessPricingPage";
 import NotFound from "./pages/NotFound";
 import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
+import KonnektLandingPage from "./pages/KonnektLandingPage";
+import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
@@ -173,6 +175,8 @@ const MainRoutes = () => (
     <Route path="/business/join" element={<BusinessJoinPage />} />
     <Route path="/business/pricing" element={<BusinessPricingPage />} />
     <Route path="/rejoindre-konnekt" element={<RejoindreKonnektPage />} />
+    <Route path="/konnekt" element={<KonnektLandingPage />} />
+    <Route path="/konnekt/inscription" element={<Navigate to="/konnekt#inscription" replace />} />
     {/* Legal pages */}
     <Route path="/confidentialite" element={<ConfidentialitePage />} />
     <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
@@ -187,8 +191,17 @@ const MainRoutes = () => (
   </Routes>
 );
 
+const KonnektRoutes = () => (
+  <Routes>
+    <Route path="/" element={<KonnektLandingPage />} />
+    <Route path="/inscription" element={<Navigate to="/#inscription" replace />} />
+    <Route path="*" element={<KonnektLandingPage />} />
+  </Routes>
+);
+
 const App = () => {
   const dekkMode = isDekkSubdomain();
+  const konnektMode = !dekkMode && isKonnektDomain();
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -199,8 +212,8 @@ const App = () => {
         <MaintenanceGate>
           <GlobalNotifiers />
           <AdminOnlyGuard />
-          {dekkMode ? <DekkRoutes /> : <MainRoutes />}
-          {!dekkMode && <FloatingWhatsApp />}
+          {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}
+          {!dekkMode && !konnektMode && <FloatingWhatsApp />}
           <CookieBanner />
           <InstallAppPrompt />
         </MaintenanceGate>

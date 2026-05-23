@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { gpWhatsappLink } from '@/lib/contact';
 
-const KONNEKT_BASE = 'https://usekonnekt.com/beta';
+const KONNEKT_BASE = 'https://usekonnekt.com';
 
 export default function RejoindreKonnektPage() {
   const [params] = useSearchParams();
@@ -15,9 +15,15 @@ export default function RejoindreKonnektPage() {
   }, [ref]);
 
   const konnektUrl = useMemo(
-    () => (ref ? `${KONNEKT_BASE}?ref=${encodeURIComponent(ref)}` : KONNEKT_BASE),
+    () => (ref ? `${KONNEKT_BASE}/#inscription?ref=${encodeURIComponent(ref)}` : `${KONNEKT_BASE}/#inscription`),
     [ref],
   );
+
+  // En interne (preview / yobbante.com), on redirige vers la page locale Konnekt
+  // avec le ref pré-rempli au lieu de pointer vers usekonnekt.com.
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('konnekt')) {
+    return <Navigate to={`/konnekt${ref ? `?ref=${encodeURIComponent(ref)}` : ''}#inscription`} replace />;
+  }
 
   useEffect(() => {
     document.title = 'Rejoindre Konnekt · Yobbanté';
