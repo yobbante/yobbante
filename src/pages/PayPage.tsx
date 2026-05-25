@@ -320,7 +320,7 @@ function ErrorCard({ trackingId }: { trackingId: string }) {
           Réessayer
         </Link>
         <a
-          href={`https://wa.me/${SUPPORT_TEL.replace('+', '')}`}
+          href={`https://wa.me/${SUPPORT_TEL.replace('+', '')}?text=${encodeURIComponent(`Bonjour Yobbanté, j'ai rencontré un problème lors du paiement du dossier ${trackingId}. Pouvez-vous m'aider ?`)}`}
           target="_blank" rel="noreferrer"
           className="inline-flex items-center justify-center gap-2 rounded-[12px] py-3 px-5 border font-medium hover:bg-secondary"
           style={{ borderColor: 'hsl(var(--border))' }}
