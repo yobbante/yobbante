@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History } from 'lucide-react';
+import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
 import { GpImportDialog } from './GpImportDialog';
 import { GpActionsPanel } from './GpActionsPanel';
 import { Input } from '@/components/ui/input';
