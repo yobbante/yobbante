@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History } from 'lucide-react';
+import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
 import { GpImportDialog } from './GpImportDialog';
 import { GpActionsPanel } from './GpActionsPanel';
 import { Input } from '@/components/ui/input';
@@ -143,6 +144,31 @@ export function TransporteursTab() {
   const [importOpen, setImportOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
+  const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const sendTestWhatsApp = async (gp: Transporteur) => {
+    const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
+    if (!phoneDigits) { toast.error('Numéro de téléphone manquant'); return; }
+    const name = formatTransporteurName(gp.prenom, gp.nom);
+    const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+    const message = `Salam ${prenom}, test de delivrabilite Yobbante. Si vous voyez ce message, repondez OK au ${YOBBANTE_BOT_NUMBER}. Merci.`;
+    setTestingId(gp.id);
+    try {
+      const res = await sendSmartInvite({
+        phone: gp.telephone_1,
+        message,
+        gp_name: name,
+        gp_ref: gpRef(gp.reference),
+        transporteur_id: gp.id,
+        kind: 'bot_onboard',
+        trigger_type: 'admin_test_delivery',
+      });
+      if (res.ok) toast.success('Message test envoyé via API WhatsApp ✅');
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   const existingRefs = useMemo(
     () => new Set((list.data ?? []).map(t => t.reference)),
@@ -461,6 +487,12 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
+                      <DropdownMenuItem disabled={testingId === t.id} onClick={() => sendTestWhatsApp(t)}>
+                        <Activity className="w-4 h-4 mr-2" /> {testingId === t.id ? 'Test en cours…' : "Tester l'envoi WhatsApp"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setHistoryGp(t)}>
+                        <History className="w-4 h-4 mr-2" /> Historique WhatsApp
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
@@ -578,6 +610,13 @@ export function TransporteursTab() {
       />
 
       <GpActionsPanel gp={actionsGp} open={!!actionsGp} onClose={() => setActionsGp(null)} />
+
+      <WhatsAppHistoryDialog
+        transporteurId={historyGp?.id ?? null}
+        phone={historyGp?.telephone_1}
+        gpLabel={historyGp ? `${formatTransporteurName(historyGp.prenom, historyGp.nom)} · ${gpRef(historyGp.reference)}` : undefined}
+        onClose={() => setHistoryGp(null)}
+      />
 
       <BotBlastDialog
         open={botBlastOpen}

@@ -21,7 +21,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
-import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -215,7 +215,7 @@ const App = () => {
           {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}
           {!dekkMode && !konnektMode && <FloatingWhatsApp />}
           <CookieBanner />
-          <InstallAppPrompt />
+          
         </MaintenanceGate>
       </BrowserRouter>
     </TooltipProvider>
