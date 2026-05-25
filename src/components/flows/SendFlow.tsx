@@ -2118,7 +2118,9 @@ function CoverageBadge({ level, city, loading }: { level: 'direct' | 'partner' |
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 flex items-center gap-2 flex-wrap">
       <AlertTriangle className="w-3.5 h-3.5" />
       Zone non couverte directement.
-      <a href="https://wa.me/221770000000" target="_blank" rel="noreferrer"
+      <a
+        href={`https://wa.me/221786078080?text=${encodeURIComponent("Bonjour Yobbanté, je souhaite expédier un colis mais ma zone semble non couverte. Pouvez-vous m'aider ?")}`}
+        target="_blank" rel="noreferrer"
         className="inline-flex items-center gap-1 font-semibold underline">
         <MessageCircle className="w-3 h-3" /> Nous contacter
       </a>
