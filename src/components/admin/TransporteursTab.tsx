@@ -611,6 +611,13 @@ export function TransporteursTab() {
 
       <GpActionsPanel gp={actionsGp} open={!!actionsGp} onClose={() => setActionsGp(null)} />
 
+      <WhatsAppHistoryDialog
+        transporteurId={historyGp?.id ?? null}
+        phone={historyGp?.telephone_1}
+        gpLabel={historyGp ? `${formatTransporteurName(historyGp.prenom, historyGp.nom)} · ${gpRef(historyGp.reference)}` : undefined}
+        onClose={() => setHistoryGp(null)}
+      />
+
       <BotBlastDialog
         open={botBlastOpen}
         onOpenChange={setBotBlastOpen}
