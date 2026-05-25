@@ -215,7 +215,7 @@ const App = () => {
           {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}
           {!dekkMode && !konnektMode && <FloatingWhatsApp />}
           <CookieBanner />
-          <InstallAppPrompt />
+          
         </MaintenanceGate>
       </BrowserRouter>
     </TooltipProvider>
