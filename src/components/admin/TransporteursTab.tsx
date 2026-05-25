@@ -487,6 +487,12 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
+                      <DropdownMenuItem disabled={testingId === t.id} onClick={() => sendTestWhatsApp(t)}>
+                        <Activity className="w-4 h-4 mr-2" /> {testingId === t.id ? 'Test en cours…' : "Tester l'envoi WhatsApp"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setHistoryGp(t)}>
+                        <History className="w-4 h-4 mr-2" /> Historique WhatsApp
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
