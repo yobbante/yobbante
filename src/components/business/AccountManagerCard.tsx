@@ -41,7 +41,10 @@ export function AccountManagerCard({ businessId }: Props) {
           <div className="flex flex-wrap gap-2 mt-4">
             {m.whatsapp && (
               <Button asChild size="sm">
-                <a href={`https://wa.me/${m.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={`https://wa.me/${m.whatsapp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(`Bonjour ${m.full_name.split(' ')[0] || ''}, je vous écris au sujet de mon compte Yobbanté Business.`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                >
                   <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
                 </a>
               </Button>
