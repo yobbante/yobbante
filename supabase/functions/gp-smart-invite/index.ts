@@ -122,6 +122,30 @@ Deno.serve(async (req) => {
   const overallOk = messageOk;
   const fallbackLink = waLink(body.phone, body.message);
 
+  // Journal : on log toujours une trace cote outbound, meme quand on n'a pas
+  // tente l'envoi (fenetre 24h fermee). Cela alimente l'historique GP cote admin
+  // avec la cause exacte et le wa.me de secours.
+  if (!overallOk) {
+    try {
+      await supa.from('whatsapp_outbound_messages').insert({
+        to_phone: body.phone,
+        recipient_type: 'gp',
+        message_body: body.message,
+        transporteur_id: body.transporteur_id ?? null,
+        status: hasHistory ? 'failed' : 'blocked_24h_window',
+        error_message: [
+          hasHistory
+            ? `Meta a refuse l'envoi : ${blockedReason ?? 'inconnu'}`
+            : `Hors fenetre 24h Meta (aucun message recu du GP depuis 24h)`,
+          `Fallback wa.me : ${fallbackLink}`,
+        ].join(' — '),
+        trigger_type: `${body.trigger_type ?? 'gp_smart_invite'}::${hasHistory ? 'meta_error' : 'window_closed'}`,
+      });
+    } catch (e) {
+      console.warn('gp-smart-invite log fallback failed', e instanceof Error ? e.message : String(e));
+    }
+  }
+
   // 3. Notif super admin (depuis le 607)
   const gpLabel = `${body.gp_name ?? 'GP'}${body.gp_ref ? ` (${body.gp_ref})` : ''}`;
   let adminMsg: string;
