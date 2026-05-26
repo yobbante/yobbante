@@ -1,423 +1,512 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Package, MessageCircle, Wallet, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-
 /**
- * KONNEKT — Landing + onboarding beta GP.
- * Identité visuelle : bleu nuit #1A1A2E + jaune Yobbanté #F5C518.
- * Mobile-first.
+ * /konnekt — Konnekt beta registration page (synchronisée avec le projet Konnekt /beta)
+ *
+ * - Lit ?ref=GPxxxx pour afficher un badge "Partenaire vérifié"
+ * - Pas de mot de passe : l'identifiant est le téléphone, activation par
+ *   notre équipe via WhatsApp dans les 24h.
+ * - Validation inline par champ
+ * - Appelle la fonction konnekt-beta-signup (backend Yobbanté)
+ * - Sur succès : page de confirmation WhatsApp (pas de redirection auto)
  */
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  Loader2, Check, ArrowRight, ArrowLeft, ShieldCheck, MessageCircle,
+  Truck, Briefcase, Building2, Users, Phone,
+  Luggage, Plane, Ship, Zap, Bike, Car,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const KONNEKT_BG = '#1A1A2E';
-const KONNEKT_CARD = '#16213E';
-const KONNEKT_ACCENT = '#F5C518';
+/* ───────── Data ───────── */
 
-const VILLES = ['Dakar', 'Paris', 'Lyon', 'Marseille', 'New York', 'Montréal', 'Dubai', 'Autre'];
-const SOURCES = ['WhatsApp', 'Instagram', 'Bouche à oreille', 'Yobbanté.com', 'Autre'];
-const FREQUENCES = [
-  { id: 'hebdomadaire', label: 'Hebdomadaire' },
-  { id: 'mensuel', label: 'Mensuel' },
-  { id: 'occasionnel', label: 'Occasionnel' },
+const CITY_GROUPS: { label: string; cities: string[] }[] = [
+  {
+    label: "Europe",
+    cities: [
+      "Paris", "Lyon", "Marseille", "Bordeaux",
+      "Madrid", "Barcelone", "Rome", "Milan",
+      "Bruxelles", "Amsterdam", "Genève",
+      "Londres", "Lisbonne",
+    ],
+  },
+  {
+    label: "Amérique",
+    cities: ["New York", "Montréal", "Toronto", "Washington DC", "Miami"],
+  },
+  {
+    label: "Afrique (hors Sénégal)",
+    cities: ["Abidjan", "Conakry", "Bamako", "Douala", "Libreville"],
+  },
+  {
+    label: "Sénégal",
+    cities: ["Dakar", "Thiès", "Saint-Louis", "Ziguinchor", "Kaolack", "Touba", "Mbour"],
+  },
+];
+
+const ROLES = [
+  { id: "gp",          label: "GP / Voyageur",      sub: "Bagages accompagnés",       icon: Briefcase },
+  { id: "transporteur", label: "Transporteur Pro", sub: "Routier, maritime, aérien", icon: Truck },
+  { id: "client",      label: "Particulier",        sub: "J'envoie des colis",        icon: Users },
+  { id: "entreprise",  label: "Entreprise",         sub: "Logistique B2B",            icon: Building2 },
 ] as const;
 
-type Step = 'landing' | 'confirmation';
+const MODES = [
+  { id: "bagages_international", label: "GP Bagages", icon: Luggage },
+  { id: "routier",               label: "Routier",    icon: Truck },
+  { id: "aerien",                label: "Aérien",     icon: Plane },
+  { id: "maritime",              label: "Maritime",   icon: Ship },
+  { id: "express",               label: "Coursier",   icon: Zap },
+  { id: "moto",                  label: "Moto",       icon: Bike },
+  { id: "mobility",              label: "Mobility",   icon: Car },
+];
+
+const KONNEKT_WA = "221781221891";
+const KONNEKT_TEL = "+221 78 122 18 91";
+
+type RoleId = typeof ROLES[number]["id"];
+
+/* ───────── Helpers ───────── */
+
+function cleanPhone(v: string) {
+  const t = v.trim();
+  const plus = t.startsWith("+") ? "+" : "";
+  return plus + t.replace(/[^\d]/g, "");
+}
+
+type Errors = Partial<Record<"first" | "last" | "phone" | "city" | "role" | "modes", string>>;
+
+/* ───────── Page ───────── */
 
 export default function KonnektLandingPage() {
   const [params] = useSearchParams();
-  const refFromUrl = (params.get('ref') || '').trim();
+  const ref = (params.get("ref") || "").trim();
+  const refClean = ref.replace(/^GP/i, "").toLowerCase();
+  const hasRef = /^[0-9a-z]{3,8}$/.test(refClean);
 
-  const [step, setStep] = useState<Step>('landing');
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [phone, setPhone] = useState("+221 ");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [role, setRole] = useState<RoleId | "">("");
+  const [city, setCity] = useState("Dakar");
+  const [citiesServed, setCitiesServed] = useState("");
+  const [modes, setModes] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ prenom: string; reference?: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [alreadyMsg, setAlreadyMsg] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [done, setDone] = useState(false);
+  const initialized = useRef(false);
 
-  const [form, setForm] = useState({
-    prenom: '',
-    nom: '',
-    telephone: '',
-    email: '',
-    ville: '',
-    villes_desservies: [] as string[],
-    frequence: 'mensuel' as typeof FREQUENCES[number]['id'],
-    source_decouverte: '',
-    ref_parrainage: refFromUrl,
-  });
-
+  /* Force light mode pendant qu'on est sur /konnekt */
   useEffect(() => {
-    document.title = 'Konnekt · Plateforme transporteurs Yobbanté';
-    if (refFromUrl) setForm(f => ({ ...f, ref_parrainage: refFromUrl }));
-  }, [refFromUrl]);
-
-  useEffect(() => {
-    if (window.location.hash === '#inscription') {
-      setTimeout(() => document.getElementById('inscription')?.scrollIntoView({ behavior: 'smooth' }), 100);
-    }
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    return () => { if (hadDark) root.classList.add("dark"); };
   }, []);
 
-  const canSubmit = useMemo(() =>
-    form.prenom.trim().length >= 2 &&
-    form.nom.trim().length >= 2 &&
-    form.telephone.trim().length >= 8 &&
-    form.ville &&
-    form.villes_desservies.length > 0 &&
-    !submitting,
-  [form, submitting]);
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    document.title = hasRef ? "Konnekt Bêta — Bienvenue partenaire" : "Konnekt — Rejoindre";
+    if (hasRef) {
+      try { localStorage.setItem("konnekt_ref", refClean); } catch { /* noop */ }
+    }
+  }, [hasRef, refClean]);
 
-  const toggleVille = (v: string) => {
-    setForm(f => ({
-      ...f,
-      villes_desservies: f.villes_desservies.includes(v)
-        ? f.villes_desservies.filter(x => x !== v)
-        : [...f.villes_desservies, v],
-    }));
+  const refLabel = useMemo(() => (hasRef ? `GP${refClean.toUpperCase().slice(0, 4)}` : ""), [hasRef, refClean]);
+
+  /* Validation */
+  const errors = useMemo<Errors>(() => {
+    const e: Errors = {};
+    if (first.trim().length < 2) e.first = "Au moins 2 caractères";
+    if (last.trim().length < 2) e.last = "Au moins 2 caractères";
+    if (phone.replace(/\D/g, "").length < 8) e.phone = "Numéro invalide (min. 8 chiffres)";
+    if (!city) e.city = "Sélectionnez une ville";
+    if (!role) e.role = "Sélectionnez un rôle";
+    if (modes.length === 0) e.modes = "Choisissez au moins un mode";
+    return e;
+  }, [first, last, phone, city, role, modes]);
+
+  const valid = Object.keys(errors).length === 0;
+
+  const toggleMode = (id: string) => {
+    setModes((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
   };
 
+  const showErr = (k: keyof Errors) => (touched[k] || touched.__submit) && errors[k];
+
   const submit = async () => {
-    setError(null);
-    setAlreadyMsg(null);
+    setTouched((t) => ({ ...t, __submit: true }));
+    setServerError(null);
+    if (!valid) {
+      const el = document.querySelector("[data-error='1']");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setSubmitting(true);
     try {
-      const tel = form.telephone.trim().replace(/\s+/g, '');
-      const phone = tel.startsWith('+') ? tel : (tel.length === 9 ? `+221${tel}` : `+${tel}`);
-      const { data, error: invErr } = await supabase.functions.invoke('konnekt-beta-signup', {
-        body: { ...form, telephone: phone },
+      const villesArr = citiesServed
+        .split(/[,;\n]+/)
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .slice(0, 20);
+
+      // Modes injectés dans source_decouverte pour traçabilité backend
+      const sourceTag = `role:${role}|modes:${modes.join("+")}${hasRef ? `|ref:${refLabel}` : ""}`;
+
+      const { data, error } = await supabase.functions.invoke("konnekt-beta-signup", {
+        body: {
+          prenom: first.trim(),
+          nom: last.trim(),
+          telephone: phone.trim(),
+          email: "",
+          ville: city,
+          villes_desservies: villesArr,
+          source_decouverte: sourceTag,
+          ref_parrainage: hasRef ? refLabel : null,
+        },
       });
-      if (invErr) throw invErr;
-      const r = data as { ok?: boolean; already_registered?: boolean; message?: string; prenom?: string; reference?: string };
-      if (r?.already_registered) {
-        setAlreadyMsg(r.message || 'Vous etes deja partenaire Yobbante.');
+      if (error) throw new Error(error.message);
+      const res = data as { ok?: boolean; already_registered?: boolean; message?: string; error?: string };
+      if (res?.already_registered) {
+        setServerError(res.message || "Vous êtes déjà partenaire Yobbanté.");
         return;
       }
-      if (!r?.ok) {
-        setError('Une erreur est survenue. Reessayez ou ecrivez-nous sur WhatsApp.');
-        return;
-      }
-      setConfirmation({ prenom: r.prenom || form.prenom, reference: r.reference });
-      setStep('confirmation');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (!res?.ok) throw new Error(res?.error || "Une erreur est survenue.");
+      setDone(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
-      console.error(e);
-      setError('Impossible de transmettre votre demande. Verifiez votre connexion.');
+      const msg = e instanceof Error ? e.message : "Une erreur est survenue. Réessayez dans un instant.";
+      setServerError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen text-white" style={{ background: KONNEKT_BG }}>
-      <KonnektHeader />
-      {step === 'confirmation' && confirmation ? (
-        <ConfirmationView prenom={confirmation.prenom} onBack={() => { setStep('landing'); setConfirmation(null); }} />
-      ) : (
-        <>
-          <Hero onJoinClick={() => document.getElementById('inscription')?.scrollIntoView({ behavior: 'smooth' })} />
-          <Avantages />
-          <CommentCaMarche />
-          <InscriptionForm
-            form={form}
-            setForm={setForm}
-            toggleVille={toggleVille}
-            canSubmit={canSubmit}
-            submitting={submitting}
-            onSubmit={submit}
-            error={error}
-            alreadyMsg={alreadyMsg}
-          />
-        </>
-      )}
-      <Footer />
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
+      {/* HEADER */}
+      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-2xl mx-auto flex items-center justify-between px-4 py-3.5">
+          <Link to="/" className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4 text-slate-500" />
+            <span className="w-7 h-7 rounded-md bg-[#F5C518] text-[#0A0E1A] grid place-items-center font-bold text-sm">K</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-[15px] tracking-tight">KONNEKT</span>
+              <span className="text-[10px] text-slate-500">by Yobbanté</span>
+            </div>
+          </Link>
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold border border-[#F5C518]/40 bg-[#F5C518]/15 text-[#8a6b00] rounded-full px-2.5 py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F5C518] animate-pulse" />
+            Accès prioritaire
+          </span>
+        </div>
+      </header>
+
+      <main className="px-4 py-10 md:py-14">
+        <div className="max-w-xl mx-auto">
+          {!done ? (
+            <>
+              {/* HERO */}
+              <section className="text-center mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
+                  Recevez vos missions{" "}
+                  <span className="text-[#0A0E1A] bg-[#F5C518] px-2 rounded">Yobbanté</span> ici.
+                </h1>
+                <p className="text-sm md:text-base text-slate-600 mt-3 max-w-md mx-auto leading-relaxed">
+                  Inscription en 2 minutes. Notre équipe vous active sur WhatsApp dans les 24h.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-5 text-xs text-slate-600">
+                  <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600" /> Gratuit</span>
+                  <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600" /> 2 minutes</span>
+                  <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Sécurisé</span>
+                </div>
+              </section>
+
+              {/* CARD */}
+              <div id="inscription" className="bg-white border border-slate-200 rounded-2xl p-5 md:p-7 shadow-sm">
+                {hasRef && (
+                  <div className="flex items-start gap-3 mb-6 bg-[#F5C518]/10 border border-[#F5C518]/30 rounded-xl px-4 py-3">
+                    <ShieldCheck className="w-5 h-5 text-[#8a6b00] mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">Partenaire vérifié · {refLabel}</div>
+                      <div className="text-xs text-slate-600 mt-0.5">Votre référence sera transmise à l'équipe.</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nom */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Prénom" required error={showErr("first") ? errors.first : undefined}>
+                    <KInput value={first} onChange={setFirst} onBlur={() => setTouched((t) => ({ ...t, first: true }))} placeholder="Ibrahima" invalid={!!showErr("first")} />
+                  </Field>
+                  <Field label="Nom" required error={showErr("last") ? errors.last : undefined}>
+                    <KInput value={last} onChange={setLast} onBlur={() => setTouched((t) => ({ ...t, last: true }))} placeholder="Fall" invalid={!!showErr("last")} />
+                  </Field>
+                </div>
+
+                {/* Téléphone */}
+                <Field label="Téléphone" required hint="Sera votre identifiant Konnekt" error={showErr("phone") ? errors.phone : undefined}>
+                  <KInput
+                    value={phone}
+                    onChange={(v) => setPhone(cleanPhone(v))}
+                    onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                    placeholder="+221 77 000 00 00"
+                    type="tel"
+                    invalid={!!showErr("phone")}
+                  />
+                </Field>
+
+                <Field label="WhatsApp" hint="Si différent du téléphone">
+                  <KInput value={whatsapp} onChange={(v) => setWhatsapp(cleanPhone(v))} placeholder="+221 76 000 00 00" type="tel" />
+                </Field>
+
+                {/* Rôle */}
+                <Field label="Rôle" required error={showErr("role") ? errors.role : undefined}>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ROLES.map((r) => {
+                      const Ico = r.icon;
+                      const active = role === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => { setRole(r.id); setTouched((t) => ({ ...t, role: true })); }}
+                          className={`text-left p-3 rounded-xl border transition-all ${
+                            active
+                              ? "border-[#F5C518] bg-[#F5C518]/10 ring-1 ring-[#F5C518]/40"
+                              : "border-slate-200 bg-white hover:border-slate-400"
+                          }`}
+                        >
+                          <Ico className={`w-4 h-4 ${active ? "text-[#8a6b00]" : "text-slate-900"}`} strokeWidth={1.75} />
+                          <div className="text-sm font-semibold mt-2">{r.label}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{r.sub}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                {/* Ville de base */}
+                <Field
+                  label="Ville de base"
+                  required
+                  hint="Où vous résidez principalement"
+                  error={showErr("city") ? errors.city : undefined}
+                >
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, city: true }))}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#F5C518]/40 focus:border-[#F5C518]"
+                  >
+                    {CITY_GROUPS.map((g) => (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.cities.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    <option value="Autre">Autre</option>
+                  </select>
+                </Field>
+
+                {/* Villes desservies */}
+                <Field label="Villes desservies" hint="Séparez les villes par des virgules">
+                  <KInput
+                    value={citiesServed}
+                    onChange={setCitiesServed}
+                    placeholder="Ex : Paris, Dakar, Lyon, New York..."
+                  />
+                </Field>
+
+                {/* Modes recherchés */}
+                <Field label="Mode(s) recherché(s)" required hint="Sélectionnez tous ceux qui s'appliquent" error={showErr("modes") ? errors.modes : undefined}>
+                  <div className="flex flex-wrap gap-2">
+                    {MODES.map((m) => {
+                      const Ico = m.icon;
+                      const active = modes.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => { toggleMode(m.id); setTouched((t) => ({ ...t, modes: true })); }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                            active
+                              ? "border-[#F5C518] bg-[#F5C518] text-[#0A0E1A]"
+                              : "border-slate-200 bg-white text-slate-900 hover:border-slate-400"
+                          }`}
+                        >
+                          <Ico className="w-3.5 h-3.5" strokeWidth={2} />
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                {/* Bloc info — pas de mot de passe */}
+                <div
+                  className="mt-5 flex items-start gap-3 rounded-xl"
+                  style={{ backgroundColor: "#F5F5F5", padding: "12px 20px", borderRadius: 12 }}
+                >
+                  <MessageCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#25D366" }} strokeWidth={2} />
+                  <p className="text-xs md:text-sm text-slate-800 leading-relaxed">
+                    Votre numéro de téléphone est votre identifiant. Pas de mot de passe —
+                    nous vous activons sur WhatsApp sous 24h.
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-slate-500 mt-5 leading-relaxed">
+                  En vous inscrivant, vous acceptez les{" "}
+                  <a href="/cgu" className="text-[#8a6b00] hover:underline font-medium">conditions d'utilisation</a> de Konnekt.
+                </p>
+
+                {serverError && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-sm text-red-700">
+                    {serverError}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={submitting}
+                  className="w-full mt-5 inline-flex items-center justify-center gap-2 bg-[#0A0E1A] hover:bg-[#0A0E1A]/90 text-white rounded-lg py-3.5 font-semibold text-sm shadow-md disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {hasRef ? "Activer mon compte Konnekt" : "Rejoindre Konnekt"}
+                  {!submitting && <ArrowRight className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <p className="text-center text-xs text-slate-500 mt-6">
+                Déjà partenaire ?{" "}
+                <a href={`https://wa.me/${KONNEKT_WA}`} target="_blank" rel="noopener noreferrer" className="text-[#8a6b00] hover:underline font-medium">
+                  Écrivez-nous sur WhatsApp
+                </a>
+              </p>
+            </>
+          ) : (
+            <ConfirmationBlock firstName={first} />
+          )}
+        </div>
+      </main>
     </div>
   );
 }
 
-function KonnektHeader() {
-  return (
-    <header className="px-5 py-5 sm:px-8 sm:py-6 max-w-5xl mx-auto">
-      <div className="flex items-baseline gap-3">
-        <span className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: KONNEKT_ACCENT }}>
-          KONNEKT
-        </span>
-        <span className="hidden sm:inline text-[12px] text-white/60">by Yobbanté</span>
-      </div>
-      <p className="mt-1 text-[12px] sm:text-[13px] text-white/70">
-        La plateforme des transporteurs partenaires Yobbanté
-      </p>
-    </header>
-  );
-}
+/* ───────── Subcomponents ───────── */
 
-function Hero({ onJoinClick }: { onJoinClick: () => void }) {
-  return (
-    <section className="px-5 sm:px-8 max-w-5xl mx-auto pt-8 pb-12">
-      <h1 className="text-3xl sm:text-5xl font-black leading-tight tracking-tight">
-        Transportez.<br />
-        Gagnez. <span style={{ color: KONNEKT_ACCENT }}>Simplement.</span>
-      </h1>
-      <p className="mt-4 text-[15px] sm:text-lg text-white/75 max-w-xl leading-relaxed">
-        Rejoignez le réseau Yobbanté et gérez vos missions depuis votre téléphone.
-      </p>
-      <button
-        type="button"
-        onClick={onJoinClick}
-        className="mt-7 inline-flex items-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm transition-all active:scale-95"
-        style={{ background: KONNEKT_ACCENT, color: KONNEKT_BG }}
-      >
-        Rejoindre le réseau beta
-        <ArrowRight className="w-4 h-4" />
-      </button>
-    </section>
-  );
-}
-
-function Avantages() {
-  const items = [
-    { icon: <Package className="w-5 h-5" />, title: 'Missions directes', desc: 'Recevez des colis à transporter sans démarcher.' },
-    { icon: <MessageCircle className="w-5 h-5" />, title: 'Tout sur WhatsApp', desc: "Gérez tout depuis le bot WhatsApp. Pas d'app à installer." },
-    { icon: <Wallet className="w-5 h-5" />, title: 'Paiements rapides', desc: 'Paiement Wave ou Orange Money après chaque mission.' },
-  ];
-  return (
-    <section className="px-5 sm:px-8 max-w-5xl mx-auto pb-12">
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-3">
-        {items.map(it => (
-          <div key={it.title} className="rounded-2xl p-5 border" style={{ background: KONNEKT_CARD, borderColor: 'rgba(255,255,255,0.08)' }}>
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3" style={{ background: 'rgba(245,197,24,0.12)', color: KONNEKT_ACCENT }}>
-              {it.icon}
-            </div>
-            <p className="font-bold text-base">{it.title}</p>
-            <p className="mt-1 text-[13px] text-white/70 leading-relaxed">{it.desc}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CommentCaMarche() {
-  const steps = [
-    'Inscrivez-vous ici',
-    'Enregistrez votre numéro WhatsApp',
-    'Recevez vos premières missions',
-    'Confirmez et soyez payé',
-  ];
-  return (
-    <section className="px-5 sm:px-8 max-w-5xl mx-auto pb-12">
-      <h2 className="text-xl sm:text-2xl font-bold mb-5">Comment ça marche</h2>
-      <ol className="space-y-3">
-        {steps.map((s, i) => (
-          <li key={s} className="flex items-start gap-3 rounded-xl p-4 border" style={{ background: KONNEKT_CARD, borderColor: 'rgba(255,255,255,0.08)' }}>
-            <span className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-[13px]" style={{ background: KONNEKT_ACCENT, color: KONNEKT_BG }}>
-              {i + 1}
-            </span>
-            <span className="text-[14px] mt-0.5">{s}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function InscriptionForm({
-  form, setForm, toggleVille, canSubmit, submitting, onSubmit, error, alreadyMsg,
+function Field({
+  label, required, hint, error, children,
 }: {
-  form: any;
-  setForm: any;
-  toggleVille: (v: string) => void;
-  canSubmit: boolean;
-  submitting: boolean;
-  onSubmit: () => void;
-  error: string | null;
-  alreadyMsg: string | null;
+  label: string;
+  required?: boolean;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <section id="inscription" className="px-5 sm:px-8 max-w-2xl mx-auto pb-16 scroll-mt-6">
-      <div className="rounded-2xl p-5 sm:p-7 border" style={{ background: KONNEKT_CARD, borderColor: 'rgba(255,255,255,0.08)' }}>
-        <h2 className="text-xl sm:text-2xl font-bold">Rejoindre la beta Konnekt</h2>
-        <p className="mt-1 text-[13px] text-white/70">Places limitées — Transporteurs sérieux uniquement</p>
-
-        <div className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Prénom *">
-              <input className={inputClass} value={form.prenom} onChange={e => setForm({ ...form, prenom: e.target.value })} />
-            </Field>
-            <Field label="Nom *">
-              <input className={inputClass} value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
-            </Field>
-          </div>
-
-          <Field label="Téléphone WhatsApp *" hint="Format : +221 77 123 45 67">
-            <input
-              className={inputClass}
-              placeholder="+221 ..."
-              value={form.telephone}
-              onChange={e => setForm({ ...form, telephone: e.target.value })}
-              inputMode="tel"
-            />
-          </Field>
-
-          <Field label="Email (optionnel)" hint="Pour recevoir votre confirmation par email en plus du WhatsApp">
-            <input
-              className={inputClass}
-              placeholder="votre@email.com"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              inputMode="email"
-              type="email"
-            />
-          </Field>
-
-          <Field label="Ville de résidence *">
-            <select className={inputClass} value={form.ville} onChange={e => setForm({ ...form, ville: e.target.value })}>
-              <option value="">Choisir...</option>
-              {VILLES.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Villes que vous desservez *" hint="Sélectionnez toutes les villes que vous couvrez">
-            <div className="flex flex-wrap gap-2 mt-1">
-              {VILLES.map(v => {
-                const active = form.villes_desservies.includes(v);
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => toggleVille(v)}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-medium transition-all"
-                    style={active
-                      ? { background: KONNEKT_ACCENT, color: KONNEKT_BG }
-                      : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  >
-                    {v}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Fréquence de voyages *">
-            <div className="flex flex-wrap gap-2 mt-1">
-              {FREQUENCES.map(f => {
-                const active = form.frequence === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setForm({ ...form, frequence: f.id })}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-medium"
-                    style={active
-                      ? { background: KONNEKT_ACCENT, color: KONNEKT_BG }
-                      : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Comment avez-vous connu Konnekt ?">
-            <select className={inputClass} value={form.source_decouverte} onChange={e => setForm({ ...form, source_decouverte: e.target.value })}>
-              <option value="">Choisir...</option>
-              {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </Field>
-
-          <Field label="Code de parrainage" hint="Optionnel — Si un GP vous a invité">
-            <input
-              className={inputClass}
-              placeholder="ex. GP1234"
-              value={form.ref_parrainage || ''}
-              onChange={e => setForm({ ...form, ref_parrainage: e.target.value.toUpperCase() })}
-            />
-          </Field>
-
-          {error && (
-            <div className="rounded-lg p-3 text-[13px]" style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>
-              {error}
-            </div>
-          )}
-          {alreadyMsg && (
-            <div className="rounded-lg p-3 text-[13px]" style={{ background: 'rgba(245,197,24,0.1)', color: KONNEKT_ACCENT, border: '1px solid rgba(245,197,24,0.25)' }}>
-              {alreadyMsg}
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={!canSubmit}
-            onClick={onSubmit}
-            className="w-full inline-flex items-center justify-center gap-2 font-bold rounded-xl px-6 py-3.5 text-sm transition-all disabled:opacity-60 active:scale-[0.98]"
-            style={{ background: KONNEKT_ACCENT, color: KONNEKT_BG }}
-          >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {submitting ? 'Envoi...' : 'Rejoindre la beta →'}
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ConfirmationView({ prenom, onBack }: { prenom: string; onBack: () => void }) {
-  return (
-    <section className="px-5 sm:px-8 max-w-xl mx-auto py-16 text-center">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5" style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80' }}>
-        <CheckCircle2 className="w-9 h-9" />
-      </div>
-      <h2 className="text-2xl sm:text-3xl font-bold">Demande envoyée !</h2>
-      <p className="mt-3 text-[14px] text-white/80 leading-relaxed">
-        Bonjour {prenom},<br />
-        Votre demande d'inscription à la beta Konnekt a bien été reçue.
-      </p>
-      <p className="mt-3 text-[14px] text-white/80 leading-relaxed">
-        Nous examinons votre profil et vous contactons sous 24h sur WhatsApp.
-      </p>
-
-      <div className="mt-7 text-left rounded-2xl p-5 border" style={{ background: KONNEKT_CARD, borderColor: 'rgba(255,255,255,0.08)' }}>
-        <p className="font-bold mb-3">En attendant :</p>
-        <ol className="space-y-3 text-[13px] text-white/80">
-          <li>
-            <span className="font-semibold text-white">1.</span> Enregistrez ce numéro dans vos contacts :
-            <div className="mt-1 ml-4">
-              <p className="font-mono text-[14px]" style={{ color: KONNEKT_ACCENT }}>+221 78 122 18 91</p>
-              <p className="text-[12px] text-white/60">Nom : Konnekt GP</p>
-            </div>
-          </li>
-          <li>
-            <span className="font-semibold text-white">2.</span> Envoyez « AIDE » pour découvrir comment fonctionne le système.
-          </li>
-        </ol>
-      </div>
-
-      <button
-        type="button"
-        onClick={onBack}
-        className="mt-7 inline-flex items-center gap-2 font-medium text-[14px] hover:underline"
-        style={{ color: KONNEKT_ACCENT }}
-      >
-        ← Retour à l'accueil
-      </button>
-    </section>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="text-[12px] font-medium text-white/80 block mb-1.5">{label}</label>
+    <div className="mt-4" data-error={error ? "1" : undefined}>
+      <label className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-semibold text-slate-900">
+          {label} {required && <span className="text-[#c79400]">*</span>}
+        </span>
+        {hint && !error && <span className="text-[11px] text-slate-500">{hint}</span>}
+      </label>
       {children}
-      {hint && <p className="text-[11px] text-white/50 mt-1">{hint}</p>}
+      {error && <p className="text-xs text-red-600 mt-1.5 font-medium">{error}</p>}
     </div>
   );
 }
 
-const inputClass = 'w-full rounded-lg px-3 py-2.5 text-[14px] outline-none transition-colors text-white placeholder:text-white/40 bg-white/[0.04] border border-white/10 focus:border-yellow-400/60';
-
-function Footer() {
+function KInput({
+  value, onChange, onBlur, placeholder, type = "text", invalid,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  type?: string;
+  invalid?: boolean;
+}) {
   return (
-    <footer className="px-5 sm:px-8 max-w-5xl mx-auto py-8 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-      <p className="text-[12px] text-white/50">© 2026 Konnekt by Yobbanté · contact@yobbante.com</p>
-    </footer>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className={`w-full bg-white rounded-lg px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors border focus:ring-2 ${
+        invalid
+          ? "border-red-400 focus:ring-red-200 focus:border-red-500"
+          : "border-slate-200 focus:ring-[#F5C518]/40 focus:border-[#F5C518]"
+      }`}
+    />
+  );
+}
+
+function ConfirmationBlock({ firstName }: { firstName: string }) {
+  const waText = encodeURIComponent(
+    `Salam, je viens de m'inscrire sur Konnekt.\nMon prénom : ${firstName || "—"}`
+  );
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-7 text-center shadow-sm">
+      <div className="flex justify-center mb-5">
+        <div className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200 grid place-items-center">
+          <Check className="w-10 h-10 text-emerald-600" strokeWidth={2.5} />
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold tracking-tight">
+        Inscription reçue{firstName ? `, ${firstName}` : ""} !
+      </h2>
+
+      <p className="text-sm text-slate-600 mt-4 max-w-md mx-auto leading-relaxed">
+        Notre équipe Konnekt vous contacte sur WhatsApp dans les
+        <span className="font-semibold text-slate-900"> 24 heures </span>
+        pour activer votre compte.
+      </p>
+
+      <div className="mt-6 bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 text-left">
+        <div className="text-[11px] uppercase tracking-widest font-semibold text-slate-500 mb-2">
+          En attendant, enregistrez ce numéro
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-base font-bold text-slate-900">{KONNEKT_TEL}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Nom : Konnekt GP</div>
+          </div>
+          <a
+            href={`tel:+${KONNEKT_WA}`}
+            className="w-10 h-10 rounded-full bg-white border border-slate-200 grid place-items-center text-slate-900 hover:bg-slate-100 transition-colors"
+            aria-label="Appeler Konnekt"
+          >
+            <Phone className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+
+      <a
+        href={`https://wa.me/${KONNEKT_WA}?text=${waText}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full mt-5 inline-flex items-center justify-center gap-2 text-white rounded-lg py-3.5 font-semibold text-sm shadow-md transition-transform hover:scale-[1.01] active:scale-[0.99]"
+        style={{ backgroundColor: "#25D366" }}
+      >
+        <MessageCircle className="w-4 h-4" />
+        Écrire à Konnekt sur WhatsApp
+        <ArrowRight className="w-4 h-4" />
+      </a>
+
+      <p className="text-xs text-slate-500 mt-4">
+        Ou appelez-nous :{" "}
+        <a href={`tel:${KONNEKT_TEL.replace(/\s/g, "")}`} className="text-slate-900 font-semibold hover:underline">
+          {KONNEKT_TEL}
+        </a>
+      </p>
+    </div>
   );
 }
