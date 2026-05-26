@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy } from 'lucide-react';
 import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
 import { GpImportDialog } from './GpImportDialog';
 import { GpActionsPanel } from './GpActionsPanel';
@@ -486,6 +486,15 @@ export function TransporteursTab() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        const link = buildBotWaUrl(t);
+                        try {
+                          await navigator.clipboard.writeText(link);
+                          toast.success(`Lien wa.me copié — à envoyer depuis le 122 (${YOBBANTE_GP_WHATSAPP_DISPLAY})`);
+                        } catch { toast.error('Copie impossible'); }
+                      }}>
+                        <Copy className="w-4 h-4 mr-2" /> Copier le lien wa.me (depuis 122)
                       </DropdownMenuItem>
                       <DropdownMenuItem disabled={testingId === t.id} onClick={() => sendTestWhatsApp(t)}>
                         <Activity className="w-4 h-4 mr-2" /> {testingId === t.id ? 'Test en cours…' : "Tester l'envoi WhatsApp"}

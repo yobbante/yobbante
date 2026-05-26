@@ -242,6 +242,52 @@ Deno.serve(async (req) => {
               console.error('WA_ERROR livreur-bot fetch', e);
             }
           } else if (channel === 'gp') {
+            // Auto-relance onboarding : si c'est le PREMIER message inbound du GP
+            // (donc la fenetre Meta 24h vient de s'ouvrir) et qu'on a deja envoye
+            // une invitation bot par le passe, on relance l'onboarding par API.
+            if (transporteurId) {
+              try {
+                const { count } = await supa
+                  .from('whatsapp_inbound_messages')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('channel', 'gp')
+                  .eq('transporteur_id', transporteurId);
+                const isFirstInbound = (count ?? 0) <= 1;
+                if (isFirstInbound) {
+                  const { data: gp } = await supa
+                    .from('transporteurs')
+                    .select('id, reference, nom, prenom, telephone_1, invitation_bot_sent_at')
+                    .eq('id', transporteurId)
+                    .maybeSingle();
+                  if (gp?.invitation_bot_sent_at) {
+                    const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
+                    const ref = `GP${String(gp.reference ?? '').replace(/\D/g, '').padStart(4, '0')}`;
+                    const onboardMsg =
+                      `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Yobbante GP (122). ` +
+                      `Envoyez AIDE pour voir comment recevoir vos missions. Reference : ${ref}.`;
+                    fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/gp-smart-invite`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                      },
+                      body: JSON.stringify({
+                        phone: gp.telephone_1,
+                        message: onboardMsg,
+                        gp_name: `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim(),
+                        gp_ref: ref,
+                        transporteur_id: gp.id,
+                        kind: 'bot_onboard',
+                        trigger_type: 'auto_relance_first_inbound',
+                      }),
+                    }).catch((e) => console.error('WA_ERROR auto-relance', e));
+                  }
+                }
+              } catch (e) {
+                console.error('WA_ERROR auto-relance check', e);
+              }
+            }
+
             // Delegate to gp-bot
             try {
               const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/gp-bot`, {
