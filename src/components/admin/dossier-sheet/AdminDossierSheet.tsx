@@ -96,6 +96,7 @@ function DossierSheetBody({ id }: { id: string }) {
   const qc = useQueryClient();
   const { isStaff } = useUserRole();
   const [tab, setTab] = useState('apercu');
+  const [apercuSave, setApercuSave] = useState<{ run: () => void; pending: boolean; dirty: boolean } | null>(null);
 
   const { data: dossier, isLoading, refetch } = useQuery({
     queryKey: ['admin-dossier', id],
