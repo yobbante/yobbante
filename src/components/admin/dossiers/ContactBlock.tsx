@@ -74,7 +74,7 @@ export function ContactBlock({
               title="Copier le numéro"
               className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Phone className="w-3.5 h-3.5" />
+              <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
