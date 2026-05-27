@@ -1,8 +1,12 @@
 // Panneau de décomposition tarifaire — ADMIN UNIQUEMENT.
-// Affiche tarif GP brut, marge, enlèvement, hors-Dakar, total client,
-// coût GP, marge nette. Ces infos ne doivent JAMAIS être visibles côté client.
+// Affiche tarif GP brut, marge, enlèvement (unique selon la zone), total client.
+// Ces infos ne doivent JAMAIS être visibles côté client.
 
-import { formatFcfa, YOBBANTE_MARGIN_PCT, ENLEVEMENT_INTEGRE } from '@/lib/yobbantePricing';
+import {
+  formatFcfa,
+  YOBBANTE_MARGIN_PCT,
+  enlevementForZone,
+} from '@/lib/yobbantePricing';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +14,10 @@ import { Button } from '@/components/ui/button';
 interface Props {
   gpRatePerKg?: number | null;
   yobbanteMarginPct?: number | null;
+  /** Zone d'enlèvement (détermine le montant unique). */
+  pickupZone?: 'dakar_centre' | 'dakar_banlieue' | 'hors_dakar' | string | null;
+  /** Override explicite du montant d'enlèvement (sinon dérivé de pickupZone). */
   enlevementAmount?: number | null;
-  horsDakarSurcharge?: number | null;
   deliveryCarrierCost?: number | null;
   displayedPricePerKg?: number | null;
   totalDisplayedPrice?: number | null;
@@ -22,14 +28,21 @@ interface Props {
   isEstimate?: boolean;
 }
 
+const ZONE_LABEL: Record<string, string> = {
+  dakar_centre: 'Dakar centre',
+  dakar_banlieue: 'Banlieue Dakar',
+  hors_dakar: 'Hors Dakar',
+};
+
 export default function PricingBreakdownPanel(props: Props) {
   const [visible, setVisible] = useState(false);
 
   const marginPct = (props.yobbanteMarginPct ?? YOBBANTE_MARGIN_PCT) * 100;
-  const enlevement = props.enlevementAmount ?? ENLEVEMENT_INTEGRE;
-  const hd = props.horsDakarSurcharge ?? 0;
+  const enlevement =
+    props.enlevementAmount ?? enlevementForZone(props.pickupZone);
   const gpRate = props.gpRatePerKg ?? 0;
   const margePerKg = gpRate * (marginPct / 100);
+  const zoneLabel = ZONE_LABEL[String(props.pickupZone ?? 'dakar_centre')] ?? 'Dakar centre';
 
   return (
     <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
@@ -55,8 +68,7 @@ export default function PricingBreakdownPanel(props: Props) {
           <Row label={`Marge agence (${marginPct.toFixed(0)} %)`} value={`+ ${formatFcfa(margePerKg)}/kg`} />
           <Row label="Tarif affiché client" value={`${formatFcfa(props.displayedPricePerKg)}/kg`} />
           <Row label="Mode" value={props.isExpress ? 'Express (×1.45)' : 'Standard'} />
-          <Row label="Enlèvement (intégré)" value={formatFcfa(enlevement)} />
-          <Row label="Frais hors Dakar" value={hd > 0 ? formatFcfa(hd) : '—'} />
+          <Row label={`Enlèvement (${zoneLabel})`} value={formatFcfa(enlevement)} />
           {props.deliveryCarrierCost ? (
             <Row label="Carrier destination" value={formatFcfa(props.deliveryCarrierCost)} />
           ) : null}

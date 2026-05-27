@@ -8,6 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Scale, CreditCard, HandCoins } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  YOBBANTE_MARGIN_PCT,
+  enlevementForZone,
+  formatFcfa,
+} from '@/lib/yobbantePricing';
+import { calculerFraisEnlevement, type DakarZoneCategory } from '@/lib/dakarZones';
 
 export interface WeighingDossier {
   id: string;
@@ -19,6 +25,12 @@ export interface WeighingDossier {
   estimated_cost: number | null;
   destination_country: string | null;
   user_id: string;
+  /** Tarif GP au kg (XOF). */
+  gp_rate_per_kg?: number | null;
+  /** Zone d'enlèvement déjà classifiée. */
+  pickup_zone?: DakarZoneCategory | string | null;
+  /** Adresse expéditeur (fallback pour déduire la zone). */
+  sender_address?: string | null;
 }
 
 const HUBS = ['Hub Dakar', 'Hub Paris', 'Hub New York', 'Hub Dubaï', 'Hub Chine'];
@@ -43,20 +55,28 @@ export function WeighingDialog({
   const actualKg = parseFloat(weight.replace(',', '.'));
   const valid = !isNaN(actualKg) && actualKg > 0;
 
-  // Compute final amount: scale estimated_cost (EUR) by actual/estimated ratio, fallback to flat 2500 XOF/kg
-  const { finalXof, diffXof, estXof } = useMemo(() => {
-    const estKg = dossier?.estimated_weight ?? 0;
-    const estEur = dossier?.estimated_cost ?? 0;
-    const estXof = Math.round(estEur * 655.957);
-    if (!valid || !dossier) return { finalXof: 0, diffXof: 0, estXof };
-    const ratio = estKg > 0 ? actualKg / estKg : 1;
-    const baseXof = estXof > 0 ? estXof : Math.round(actualKg * 2500);
-    const finalXof = estXof > 0 ? Math.round(estXof * ratio) : baseXof;
-    return { finalXof, diffXof: finalXof - estXof, estXof };
-  }, [valid, actualKg, dossier]);
+  /**
+   * Formule officielle (cf. spec QA 27/05/2026) :
+   *   total = poids × tarif_gp × (1 + 0.20) + enlevement_zone
+   * UN SEUL frais d'enlèvement selon la zone (5k / 10k / 15k).
+   */
+  const breakdown = useMemo(() => {
+    if (!dossier) return null;
+    const gpRate = Number(dossier.gp_rate_per_kg ?? 0);
+    const zone: DakarZoneCategory =
+      (dossier.pickup_zone as DakarZoneCategory) ||
+      (dossier.sender_address
+        ? calculerFraisEnlevement(dossier.sender_address).zone
+        : 'dakar_centre');
+    const enlevement = enlevementForZone(zone);
+    const clientPerKg = gpRate * (1 + YOBBANTE_MARGIN_PCT);
+    const weightTotal = valid ? clientPerKg * actualKg : 0;
+    const total = valid ? Math.round(weightTotal + enlevement) : 0;
+    return { gpRate, zone, enlevement, clientPerKg, weightTotal, total };
+  }, [dossier, valid, actualKg]);
 
   async function submit(asCod: boolean) {
-    if (!dossier || !valid) return;
+    if (!dossier || !valid || !breakdown) return;
     setSubmitting(true);
     try {
       const { data: userRes } = await supabase.auth.getUser();
@@ -65,7 +85,7 @@ export function WeighingDialog({
 
       const update: Record<string, unknown> = {
         actual_weight_kg: actualKg,
-        final_amount_xof: finalXof,
+        final_amount_xof: breakdown.total,
         weighed_at: now,
         weighed_by: uid,
         weigh_location: location,
@@ -96,8 +116,8 @@ export function WeighingDialog({
       const payLink = `https://yobbante.com/pay/${trackingId}`;
       if (dossier.contact_phone) {
         const params = asCod
-          ? [prenom, trackingId, `${actualKg}kg`, `${finalXof.toLocaleString('fr-FR')} XOF`]
-          : [prenom, trackingId, `${actualKg}kg`, `${finalXof.toLocaleString('fr-FR')} XOF`, payLink];
+          ? [prenom, trackingId, `${actualKg}kg`, `${breakdown.total.toLocaleString('fr-FR')} XOF`]
+          : [prenom, trackingId, `${actualKg}kg`, `${breakdown.total.toLocaleString('fr-FR')} XOF`, payLink];
 
         const template_name = asCod ? 'cash_on_delivery_confirmed' : 'weight_confirmation';
         try {
@@ -126,6 +146,12 @@ export function WeighingDialog({
     }
   }
 
+  const zoneLabel: Record<string, string> = {
+    dakar_centre: 'Dakar centre',
+    dakar_banlieue: 'Banlieue Dakar',
+    hors_dakar: 'Hors Dakar',
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
@@ -147,8 +173,8 @@ export function WeighingDialog({
                 <div className="text-sm font-medium mt-0.5">{dossier.estimated_weight ?? '—'} kg</div>
               </div>
               <div className="rounded-lg bg-secondary/40 p-3">
-                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Montant estimé</div>
-                <div className="text-sm font-medium mt-0.5">{estXof ? `${estXof.toLocaleString('fr-FR')} XOF` : '—'}</div>
+                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Zone enlèvement</div>
+                <div className="text-sm font-medium mt-0.5">{zoneLabel[breakdown?.zone ?? 'dakar_centre']}</div>
               </div>
             </div>
 
@@ -175,20 +201,20 @@ export function WeighingDialog({
               </Select>
             </div>
 
-            {valid && (
-              <div className="rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-3 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Nouveau montant</span>
-                  <span className="font-bold text-base">{finalXof.toLocaleString('fr-FR')} XOF</span>
-                </div>
-                {estXof > 0 && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Différence vs estimation</span>
-                    <span className={diffXof > 0 ? 'text-amber-500' : diffXof < 0 ? 'text-emerald-500' : ''}>
-                      {diffXof > 0 ? '+' : ''}{diffXof.toLocaleString('fr-FR')} XOF
-                    </span>
+            {breakdown && (
+              <div className="rounded-lg border border-[#F5C518]/30 bg-[#F5C518]/5 p-3 space-y-1 text-xs font-mono">
+                {!breakdown.gpRate && (
+                  <div className="text-amber-500 mb-1 font-sans">
+                    ⚠️ Tarif GP non renseigné — le total sera incomplet.
                   </div>
                 )}
+                <Row label="Poids réel" value={`${valid ? actualKg : 0} kg`} />
+                <Row label="Tarif GP" value={`${formatFcfa(breakdown.gpRate)}/kg`} />
+                <Row label="Prix client/kg (×1.20)" value={`${formatFcfa(breakdown.clientPerKg)}/kg`} />
+                <Row label="Sous-total poids" value={formatFcfa(breakdown.weightTotal)} />
+                <Row label={`Enlèvement (${zoneLabel[breakdown.zone]})`} value={formatFcfa(breakdown.enlevement)} />
+                <div className="border-t border-[#F5C518]/30 my-1" />
+                <Row label="TOTAL" value={formatFcfa(breakdown.total)} bold />
               </div>
             )}
 
@@ -223,5 +249,14 @@ export function WeighingDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className={`flex justify-between ${bold ? 'text-sm font-bold text-foreground' : 'text-muted-foreground'}`}>
+      <span className="font-sans">{label}</span>
+      <span>{value}</span>
+    </div>
   );
 }

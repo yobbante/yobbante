@@ -248,16 +248,20 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1 min-w-0">
           <SheetTitle className="text-lg flex items-center gap-2 flex-wrap">
-            <span className="truncate">{dossier.reference}</span>
+            <span className="truncate font-mono">{dossier.tracking_id || dossier.reference}</span>
             {dossier.tracking_id && (
               <button
                 onClick={() => copy(dossier.tracking_id)}
-                className="text-xs font-mono px-2 py-0.5 rounded bg-muted hover:bg-muted/80 inline-flex items-center gap-1"
                 title="Copier le tracking"
+                className="text-muted-foreground hover:text-foreground"
               >
-                {dossier.tracking_id}
-                <Copy className="w-3 h-3" />
+                <Copy className="w-3.5 h-3.5" />
               </button>
+            )}
+            {dossier.tracking_id && (
+              <span className="text-[10px] font-mono text-muted-foreground/60" title="Référence interne">
+                Réf. interne : {dossier.reference}
+              </span>
             )}
           </SheetTitle>
           <SheetDescription className="flex items-center gap-2 text-xs flex-wrap">
@@ -629,8 +633,8 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
       <PricingBreakdownPanel
         gpRatePerKg={(dossier as any).gp_rate_per_kg}
         yobbanteMarginPct={(dossier as any).yobbante_margin_pct}
+        pickupZone={(dossier as any).pickup_zone}
         enlevementAmount={(dossier as any).enlevement_amount}
-        horsDakarSurcharge={(dossier as any).hors_dakar_surcharge}
         deliveryCarrierCost={(dossier as any).delivery_carrier_cost}
         displayedPricePerKg={(dossier as any).displayed_price_per_kg}
         totalDisplayedPrice={(dossier as any).total_displayed_price}
@@ -1211,6 +1215,9 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
     estimated_cost: dossier.estimated_cost,
     destination_country: dossier.destination_country,
     user_id: dossier.user_id,
+    gp_rate_per_kg: (dossier as any).gp_rate_per_kg,
+    pickup_zone: (dossier as any).pickup_zone,
+    sender_address: (dossier as any).sender_address,
   };
 
   return (
