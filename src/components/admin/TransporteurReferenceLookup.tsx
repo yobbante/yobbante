@@ -59,7 +59,7 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
 
   const filteredGps = useMemo(() => {
     const list = allGps ?? [];
-    const target = destinationCity || destinationCountry || '';
+    const target = (destinationCity || '').trim();
     const byDest = target
       ? list.filter(g => navettesServeCity(g.navettes, target))
       : list;
@@ -71,7 +71,7 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
       (g.prenom ?? '').toLowerCase().includes(s) ||
       uniqueCitiesFromNavettes(g.navettes).some(c => c.toLowerCase().includes(s)),
     );
-  }, [allGps, pickerQ, destinationCity, destinationCountry]);
+  }, [allGps, pickerQ, destinationCity]);
 
   return (
     <div className="space-y-2">
