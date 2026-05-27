@@ -3006,7 +3006,9 @@ export type Database = {
           error_message: string | null
           from_number: string | null
           id: string
+          interactive_payload: Json | null
           message_body: string | null
+          message_type: string
           recipient_type: string
           status: string
           template_name: string | null
@@ -3023,7 +3025,9 @@ export type Database = {
           error_message?: string | null
           from_number?: string | null
           id?: string
+          interactive_payload?: Json | null
           message_body?: string | null
+          message_type?: string
           recipient_type?: string
           status?: string
           template_name?: string | null
@@ -3040,7 +3044,9 @@ export type Database = {
           error_message?: string | null
           from_number?: string | null
           id?: string
+          interactive_payload?: Json | null
           message_body?: string | null
+          message_type?: string
           recipient_type?: string
           status?: string
           template_name?: string | null
