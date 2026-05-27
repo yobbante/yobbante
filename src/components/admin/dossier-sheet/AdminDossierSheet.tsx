@@ -34,6 +34,7 @@ import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
+import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 
 import { format } from 'date-fns';
 
