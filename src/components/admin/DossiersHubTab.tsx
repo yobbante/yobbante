@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
 import { InboxTab } from './inbox/InboxTab';
 import { RequestsTab } from './RequestsTab';
 import { ReceptionKanbanTab } from './ReceptionKanbanTab';
@@ -56,12 +56,7 @@ export function DossiersHubTab() {
         </Tabs>
       </div>
 
-      <Sheet open={intakeOpen} onOpenChange={setIntakeOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Nouveau dossier</SheetTitle></SheetHeader>
-          <NewIntakeDialog onClose={() => setIntakeOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
 
       <AdminDossierSheet />
     </DossierSheetProvider>
