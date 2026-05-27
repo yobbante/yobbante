@@ -18,7 +18,7 @@ export async function assignTransporteurAndNotify({
   notify = true,
 }: AssignArgs): Promise<{ ok: boolean }> {
   // 1) Update assignment + auto-bump status to ASSIGNED when attaching a GP
-  const updatePayload: Record<string, any> = {
+  const updatePayload: { assigned_transporteur_ref: string | null; status?: any } = {
     assigned_transporteur_ref: transporteurRef || null,
   };
   if (transporteurRef) {
