@@ -807,7 +807,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   }
 
   if (upper === 'STATS') return await cmdStats();
-  if (upper === 'URGENTS' || text === '3') return await cmdUrgents();
+  if (upper === 'URGENTS' || text === '3') return await cmdUrgents(phone);
 
   // DEPART {ref}
   if (/^depart\s+\S+/i.test(text)) {
