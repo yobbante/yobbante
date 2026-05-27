@@ -142,6 +142,7 @@ export function RequestsTab() {
       if (q) {
         const s = q.toLowerCase();
         return (
+          (d.tracking_id || '').toLowerCase().includes(s) ||
           d.reference.toLowerCase().includes(s) ||
           d.product_description.toLowerCase().includes(s) ||
           (d.contact_email || '').toLowerCase().includes(s) ||
@@ -312,7 +313,10 @@ export function RequestsTab() {
                   <span className="text-lg">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                      <span className="font-mono text-foreground font-semibold">{d.reference}</span>
+                      <span className="font-mono text-foreground font-semibold text-[12px]">{d.tracking_id || d.reference}</span>
+                      {d.tracking_id && (
+                        <span className="font-mono text-[10px] text-muted-foreground/70" title="Référence interne">Réf. {d.reference}</span>
+                      )}
                       {badges.map(b => (
                         <span
                           key={b.kind}
@@ -530,7 +534,12 @@ function KanbanView({
                   title="Glisser pour changer de statut · double-clic pour ouvrir"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[10px] text-muted-foreground truncate">{d.reference}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-mono text-[11px] text-foreground font-semibold truncate">{d.tracking_id || d.reference}</span>
+                      {d.tracking_id && (
+                        <span className="font-mono text-[9px] text-muted-foreground/70 truncate">Réf. {d.reference}</span>
+                      )}
+                    </div>
                     <span className="text-sm">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
                   </div>
                   <div className="text-foreground line-clamp-2 leading-snug">{d.product_description}</div>

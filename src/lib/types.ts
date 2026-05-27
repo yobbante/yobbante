@@ -179,6 +179,17 @@ export interface Dossier {
   buyer_contact?: string | null;
   quantity?: number | null;
   unit?: string | null;
+  tracking_id?: string | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_address?: string | null;
+  pickup_date?: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
+  assigned_transporteur_ref?: string | null;
+  assigned_departure_id?: string | null;
   created_at: string;
   updated_at: string;
 }

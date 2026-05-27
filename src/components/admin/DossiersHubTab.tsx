@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+
 import { InboxTab } from './inbox/InboxTab';
 import { RequestsTab } from './RequestsTab';
 import { ReceptionKanbanTab } from './ReceptionKanbanTab';
 import { SourcingTab } from './SourcingTab';
+import { NewIntakeDialog } from './inbox/NewIntakeDialog';
 import { DossierSheetProvider } from './dossier-sheet/useDossierSheet';
 import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 
@@ -14,6 +19,7 @@ export function DossiersHubTab() {
   const [sp, setSp] = useSearchParams();
   const tabParam = sp.get('tab') as TabId | null;
   const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : 'tous';
+  const [intakeOpen, setIntakeOpen] = useState(false);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
@@ -25,9 +31,14 @@ export function DossiersHubTab() {
   return (
     <DossierSheetProvider>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Dossiers</h1>
-          <p className="text-sm text-muted-foreground">Toutes les demandes et expéditions, par catégorie.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Dossiers</h1>
+            <p className="text-sm text-muted-foreground">Toutes les demandes et expéditions, par catégorie.</p>
+          </div>
+          <Button size="sm" onClick={() => setIntakeOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Nouveau dossier
+          </Button>
         </div>
 
         <Tabs value={tab} onValueChange={onChange}>
@@ -44,6 +55,8 @@ export function DossiersHubTab() {
           <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
         </Tabs>
       </div>
+
+      <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
 
       <AdminDossierSheet />
     </DossierSheetProvider>
