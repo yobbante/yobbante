@@ -384,6 +384,16 @@ function ApercuTab({
     onError: (e: any) => toast.error(e?.message || 'Échec enregistrement'),
   });
 
+  // Register save handler so the footer can trigger it as an icon-only button.
+  useEffect(() => {
+    registerSave({
+      run: () => save.mutate(),
+      pending: save.isPending,
+      dirty: true,
+    });
+    return () => registerSave(null);
+  }, [registerSave, save.isPending, form]);
+
   const field = (k: keyof typeof form, label: string, type: 'text' | 'tel' | 'date' | 'number' | 'textarea' = 'text') => (
     <div className="space-y-1">
       <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</Label>
