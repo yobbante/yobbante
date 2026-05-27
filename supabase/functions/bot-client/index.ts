@@ -325,8 +325,44 @@ async function handleMenuChoice(
     return withShortMenu(r);
   }
   if (choice === '2') {
-    await saveSession(supa, phone, 'await_tracking', {});
-    return withBack(`Quel est votre numero de suivi ?\n(Format : YOB-XXXXXX)`);
+    const digits = phone.replace(/\D/g, '');
+    const variants = [phone, `+${digits}`, digits];
+    const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+    const { data: rows } = await supa
+      .from('dossiers')
+      .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+      .or(orExpr)
+      .order('updated_at', { ascending: false })
+      .limit(10);
+    const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
+    if (items.length === 0) {
+      await saveSession(supa, phone, 'await_tracking', {});
+      return withBack(`Aucun colis trouve pour votre numero.\nEntrez un numero de suivi.\n(Format : YOB-XXXXXX)`);
+    }
+    const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
+    const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
+    const toRow = (r: any) => {
+      const id = (r.tracking_id || r.reference).toString();
+      const label = STATUS_FR[r.status] || r.status;
+      return {
+        id,
+        title: id.slice(0, 24),
+        description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72),
+      };
+    };
+    const sections: Array<{ title: string; rows: any[] }> = [];
+    if (active.length) sections.push({ title: 'En cours', rows: active.slice(0, 8).map(toRow) });
+    if (archived.length) sections.push({ title: 'Termines', rows: archived.slice(0, 10 - (sections[0]?.rows.length ?? 0)).map(toRow) });
+    await saveSession(supa, phone, null, {});
+    await sendWaList(
+      phone,
+      `Vos colis recents (${items.length}) :`,
+      'Choisir un colis',
+      sections,
+      `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${r.tracking_id || r.reference} (${STATUS_FR[r.status] || r.status})`).join('\n')}\n\nRepondez avec le numero de suivi.`,
+      'bot_client_my_packages',
+    );
+    return '';
   }
   if (choice === '3') {
     await saveSession(supa, phone, 'ship_origin', {});
