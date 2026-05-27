@@ -680,5 +680,5 @@ function Essentials({ parsed, fallback }: { parsed: ReturnType<typeof parseClien
     </div>
   );
 }
-}
+
 
