@@ -145,9 +145,15 @@ Deno.serve(async (req) => {
 
   // Build Meta payload
   const useTemplate = !!body.template_name;
+  const useInteractive = !!body.interactive_type
+    && (body.interactive_type === 'button' || body.interactive_type === 'list');
   let metaBody: Record<string, unknown>;
   let messageBody: string | null = null;
   let activeTemplateName: string | null = body.template_name ?? null;
+  let messageType: 'text' | 'template' | 'interactive' = 'text';
+  let interactivePayloadSnapshot: any = null;
+
+  const truncate = (s: string, n: number) => (s ?? '').toString().slice(0, n);
 
   const buildTemplateBody = (templateName: string): Record<string, unknown> => {
     const params = (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
@@ -167,8 +173,72 @@ Deno.serve(async (req) => {
     };
   };
 
+  const buildInteractiveBody = (): Record<string, unknown> | null => {
+    const bodyText = truncate(body.interactive_body ?? body.message ?? '', 1024);
+    if (!bodyText) return null;
+    if (body.interactive_type === 'button') {
+      const btns = (body.buttons ?? []).slice(0, 3).map((b) => ({
+        type: 'reply',
+        reply: { id: truncate(b.id, 256), title: truncate(b.label, 20) },
+      }));
+      if (btns.length === 0) return null;
+      return {
+        messaging_product: 'whatsapp',
+        to: recipient,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: bodyText },
+          action: { buttons: btns },
+        },
+      };
+    }
+    // list
+    const sections = (body.sections ?? []).map((s) => ({
+      title: truncate(s.title, 24),
+      rows: (s.rows ?? []).map((r) => ({
+        id: truncate(r.id, 200),
+        title: truncate(r.title, 24),
+        ...(r.description ? { description: truncate(r.description, 72) } : {}),
+      })),
+    })).filter((s) => s.rows.length > 0);
+    const totalRows = sections.reduce((n, s) => n + s.rows.length, 0);
+    if (totalRows === 0 || totalRows > 10) return null;
+    return {
+      messaging_product: 'whatsapp',
+      to: recipient,
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        body: { text: bodyText },
+        action: {
+          button: truncate(body.list_button_label || 'Voir les options', 20),
+          sections,
+        },
+      },
+    };
+  };
+
   if (useTemplate) {
     metaBody = buildTemplateBody(body.template_name!);
+    messageType = 'template';
+  } else if (useInteractive) {
+    const built = buildInteractiveBody();
+    if (built) {
+      metaBody = built;
+      messageType = 'interactive';
+      interactivePayloadSnapshot = (built as any).interactive;
+      messageBody = body.interactive_body ?? body.message ?? null;
+    } else {
+      // Pas de boutons valides → tomber en texte
+      messageBody = body.fallback_text ?? body.interactive_body ?? body.message ?? '';
+      metaBody = {
+        messaging_product: 'whatsapp',
+        to: recipient,
+        type: 'text',
+        text: { body: messageBody },
+      };
+    }
   } else {
     // Free text fallback (24h window or admin notif)
     messageBody = body.message
