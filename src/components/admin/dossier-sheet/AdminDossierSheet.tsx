@@ -691,17 +691,49 @@ function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; tra
     }
   }
 
+  function buildWaHref() {
+    if (!gp?.telephone_1) return '';
+    const message = buildGpAssignMessage({
+      gp_prenom: gp.prenom,
+      tracking_id: dossier.tracking_id,
+      reference: dossier.reference,
+      origin: dossier.origin_country,
+      destination: dossier.destination_country,
+      client_name: dossier.sender_name || dossier.recipient_name,
+      weight: dossier.estimated_weight,
+      pickup_address: dossier.sender_address,
+      pickup_date: dossier.pickup_date,
+    });
+    return `https://wa.me/${String(gp.telephone_1).replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+  }
+
   return (
     <div className="space-y-1.5">
-      <Button
-        size="sm"
-        onClick={handleSend}
-        disabled={sending || !gp?.telephone_1}
-        className="text-xs bg-green-600 hover:bg-green-700 text-white"
-      >
-        {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
-        Envoyer WhatsApp au GP
-      </Button>
+      <div className="inline-flex">
+        <Button
+          size="sm"
+          onClick={handleSend}
+          disabled={sending || !gp?.telephone_1}
+          className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-r-none"
+        >
+          {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
+          Envoyer WhatsApp au GP
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs h-8 px-2 rounded-l-none border-green-600/40 text-green-600 hover:text-green-700"
+          disabled={!gp?.telephone_1}
+          title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+          onClick={() => {
+            const href = buildWaHref();
+            if (!href) return;
+            navigator.clipboard?.writeText(href).then(() => toast.success('Lien WhatsApp copié'));
+          }}
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </Button>
+      </div>
       {lastNotifiedAt && (
         <div className="text-[10px] text-muted-foreground">
           Notifié le {format(new Date(lastNotifiedAt), 'dd/MM/yyyy HH:mm')}
