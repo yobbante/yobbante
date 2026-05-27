@@ -17,10 +17,25 @@ export async function assignTransporteurAndNotify({
   transporteurRef,
   notify = true,
 }: AssignArgs): Promise<{ ok: boolean }> {
-  // 1) Update assignment
+  // 1) Update assignment + auto-bump status to ASSIGNED when attaching a GP
+  const updatePayload: { assigned_transporteur_ref: string | null; status?: any } = {
+    assigned_transporteur_ref: transporteurRef || null,
+  };
+  if (transporteurRef) {
+    // Read current status to avoid regressing further-along dossiers
+    const { data: cur } = await supabase
+      .from('dossiers')
+      .select('status')
+      .eq('id', dossierId)
+      .maybeSingle();
+    const earlyStatuses = ['SUBMITTED', 'AWAITING_CLIENT', 'IN_REVIEW', 'CONFIRMED', 'PROCURED'];
+    if (cur?.status && earlyStatuses.includes(cur.status)) {
+      updatePayload.status = 'ASSIGNED';
+    }
+  }
   const { error: upErr } = await supabase
     .from('dossiers')
-    .update({ assigned_transporteur_ref: transporteurRef || null })
+    .update(updatePayload)
     .eq('id', dossierId);
   if (upErr) {
     toast.error(upErr.message || 'Echec assignation');
