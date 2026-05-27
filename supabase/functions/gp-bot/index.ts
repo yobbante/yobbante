@@ -925,7 +925,7 @@ Voir : yobbante.com/admin`);
       .eq('assigned_transporteur_ref', transporteur.reference)
       .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(10);
     if (!data || data.length === 0) {
       await reply(`Aucune mission active.`, 'mes_missions');
     } else {
@@ -933,11 +933,61 @@ Voir : yobbante.com/admin`);
         const w = d.actual_weight_kg ?? d.estimated_weight ?? '?';
         return `${d.tracking_id ?? '—'} - ${d.buyer_name ?? '?'} - ${w}kg - ${d.status}`;
       }).join('\n');
-      await reply(`📦 Vos missions actives :\n${lines}`, 'mes_missions');
+      const textFallback = `📦 Vos missions actives :\n${lines}\n\nTapez le tracking pour agir (ex: COLLECTE YOB-XXXXXX).`;
+
+      // Liste interactive : a collecter vs en transit
+      const toCollect = data.filter((d: any) => ['ASSIGNED', 'COLLECTING'].includes(d.status));
+      const inTransit = data.filter((d: any) => !['ASSIGNED', 'COLLECTING'].includes(d.status));
+      const buildRow = (d: any) => {
+        const w = d.actual_weight_kg ?? d.estimated_weight ?? '?';
+        return {
+          id: `mission:${d.tracking_id}`,
+          title: `${d.tracking_id ?? '—'} · ${w}kg`.slice(0, 24),
+          description: `${d.buyer_name ?? '?'} · ${d.status}`.slice(0, 72),
+        };
+      };
+      const sections = [
+        toCollect.length ? { title: 'A collecter', rows: toCollect.map(buildRow) } : null,
+        inTransit.length ? { title: 'En transit', rows: inTransit.map(buildRow) } : null,
+      ].filter(Boolean) as Array<{ title: string; rows: any[] }>;
+
+      // Envoi interactif (fallback texte automatique si hors 24h)
+      await sendWa({
+        recipient_phone: fromPhone,
+        recipient_type: 'gp',
+        interactive_type: 'list',
+        interactive_body: 'Vos missions actives — choisissez pour voir les actions :',
+        list_button_label: 'Voir missions',
+        sections,
+        fallback_text: textFallback,
+        transporteur_id: transporteur?.id,
+        trigger_type: 'gp_mes_missions_list',
+      });
     }
     return new Response('ok', { headers: corsHeaders });
   }
   if (isMesMissions) return await runMesMissions();
+
+  // Sélection d'une mission via liste interactive : "mission:YOB-XXXXXX"
+  const missionMatch = rawMsg.match(/^mission:([A-Z0-9-]+)$/i);
+  if (missionMatch) {
+    const trk = missionMatch[1].toUpperCase();
+    await sendWa({
+      recipient_phone: fromPhone,
+      recipient_type: 'gp',
+      interactive_type: 'button',
+      interactive_body: `Action pour ${trk} :`,
+      buttons: [
+        { id: `COLLECTE ${trk}`, label: 'Collecte OK' },
+        { id: `POIDS ${trk}`, label: 'Enregistrer poids' },
+        { id: `LIVRE ${trk}`, label: 'Confirmer livraison' },
+      ],
+      fallback_text: `Pour ${trk} tapez :\nCOLLECTE ${trk}\nPOIDS ${trk} 3.5\nLIVRE ${trk}`,
+      transporteur_id: transporteur?.id,
+      trigger_type: 'gp_mission_actions',
+    });
+    return new Response('ok', { headers: corsHeaders });
+  }
 
   // =================================================================
   //  TARIFS — consultation & modification
