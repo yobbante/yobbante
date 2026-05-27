@@ -147,26 +147,20 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 3. WhatsApp GP via gp-smart-invite (gere fenetre 24h + template hello_world si premier contact)
-  const villesTxt = (villes_desservies || []).join(', ') || ville;
+  // 3. WhatsApp GP (texte libre court — depuis le 122, via gp-smart-invite pour gerer la fenetre 24h)
   const gpMsg = [
-    `Salam ${prenom},`,
+    `Salam ${prenom} !`,
     ``,
-    `Bienvenue sur Konnekt !`,
+    `Merci pour votre inscription sur Konnekt.`,
+    `Votre demande est en cours d'examen.`,
+    `Nous activons votre compte sous 24h.`,
     ``,
-    `Konnekt est la plateforme des transporteurs partenaires Yobbante.`,
-    ``,
-    `Etape 1 : Enregistrez ce numero`,
+    `En attendant, enregistrez ce numero :`,
     `${KONNEKT_GP_PHONE}`,
     `Nom : Konnekt GP`,
     ``,
-    `Etape 2 : Envoyez le mot AIDE`,
-    ``,
-    `Etape 3 : Recevez vos missions`,
-    ``,
-    `Votre inscription est en cours d'examen. Vous serez confirme sous 24h.`,
-    ``,
-    `usekonnekt.com`,
+    `Pour toute question :`,
+    `${ADMIN_PHONE}`,
   ].join('\n');
 
   try {
@@ -186,18 +180,17 @@ Deno.serve(async (req) => {
     console.error('KONNEKT_SIGNUP smart_invite_error', e instanceof Error ? e.message : String(e));
   }
 
-  // 4. Notif admin
+  // 4. Notif admin (+221784604003)
   const adminMsg = [
     `Nouvelle inscription Konnekt :`,
     `${prenom} ${nom}`,
     `Tel : ${telephone}`,
+    `Role : GP`,
     `Ville : ${ville}`,
-    `Villes desservies : ${villesTxt}`,
-    `Frequence : ${frequence ?? 'n/c'}`,
-    `Source : ${source_decouverte ?? 'n/c'}`,
-    ref_parrainage ? `Parrain : ${ref_parrainage}` : null,
-    `Ref GP : ${reference}`,
-  ].filter(Boolean).join('\n');
+    `Ref : ${reference}`,
+    `A valider : yobbante.com/admin/terrain`,
+  ].join('\n');
+
 
   await sendWhatsapp(supaUrl, anonKey, {
     recipient_phone: ADMIN_PHONE,
