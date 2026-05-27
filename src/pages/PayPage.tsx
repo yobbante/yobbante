@@ -184,7 +184,7 @@ export default function PayPage() {
             <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#F5C518' }} />
             <h2 className="mb-2">Paiement à la livraison</h2>
             <p className="text-muted-foreground text-sm">
-              Vous réglerez {amountXof ? `${amountXof.toLocaleString('fr-FR')} XOF ` : ''}directement au GP à la livraison.
+              Vous réglerez {amountXof ? `${amountXof.toLocaleString('fr-FR')} FCFA ` : ''}directement au GP à la livraison.
             </p>
             <Link to={`/suivre/${dossier.tracking_id || dossier.reference}`} className="btn-cta inline-flex items-center gap-2 mt-4">
               <Truck className="w-4 h-4" /> Suivre mon colis
