@@ -874,6 +874,7 @@ export type Database = {
           dernier_km_label_url: string | null
           dernier_km_prix: number | null
           dernier_km_tracking: string | null
+          destination_city: string | null
           destination_country: string
           displayed_price_per_kg: number | null
           dossier_type: Database["public"]["Enums"]["dossier_type"]
@@ -919,6 +920,7 @@ export type Database = {
           livreur_livraison_id: string | null
           needs_sourcing: boolean
           notes: string | null
+          origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at: string | null
           payment_external_id: string | null
@@ -1003,6 +1005,7 @@ export type Database = {
           dernier_km_label_url?: string | null
           dernier_km_prix?: number | null
           dernier_km_tracking?: string | null
+          destination_city?: string | null
           destination_country?: string
           displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
@@ -1048,6 +1051,7 @@ export type Database = {
           livreur_livraison_id?: string | null
           needs_sourcing?: boolean
           notes?: string | null
+          origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
           payment_external_id?: string | null
@@ -1132,6 +1136,7 @@ export type Database = {
           dernier_km_label_url?: string | null
           dernier_km_prix?: number | null
           dernier_km_tracking?: string | null
+          destination_city?: string | null
           destination_country?: string
           displayed_price_per_kg?: number | null
           dossier_type?: Database["public"]["Enums"]["dossier_type"]
@@ -1177,6 +1182,7 @@ export type Database = {
           livreur_livraison_id?: string | null
           needs_sourcing?: boolean
           notes?: string | null
+          origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
           payment_external_id?: string | null
