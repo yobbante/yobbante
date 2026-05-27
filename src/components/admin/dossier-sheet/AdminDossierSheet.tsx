@@ -304,13 +304,29 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
           </SelectContent>
         </Select>
 
-        {dossier.contact_phone && (
-          <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-            <a href={`https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`} target="_blank" rel="noreferrer">
-              <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp client
-            </a>
-          </Button>
-        )}
+        {dossier.contact_phone && (() => {
+          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`;
+          return (
+            <div className="inline-flex">
+              <Button size="sm" variant="outline" className="h-8 text-xs rounded-r-none border-r-0" asChild>
+                <a href={waHref} target="_blank" rel="noreferrer">
+                  <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp client
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 rounded-l-none"
+                title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+                onClick={() => {
+                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copié'));
+                }}
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          );
+        })()}
 
         {dossier.tracking_id && (
           <Button size="sm" variant="ghost" className="h-8 text-xs" asChild>
