@@ -80,7 +80,7 @@ function WeighingQueue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, tracking_id, reference, buyer_name, contact_phone, estimated_weight, estimated_cost, destination_country, user_id, collected_at')
+        .select('id, tracking_id, reference, buyer_name, contact_phone, estimated_weight, estimated_cost, origin_city, destination_city, origin_country, destination_country, user_id, collected_at')
         .eq('status', 'COLLECTED')
         .order('collected_at', { ascending: true })
         .limit(50);
@@ -100,7 +100,7 @@ function WeighingQueue() {
             <div>
               <div className="text-sm font-medium">{d.tracking_id || d.reference}</div>
               <div className="text-xs text-muted-foreground">
-                {d.buyer_name} · est. {d.estimated_weight ?? '—'}kg → {d.destination_country}
+                {d.buyer_name} · est. {d.estimated_weight ?? '—'}kg → {d.destination_city ?? d.destination_country}
               </div>
             </div>
             <Button size="sm" onClick={() => setPicked(d as WeighingDossier)} className="bg-[#F5C518] text-black hover:bg-[#e4b614]">
@@ -587,7 +587,7 @@ function GpNoResponse() {
     queryFn: async () => {
       const { data: dossiers, error } = await supabase
         .from('dossiers')
-        .select('id, tracking_id, status, assigned_transporteur_ref, gp_last_action_at, gp_reminder_count, gp_no_response_alert_sent, buyer_name, origin_country, destination_country')
+        .select('id, tracking_id, status, assigned_transporteur_ref, gp_last_action_at, gp_reminder_count, gp_no_response_alert_sent, buyer_name, origin_city, destination_city, origin_country, destination_country')
         .or('gp_no_response_alert_sent.eq.true,gp_reminder_count.gte.2')
         .order('gp_last_action_at', { ascending: true, nullsFirst: true })
         .limit(100);
@@ -651,7 +651,7 @@ function GpNoResponse() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {d.buyer_name ?? '—'} · {d.origin_country ?? '?'} → {d.destination_country ?? '?'}
+                  {d.buyer_name ?? '—'} · {d.origin_city ?? d.origin_country ?? '?'} → {d.destination_city ?? d.destination_country ?? '?'}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
                   Derniere activite : {fmtDate(d.gp_last_action_at)} · {d.gp_reminder_count ?? 0} relance(s)
