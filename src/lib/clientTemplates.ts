@@ -80,6 +80,8 @@ export function buildGpAssignMessage(args: {
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
   departure_date?: string | Date | null;
+  /** Fallback : notes brutes du dossier pour extraire un nom client. */
+  notes?: string | null;
 }): string {
   const ref = args.tracking_id || args.reference || '';
   const dateSrc = args.departure_date ?? args.pickup_date;
@@ -87,13 +89,21 @@ export function buildGpAssignMessage(args: {
     ? new Date(dateSrc).toLocaleDateString('fr-FR')
     : 'a confirmer';
   const weight = args.weight ? `${args.weight} kg` : 'a confirmer';
+
+  // Fallback robuste pour le nom client (fix B7).
+  const fromNotes = args.notes?.match(/Client\s*:\s*([^\n\r]+)/i)?.[1]?.trim();
+  const clientName =
+    (args.client_name && args.client_name.trim()) ||
+    (fromNotes && fromNotes.length > 0 ? fromNotes : null) ||
+    'Non renseigne';
+
   return [
     `Salam ${firstName(args.gp_prenom)},`,
     ``,
     `Nouveau colis assigne.`,
     `Ref : ${ref}`,
     `Route : ${args.origin || '-'} -> ${args.destination || '-'}`,
-    `Client : ${args.client_name || '-'}`,
+    `Client : ${clientName}`,
     args.client_phone ? `Tel client : ${args.client_phone}` : null,
     args.pickup_address ? `Adresse collecte client : ${args.pickup_address}` : null,
     ``,
