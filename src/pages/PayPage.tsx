@@ -126,7 +126,7 @@ export default function PayPage() {
       // Notif admin (best-effort)
       supabase.functions.invoke('send-whatsapp', { body: {
         recipient_type: 'admin', recipient_phone: SUPPORT_TEL,
-        message: `Paiement livraison choisi pour ${ref} - ${amountXof ?? '?'} XOF`,
+        message: `Paiement livraison choisi pour ${ref} - ${amountXof ?? '?'} FCFA`,
         trigger_type: 'cod_chosen',
       }}).catch(() => {});
 
