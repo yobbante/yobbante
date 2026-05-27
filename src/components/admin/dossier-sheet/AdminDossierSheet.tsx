@@ -34,6 +34,7 @@ import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
+import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 
 import { format } from 'date-fns';
 
@@ -131,6 +132,21 @@ function DossierSheetBody({ id }: { id: string }) {
     );
   }
 
+  const parsed = useMemo(() => parseClientNotes(dossier?.notes), [dossier?.notes]);
+
+  // Fallback: when dedicated columns were not yet captured (older dossiers),
+  // use the structured info we parsed out of the free-form notes payload.
+  const sender = {
+    name: dossier.sender_name || parsed.senderName || null,
+    phone: dossier.sender_phone || parsed.senderPhone || dossier.contact_phone || null,
+    address: dossier.sender_address || parsed.senderAddress || null,
+  };
+  const recipient = {
+    name: dossier.recipient_name || parsed.recipientName || null,
+    phone: dossier.recipient_phone || parsed.recipientPhone || null,
+    address: dossier.recipient_address || parsed.recipientAddress || null,
+  };
+
   return (
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
@@ -139,17 +155,18 @@ function DossierSheetBody({ id }: { id: string }) {
         <ContactBlock
           title="Expéditeur"
           accent="sender"
-          name={dossier.sender_name || dossier.contact_phone ? (dossier.sender_name || '—') : null}
-          phone={dossier.sender_phone || dossier.contact_phone}
-          address={dossier.sender_address}
+          name={sender.name}
+          phone={sender.phone}
+          address={sender.address}
+          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
           whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
         />
         <ContactBlock
           title="Destinataire"
           accent="recipient"
-          name={dossier.recipient_name}
-          phone={dossier.recipient_phone}
-          address={dossier.recipient_address}
+          name={recipient.name}
+          phone={recipient.phone}
+          address={recipient.address}
           extra={
             [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
           }
@@ -310,35 +327,24 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
 function ApercuTab({ dossier }: { dossier: DossierRow }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    sender_name: dossier.sender_name ?? '',
-    sender_phone: dossier.sender_phone ?? '',
-    sender_address: dossier.sender_address ?? '',
-    pickup_date: dossier.pickup_date ?? '',
-    recipient_name: dossier.recipient_name ?? '',
-    recipient_phone: dossier.recipient_phone ?? '',
-    recipient_address: dossier.recipient_address ?? '',
-    product_description: dossier.product_description ?? '',
-    estimated_weight: dossier.estimated_weight ?? '',
-    declared_value: dossier.declared_value ?? '',
-    admin_notes: dossier.admin_notes ?? '',
-  });
+  const parsed = useMemo<ParsedClientNotes>(() => parseClientNotes(dossier.notes), [dossier.notes]);
 
-  useEffect(() => {
-    setForm({
-      sender_name: dossier.sender_name ?? '',
-      sender_phone: dossier.sender_phone ?? '',
-      sender_address: dossier.sender_address ?? '',
-      pickup_date: dossier.pickup_date ?? '',
-      recipient_name: dossier.recipient_name ?? '',
-      recipient_phone: dossier.recipient_phone ?? '',
-      recipient_address: dossier.recipient_address ?? '',
-      product_description: dossier.product_description ?? '',
-      estimated_weight: dossier.estimated_weight ?? '',
-      declared_value: dossier.declared_value ?? '',
-      admin_notes: dossier.admin_notes ?? '',
-    });
-  }, [dossier.id]);
+  const initial = () => ({
+    sender_name:        dossier.sender_name        ?? parsed.senderName       ?? '',
+    sender_phone:       dossier.sender_phone       ?? parsed.senderPhone      ?? dossier.contact_phone ?? '',
+    sender_address:     dossier.sender_address     ?? parsed.senderAddress    ?? '',
+    pickup_date:        dossier.pickup_date        ?? (parsed.pickupDate && /^\d{4}-\d{2}-\d{2}$/.test(parsed.pickupDate) ? parsed.pickupDate : '') ?? '',
+    recipient_name:     dossier.recipient_name     ?? parsed.recipientName    ?? '',
+    recipient_phone:    dossier.recipient_phone    ?? parsed.recipientPhone   ?? '',
+    recipient_address:  dossier.recipient_address  ?? parsed.recipientAddress ?? '',
+    product_description: dossier.product_description ?? parsed.description    ?? '',
+    estimated_weight:   dossier.estimated_weight   ?? parsed.weightKg         ?? '',
+    declared_value:     dossier.declared_value     ?? '',
+    admin_notes:        dossier.admin_notes        ?? '',
+  });
+  const [form, setForm] = useState(initial);
+
+  useEffect(() => { setForm(initial()); /* eslint-disable-next-line */ }, [dossier.id]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -380,6 +386,8 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
 
   return (
     <div className="space-y-6">
+      <ClientNotesPanel parsed={parsed} raw={dossier.notes} />
+
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">Expéditeur</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -420,6 +428,75 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/* ---------------- Notes client (essentials first) ---------------- */
+
+function ClientNotesPanel({ parsed, raw }: { parsed: ParsedClientNotes; raw?: string | null }) {
+  const [showRaw, setShowRaw] = useState(false);
+  if (!raw && !hasParsedEssentials(parsed)) return null;
+
+  const chips: Array<{ label: string; value: string; tone?: string }> = [];
+  if (parsed.weightKg)       chips.push({ label: 'Poids', value: `${parsed.weightKg} kg${parsed.parcelCount ? ` · ${parsed.parcelCount} colis` : ''}`, tone: 'bg-blue-500/10 text-blue-500 border-blue-500/20' });
+  if (parsed.declaredValue)  chips.push({ label: 'Valeur', value: parsed.declaredValue, tone: 'bg-amber-500/10 text-amber-500 border-amber-500/20' });
+  if (parsed.transport)      chips.push({ label: 'Transport', value: `${parsed.transport}${parsed.priority ? ` · ${parsed.priority}` : ''}`, tone: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' });
+  if (parsed.payment)        chips.push({ label: 'Paiement', value: parsed.payment, tone: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' });
+  if (parsed.insurance && parsed.insurance.toLowerCase() !== 'none')
+                             chips.push({ label: 'Assurance', value: parsed.insurance, tone: 'bg-pink-500/10 text-pink-500 border-pink-500/20' });
+  if (parsed.pickupDate)     chips.push({ label: 'Collecte', value: `${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}`, tone: 'bg-violet-500/10 text-violet-500 border-violet-500/20' });
+  if (parsed.profile)        chips.push({ label: 'Profil', value: parsed.profile });
+  if (parsed.goodsType)      chips.push({ label: 'Type', value: parsed.goodsType });
+
+  return (
+    <section className="rounded-xl border border-border bg-card/60 p-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+          Notes client
+        </h3>
+        {raw && (
+          <button
+            type="button"
+            onClick={() => setShowRaw(v => !v)}
+            className="text-[10px] text-muted-foreground hover:text-foreground underline"
+          >
+            {showRaw ? 'Masquer le brut' : 'Voir le brut'}
+          </button>
+        )}
+      </div>
+
+      {parsed.description && (
+        <p className="text-sm text-foreground leading-snug">
+          {parsed.description}
+        </p>
+      )}
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map(c => (
+            <span
+              key={c.label}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] ${c.tone || 'bg-secondary text-muted-foreground border-border'}`}
+            >
+              <span className="opacity-70">{c.label}</span>
+              <span className="font-medium">{c.value}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {parsed.rest.length > 0 && (
+        <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
+          {parsed.rest.map((l, i) => <li key={i}>{l}</li>)}
+        </ul>
+      )}
+
+      {showRaw && raw && (
+        <pre className="text-[11px] bg-background border border-border rounded-md p-2 whitespace-pre-wrap font-mono text-muted-foreground">
+{raw}
+          </pre>
+      )}
+    </section>
   );
 }
 
