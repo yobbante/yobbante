@@ -1085,7 +1085,13 @@ function HistoriqueTab({ id }: { id: string }) {
 
 /* ---------------- Footer ---------------- */
 
-function DossierFooter({ dossier }: { dossier: DossierRow }) {
+function DossierFooter({
+  dossier,
+  apercuSave,
+}: {
+  dossier: DossierRow;
+  apercuSave: { run: () => void; pending: boolean; dirty: boolean } | null;
+}) {
   const qc = useQueryClient();
   const cancel = useMutation({
     mutationFn: async () => {
@@ -1104,19 +1110,34 @@ function DossierFooter({ dossier }: { dossier: DossierRow }) {
   });
 
   return (
-    <div className="border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+    <div className="border-t border-border px-6 py-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
       <span>MAJ : {format(new Date(dossier.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-      {dossier.status !== 'CANCELLED' && dossier.status !== 'DELIVERED' && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-destructive hover:text-destructive h-8 text-xs"
-          onClick={() => { if (confirm('Annuler ce dossier ?')) cancel.mutate(); }}
-          disabled={cancel.isPending}
-        >
-          Annuler le dossier
-        </Button>
-      )}
+      <div className="flex items-center gap-1">
+        {apercuSave && (
+          <Button
+            size="sm"
+            onClick={apercuSave.run}
+            disabled={apercuSave.pending}
+            className="h-8 w-8 p-0"
+            title="Enregistrer les modifications"
+          >
+            {apercuSave.pending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <CheckCircle2 className="w-4 h-4" />}
+          </Button>
+        )}
+        {dossier.status !== 'CANCELLED' && dossier.status !== 'DELIVERED' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive h-8 text-xs"
+            onClick={() => { if (confirm('Annuler ce dossier ?')) cancel.mutate(); }}
+            disabled={cancel.isPending}
+          >
+            Annuler le dossier
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
