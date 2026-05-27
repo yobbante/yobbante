@@ -349,8 +349,23 @@ Voir → https://yobbante.com/admin`;
         }
       }
     }
+  } catch (err) {
+    status = 'failed';
+    errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('WA_ERROR fetch', errorMessage);
+  }
+
+  // Log outbound — never block the response on logging
+  try {
+    await supa.from('whatsapp_outbound_messages').insert({
+      to_phone: recipient,
+      from_number: fromNumber,
+      recipient_type: recipientType,
+      template_name: activeTemplateName,
       template_params: body.template_params ? body.template_params : null,
       message_body: messageBody,
+      message_type: messageType,
+      interactive_payload: interactivePayloadSnapshot,
       dossier_id: body.dossier_id ?? null,
       transporteur_id: body.transporteur_id ?? null,
       status,
