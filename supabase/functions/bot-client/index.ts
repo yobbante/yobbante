@@ -142,6 +142,37 @@ async function sendWaButtons(
   }
 }
 
+async function sendWaList(
+  phone: string,
+  bodyText: string,
+  listButtonLabel: string,
+  sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }>,
+  fallbackText: string,
+  trigger: string,
+) {
+  try {
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        recipient_phone: phone,
+        recipient_type: 'client',
+        interactive_type: 'list',
+        interactive_body: bodyText,
+        list_button_label: listButtonLabel,
+        sections,
+        fallback_text: fallbackText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) {
+    console.error('BOT_CLIENT send list error', e);
+  }
+}
+
 async function getSession(supa: any, phone: string): Promise<{ session: any; expired: boolean }> {
   const { data } = await supa
     .from('client_bot_sessions')
