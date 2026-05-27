@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Loader2, Package as PkgIcon, Truck, User, MapPin, Calendar, Box } from 'lucide-react';
+import { ArrowRight, Loader2, Package as PkgIcon, Truck, User, MapPin, Calendar, Box, Eye, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -194,6 +194,21 @@ function ShipmentDetail({ ship, onUpdate, pending }: {
       {ship.pending_assignment && (
         <div className="text-xs bg-amber-500/10 border border-amber-500/30 text-amber-500 rounded-lg px-3 py-2">
           ⚠️ Demande manuelle en attente d'assignation à un départ Konnekt
+        </div>
+      )}
+
+      {ship.konnekt_id && (
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" asChild>
+            <a href={`/suivre/${ship.konnekt_id}`} target="_blank" rel="noreferrer">
+              <Eye className="w-3.5 h-3.5 mr-1" /> Voir /suivre
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" asChild>
+            <a href={`/pay/${ship.konnekt_id}`} target="_blank" rel="noreferrer">
+              <CreditCard className="w-3.5 h-3.5 mr-1" /> Voir /pay
+            </a>
+          </Button>
         </div>
       )}
 
