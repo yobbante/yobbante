@@ -96,9 +96,15 @@ Deno.serve(async (req) => {
           } else if (messageType === 'button') {
             body = msg?.button?.text ?? null;
           } else if (messageType === 'interactive') {
+            // Préfère l'id (utilisé pour router vers une commande) ;
+            // le title est gardé en mémoire dans body si pas d'id.
+            const btn = msg?.interactive?.button_reply;
+            const lst = msg?.interactive?.list_reply;
             body =
-              msg?.interactive?.button_reply?.title ??
-              msg?.interactive?.list_reply?.title ??
+              btn?.id ??
+              lst?.id ??
+              btn?.title ??
+              lst?.title ??
               JSON.stringify(msg?.interactive ?? {});
           } else if (messageType === 'image' || messageType === 'document' || messageType === 'audio' || messageType === 'video') {
             body = msg?.[messageType]?.caption ?? `[${messageType}]`;
