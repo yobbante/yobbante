@@ -565,3 +565,120 @@ function Info({
   );
 }
 
+/* ──────────────────────── Expanded body — variant per kind ──────────────────────── */
+
+function ExpandedKindBody({ dossier: d, kind }: { dossier: any; kind: TypeFilter }) {
+  const parsed = useMemo(() => parseClientNotes(d.notes), [d.notes]);
+  const senderName = d.sender_name || parsed.senderName;
+  const senderPhone = d.sender_phone || parsed.senderPhone || d.contact_phone;
+  const recipientName = d.recipient_name || parsed.recipientName;
+  const recipientPhone = d.recipient_phone || parsed.recipientPhone;
+  const recipientAddress = d.recipient_address || parsed.recipientAddress;
+  const weight = d.estimated_weight ?? parsed.weightKg;
+  const pickupDate = d.pickup_date || parsed.pickupDate;
+  const route = [
+    d.origin_city || d.origin_country,
+    d.destination_city || d.destination_country,
+  ].filter(Boolean).join(' → ');
+
+  if (kind === 'send') {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <Info icon={MapPin} label="Route">{route}</Info>
+          <Info icon={Weight} label="Poids">{weight ? `${weight} kg${parsed.parcelCount ? ` · ${parsed.parcelCount} colis` : ''}` : '—'}</Info>
+          <Info icon={Calendar} label="Collecte">{pickupDate || '—'}</Info>
+          <Info icon={Wallet} label="Transport">{parsed.transport ? `${parsed.transport}${parsed.priority ? ` · ${parsed.priority}` : ''}` : '—'}</Info>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <ContactLine label="Expéditeur" name={senderName} phone={senderPhone} />
+          <ContactLine label="Destinataire" name={recipientName} phone={recipientPhone} address={recipientAddress} />
+        </div>
+        <Essentials parsed={parsed} fallback={d.notes} />
+      </div>
+    );
+  }
+
+  if (kind === 'sourcing') {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <Info icon={Wallet} label="Budget">{d.budget_eur ? `${d.budget_eur} €` : '—'}</Info>
+          <Info icon={Weight} label="Qté">{d.quantity ? `${d.quantity}${d.unit ? ` ${d.unit}` : ''}` : '—'}</Info>
+          <Info icon={Building2} label="Fournisseur">{d.supplier_name || '—'}</Info>
+          <Info icon={MapPin} label="Origine fournisseur">{d.supplier_country || d.origin_country}</Info>
+        </div>
+        <Essentials parsed={parsed} fallback={d.notes} />
+      </div>
+    );
+  }
+
+  // receive
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <Info icon={MapPin} label="Route">{route}</Info>
+        <Info icon={Weight} label="Poids estimé">{weight ? `${weight} kg` : '—'}</Info>
+        <Info icon={Calendar} label="Livraison estimée">
+          {d.estimated_delivery_date ? new Date(d.estimated_delivery_date).toLocaleDateString('fr-FR') : '—'}
+        </Info>
+        <Info icon={Wallet} label="Budget">{d.budget_eur ? `${d.budget_eur} €` : '—'}</Info>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <ContactLine label="Expéditeur" name={senderName} phone={senderPhone} />
+        <ContactLine label="Destinataire" name={recipientName} phone={recipientPhone} address={recipientAddress} />
+      </div>
+      <Essentials parsed={parsed} fallback={d.notes} />
+    </div>
+  );
+}
+
+function ContactLine({ label, name, phone, address }: { label: string; name?: string | null; phone?: string | null; address?: string | null }) {
+  if (!name && !phone && !address) {
+    return (
+      <div className="rounded-md border border-dashed border-border bg-background/40 px-2.5 py-1.5 text-muted-foreground">
+        <span className="text-[10px] uppercase tracking-wider">{label}</span>
+        <div className="italic text-[11px]">Non renseigné</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-foreground font-medium">{name || '—'}</div>
+      {phone && <a href={`tel:${phone}`} className="text-[11px] text-muted-foreground hover:text-foreground font-mono">{phone}</a>}
+      {address && <div className="text-[11px] text-muted-foreground truncate">{address}</div>}
+    </div>
+  );
+}
+
+function Essentials({ parsed, fallback }: { parsed: ReturnType<typeof parseClientNotes>; fallback?: string | null }) {
+  if (!hasParsedEssentials(parsed) && !fallback) return null;
+  const chips: Array<{ k: string; v: string; tone?: string }> = [];
+  if (parsed.declaredValue)  chips.push({ k: 'Valeur', v: parsed.declaredValue, tone: 'bg-amber-500/10 text-amber-500 border-amber-500/20' });
+  if (parsed.payment)        chips.push({ k: 'Paiement', v: parsed.payment, tone: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' });
+  if (parsed.insurance && parsed.insurance.toLowerCase() !== 'none')
+                             chips.push({ k: 'Assurance', v: parsed.insurance, tone: 'bg-pink-500/10 text-pink-500 border-pink-500/20' });
+  if (parsed.goodsType)      chips.push({ k: 'Type', v: parsed.goodsType });
+  if (parsed.profile)        chips.push({ k: 'Profil', v: parsed.profile });
+
+  if (chips.length === 0 && !parsed.description && !parsed.rest.length) return null;
+
+  return (
+    <div className="rounded-md bg-background/60 border border-border p-2 space-y-1.5">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Notes client</div>
+      {parsed.description && <p className="text-xs text-foreground">{parsed.description}</p>}
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {chips.map(c => (
+            <span key={c.k} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] ${c.tone || 'bg-secondary text-muted-foreground border-border'}`}>
+              <span className="opacity-70">{c.k}</span><span className="font-medium">{c.v}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+}
+
