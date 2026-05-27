@@ -7,6 +7,8 @@ export interface CreateDossierInput {
   estimated_weight?: number | null;
   origin_country: WarehouseCountry;
   destination_country?: string;
+  origin_city?: string | null;
+  destination_city?: string | null;
   budget_eur?: number | null;
   needs_sourcing?: boolean;
   contact_phone?: string | null;
@@ -25,6 +27,13 @@ export interface CreateDossierInput {
   is_outside_dakar?: boolean;
   is_gift?: boolean;
   price_volatility_coefficient?: number | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  sender_address?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_address?: string | null;
+  pickup_date?: string | null;
 }
 
 export function useDossiers() {
