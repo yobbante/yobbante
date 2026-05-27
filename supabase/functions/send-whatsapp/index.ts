@@ -10,16 +10,30 @@ const corsHeaders = {
 
 type RecipientType = 'client' | 'gp' | 'admin';
 
+interface InteractiveButton { id: string; label: string }
+interface InteractiveRow { id: string; title: string; description?: string }
+interface InteractiveSection { title: string; rows: InteractiveRow[] }
+
 interface SendPayload {
   recipient_phone: string;
   recipient_type?: RecipientType;
   template_name?: string;
   template_params?: string[];
-  /** Code langue du template (par défaut 'fr'). hello_world doit utiliser 'en_US'. */
   template_language?: string;
-  /** Ancien nom Meta — utilisé en repli si `template_name` n'est pas approuvé. */
   template_fallback_name?: string;
   message?: string;
+  /** Interactive (boutons / liste). Si fourni, on envoie un message interactif. */
+  interactive_type?: 'button' | 'list';
+  /** Corps de texte du message interactif. */
+  interactive_body?: string;
+  /** Mode 'button' : 1 à 3 boutons (label max 20 char). */
+  buttons?: InteractiveButton[];
+  /** Mode 'list' : label du bouton qui ouvre la liste (max 20 char). */
+  list_button_label?: string;
+  /** Mode 'list' : sections (rows: title max 24, description max 72). */
+  sections?: InteractiveSection[];
+  /** Texte fallback envoyé en clair si l'envoi interactif est refusé (hors 24h). */
+  fallback_text?: string;
   dossier_id?: string;
   transporteur_id?: string;
   trigger_type?: string;
