@@ -39,6 +39,32 @@ async function sendWa(phone: string, body: string, opts?: { recipient_type?: str
   } catch (e) { console.error('SUPER_ADMIN_BOT send-wa failed', e); }
 }
 
+async function sendWaList(
+  phone: string,
+  bodyText: string,
+  listButtonLabel: string,
+  sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }>,
+  fallbackText: string,
+  trigger: string,
+) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        interactive_type: 'list',
+        interactive_body: bodyText,
+        list_button_label: listButtonLabel,
+        sections,
+        fallback_text: fallbackText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) { console.error('SUPER_ADMIN_BOT send-list failed', e); }
+}
+
 async function logEvent(dossierId: string | null, type: string, data: any) {
   if (!dossierId) return;
   try {
@@ -346,7 +372,7 @@ async function cmdStats(): Promise<string> {
 //  COMMAND: URGENTS
 // =================================================================
 
-async function cmdUrgents(): Promise<string> {
+async function cmdUrgents(adminPhone?: string): Promise<string> {
   const sb = supa();
   const now = Date.now();
   const [pendingGp, latePayment, gpNoResp, hubStuck] = await Promise.all([
@@ -382,12 +408,13 @@ async function cmdUrgents(): Promise<string> {
   // GP injoignable : enrich with GP name
   const gn = gpNoResp.data ?? [];
   lines.push('', `GP INJOIGNABLE (${gn.length}) :`);
+  let gnMap = new Map<string, string>();
   if (gn.length === 0) lines.push('- Aucun');
   else {
     const refs = Array.from(new Set(gn.map((r: any) => r.assigned_transporteur_ref).filter(Boolean)));
     const { data: gps } = await sb.from('transporteurs').select('reference, prenom, nom').in('reference', refs);
-    const map = new Map((gps ?? []).map((g: any) => [g.reference, `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() || g.reference]));
-    for (const r of gn) lines.push(`- ${map.get(r.assigned_transporteur_ref) ?? r.assigned_transporteur_ref} · ${r.tracking_id} · ${r.gp_reminder_count} relances`);
+    gnMap = new Map((gps ?? []).map((g: any) => [g.reference, `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() || g.reference]));
+    for (const r of gn) lines.push(`- ${gnMap.get(r.assigned_transporteur_ref) ?? r.assigned_transporteur_ref} · ${r.tracking_id} · ${r.gp_reminder_count} relances`);
   }
 
   const hs = hubStuck.data ?? [];
@@ -396,6 +423,38 @@ async function cmdUrgents(): Promise<string> {
   else for (const r of hs) lines.push(`- ${r.tracking_id} · ${daysAgo(r.updated_at)}j`);
 
   lines.push('', 'Repondez avec le tracking_id pour les infos completes.');
+
+  // Send interactive list of all urgent tracking_ids
+  if (adminPhone) {
+    const sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }> = [];
+    const mkRow = (tid: string, desc: string) => ({
+      id: tid.slice(0, 200),
+      title: tid.slice(0, 24),
+      description: desc.slice(0, 72),
+    });
+    if (pg.length) sections.push({ title: 'En attente GP', rows: pg.slice(0, 5).map((r: any) => mkRow(r.tracking_id, `${r.origin_country}->${r.destination_country} ${hoursAgo(r.created_at)}h`)) });
+    if (lp.length) sections.push({ title: 'Paiement retard', rows: lp.slice(0, 5).map((r: any) => mkRow(r.tracking_id, `${fmtXof(r.final_amount_xof)} XOF ${hoursAgo(r.weighed_at)}h`)) });
+    if (gn.length) sections.push({ title: 'GP injoignable', rows: gn.slice(0, 5).map((r: any) => mkRow(r.tracking_id, `${gnMap.get(r.assigned_transporteur_ref) ?? r.assigned_transporteur_ref} ${r.gp_reminder_count} relances`)) });
+    if (hs.length) sections.push({ title: 'Au hub +5j', rows: hs.slice(0, 5).map((r: any) => mkRow(r.tracking_id, `${daysAgo(r.updated_at)}j`)) });
+    // Cap to 10 rows total
+    let total = 0;
+    const capped = sections.map((s) => {
+      const take = Math.max(0, Math.min(s.rows.length, 10 - total));
+      total += take;
+      return { ...s, rows: s.rows.slice(0, take) };
+    }).filter((s) => s.rows.length > 0);
+    if (capped.length) {
+      await sendWaList(
+        adminPhone,
+        'Selectionnez un dossier pour les infos completes.',
+        'Voir dossiers',
+        capped,
+        'Repondez avec le tracking_id (ex: YOB-XXXXXX) pour les details.',
+        'super_admin_urgents_list',
+      );
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -748,7 +807,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   }
 
   if (upper === 'STATS') return await cmdStats();
-  if (upper === 'URGENTS' || text === '3') return await cmdUrgents();
+  if (upper === 'URGENTS' || text === '3') return await cmdUrgents(phone);
 
   // DEPART {ref}
   if (/^depart\s+\S+/i.test(text)) {
