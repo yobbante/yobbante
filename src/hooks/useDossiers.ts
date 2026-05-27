@@ -7,6 +7,8 @@ export interface CreateDossierInput {
   estimated_weight?: number | null;
   origin_country: WarehouseCountry;
   destination_country?: string;
+  origin_city?: string | null;
+  destination_city?: string | null;
   budget_eur?: number | null;
   needs_sourcing?: boolean;
   contact_phone?: string | null;
@@ -25,6 +27,13 @@ export interface CreateDossierInput {
   is_outside_dakar?: boolean;
   is_gift?: boolean;
   price_volatility_coefficient?: number | null;
+  sender_name?: string | null;
+  sender_phone?: string | null;
+  sender_address?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_address?: string | null;
+  pickup_date?: string | null;
 }
 
 export function useDossiers() {
@@ -73,7 +82,16 @@ export function useDossiers() {
           ...(input.is_outside_dakar !== undefined ? { is_outside_dakar: input.is_outside_dakar } : {}),
           ...(input.is_gift !== undefined ? { is_gift: input.is_gift } : {}),
           ...(input.price_volatility_coefficient !== undefined ? { price_volatility_coefficient: input.price_volatility_coefficient } : {}),
-        })
+          ...(input.origin_city !== undefined ? { origin_city: input.origin_city } : {}),
+          ...(input.destination_city !== undefined ? { destination_city: input.destination_city } : {}),
+          ...(input.sender_name !== undefined ? { sender_name: input.sender_name } : {}),
+          ...(input.sender_phone !== undefined ? { sender_phone: input.sender_phone } : {}),
+          ...(input.sender_address !== undefined ? { sender_address: input.sender_address } : {}),
+          ...(input.recipient_name !== undefined ? { recipient_name: input.recipient_name } : {}),
+          ...(input.recipient_phone !== undefined ? { recipient_phone: input.recipient_phone } : {}),
+          ...(input.recipient_address !== undefined ? { recipient_address: input.recipient_address } : {}),
+          ...(input.pickup_date !== undefined ? { pickup_date: input.pickup_date } : {}),
+        } as any)
         .select()
         .single();
       if (error) throw error;

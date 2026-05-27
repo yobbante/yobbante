@@ -151,7 +151,7 @@ function DossierSheetBody({ id }: { id: string }) {
           phone={dossier.recipient_phone}
           address={dossier.recipient_address}
           extra={
-            [dossier.destination_country].filter(Boolean).join(' · ') || null
+            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
           }
         />
       </div>
@@ -230,6 +230,10 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
   const origin = dossier.origin_country as string;
   const dest = dossier.destination_country as string;
+  const originCity = (dossier.origin_city as string | null) || null;
+  const destCity = (dossier.destination_city as string | null) || null;
+  const originLabel = originCity || (COUNTRY_NAMES[origin as keyof typeof COUNTRY_NAMES] ?? origin);
+  const destLabel = destCity || (COUNTRY_NAMES[dest as keyof typeof COUNTRY_NAMES] ?? dest);
 
   return (
     <SheetHeader className="px-6 pt-6 pb-4 border-b border-border space-y-3">
@@ -248,10 +252,14 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
               </button>
             )}
           </SheetTitle>
-          <SheetDescription className="flex items-center gap-2 text-xs">
-            <span>{COUNTRY_FLAGS[origin as keyof typeof COUNTRY_FLAGS] ?? '🌍'} {COUNTRY_NAMES[origin as keyof typeof COUNTRY_NAMES] ?? origin}</span>
+          <SheetDescription className="flex items-center gap-2 text-xs flex-wrap">
+            <span title={COUNTRY_NAMES[origin as keyof typeof COUNTRY_NAMES] ?? origin}>
+              {COUNTRY_FLAGS[origin as keyof typeof COUNTRY_FLAGS] ?? '🌍'} {originLabel}
+            </span>
             <span>→</span>
-            <span>{COUNTRY_FLAGS[dest as keyof typeof COUNTRY_FLAGS] ?? '🌍'} {COUNTRY_NAMES[dest as keyof typeof COUNTRY_NAMES] ?? dest}</span>
+            <span title={COUNTRY_NAMES[dest as keyof typeof COUNTRY_NAMES] ?? dest}>
+              {COUNTRY_FLAGS[dest as keyof typeof COUNTRY_FLAGS] ?? '🌍'} {destLabel}
+            </span>
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground">
               Créé le {format(new Date(dossier.created_at), 'dd/MM/yyyy HH:mm')}
