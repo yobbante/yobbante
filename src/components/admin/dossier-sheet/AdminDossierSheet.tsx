@@ -151,7 +151,7 @@ function DossierSheetBody({ id }: { id: string }) {
           phone={dossier.recipient_phone}
           address={dossier.recipient_address}
           extra={
-            [dossier.destination_country].filter(Boolean).join(' · ') || null
+            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
           }
         />
       </div>
