@@ -587,6 +587,11 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
+                      {!t.actif && (
+                        <DropdownMenuItem onClick={() => validateBeta(t)} className="text-emerald-600 dark:text-emerald-400">
+                          <Check className="w-4 h-4 mr-2" /> Valider beta (activer GP)
+                        </DropdownMenuItem>
+                      )}
                       {t.actif && (
                         <DropdownMenuItem onClick={async () => {
                           await deactivate.mutateAsync(t.id);
@@ -595,6 +600,7 @@ export function TransporteursTab() {
                           <Power className="w-4 h-4 mr-2" /> Désactiver
                         </DropdownMenuItem>
                       )}
+
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
