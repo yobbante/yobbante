@@ -772,6 +772,21 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     await clearSession(phone); return 'OK, session terminee. Tape MENU pour revenir.';
   }
 
+  // ----- Tap depuis une liste interactive (list_reply.id = tracking_id pur)
+  // Court-circuite toute session pour renvoyer immediatement la fiche du dossier.
+  const compact = text.replace(/\s+/g, '');
+  const tapped = parseTracking(text);
+  if (tapped && compact.length <= 16 && compact.toUpperCase() === tapped) {
+    // Memorise le dernier tracking consulte, sans casser une eventuelle session
+    try {
+      const s = await getSession(phone);
+      if (s?.pending_intent && s.pending_intent !== 'confirm_payer') {
+        await clearSession(phone);
+      }
+    } catch (_) { /* noop */ }
+    return await cmdInfo(tapped);
+  }
+
   const session = await getSession(phone);
 
   // ----- Session: confirmation paiement
