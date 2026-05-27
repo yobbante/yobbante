@@ -132,6 +132,21 @@ function DossierSheetBody({ id }: { id: string }) {
     );
   }
 
+  const parsed = useMemo(() => parseClientNotes(dossier?.notes), [dossier?.notes]);
+
+  // Fallback: when dedicated columns were not yet captured (older dossiers),
+  // use the structured info we parsed out of the free-form notes payload.
+  const sender = {
+    name: dossier.sender_name || parsed.senderName || null,
+    phone: dossier.sender_phone || parsed.senderPhone || dossier.contact_phone || null,
+    address: dossier.sender_address || parsed.senderAddress || null,
+  };
+  const recipient = {
+    name: dossier.recipient_name || parsed.recipientName || null,
+    phone: dossier.recipient_phone || parsed.recipientPhone || null,
+    address: dossier.recipient_address || parsed.recipientAddress || null,
+  };
+
   return (
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
@@ -140,17 +155,18 @@ function DossierSheetBody({ id }: { id: string }) {
         <ContactBlock
           title="Expéditeur"
           accent="sender"
-          name={dossier.sender_name || dossier.contact_phone ? (dossier.sender_name || '—') : null}
-          phone={dossier.sender_phone || dossier.contact_phone}
-          address={dossier.sender_address}
+          name={sender.name}
+          phone={sender.phone}
+          address={sender.address}
+          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
           whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
         />
         <ContactBlock
           title="Destinataire"
           accent="recipient"
-          name={dossier.recipient_name}
-          phone={dossier.recipient_phone}
-          address={dossier.recipient_address}
+          name={recipient.name}
+          phone={recipient.phone}
+          address={recipient.address}
           extra={
             [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
           }
