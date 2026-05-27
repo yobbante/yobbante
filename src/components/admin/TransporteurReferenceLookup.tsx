@@ -93,9 +93,9 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
                   className="pl-8 h-9 text-sm"
                 />
               </div>
-              {(destinationCity || destinationCountry) && (
+              {destinationCity && (
                 <div className="text-[11px] text-muted-foreground mt-2">
-                  Filtré sur la destination : <span className="font-medium text-foreground">{destinationCity || destinationCountry}</span>
+                  Ville de destination : <span className="font-medium text-foreground">{destinationCity}</span>
                 </div>
               )}
             </div>
