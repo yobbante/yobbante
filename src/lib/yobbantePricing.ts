@@ -3,11 +3,25 @@
 // Le calcul de référence est dans la fonction SQL `calculate_dossier_pricing`.
 
 import { supabase } from '@/integrations/supabase/client';
+import type { DakarZoneCategory } from '@/lib/dakarZones';
 
 export const YOBBANTE_MARGIN_PCT = 0.20;
 export const EXPRESS_COEFFICIENT = 1.45;
-export const ENLEVEMENT_INTEGRE = 5000; // FCFA, jamais affiché séparément
-export const HORS_DAKAR_SURCHARGE = 5000; // FCFA, affiché séparément
+
+/**
+ * Frais d'enlèvement UNIQUE par zone (jamais cumulés avec un autre surcoût).
+ * - dakar_centre   : 5 000  FCFA (intégré)
+ * - dakar_banlieue : 10 000 FCFA
+ * - hors_dakar     : 15 000 FCFA
+ */
+export const ENLEVEMENT_BY_ZONE: Record<DakarZoneCategory, number> = {
+  dakar_centre: 5000,
+  dakar_banlieue: 10000,
+  hors_dakar: 15000,
+};
+
+// Conservé pour rétro-compat (anciens imports). NE PAS cumuler.
+export const ENLEVEMENT_INTEGRE = ENLEVEMENT_BY_ZONE.dakar_centre;
 
 const DAKAR_ZONES = [
   'dakar', 'pikine', 'guediawaye', 'rufisque',
@@ -29,22 +43,34 @@ export function isDakarZone(address?: string | null): boolean {
   return DAKAR_ZONES.some((z) => v.includes(z));
 }
 
+/** Retourne le montant unique d'enlèvement selon la zone. */
+export function enlevementForZone(
+  zone?: DakarZoneCategory | string | null,
+): number {
+  if (!zone) return ENLEVEMENT_BY_ZONE.dakar_centre;
+  const z = String(zone) as DakarZoneCategory;
+  return ENLEVEMENT_BY_ZONE[z] ?? ENLEVEMENT_BY_ZONE.dakar_centre;
+}
+
 export interface DisplayPrices {
   perKgStandard: number;
   perKgExpress: number;
   totalStandard: number;
   totalExpress: number;
-  outsideDakarSurcharge: number;
+  enlevement: number;
   isEstimate: boolean;
 }
 
 /**
- * Calcule les prix affichés au client à partir d'un tarif GP au kg.
- * NE PAS afficher gpRate, ni la marge.
+ * Formule officielle (cf. spec QA 27/05/2026) :
+ *   total = poids × tarif_gp × (1 + marge) + enlevement_zone
+ * Un SEUL frais d'enlèvement selon la zone. Pas de cumul.
  */
 export function computeDisplayPrices(opts: {
   gpRatePerKg: number;
   weightKg: number;
+  zone?: DakarZoneCategory | string | null;
+  /** @deprecated utiliser `zone` */
   outsideDakar?: boolean;
   carrierCost?: number;
   isEstimate?: boolean;
@@ -58,15 +84,18 @@ export function computeDisplayPrices(opts: {
   const baseKg = opts.gpRatePerKg * (1 + margin);
   const expressKg = baseKg * exp;
 
-  const outsideSurcharge = opts.outsideDakar ? HORS_DAKAR_SURCHARGE : 0;
+  const zone: DakarZoneCategory =
+    (opts.zone as DakarZoneCategory) ??
+    (opts.outsideDakar ? 'hors_dakar' : 'dakar_centre');
+  const enlevement = enlevementForZone(zone);
   const carrier = opts.carrierCost ?? 0;
 
   return {
     perKgStandard: Math.round(baseKg),
     perKgExpress: Math.round(expressKg),
-    totalStandard: Math.round(baseKg * w + ENLEVEMENT_INTEGRE + outsideSurcharge + carrier),
-    totalExpress: Math.round(expressKg * w + ENLEVEMENT_INTEGRE + outsideSurcharge + carrier),
-    outsideDakarSurcharge: outsideSurcharge,
+    totalStandard: Math.round(baseKg * w + enlevement + carrier),
+    totalExpress: Math.round(expressKg * w + enlevement + carrier),
+    enlevement,
     isEstimate: opts.isEstimate ?? false,
   };
 }
