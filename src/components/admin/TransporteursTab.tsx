@@ -203,6 +203,88 @@ export function TransporteursTab() {
     }
   };
 
+  /** Génère le prochain ref 4 chiffres en se basant sur la liste actuelle. */
+  const nextAvailableRef = (): string => {
+    const taken = new Set(
+      (list.data ?? [])
+        .map(t => String(t.reference || '').replace(/\D/g, ''))
+        .filter(r => /^\d{1,4}$/.test(r))
+        .map(r => parseInt(r, 10)),
+    );
+    let n = 1001;
+    while (taken.has(n) && n <= 9999) n += 1;
+    return String(n).padStart(4, '0');
+  };
+
+  const validateBeta = async (gp: Transporteur) => {
+    const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+    let reference = String(gp.reference || '').replace(/\D/g, '');
+    if (!/^\d{4}$/.test(reference)) reference = nextAvailableRef();
+
+    // 1. Activation + reference
+    const { error: updErr } = await supabase
+      .from('transporteurs' as any)
+      .update({ actif: true, reference })
+      .eq('id', gp.id);
+    if (updErr) {
+      toast.error('Activation impossible : ' + updErr.message);
+      return;
+    }
+
+    // 2. WhatsApp activation (depuis le 122)
+    const message = [
+      `Salam ${prenom},`,
+      ``,
+      `Votre compte Konnekt est active !`,
+      ``,
+      `Connectez-vous ici :`,
+      `usekonnekt.com/gp`,
+      ``,
+      `Vos identifiants :`,
+      `Telephone : ${gp.telephone_1}`,
+      `Code : ${reference}`,
+      ``,
+      `Le bot WhatsApp reste actif pour vos missions quotidiennes.`,
+      ``,
+      `Bienvenue dans le reseau Yobbante !`,
+    ].join('\n');
+
+    const res = await sendGpMessage({
+      phone: gp.telephone_1,
+      message,
+      transporteur_id: gp.id,
+      trigger_type: 'konnekt_beta_validated',
+      silent: true,
+    });
+
+    if (res.ok) {
+      toast.success(`GP activé — identifiants envoyés (Réf. ${gpRef(reference)})`);
+    } else {
+      // 3. Notif admin pour envoi manuel
+      try {
+        await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: SUPER_ADMIN_PHONE,
+            recipient_type: 'admin',
+            message: [
+              `Echec envoi WhatsApp activation Konnekt`,
+              `GP : ${formatTransporteurName(gp.prenom, gp.nom)}`,
+              `Tel : ${gp.telephone_1}`,
+              `Ref : ${reference}`,
+              `Envoyer manuellement depuis le 122 :`,
+              res.waLink,
+            ].join('\n'),
+            client_name: formatTransporteurName(gp.prenom, gp.nom),
+            trigger_type: 'konnekt_beta_validated_failed_alert',
+          },
+        });
+      } catch { /* non bloquant */ }
+      toast.warning('GP activé — envoi WhatsApp en echec, admin notifié pour envoi manuel');
+    }
+    list.refetch();
+  };
+
+
   const openInvite = async (gp: Transporteur) => {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
     if (!phoneDigits) {
