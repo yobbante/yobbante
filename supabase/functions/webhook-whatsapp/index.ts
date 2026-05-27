@@ -265,22 +265,83 @@ Deno.serve(async (req) => {
                     const onboardMsg =
                       `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Yobbante GP (122). ` +
                       `Envoyez AIDE pour voir comment recevoir vos missions. Reference : ${ref}.`;
-                    fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/gp-smart-invite`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-                      },
-                      body: JSON.stringify({
-                        phone: gp.telephone_1,
-                        message: onboardMsg,
-                        gp_name: `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim(),
-                        gp_ref: ref,
-                        transporteur_id: gp.id,
-                        kind: 'bot_onboard',
-                        trigger_type: 'auto_relance_first_inbound',
-                      }),
-                    }).catch((e) => console.error('WA_ERROR auto-relance', e));
+                    (async () => {
+                      const SUPER_ADMIN_PHONE = '+221784604003';
+                      const GP_LINE_DISPLAY = '+221 78 122 18 91';
+                      const supaUrl = Deno.env.get('SUPABASE_URL')!;
+                      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+                      const gpLabel = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || 'GP';
+                      const phoneDigits = String(gp.telephone_1 ?? '').replace(/\D/g, '');
+                      const waLink = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(onboardMsg)}`;
+                      try {
+                        const r = await fetch(`${supaUrl}/functions/v1/gp-smart-invite`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${anonKey}`,
+                          },
+                          body: JSON.stringify({
+                            phone: gp.telephone_1,
+                            message: onboardMsg,
+                            gp_name: gpLabel,
+                            gp_ref: ref,
+                            transporteur_id: gp.id,
+                            kind: 'bot_onboard',
+                            trigger_type: 'auto_relance_first_inbound',
+                          }),
+                        });
+                        const json = await r.json().catch(() => ({} as any));
+                        if (!r.ok || json?.ok === false) {
+                          const cause = !r.ok
+                            ? `HTTP ${r.status} ${json?.error ?? ''}`.trim()
+                            : (json?.blocked_reason
+                                ? `Echec gp-smart-invite : ${json.blocked_reason}`
+                                : 'Echec gp-smart-invite');
+                          const fallback = json?.wa_link ?? waLink;
+                          const adminMsg = [
+                            `Alerte auto-relance GP echouee :`,
+                            `${gpLabel} (${ref}) - ${gp.telephone_1}`,
+                            `Cause : ${cause}`,
+                            ``,
+                            `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (122) :`,
+                            fallback,
+                          ].join('\n');
+                          await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+                            body: JSON.stringify({
+                              recipient_phone: SUPER_ADMIN_PHONE,
+                              recipient_type: 'admin',
+                              message: adminMsg,
+                              client_name: gpLabel,
+                              trigger_type: 'auto_relance_failed_alert',
+                            }),
+                          }).catch((e) => console.error('WA_ERROR alert admin send', e));
+                        }
+                      } catch (e) {
+                        console.error('WA_ERROR auto-relance', e);
+                        const cause = e instanceof Error ? e.message : String(e);
+                        const adminMsg = [
+                          `Alerte auto-relance GP echouee (exception) :`,
+                          `${gpLabel} (${ref}) - ${gp.telephone_1}`,
+                          `Cause : ${cause}`,
+                          ``,
+                          `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (122) :`,
+                          waLink,
+                        ].join('\n');
+                        await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
+                          body: JSON.stringify({
+                            recipient_phone: SUPER_ADMIN_PHONE,
+                            recipient_type: 'admin',
+                            message: adminMsg,
+                            client_name: gpLabel,
+                            trigger_type: 'auto_relance_failed_alert',
+                          }),
+                        }).catch((err) => console.error('WA_ERROR alert admin send', err));
+                      }
+                    })();
                   }
                 }
               } catch (e) {
