@@ -332,9 +332,23 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
 /* ---------------- Aperçu (editable) ---------------- */
 
-function ApercuTab({ dossier }: { dossier: DossierRow }) {
+type ContactInfo = { name: string | null; phone: string | null; address: string | null };
+
+function ApercuTab({
+  dossier,
+  sender,
+  recipient,
+  parsed: parsedProp,
+  registerSave,
+}: {
+  dossier: DossierRow;
+  sender: ContactInfo;
+  recipient: ContactInfo;
+  parsed: ParsedClientNotes;
+  registerSave: (s: { run: () => void; pending: boolean; dirty: boolean } | null) => void;
+}) {
   const qc = useQueryClient();
-  const parsed = useMemo<ParsedClientNotes>(() => parseClientNotes(dossier.notes), [dossier.notes]);
+  const parsed = parsedProp;
 
   const initial = () => ({
     sender_name:        dossier.sender_name        ?? parsed.senderName       ?? '',
