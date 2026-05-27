@@ -96,6 +96,7 @@ function DossierSheetBody({ id }: { id: string }) {
   const qc = useQueryClient();
   const { isStaff } = useUserRole();
   const [tab, setTab] = useState('apercu');
+  const [apercuSave, setApercuSave] = useState<{ run: () => void; pending: boolean; dirty: boolean } | null>(null);
 
   const { data: dossier, isLoading, refetch } = useQuery({
     queryKey: ['admin-dossier', id],
@@ -152,28 +153,6 @@ function DossierSheetBody({ id }: { id: string }) {
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
 
-      <div className="px-6 py-3 border-b border-border grid grid-cols-1 md:grid-cols-2 gap-3 bg-secondary/20">
-        <ContactBlock
-          title="Expéditeur"
-          accent="sender"
-          name={sender.name}
-          phone={sender.phone}
-          address={sender.address}
-          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
-          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
-        />
-        <ContactBlock
-          title="Destinataire"
-          accent="recipient"
-          name={recipient.name}
-          phone={recipient.phone}
-          address={recipient.address}
-          extra={
-            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
-          }
-        />
-      </div>
-
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
         <div className="px-6 border-b border-border overflow-x-auto">
 
@@ -204,7 +183,15 @@ function DossierSheetBody({ id }: { id: string }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <TabsContent value="apercu"     className="mt-0"><ApercuTab dossier={dossier} /></TabsContent>
+          <TabsContent value="apercu"     className="mt-0">
+            <ApercuTab
+              dossier={dossier}
+              sender={sender}
+              recipient={recipient}
+              parsed={parsed}
+              registerSave={setApercuSave}
+            />
+          </TabsContent>
           <TabsContent value="colis"      className="mt-0"><ColisTab dossier={dossier} /></TabsContent>
           <TabsContent value="transport"  className="mt-0"><TransportTab dossier={dossier} /></TabsContent>
           <TabsContent value="livraison"  className="mt-0"><LivraisonTab dossier={dossier} /></TabsContent>
@@ -215,7 +202,10 @@ function DossierSheetBody({ id }: { id: string }) {
         </div>
       </Tabs>
 
-      <DossierFooter dossier={dossier} />
+      <DossierFooter
+        dossier={dossier}
+        apercuSave={tab === 'apercu' ? apercuSave : null}
+      />
     </>
   );
 }
@@ -304,13 +294,29 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
           </SelectContent>
         </Select>
 
-        {dossier.contact_phone && (
-          <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-            <a href={`https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`} target="_blank" rel="noreferrer">
-              <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp client
-            </a>
-          </Button>
-        )}
+        {dossier.contact_phone && (() => {
+          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`;
+          return (
+            <div className="inline-flex">
+              <Button size="sm" variant="outline" className="h-8 text-xs rounded-r-none border-r-0" asChild>
+                <a href={waHref} target="_blank" rel="noreferrer">
+                  <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp client
+                </a>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 rounded-l-none"
+                title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+                onClick={() => {
+                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copié'));
+                }}
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          );
+        })()}
 
         {dossier.tracking_id && (
           <Button size="sm" variant="ghost" className="h-8 text-xs" asChild>
@@ -326,9 +332,23 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
 /* ---------------- Aperçu (editable) ---------------- */
 
-function ApercuTab({ dossier }: { dossier: DossierRow }) {
+type ContactInfo = { name: string | null; phone: string | null; address: string | null };
+
+function ApercuTab({
+  dossier,
+  sender,
+  recipient,
+  parsed: parsedProp,
+  registerSave,
+}: {
+  dossier: DossierRow;
+  sender: ContactInfo;
+  recipient: ContactInfo;
+  parsed: ParsedClientNotes;
+  registerSave: (s: { run: () => void; pending: boolean; dirty: boolean } | null) => void;
+}) {
   const qc = useQueryClient();
-  const parsed = useMemo<ParsedClientNotes>(() => parseClientNotes(dossier.notes), [dossier.notes]);
+  const parsed = parsedProp;
 
   const initial = () => ({
     sender_name:        dossier.sender_name        ?? parsed.senderName       ?? '',
@@ -364,6 +384,16 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
     onError: (e: any) => toast.error(e?.message || 'Échec enregistrement'),
   });
 
+  // Register save handler so the footer can trigger it as an icon-only button.
+  useEffect(() => {
+    registerSave({
+      run: () => save.mutate(),
+      pending: save.isPending,
+      dirty: true,
+    });
+    return () => registerSave(null);
+  }, [registerSave, save.isPending, form]);
+
   const field = (k: keyof typeof form, label: string, type: 'text' | 'tel' | 'date' | 'number' | 'textarea' = 'text') => (
     <div className="space-y-1">
       <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</Label>
@@ -387,10 +417,32 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ContactBlock
+          title="Expéditeur"
+          accent="sender"
+          name={sender.name}
+          phone={sender.phone}
+          address={sender.address}
+          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
+          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+        />
+        <ContactBlock
+          title="Destinataire"
+          accent="recipient"
+          name={recipient.name}
+          phone={recipient.phone}
+          address={recipient.address}
+          extra={
+            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
+          }
+        />
+      </div>
+
       <ClientNotesPanel parsed={parsed} raw={dossier.notes} />
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Expéditeur</h3>
+        <h3 className="text-sm font-semibold">Expéditeur — édition</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('sender_name', 'Nom')}
           {field('sender_phone', 'Téléphone', 'tel')}
@@ -400,7 +452,7 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Destinataire</h3>
+        <h3 className="text-sm font-semibold">Destinataire — édition</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('recipient_name', 'Nom')}
           {field('recipient_phone', 'Téléphone', 'tel')}
@@ -421,13 +473,6 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
         <h3 className="text-sm font-semibold">Notes admin (internes)</h3>
         {field('admin_notes', '', 'textarea')}
       </section>
-
-      <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-3 border-t border-border -mx-6 px-6">
-        <Button onClick={() => save.mutate()} disabled={save.isPending} size="sm">
-          {save.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-          Enregistrer
-        </Button>
-      </div>
     </div>
   );
 }
@@ -675,17 +720,49 @@ function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; tra
     }
   }
 
+  function buildWaHref() {
+    if (!gp?.telephone_1) return '';
+    const message = buildGpAssignMessage({
+      gp_prenom: gp.prenom,
+      tracking_id: dossier.tracking_id,
+      reference: dossier.reference,
+      origin: dossier.origin_country,
+      destination: dossier.destination_country,
+      client_name: dossier.sender_name || dossier.recipient_name,
+      weight: dossier.estimated_weight,
+      pickup_address: dossier.sender_address,
+      pickup_date: dossier.pickup_date,
+    });
+    return `https://wa.me/${String(gp.telephone_1).replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+  }
+
   return (
     <div className="space-y-1.5">
-      <Button
-        size="sm"
-        onClick={handleSend}
-        disabled={sending || !gp?.telephone_1}
-        className="text-xs bg-green-600 hover:bg-green-700 text-white"
-      >
-        {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
-        Envoyer WhatsApp au GP
-      </Button>
+      <div className="inline-flex">
+        <Button
+          size="sm"
+          onClick={handleSend}
+          disabled={sending || !gp?.telephone_1}
+          className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-r-none"
+        >
+          {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5 mr-1" />}
+          Envoyer WhatsApp au GP
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs h-8 px-2 rounded-l-none border-green-600/40 text-green-600 hover:text-green-700"
+          disabled={!gp?.telephone_1}
+          title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+          onClick={() => {
+            const href = buildWaHref();
+            if (!href) return;
+            navigator.clipboard?.writeText(href).then(() => toast.success('Lien WhatsApp copié'));
+          }}
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </Button>
+      </div>
       {lastNotifiedAt && (
         <div className="text-[10px] text-muted-foreground">
           Notifié le {format(new Date(lastNotifiedAt), 'dd/MM/yyyy HH:mm')}
@@ -1008,7 +1085,13 @@ function HistoriqueTab({ id }: { id: string }) {
 
 /* ---------------- Footer ---------------- */
 
-function DossierFooter({ dossier }: { dossier: DossierRow }) {
+function DossierFooter({
+  dossier,
+  apercuSave,
+}: {
+  dossier: DossierRow;
+  apercuSave: { run: () => void; pending: boolean; dirty: boolean } | null;
+}) {
   const qc = useQueryClient();
   const cancel = useMutation({
     mutationFn: async () => {
@@ -1027,19 +1110,34 @@ function DossierFooter({ dossier }: { dossier: DossierRow }) {
   });
 
   return (
-    <div className="border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+    <div className="border-t border-border px-6 py-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
       <span>MAJ : {format(new Date(dossier.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-      {dossier.status !== 'CANCELLED' && dossier.status !== 'DELIVERED' && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-destructive hover:text-destructive h-8 text-xs"
-          onClick={() => { if (confirm('Annuler ce dossier ?')) cancel.mutate(); }}
-          disabled={cancel.isPending}
-        >
-          Annuler le dossier
-        </Button>
-      )}
+      <div className="flex items-center gap-1">
+        {apercuSave && (
+          <Button
+            size="sm"
+            onClick={apercuSave.run}
+            disabled={apercuSave.pending}
+            className="h-8 w-8 p-0"
+            title="Enregistrer les modifications"
+          >
+            {apercuSave.pending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <CheckCircle2 className="w-4 h-4" />}
+          </Button>
+        )}
+        {dossier.status !== 'CANCELLED' && dossier.status !== 'DELIVERED' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive h-8 text-xs"
+            onClick={() => { if (confirm('Annuler ce dossier ?')) cancel.mutate(); }}
+            disabled={cancel.isPending}
+          >
+            Annuler le dossier
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
