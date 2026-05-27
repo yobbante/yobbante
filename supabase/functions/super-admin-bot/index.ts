@@ -39,6 +39,32 @@ async function sendWa(phone: string, body: string, opts?: { recipient_type?: str
   } catch (e) { console.error('SUPER_ADMIN_BOT send-wa failed', e); }
 }
 
+async function sendWaList(
+  phone: string,
+  bodyText: string,
+  listButtonLabel: string,
+  sections: Array<{ title: string; rows: Array<{ id: string; title: string; description?: string }> }>,
+  fallbackText: string,
+  trigger: string,
+) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        interactive_type: 'list',
+        interactive_body: bodyText,
+        list_button_label: listButtonLabel,
+        sections,
+        fallback_text: fallbackText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) { console.error('SUPER_ADMIN_BOT send-list failed', e); }
+}
+
 async function logEvent(dossierId: string | null, type: string, data: any) {
   if (!dossierId) return;
   try {
