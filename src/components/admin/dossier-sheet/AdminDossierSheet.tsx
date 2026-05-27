@@ -417,10 +417,32 @@ function ApercuTab({
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ContactBlock
+          title="Expéditeur"
+          accent="sender"
+          name={sender.name}
+          phone={sender.phone}
+          address={sender.address}
+          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
+          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+        />
+        <ContactBlock
+          title="Destinataire"
+          accent="recipient"
+          name={recipient.name}
+          phone={recipient.phone}
+          address={recipient.address}
+          extra={
+            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
+          }
+        />
+      </div>
+
       <ClientNotesPanel parsed={parsed} raw={dossier.notes} />
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Expéditeur</h3>
+        <h3 className="text-sm font-semibold">Expéditeur — édition</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('sender_name', 'Nom')}
           {field('sender_phone', 'Téléphone', 'tel')}
@@ -430,7 +452,7 @@ function ApercuTab({
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-semibold">Destinataire</h3>
+        <h3 className="text-sm font-semibold">Destinataire — édition</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('recipient_name', 'Nom')}
           {field('recipient_phone', 'Téléphone', 'tel')}
@@ -451,13 +473,6 @@ function ApercuTab({
         <h3 className="text-sm font-semibold">Notes admin (internes)</h3>
         {field('admin_notes', '', 'textarea')}
       </section>
-
-      <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-3 border-t border-border -mx-6 px-6">
-        <Button onClick={() => save.mutate()} disabled={save.isPending} size="sm">
-          {save.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-          Enregistrer
-        </Button>
-      </div>
     </div>
   );
 }
