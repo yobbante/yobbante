@@ -108,15 +108,16 @@ export function SubSection({ title, children }: { title: string; children: React
   );
 }
 
+const env = (import.meta as any).env ?? {};
 export const COMPANY_INFO = {
-  name: 'Yobbanté',
-  legalForm: 'SARL Yobbanté',
-  address: 'Dakar, Sénégal',
-  ninea: 'À renseigner',
-  rccm: 'À renseigner',
-  email: 'contact@yobbante.com',
-  phone: '+221 78 607 80 80',
-  phoneGp: '+221 78 122 18 91',
-  site: 'https://yobbante.com',
-  host: 'Lovable / Vercel (à confirmer)',
+  name: env.VITE_COMPANY_NAME || 'Yobbanté',
+  legalForm: env.VITE_COMPANY_LEGAL_FORM || 'SARL Yobbanté',
+  address: env.VITE_COMPANY_ADDRESS || 'Dakar, Sénégal',
+  ninea: env.VITE_COMPANY_NINEA || 'À renseigner',
+  rccm: env.VITE_COMPANY_RCCM || 'À renseigner',
+  email: env.VITE_COMPANY_EMAIL || 'contact@yobbante.com',
+  phone: env.VITE_COMPANY_PHONE || '+221 78 607 80 80',
+  phoneGp: env.VITE_COMPANY_PHONE_GP || '+221 78 122 18 91',
+  site: env.VITE_COMPANY_SITE || 'https://yobbante.com',
+  host: env.VITE_COMPANY_HOST || 'Lovable / Vercel (à confirmer)',
 };
