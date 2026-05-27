@@ -122,6 +122,8 @@ function DossierSheetBody({ id }: { id: string }) {
     return () => { supabase.removeChannel(ch); };
   }, [id, qc]);
 
+  const parsed = useMemo(() => parseClientNotes(dossier?.notes), [dossier?.notes]);
+
   if (isLoading || !dossier) {
     return (
       <div className="p-6 space-y-3">
@@ -132,7 +134,6 @@ function DossierSheetBody({ id }: { id: string }) {
     );
   }
 
-  const parsed = useMemo(() => parseClientNotes(dossier?.notes), [dossier?.notes]);
 
   // Fallback: when dedicated columns were not yet captured (older dossiers),
   // use the structured info we parsed out of the free-form notes payload.
