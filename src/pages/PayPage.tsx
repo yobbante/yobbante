@@ -217,7 +217,7 @@ export default function PayPage() {
               <div className="flex justify-between pt-2 mt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
                 <span className="font-medium">Montant à payer</span>
                 <span className="font-bold text-2xl" style={{ color: '#F5C518' }}>
-                  {amountXof ? `${amountXof.toLocaleString('fr-FR')} XOF` : '—'}
+                  {amountXof ? `${amountXof.toLocaleString('fr-FR')} FCFA` : '—'}
                 </span>
               </div>
             </div>
