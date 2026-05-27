@@ -321,20 +321,34 @@ Voir → https://yobbante.com/admin`;
       errorMessage = msg;
       status = isTemplateNotApproved(metaResult, res) ? 'template_not_approved' : 'failed';
       console.error('WA_ERROR', JSON.stringify({ code, sub, msg }));
-    }
-  } catch (err) {
-    status = 'failed';
-    errorMessage = err instanceof Error ? err.message : String(err);
-    console.error('WA_ERROR fetch', errorMessage);
-  }
 
-  // Log outbound — never block the response on logging
-  try {
-    await supa.from('whatsapp_outbound_messages').insert({
-      to_phone: recipient,
-      from_number: fromNumber,
-      recipient_type: recipientType,
-      template_name: activeTemplateName,
+      // Interactive hors fenêtre 24h → fallback texte automatique si possible
+      if (messageType === 'interactive') {
+        const fbText = body.fallback_text ?? body.interactive_body ?? body.message ?? null;
+        if (fbText) {
+          console.warn('WA_INTERACTIVE_FALLBACK_TEXT', JSON.stringify({ code, sub }));
+          const fbRes = await callMeta({
+            messaging_product: 'whatsapp',
+            to: recipient,
+            type: 'text',
+            text: { body: fbText },
+          });
+          if (fbRes.res.ok) {
+            metaResult = fbRes.json;
+            httpOk = true;
+            status = 'sent';
+            wamid = fbRes.json?.messages?.[0]?.id ?? null;
+            messageBody = fbText;
+            messageType = 'text';
+            interactivePayloadSnapshot = null;
+            usedFallback = true;
+            errorMessage = null;
+          } else {
+            errorMessage = `interactive_failed:${msg}; text_fallback_failed:${fbRes.json?.error?.message ?? 'unknown'}`;
+          }
+        }
+      }
+    }
       template_params: body.template_params ? body.template_params : null,
       message_body: messageBody,
       dossier_id: body.dossier_id ?? null,
