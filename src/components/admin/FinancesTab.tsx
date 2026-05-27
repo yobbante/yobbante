@@ -77,7 +77,7 @@ export function FinancesTab() {
     queryFn: async (): Promise<DossierFin[]> => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, tracking_id, reference, status, origin_country, destination_country, destination_city, actual_weight_kg, estimated_weight, final_amount_xof, estimated_cost, gp_amount, gp_paid, gp_paid_at, gp_payment_method, delivered_at, created_at, assigned_transporteur_ref, gp_receipt_path')
+        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, actual_weight_kg, estimated_weight, final_amount_xof, estimated_cost, gp_amount, gp_paid, gp_paid_at, gp_payment_method, delivered_at, created_at, assigned_transporteur_ref, gp_receipt_path')
         .eq('status', 'DELIVERED')
         .eq('gp_paid', false)
         .not('assigned_transporteur_ref', 'is', null)
@@ -358,7 +358,7 @@ function PendingRow({
 
   const current = Number(dossier.gp_amount ?? 0);
   const margin = clientPrice - current;
-  const route = `${dossier.origin_country ?? '—'} → ${dossier.destination_city ?? dossier.destination_country ?? '—'}`;
+  const route = `${(dossier as any).origin_city ?? dossier.origin_country ?? '—'} → ${dossier.destination_city ?? dossier.destination_country ?? '—'}`;
 
   return (
     <div className="px-4 py-3 grid md:grid-cols-[1fr_auto] gap-3 items-start text-sm">
