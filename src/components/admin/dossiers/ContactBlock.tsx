@@ -48,23 +48,33 @@ export function ContactBlock({
               </a>
             )}
             {waHref && (
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noreferrer"
-                title="WhatsApp"
-                className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-green-500/15 text-green-500 hover:bg-green-500/25 transition-colors"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-              </a>
+              <>
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Ouvrir WhatsApp"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-green-500/15 text-green-500 hover:bg-green-500/25 transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => copy(waHref, 'Lien WhatsApp copié')}
+                  title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-green-500/10 text-green-500/80 hover:text-green-500 hover:bg-green-500/20 transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </>
             )}
             <button
               type="button"
-              onClick={() => copy(phone)}
+              onClick={() => copy(phone, 'Numéro copié')}
               title="Copier le numéro"
               className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-secondary text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Copy className="w-3.5 h-3.5" />
+              <Phone className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
