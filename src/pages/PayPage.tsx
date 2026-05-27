@@ -126,7 +126,7 @@ export default function PayPage() {
       // Notif admin (best-effort)
       supabase.functions.invoke('send-whatsapp', { body: {
         recipient_type: 'admin', recipient_phone: SUPPORT_TEL,
-        message: `Paiement livraison choisi pour ${ref} - ${amountXof ?? '?'} XOF`,
+        message: `Paiement livraison choisi pour ${ref} - ${amountXof ?? '?'} FCFA`,
         trigger_type: 'cod_chosen',
       }}).catch(() => {});
 
@@ -184,7 +184,7 @@ export default function PayPage() {
             <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#F5C518' }} />
             <h2 className="mb-2">Paiement à la livraison</h2>
             <p className="text-muted-foreground text-sm">
-              Vous réglerez {amountXof ? `${amountXof.toLocaleString('fr-FR')} XOF ` : ''}directement au GP à la livraison.
+              Vous réglerez {amountXof ? `${amountXof.toLocaleString('fr-FR')} FCFA ` : ''}directement au GP à la livraison.
             </p>
             <Link to={`/suivre/${dossier.tracking_id || dossier.reference}`} className="btn-cta inline-flex items-center gap-2 mt-4">
               <Truck className="w-4 h-4" /> Suivre mon colis
@@ -217,7 +217,7 @@ export default function PayPage() {
               <div className="flex justify-between pt-2 mt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
                 <span className="font-medium">Montant à payer</span>
                 <span className="font-bold text-2xl" style={{ color: '#F5C518' }}>
-                  {amountXof ? `${amountXof.toLocaleString('fr-FR')} XOF` : '—'}
+                  {amountXof ? `${amountXof.toLocaleString('fr-FR')} FCFA` : '—'}
                 </span>
               </div>
             </div>
