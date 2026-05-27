@@ -153,28 +153,6 @@ function DossierSheetBody({ id }: { id: string }) {
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
 
-      <div className="px-6 py-3 border-b border-border grid grid-cols-1 md:grid-cols-2 gap-3 bg-secondary/20">
-        <ContactBlock
-          title="Expéditeur"
-          accent="sender"
-          name={sender.name}
-          phone={sender.phone}
-          address={sender.address}
-          extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
-          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
-        />
-        <ContactBlock
-          title="Destinataire"
-          accent="recipient"
-          name={recipient.name}
-          phone={recipient.phone}
-          address={recipient.address}
-          extra={
-            [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
-          }
-        />
-      </div>
-
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
         <div className="px-6 border-b border-border overflow-x-auto">
 
@@ -205,7 +183,15 @@ function DossierSheetBody({ id }: { id: string }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <TabsContent value="apercu"     className="mt-0"><ApercuTab dossier={dossier} /></TabsContent>
+          <TabsContent value="apercu"     className="mt-0">
+            <ApercuTab
+              dossier={dossier}
+              sender={sender}
+              recipient={recipient}
+              parsed={parsed}
+              registerSave={setApercuSave}
+            />
+          </TabsContent>
           <TabsContent value="colis"      className="mt-0"><ColisTab dossier={dossier} /></TabsContent>
           <TabsContent value="transport"  className="mt-0"><TransportTab dossier={dossier} /></TabsContent>
           <TabsContent value="livraison"  className="mt-0"><LivraisonTab dossier={dossier} /></TabsContent>
@@ -216,7 +202,10 @@ function DossierSheetBody({ id }: { id: string }) {
         </div>
       </Tabs>
 
-      <DossierFooter dossier={dossier} />
+      <DossierFooter
+        dossier={dossier}
+        apercuSave={tab === 'apercu' ? apercuSave : null}
+      />
     </>
   );
 }
