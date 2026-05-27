@@ -368,57 +368,23 @@ export function RequestsTab() {
                 {/* Expandable details */}
                 {isOpen && (
                   <div className="px-4 pb-4 pt-1 bg-secondary/20 border-t border-border space-y-3">
-                    {/* Quick info grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <Info icon={MapPin} label="Origine → Dest.">
-                        {d.origin_country} → {d.destination_country}
-                      </Info>
-                      <Info icon={Weight} label="Poids estimé">
-                        {d.estimated_weight ? `${d.estimated_weight} kg` : '—'}
-                      </Info>
-                      <Info icon={Wallet} label="Budget">
-                        {d.budget_eur ? `${d.budget_eur} €` : '—'}
-                      </Info>
-                      <Info icon={Calendar} label="Livraison estimée">
-                        {d.estimated_delivery_date
-                          ? new Date(d.estimated_delivery_date).toLocaleDateString('fr-FR')
-                          : '—'}
-                      </Info>
-                    </div>
+                    <ExpandedKindBody dossier={d} kind={k} />
 
-                    {/* Contact */}
                     {(d.contact_email || d.contact_phone) && (
                       <div className="flex flex-wrap gap-3 text-xs">
                         {d.contact_email && (
-                          <a
-                            href={`mailto:${d.contact_email}`}
-                            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                          >
+                          <a href={`mailto:${d.contact_email}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
                             <Mail className="w-3.5 h-3.5" /> {d.contact_email}
                           </a>
                         )}
                         {d.contact_phone && (
-                          <a
-                            href={`tel:${d.contact_phone}`}
-                            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                          >
+                          <a href={`tel:${d.contact_phone}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
                             <Phone className="w-3.5 h-3.5" /> {d.contact_phone}
                           </a>
                         )}
                       </div>
                     )}
 
-                    {/* Notes */}
-                    {d.notes && (
-                      <div className="text-xs">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                          Notes client
-                        </p>
-                        <p className="text-foreground bg-background border border-border rounded-md p-2 whitespace-pre-wrap">
-                          {d.notes}
-                        </p>
-                      </div>
-                    )}
 
                     {/* Actions: status + open */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
