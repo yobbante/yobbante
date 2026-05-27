@@ -386,6 +386,8 @@ function ApercuTab({ dossier }: { dossier: DossierRow }) {
 
   return (
     <div className="space-y-6">
+      <ClientNotesPanel parsed={parsed} raw={dossier.notes} />
+
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">Expéditeur</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
