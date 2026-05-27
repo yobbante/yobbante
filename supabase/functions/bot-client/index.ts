@@ -113,6 +113,35 @@ async function sendWa(supa: any, phone: string, message: string, trigger: string
   }
 }
 
+async function sendWaButtons(
+  phone: string,
+  bodyText: string,
+  buttons: Array<{ id: string; label: string }>,
+  fallbackText: string,
+  trigger: string,
+) {
+  try {
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        recipient_phone: phone,
+        recipient_type: 'client',
+        interactive_type: 'button',
+        interactive_body: bodyText,
+        buttons,
+        fallback_text: fallbackText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) {
+    console.error('BOT_CLIENT send buttons error', e);
+  }
+}
+
 async function getSession(supa: any, phone: string): Promise<{ session: any; expired: boolean }> {
   const { data } = await supa
     .from('client_bot_sessions')
@@ -618,6 +647,21 @@ Deno.serve(async (req) => {
 
     if (reply) {
       await sendWa(supa, phone, reply, 'bot_client_reply');
+      // Si la réponse contient le menu principal, ajouter des boutons interactifs
+      // (les ids matchent les commandes texte existantes "2"/"3"/"5").
+      if (reply.includes(MAIN_MENU) || reply.includes(SHORT_MENU)) {
+        await sendWaButtons(
+          phone,
+          'Choisissez une option :',
+          [
+            { id: '2', label: 'Mes colis' },
+            { id: '3', label: 'Envoyer' },
+            { id: '5', label: 'Un agent' },
+          ],
+          'Tapez 2 pour suivre, 3 pour envoyer, 5 pour un agent.',
+          'bot_client_menu_buttons',
+        );
+      }
     }
   } catch (e) {
     console.error('BOT_CLIENT error', e instanceof Error ? e.message : String(e));

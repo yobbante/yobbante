@@ -10,16 +10,30 @@ const corsHeaders = {
 
 type RecipientType = 'client' | 'gp' | 'admin';
 
+interface InteractiveButton { id: string; label: string }
+interface InteractiveRow { id: string; title: string; description?: string }
+interface InteractiveSection { title: string; rows: InteractiveRow[] }
+
 interface SendPayload {
   recipient_phone: string;
   recipient_type?: RecipientType;
   template_name?: string;
   template_params?: string[];
-  /** Code langue du template (par défaut 'fr'). hello_world doit utiliser 'en_US'. */
   template_language?: string;
-  /** Ancien nom Meta — utilisé en repli si `template_name` n'est pas approuvé. */
   template_fallback_name?: string;
   message?: string;
+  /** Interactive (boutons / liste). Si fourni, on envoie un message interactif. */
+  interactive_type?: 'button' | 'list';
+  /** Corps de texte du message interactif. */
+  interactive_body?: string;
+  /** Mode 'button' : 1 à 3 boutons (label max 20 char). */
+  buttons?: InteractiveButton[];
+  /** Mode 'list' : label du bouton qui ouvre la liste (max 20 char). */
+  list_button_label?: string;
+  /** Mode 'list' : sections (rows: title max 24, description max 72). */
+  sections?: InteractiveSection[];
+  /** Texte fallback envoyé en clair si l'envoi interactif est refusé (hors 24h). */
+  fallback_text?: string;
   dossier_id?: string;
   transporteur_id?: string;
   trigger_type?: string;
@@ -131,9 +145,15 @@ Deno.serve(async (req) => {
 
   // Build Meta payload
   const useTemplate = !!body.template_name;
+  const useInteractive = !!body.interactive_type
+    && (body.interactive_type === 'button' || body.interactive_type === 'list');
   let metaBody: Record<string, unknown>;
   let messageBody: string | null = null;
   let activeTemplateName: string | null = body.template_name ?? null;
+  let messageType: 'text' | 'template' | 'interactive' = 'text';
+  let interactivePayloadSnapshot: any = null;
+
+  const truncate = (s: string, n: number) => (s ?? '').toString().slice(0, n);
 
   const buildTemplateBody = (templateName: string): Record<string, unknown> => {
     const params = (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
@@ -153,8 +173,72 @@ Deno.serve(async (req) => {
     };
   };
 
+  const buildInteractiveBody = (): Record<string, unknown> | null => {
+    const bodyText = truncate(body.interactive_body ?? body.message ?? '', 1024);
+    if (!bodyText) return null;
+    if (body.interactive_type === 'button') {
+      const btns = (body.buttons ?? []).slice(0, 3).map((b) => ({
+        type: 'reply',
+        reply: { id: truncate(b.id, 256), title: truncate(b.label, 20) },
+      }));
+      if (btns.length === 0) return null;
+      return {
+        messaging_product: 'whatsapp',
+        to: recipient,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: bodyText },
+          action: { buttons: btns },
+        },
+      };
+    }
+    // list
+    const sections = (body.sections ?? []).map((s) => ({
+      title: truncate(s.title, 24),
+      rows: (s.rows ?? []).map((r) => ({
+        id: truncate(r.id, 200),
+        title: truncate(r.title, 24),
+        ...(r.description ? { description: truncate(r.description, 72) } : {}),
+      })),
+    })).filter((s) => s.rows.length > 0);
+    const totalRows = sections.reduce((n, s) => n + s.rows.length, 0);
+    if (totalRows === 0 || totalRows > 10) return null;
+    return {
+      messaging_product: 'whatsapp',
+      to: recipient,
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        body: { text: bodyText },
+        action: {
+          button: truncate(body.list_button_label || 'Voir les options', 20),
+          sections,
+        },
+      },
+    };
+  };
+
   if (useTemplate) {
     metaBody = buildTemplateBody(body.template_name!);
+    messageType = 'template';
+  } else if (useInteractive) {
+    const built = buildInteractiveBody();
+    if (built) {
+      metaBody = built;
+      messageType = 'interactive';
+      interactivePayloadSnapshot = (built as any).interactive;
+      messageBody = body.interactive_body ?? body.message ?? null;
+    } else {
+      // Pas de boutons valides → tomber en texte
+      messageBody = body.fallback_text ?? body.interactive_body ?? body.message ?? '';
+      metaBody = {
+        messaging_product: 'whatsapp',
+        to: recipient,
+        type: 'text',
+        text: { body: messageBody },
+      };
+    }
   } else {
     // Free text fallback (24h window or admin notif)
     messageBody = body.message
@@ -237,6 +321,33 @@ Voir → https://yobbante.com/admin`;
       errorMessage = msg;
       status = isTemplateNotApproved(metaResult, res) ? 'template_not_approved' : 'failed';
       console.error('WA_ERROR', JSON.stringify({ code, sub, msg }));
+
+      // Interactive hors fenêtre 24h → fallback texte automatique si possible
+      if (messageType === 'interactive') {
+        const fbText = body.fallback_text ?? body.interactive_body ?? body.message ?? null;
+        if (fbText) {
+          console.warn('WA_INTERACTIVE_FALLBACK_TEXT', JSON.stringify({ code, sub }));
+          const fbRes = await callMeta({
+            messaging_product: 'whatsapp',
+            to: recipient,
+            type: 'text',
+            text: { body: fbText },
+          });
+          if (fbRes.res.ok) {
+            metaResult = fbRes.json;
+            httpOk = true;
+            status = 'sent';
+            wamid = fbRes.json?.messages?.[0]?.id ?? null;
+            messageBody = fbText;
+            messageType = 'text';
+            interactivePayloadSnapshot = null;
+            usedFallback = true;
+            errorMessage = null;
+          } else {
+            errorMessage = `interactive_failed:${msg}; text_fallback_failed:${fbRes.json?.error?.message ?? 'unknown'}`;
+          }
+        }
+      }
     }
   } catch (err) {
     status = 'failed';
@@ -253,6 +364,8 @@ Voir → https://yobbante.com/admin`;
       template_name: activeTemplateName,
       template_params: body.template_params ? body.template_params : null,
       message_body: messageBody,
+      message_type: messageType,
+      interactive_payload: interactivePayloadSnapshot,
       dossier_id: body.dossier_id ?? null,
       transporteur_id: body.transporteur_id ?? null,
       status,
