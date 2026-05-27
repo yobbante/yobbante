@@ -327,35 +327,24 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 
 function ApercuTab({ dossier }: { dossier: DossierRow }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    sender_name: dossier.sender_name ?? '',
-    sender_phone: dossier.sender_phone ?? '',
-    sender_address: dossier.sender_address ?? '',
-    pickup_date: dossier.pickup_date ?? '',
-    recipient_name: dossier.recipient_name ?? '',
-    recipient_phone: dossier.recipient_phone ?? '',
-    recipient_address: dossier.recipient_address ?? '',
-    product_description: dossier.product_description ?? '',
-    estimated_weight: dossier.estimated_weight ?? '',
-    declared_value: dossier.declared_value ?? '',
-    admin_notes: dossier.admin_notes ?? '',
-  });
+  const parsed = useMemo<ParsedClientNotes>(() => parseClientNotes(dossier.notes), [dossier.notes]);
 
-  useEffect(() => {
-    setForm({
-      sender_name: dossier.sender_name ?? '',
-      sender_phone: dossier.sender_phone ?? '',
-      sender_address: dossier.sender_address ?? '',
-      pickup_date: dossier.pickup_date ?? '',
-      recipient_name: dossier.recipient_name ?? '',
-      recipient_phone: dossier.recipient_phone ?? '',
-      recipient_address: dossier.recipient_address ?? '',
-      product_description: dossier.product_description ?? '',
-      estimated_weight: dossier.estimated_weight ?? '',
-      declared_value: dossier.declared_value ?? '',
-      admin_notes: dossier.admin_notes ?? '',
-    });
-  }, [dossier.id]);
+  const initial = () => ({
+    sender_name:        dossier.sender_name        ?? parsed.senderName       ?? '',
+    sender_phone:       dossier.sender_phone       ?? parsed.senderPhone      ?? dossier.contact_phone ?? '',
+    sender_address:     dossier.sender_address     ?? parsed.senderAddress    ?? '',
+    pickup_date:        dossier.pickup_date        ?? (parsed.pickupDate && /^\d{4}-\d{2}-\d{2}$/.test(parsed.pickupDate) ? parsed.pickupDate : '') ?? '',
+    recipient_name:     dossier.recipient_name     ?? parsed.recipientName    ?? '',
+    recipient_phone:    dossier.recipient_phone    ?? parsed.recipientPhone   ?? '',
+    recipient_address:  dossier.recipient_address  ?? parsed.recipientAddress ?? '',
+    product_description: dossier.product_description ?? parsed.description    ?? '',
+    estimated_weight:   dossier.estimated_weight   ?? parsed.weightKg         ?? '',
+    declared_value:     dossier.declared_value     ?? '',
+    admin_notes:        dossier.admin_notes        ?? '',
+  });
+  const [form, setForm] = useState(initial);
+
+  useEffect(() => { setForm(initial()); /* eslint-disable-next-line */ }, [dossier.id]);
 
   const save = useMutation({
     mutationFn: async () => {
