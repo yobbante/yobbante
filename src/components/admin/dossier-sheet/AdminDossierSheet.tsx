@@ -323,11 +323,18 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
         })()}
 
         {dossier.tracking_id && (
-          <Button size="sm" variant="ghost" className="h-8 text-xs" asChild>
-            <a href={`/track?ref=${dossier.tracking_id}`} target="_blank" rel="noreferrer">
-              <ExternalLink className="w-3.5 h-3.5 mr-1" /> Page publique
-            </a>
-          </Button>
+          <>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" asChild title="Vue client — page de suivi">
+              <a href={`/suivre/${dossier.tracking_id}`} target="_blank" rel="noreferrer">
+                <ExternalLink className="w-3.5 h-3.5 mr-1" /> Voir /suivre
+              </a>
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" asChild title="Vue client — page de paiement">
+              <a href={`/pay/${dossier.tracking_id}`} target="_blank" rel="noreferrer">
+                <ExternalLink className="w-3.5 h-3.5 mr-1" /> Voir /pay
+              </a>
+            </Button>
+          </>
         )}
       </div>
     </SheetHeader>
