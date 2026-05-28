@@ -21,8 +21,8 @@ import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { formatFcfa } from '@/lib/yobbantePricing';
-import { buildRecapBreakdown, goodsCoefFor } from '@/lib/recapBreakdown';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
+import { calculatePricing, type PricingOutput } from '@/lib/pricingEngine';
 import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
