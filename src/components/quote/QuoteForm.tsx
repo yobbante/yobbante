@@ -307,7 +307,10 @@ export function QuoteForm() {
           {(() => {
             const w = Number(weight);
             if (!origin || !destination || !w || w <= 0) return null;
-            const starting = lowestStartingPriceFcfa(w);
+            const o = resolveCityToCountry(origin, customCities);
+            const d = resolveCityToCountry(destination, customCities);
+            const starting = lowestStartingPriceFcfa(w, o?.country, d?.country);
+            const corridorLabel = `${o?.city ?? '—'} → ${d?.city ?? '—'}`;
             return (
               <div
                 className="rounded-[10px] px-3 py-2.5 flex items-center justify-between gap-3"
@@ -320,12 +323,9 @@ export function QuoteForm() {
                   <div className="text-[15px] font-bold text-foreground leading-tight truncate">
                     {starting.toLocaleString('fr-FR')} FCFA
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    Prix confirmé à l'étape suivante.
+                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                    {corridorLabel} · {w} kg · prix confirmé à l'étape suivante
                   </div>
-                </div>
-                <div className="text-[10px] text-muted-foreground text-right shrink-0">
-                  {w} kg
                 </div>
               </div>
             );
