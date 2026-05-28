@@ -1793,6 +1793,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   isAir: transportMode === 'AIR',
                   insuranceFcfa: Math.round(insuranceCostEur * 655),
                   pickupSurchargeFcfa: fraisEnlevement.surcharge,
+                  goodsCoef: goodsCoefFor(goodsType),
+                  parcelCount,
+                  isExpress: priority === 'express',
                 });
                 const toEur = (fcfa: number) => fcfa / 655;
                 return (
