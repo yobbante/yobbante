@@ -1908,8 +1908,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             });
             const toEur = (fcfa: number) => fcfa / 655;
             return (
-            const toEur = (fcfa: number) => fcfa / 655;
-            return (
               <div className="space-y-2 text-sm">
 
                 <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
