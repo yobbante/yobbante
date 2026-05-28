@@ -587,6 +587,14 @@ export function TransporteursTab() {
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
                 <div className="font-medium min-w-0 truncate">
                   {formatTransporteurName(t.prenom, t.nom)}
+                  {t.konnekt_registered && (
+                    <span
+                      className="ml-2 text-[9px] font-bold rounded px-1.5 py-0.5 align-middle"
+                      style={{ background: '#F5C518', color: '#0a0a0a' }}
+                    >
+                      BETA
+                    </span>
+                  )}
                   {!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}
                 </div>
                 <div className="text-muted-foreground truncate">{t.telephone_1} <span className="text-[10px] block text-muted-foreground/70">{c.count} dép.</span></div>
