@@ -1930,19 +1930,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
-          <div className="space-y-2.5 text-sm">
-            <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
-            <RecapRow label="Poids"  value={`${weight} kg · ${parcelCount} colis`} />
-            <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
-            {destCity && (
-              <>
-                <RecapRow label="Standard" value={`${formatLocalAmount(Math.round(totalEur), originProfile)} · ${getDeliveryDelay(destCity.city, 'standard').label}`} />
-                <RecapRow label="Express" value={`${getDeliveryDelay(destCity.city, 'express').label}`} />
-              </>
-            )}
-            <RecapRow label="Total estimé" value={formatLocalAmount(totalEur, originProfile)} strong />
-            <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
-          </div>
+          (() => {
+            const bd = buildRecapBreakdown({
+              total: totalEur,
+              weightKg: weight,
+              isAir: transportMode === 'AIR',
+              insurance: insuranceCostEur,
+              pickupSurcharge: surchargeEur,
+            });
+            return (
+              <div className="space-y-2 text-sm">
+                <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
+                <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
+                <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
+                <div className="pt-2 mt-1 border-t border-border/60 space-y-1.5">
+                  {bd.lines.map(l => (
+                    <RecapRow key={l.label} label={l.label} value={formatLocalAmount(l.amount, originProfile)} />
+                  ))}
+                </div>
+                <div className="pt-2 mt-1 border-t border-border/60">
+                  <RecapRow label="Sous-total HT" value={formatLocalAmount(bd.subtotalHt, originProfile)} />
+                  <RecapRow label={`TVA ${Math.round(bd.tvaRate * 100)} %`} value={formatLocalAmount(bd.tva, originProfile)} />
+                </div>
+                <div className="pt-2 mt-1 border-t border-border">
+                  <RecapRow label="Total TTC" value={formatLocalAmount(bd.totalTtc, originProfile)} strong />
+                </div>
+                <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
+              </div>
+            );
+          })()
         }
       />
 
