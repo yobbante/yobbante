@@ -1,23 +1,41 @@
 /**
- * Décomposition "intelligente" du récapitulatif client.
+ * Récapitulatif tarifaire — calcul FORWARD et proportionnel (FCFA).
  *
- * Le total affiché (TTC) est conservé tel quel. On le décompose en lignes
- * lisibles pour rassurer le client, et on isole la TVA 18 % calculée
- * sur le total TTC (mode reverse) :
+ * Plan de calcul :
+ *   fret_base   = rate_per_kg(corridor) × poids
+ *   billet/soute = isAir ? max(2 000 ; fret_base × 0.15) : 0
+ *   frais_dossier = 1 500 (fixe, petit)
+ *   frais_agence  = fret_base × 0.10
+ *   assurance     = (passé)
+ *   enlèvement    = (passé, 0 si Dakar centre)
  *
- *   HT  = TTC / 1.18
- *   TVA = TTC − HT
+ *   HT  = somme des lignes ci-dessus
+ *   TVA = HT × 18 %
+ *   TTC = HT + TVA
  *
- * NB : pour l'admin, la TVA réellement reversée est calculée sur la marge
- * (cf. FinancesTab — KPI "TVA à reverser"). Cette répartition côté client
- * est purement présentationnelle.
+ * Tout est strictement proportionnel au tarif corridor (rate_per_kg) × poids,
+ * pour rester cohérent avec le "À partir de" affiché sur la landing.
  *
- * Toutes les valeurs sont dans la même unité que `total` (EUR ou FCFA).
+ * Exemple Paris (rate 6 000) — 1 kg :
+ *   fret 6 000 + billet 2 000 + doss 1 500 + agence 600 = 10 100 HT
+ *   TVA 1 818 → TTC ≈ 11 918 FCFA
+ *
+ * Exemple Abidjan (rate 3 500) — 1 kg :
+ *   fret 3 500 + billet 2 000 + doss 1 500 + agence 350 = 7 350 HT
+ *   TVA 1 323 → TTC ≈ 8 673 FCFA
+ *
+ * Pour l'admin, la TVA réellement reversée se calcule sur la marge
+ * (cf. FinancesTab). Ici on isole la TVA visuelle pour le client.
  */
 
 export const TVA_RATE = 0.18;
 
-export type RecapLine = { label: string; amount: number; muted?: boolean };
+const FRAIS_DOSSIER_FCFA = 1500;
+const AGENCE_PCT = 0.10;
+const BILLET_PCT = 0.15;
+const BILLET_MIN_FCFA = 2000;
+
+export type RecapLine = { label: string; amountFcfa: number };
 
 export interface RecapBreakdown {
   lines: RecapLine[];
@@ -28,52 +46,36 @@ export interface RecapBreakdown {
 }
 
 export interface BuildRecapOpts {
-  /** Total TTC affiché (devise libre, doit rester l'ancre). */
-  total: number;
-  /** Poids facturé (kg). */
   weightKg: number;
-  /** Transport aérien → ajoute "Billet / soute aérienne". */
+  ratePerKgFcfa: number;
   isAir?: boolean;
-  /** Assurance déjà incluse dans le total (même unité). */
-  insurance?: number;
-  /** Surcharge enlèvement zone (même unité, 0 si Dakar centre). */
-  pickupSurcharge?: number;
-  /** Frais de dossier fixes (défaut : ~7.6 EUR ≈ 5 000 FCFA). */
-  fileFee?: number;
+  insuranceFcfa?: number;
+  pickupSurchargeFcfa?: number;
 }
 
-/**
- * Construit la décomposition. Garantit que la somme des lignes + TVA = total.
- */
 export function buildRecapBreakdown(opts: BuildRecapOpts): RecapBreakdown {
-  const total = Math.max(0, Math.round(opts.total));
-  const ht = Math.round(total / (1 + TVA_RATE));
-  const tva = total - ht;
+  const w = Math.max(0.5, Number(opts.weightKg) || 0);
+  const rate = Math.max(0, Number(opts.ratePerKgFcfa) || 0);
 
-  const insurance = Math.max(0, Math.round(opts.insurance ?? 0));
-  const pickup = Math.max(0, Math.round(opts.pickupSurcharge ?? 0));
-  const fileFee = Math.max(0, Math.round(opts.fileFee ?? 8)); // ~5 000 FCFA
-  const agencyFee = Math.max(0, Math.round(ht * 0.08));
-  const airTicket = opts.isAir ? Math.max(0, Math.round(ht * 0.18)) : 0;
-
-  // Reste = fret transporteur de base
-  const knownFees = fileFee + agencyFee + airTicket + insurance + pickup;
-  const fret = Math.max(0, ht - knownFees);
+  const fret = Math.round(rate * w);
+  const billet = opts.isAir ? Math.max(BILLET_MIN_FCFA, Math.round(fret * BILLET_PCT)) : 0;
+  const dossier = FRAIS_DOSSIER_FCFA;
+  const agence = Math.round(fret * AGENCE_PCT);
+  const assurance = Math.max(0, Math.round(opts.insuranceFcfa ?? 0));
+  const enlevement = Math.max(0, Math.round(opts.pickupSurchargeFcfa ?? 0));
 
   const lines: RecapLine[] = [
-    { label: 'Fret transporteur', amount: fret },
+    { label: 'Fret transporteur', amountFcfa: fret },
   ];
-  if (airTicket > 0) lines.push({ label: 'Billet / soute aérienne', amount: airTicket });
-  lines.push({ label: 'Frais de dossier', amount: fileFee });
-  lines.push({ label: "Frais d'agence", amount: agencyFee });
-  if (insurance > 0) lines.push({ label: 'Assurance colis', amount: insurance });
-  if (pickup > 0) lines.push({ label: 'Enlèvement (zone élargie)', amount: pickup });
+  if (billet > 0) lines.push({ label: 'Billet / soute aérienne', amountFcfa: billet });
+  lines.push({ label: 'Frais de dossier', amountFcfa: dossier });
+  lines.push({ label: "Frais d'agence", amountFcfa: agence });
+  if (assurance > 0) lines.push({ label: 'Assurance colis', amountFcfa: assurance });
+  if (enlevement > 0) lines.push({ label: 'Enlèvement (zone élargie)', amountFcfa: enlevement });
 
-  return {
-    lines,
-    subtotalHt: ht,
-    tva,
-    tvaRate: TVA_RATE,
-    totalTtc: total,
-  };
+  const ht = lines.reduce((s, l) => s + l.amountFcfa, 0);
+  const tva = Math.round(ht * TVA_RATE);
+  const ttc = ht + tva;
+
+  return { lines, subtotalHt: ht, tva, tvaRate: TVA_RATE, totalTtc: ttc };
 }
