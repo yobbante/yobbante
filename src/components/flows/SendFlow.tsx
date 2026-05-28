@@ -33,7 +33,7 @@ import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
 
 // ─────────────────────────── Static config ───────────────────────────
 
