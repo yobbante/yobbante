@@ -263,6 +263,23 @@ export function TransporteursTab() {
 
     if (res.ok) {
       toast.success(`GP activé — identifiants envoyés (Réf. ${gpRef(reference)})`);
+      // Notif admin : succès activation
+      try {
+        await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: SUPER_ADMIN_PHONE,
+            recipient_type: 'admin',
+            message: [
+              `GP Konnekt active :`,
+              `${formatTransporteurName(gp.prenom, gp.nom)}`,
+              `Tel : ${gp.telephone_1}`,
+              `Code : ${reference}`,
+            ].join('\n'),
+            client_name: formatTransporteurName(gp.prenom, gp.nom),
+            trigger_type: 'konnekt_beta_validated_admin',
+          },
+        });
+      } catch { /* non bloquant */ }
     } else {
       // 3. Notif admin pour envoi manuel
       try {
