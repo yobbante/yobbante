@@ -445,9 +445,6 @@ export function TransporteursTab() {
           <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
           <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
         </div>
-          <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
-          <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
-        </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setImportOpen(true)}
