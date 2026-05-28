@@ -8,7 +8,7 @@ import type { CoverageLevel } from '@/hooks/useCoverageZone';
 
 /** Short tagline displayed on cards / banners. */
 export const DOOR_TO_DOOR_TAGLINE =
-  'Tarif tout compris porte-à-porte';
+  'Porte-à-porte transparent';
 
 /** Slightly longer one-liner — used in banners and emails. */
 export const DOOR_TO_DOOR_HEADLINE =

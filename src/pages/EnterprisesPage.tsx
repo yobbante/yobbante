@@ -60,7 +60,7 @@ const PRICING = [
     features: [
       'Devis en 24h',
       'Sourcing optionnel',
-      'Dédouanement inclus',
+      'Dédouanement pris en charge',
       'Suivi en ligne',
     ],
     cta: 'Demander un devis',

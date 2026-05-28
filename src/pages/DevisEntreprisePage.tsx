@@ -32,7 +32,7 @@ const SERVICES_B2B = [
     icon: Container,
     title: 'Conteneurs FCL',
     desc: '20\' / 40\' au départ de Chine, Dubai, Europe ou USA. Routes maritimes négociées avec armateurs Tier-1.',
-    points: ['Booking direct armateur', 'Suivi temps réel', 'Dédouanement inclus'],
+    points: ['Booking direct armateur', 'Suivi temps réel', 'Dédouanement pris en charge'],
   },
   {
     icon: Truck,
@@ -74,7 +74,7 @@ const PRICING_TIERS = [
     sub: 'Sous 24h ouvrées',
     features: [
       'Transport multi-modal',
-      'Dédouanement inclus',
+      'Dédouanement pris en charge',
       'Suivi en ligne',
       'Paiement à l\'envoi',
     ],

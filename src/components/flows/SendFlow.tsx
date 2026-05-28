@@ -33,7 +33,7 @@ import { DakarHubLock } from './FlowPrimitives';
 import { COUNTRY_OPTIONS, getProfile, formatLocalAmount, eurFromLocal, type CountryProfile } from '@/lib/countryProfile';
 import { cn } from '@/lib/utils';
 import type { WarehouseCountry } from '@/lib/types';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
 
 // ─────────────────────────── Static config ───────────────────────────
 
@@ -1519,12 +1519,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           const STANDARD_PERKS = [
             'Enlèvement gratuit à Dakar',
             'Suivi en temps réel',
-            'Dédouanement inclus',
+            'Dédouanement pris en charge',
           ];
           const EXPRESS_PERKS = [
             'Enlèvement prioritaire à Dakar',
             'Suivi renforcé',
-            'Dédouanement express',
+            'Dédouanement express pris en charge',
           ];
 
           const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
@@ -1764,130 +1764,136 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         <div className="mt-6"><LockedStep step={7} total={7} title="Paiement & récapitulatif" /></div>
       ) : (
       <div id="section-final" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-final'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection revealed={routeOk} step={7} total={7} title="Paiement & récapitulatif" hint="Choisissez votre paiement, puis vérifiez le résumé avant de confirmer.">
+      <FlowSection revealed={routeOk} step={7} total={7} title="Confirmer et payer" hint="Vérifiez le résumé puis choisissez votre mode de règlement.">
 
 
-        <div className="max-w-2xl">
-          <Tabs defaultValue="paiement" className="w-full">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="paiement">Paiement</TabsTrigger>
-              <TabsTrigger value="recap">Récapitulatif</TabsTrigger>
-            </TabsList>
+        <div className="max-w-2xl space-y-5">
+          {/* Coordonnées expéditeur — rappel si manquant */}
+          {(!senderName.trim() || !senderPhone.trim()) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>Coordonnées expéditeur manquantes — complétez-les en haut de page (bloc d'identité).</span>
+            </div>
+          )}
 
-            <TabsContent value="paiement" className="mt-4 space-y-5">
-              {/* Coordonnées expéditeur — déplacées plus haut, on rappelle simplement ici */}
-              {(!senderName.trim() || !senderPhone.trim()) && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Coordonnées expéditeur manquantes — complétez-les en haut de page (bloc d'identité).</span>
-                </div>
-              )}
-
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mode de paiement</p>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {PAYMENT_METHODS.map(m => (
-                    <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
-                      className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-4 transition-all ${
-                        paymentMethod === m.id ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'
-                      }`}>
-                      {m.icon}
-                      <span className="text-xs font-semibold">{m.label}</span>
-                    </button>
-                  ))}
-                </div>
+          {/* ─── Section 1 — Récapitulatif de commande ─── */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Récapitulatif de commande
+            </p>
+            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              {/* Header avec itinéraire */}
+              <div className="bg-foreground text-background px-5 py-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-background/60">Itinéraire</p>
+                <p className="mt-1 text-base font-semibold">
+                  {originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'}
+                </p>
+                <p className="mt-0.5 text-[11px] text-background/70">
+                  {TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · {priority === 'express' ? 'Express' : 'Standard'}
+                  {next_departure_date && ` · Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}`}
+                </p>
               </div>
 
-              <DoorToDoorBanner origin={originCoverageCheck} destination={destCoverageCheck} detailed />
-            </TabsContent>
+              {/* Personnes */}
+              <RecapGroup
+                icon={<User className="w-3.5 h-3.5" />}
+                title="Personnes"
+                onEdit={() => goToStep(2)}
+                incomplete={!recipientOk || !senderName.trim() || !senderPhone.trim()}
+                missingLabel="à compléter"
+              >
+                <RecapRow label="Expéditeur" value={senderName || senderPhone
+                  ? `${senderName || '—'} · ${senderPhone || '—'} · ${originCity?.city ?? '—'}`
+                  : '— (à renseigner)'} />
+                <RecapRow label="Destinataire" value={recipientName || recipientPhone
+                  ? `${recipientName || '—'} · ${recipientPhone || '—'} · ${destCity?.city ?? '—'}`
+                  : '— (à renseigner)'} />
+              </RecapGroup>
 
-            <TabsContent value="recap" className="mt-4">
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                {/* Header with route */}
-                <div className="bg-foreground text-background px-5 py-4">
-                  <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-background/60">Itinéraire</p>
-                  <p className="mt-1 text-base font-semibold">
-                    {originCity && destCity ? `${originProfile.flag} ${originCity.city} → ${destProfile.flag} ${destCity.city}` : '—'}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-background/70">
-                    {TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · {priority === 'express' ? 'Express' : 'Standard'}
-                    {next_departure_date && ` · Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}`}
-                  </p>
+              {/* Collecte */}
+              <RecapGroup
+                icon={<MapPin className="w-3.5 h-3.5" />}
+                title="Collecte & livraison"
+                onEdit={() => goToStep(1)}
+                incomplete={!collecteOk}
+                missingLabel="à compléter"
+              >
+                <RecapRow label="Collecte" value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
+                {pickupAddress && <RecapRow label="Adresse" value={pickupAddress} />}
+                {deliveryAddress && <RecapRow label="Livraison" value={deliveryAddress} />}
+              </RecapGroup>
+
+              {/* Colis */}
+              <RecapGroup
+                icon={<Package className="w-3.5 h-3.5" />}
+                title="Colis"
+                onEdit={() => goToStep(3)}
+                incomplete={!packageOk || !goodsOk}
+                missingLabel="à compléter"
+              >
+                <RecapRow label="Article" value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
+                <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
+                <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
+              </RecapGroup>
+
+              {/* Coût */}
+              <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
+                  <CreditCard className="w-3 h-3" /> Détail du coût
+                </p>
+                <RecapRow label="Fret Yobbanté" value={formatLocalAmount(transportPriceEur, originProfile)} />
+                {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
+                <RecapRow label="Enlèvement" value={fraisEnlevement.zone === 'dakar_centre' ? 'Inclus (Dakar)' : `+ ${formatFcfa(fraisEnlevement.surcharge)}`} />
+                {deliveryMode === 'home_delivery' && deliveryCarrier && (
+                  <RecapRow
+                    label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
+                    value="Sur devis"
+                  />
+                )}
+                <div className="pt-2.5 mt-1 border-t border-border">
+                  <RecapRow label="TOTAL" value={formatLocalAmount(totalEur, originProfile)} strong />
                 </div>
-
-                {/* Personnes */}
-                <RecapGroup
-                  icon={<User className="w-3.5 h-3.5" />}
-                  title="Personnes"
-                  onEdit={() => goToStep(2)}
-                  incomplete={!recipientOk || !senderName.trim() || !senderPhone.trim()}
-                  missingLabel="à compléter"
-                >
-                  <RecapRow label="Expéditeur" value={senderName || senderPhone
-                    ? `${senderName || '—'} · ${senderPhone || '—'} · ${originCity?.city ?? '—'}`
-                    : '— (à renseigner)'} />
-                  <RecapRow label="Destinataire" value={recipientName || recipientPhone
-                    ? `${recipientName || '—'} · ${recipientPhone || '—'} · ${destCity?.city ?? '—'}`
-                    : '— (à renseigner)'} />
-                </RecapGroup>
-
-                {/* Collecte */}
-                <RecapGroup
-                  icon={<MapPin className="w-3.5 h-3.5" />}
-                  title="Collecte & livraison"
-                  onEdit={() => goToStep(1)}
-                  incomplete={!collecteOk}
-                  missingLabel="à compléter"
-                >
-                  <RecapRow label="Collecte" value={pickupDate ? `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}` : '—'} />
-                  {pickupAddress && <RecapRow label="Adresse" value={pickupAddress} />}
-                  {deliveryAddress && <RecapRow label="Livraison" value={deliveryAddress} />}
-                </RecapGroup>
-
-                {/* Colis */}
-                <RecapGroup
-                  icon={<Package className="w-3.5 h-3.5" />}
-                  title="Colis"
-                  onEdit={() => goToStep(3)}
-                  incomplete={!packageOk || !goodsOk}
-                  missingLabel="à compléter"
-                >
-                  <RecapRow label="Article" value={`${GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'} — ${description || '—'}`} />
-                  <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
-                  <RecapRow label="Assurance" value={insurance === 'none' ? 'Sans' : insurance === 'standard' ? 'Standard' : 'Premium'} />
-                </RecapGroup>
-
-                {/* Coût */}
-                <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
-                    <CreditCard className="w-3 h-3" /> Détail du coût
-                  </p>
-                  <RecapRow label="Fret Yobbanté" value={formatLocalAmount(transportPriceEur, originProfile)} />
-                  {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
-                  {fraisEnlevement.surcharge > 0 && (
-                    <RecapRow
-                      label={`Déplacement ${fraisEnlevement.zone === 'hors_dakar' ? 'hors Dakar' : 'banlieue Dakar'}`}
-                      value={`+ ${formatFcfa(fraisEnlevement.surcharge)}`}
-                    />
-                  )}
-                  {deliveryMode === 'home_delivery' && deliveryCarrier && (
-                    <RecapRow
-                      label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
-                      value="Sur devis"
-                    />
-                  )}
-                  <RecapRow label="Paiement" value={PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label ?? '—'} />
-                  <div className="pt-2.5 mt-1 border-t border-border">
-                    <RecapRow label="TOTAL" value={formatLocalAmount(totalEur, originProfile)} strong />
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
-                  </p>
-                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
+                </p>
               </div>
-            </TabsContent>
+            </div>
+          </div>
 
-          </Tabs>
+          {/* ─── Section 2 — Mode de règlement ─── */}
+          <div>
+            <p className="text-sm font-semibold text-foreground">Comment souhaitez-vous payer ?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Le paiement s'effectue après pesée réelle de votre colis.
+            </p>
+
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {PAYMENT_METHODS.map(m => {
+                const active = paymentMethod === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.id)}
+                    aria-pressed={active}
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-4 transition-all"
+                    style={{
+                      borderColor: active ? '#F5C518' : 'hsl(var(--border))',
+                      background: active ? 'rgba(245,197,24,0.08)' : 'hsl(var(--card))',
+                    }}
+                  >
+                    <span style={{ color: active ? '#F5C518' : 'hsl(var(--foreground))' }}>{m.icon}</span>
+                    <span className="text-xs font-semibold">{m.label}</span>
+                    {active && (
+                      <span className="text-[10px] font-medium" style={{ color: '#F5C518' }}>Sélectionné</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <DoorToDoorBanner origin={originCoverageCheck} destination={destCoverageCheck} detailed />
         </div>
       </FlowSection>
       </div>
@@ -1899,7 +1905,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <LiveSummaryBar
         visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
-        ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
+        ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
         priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}

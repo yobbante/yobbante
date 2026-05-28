@@ -70,15 +70,16 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
       }}
     >
       <div className="max-w-6xl mx-auto h-full px-6 flex items-center justify-between gap-4">
-        {/* Brand */}
+        {/* Brand — logged-in users go straight to /app */}
         <Link
-          to="/"
+          to={user ? '/app' : '/'}
           aria-label="Yobbanté — Accueil"
           className="text-foreground"
           style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}
         >
           YOBBANTÉ
         </Link>
+
 
         {/* Center links — desktop */}
         {!hideActions && (

@@ -10,6 +10,7 @@ import { QuoteForm } from '@/components/quote/QuoteForm';
 import { TrustBar } from '@/components/quote/TrustBar';
 import { ArrowRight, MapPin } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
+import { useHasDossiers } from '@/hooks/useHasDossiers';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -114,6 +115,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
+      <ReturningClientBanner />
+
 
       {/* ───── HERO + QUOTE FORM ───── */}
       <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
@@ -132,7 +135,7 @@ export default function LandingPage() {
               className="max-w-[380px] mb-5 sm:mb-7"
               style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}
             >
-              Prix instantané. Aucun appel. Dédouanement inclus. Paiement en ligne.
+              Prix instantané. Aucun appel. Dédouanement pris en charge. Paiement en ligne.
             </p>
             {/* Duplicate mobile CTAs removed — first set in IntentSearchBar (under nav) is canonical */}
           </div>
@@ -314,3 +317,21 @@ export default function LandingPage() {
     </div>
   );
 }
+
+function ReturningClientBanner() {
+  const navigate = useNavigate();
+  const { hasDossiers } = useHasDossiers();
+  if (!hasDossiers) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => navigate('/app')}
+      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90"
+      style={{ background: '#F5C518', color: '#0A0A0A' }}
+    >
+      <span>Suivre mes commandes</span>
+      <ArrowRight className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
