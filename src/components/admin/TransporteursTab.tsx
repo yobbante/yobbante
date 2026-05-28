@@ -146,6 +146,8 @@ export function TransporteursTab() {
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
   const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<'all' | 'beta'>('all');
+  const [validatingId, setValidatingId] = useState<string | null>(null);
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
