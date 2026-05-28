@@ -1905,7 +1905,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <LiveSummaryBar
         visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
-        ctaLabel={allReady ? "Confirmer l'expédition" : 'Compléter les coordonnées'}
+        ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
         priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}
