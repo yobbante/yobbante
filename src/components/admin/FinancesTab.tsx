@@ -182,7 +182,7 @@ export function FinancesTab() {
       </header>
 
       {/* ============ KPI cards ============ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard label="Revenus ce mois" value={formatXof(kpis.revenu)} icon={TrendingUp} />
         <KpiCard label="Coûts GP ce mois" value={formatXof(kpis.cout)} icon={Users} />
         <KpiCard
@@ -190,6 +190,12 @@ export function FinancesTab() {
           value={formatXof(kpis.marge)}
           accent
           extra={`${marginPercent(kpis.revenu, kpis.cout)} %`}
+        />
+        <KpiCard
+          label="TVA à reverser (18 % marge)"
+          value={formatXof(kpis.tvaDue)}
+          accent
+          extra="Calculée sur le bénéfice mensuel"
         />
         <KpiCard label="Paiements GP en attente" value={formatXof(kpis.dueByGp)} icon={Coins} accent />
       </div>
