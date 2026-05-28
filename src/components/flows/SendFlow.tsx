@@ -1596,20 +1596,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     </div>
                   )}
 
-                  {outsideDakar && (
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-[12px] text-amber-300 flex items-start gap-2">
-                      <span aria-hidden>{fraisEnlevement.zone === 'hors_dakar' ? '⚠️' : '📍'}</span>
-                      <span>
-                        {fraisEnlevement.message}&nbsp;:
-                        <strong className="ml-1">+ {formatFcfa(fraisEnlevement.surcharge)}</strong>
-                      </span>
-                    </div>
-                  )}
-
                   <div className="grid sm:grid-cols-2 gap-3">
 
                     {cards.map(c => {
                       const active = priority === c.id;
+                      const isStandard = c.id === 'normal';
+                      // Mobile : on n'affiche que 2 perks max ; desktop : 3.
+                      const perksMobile = c.perks.slice(0, 2);
+                      const perksDesktop = c.perks.slice(0, 3);
                       return (
                         <button key={c.id} type="button"
                           onClick={() => {
@@ -1618,12 +1612,19 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                           }}
                           className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
                             active
-                              ? 'border-foreground bg-foreground text-background shadow-md'
+                              ? 'border-[#F5C518] bg-card shadow-[0_0_0_2px_rgba(245,197,24,0.15)]'
                               : 'border-border bg-card hover:border-foreground/40'
                           }`}>
-                          {c.recommended && !active && (
-                            <span className="absolute -top-2 left-4 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-500 text-white px-2 py-0.5">
+                          {/* Badge en haut à droite */}
+                          {isStandard ? (
+                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
+                              style={{ background: '#22C55E', color: '#fff' }}>
                               Recommandé
+                            </span>
+                          ) : (
+                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
+                              style={{ background: '#F5C518', color: '#0D1B2A' }}>
+                              Le plus rapide
                             </span>
                           )}
                           <div className="flex items-center justify-between gap-2">
@@ -1631,22 +1632,34 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                               {c.icon}
                               <p className="text-base font-bold truncate">{c.label}</p>
                             </div>
-                            {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                            {active && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#F5C518]" />}
                           </div>
-                          <p className={`mt-0.5 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>{c.tagline}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{c.tagline}</p>
 
                           <div className="mt-4">
                             <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
                               {formatLocalAmount(c.price, originProfile)}
                             </span>
+                            {outsideDakar && fraisEnlevement.surcharge > 0 && (
+                              <span className="block mt-0.5 text-[11px] text-muted-foreground">
+                                dont +{formatFcfa(fraisEnlevement.surcharge)} déplacement hors zone
+                              </span>
+                            )}
                           </div>
-                          <p className={`mt-1 text-[11px] ${active ? 'text-background/70' : 'text-muted-foreground'}`}>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
                             Livraison estimée · {c.eta}
                           </p>
 
-                          <ul className={`mt-3 space-y-1 text-[11px] ${active ? 'text-background/80' : 'text-muted-foreground'}`}>
-                            {c.perks.map(p => (
-                              <li key={p} className="flex items-center gap-1.5">
+                          <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+                            {/* Mobile */}
+                            {perksMobile.map(p => (
+                              <li key={`m-${p}`} className="sm:hidden flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                              </li>
+                            ))}
+                            {/* Desktop */}
+                            {perksDesktop.map(p => (
+                              <li key={`d-${p}`} className="hidden sm:flex items-center gap-1.5">
                                 <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
                               </li>
                             ))}
