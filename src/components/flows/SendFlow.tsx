@@ -1883,6 +1883,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             isAir: transportMode === 'AIR',
             insuranceFcfa: Math.round(insuranceCostEur * 655),
             pickupSurchargeFcfa: fraisEnlevement.surcharge,
+            goodsCoef: goodsCoefFor(goodsType),
+            parcelCount,
+            isExpress: priority === 'express',
           });
           return b.totalTtc > 0 ? formatLocalAmount(b.totalTtc / 655, originProfile) : undefined;
         })()}
