@@ -1375,7 +1375,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   return (
                     <button key={g.id} type="button"
                       title={g.desc}
-                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); advanceFromStep(4); }}
+                      onClick={() => { setGoodsType(g.id); advanceFromStep(4); }}
                       className={cn(
                         'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
