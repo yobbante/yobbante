@@ -691,6 +691,65 @@ export function TransporteursTab() {
           })}
         </div>
       )}
+      </>)}
+
+      {subTab === 'beta' && (
+        <div className="space-y-3">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher beta…" className="pl-9" />
+          </div>
+          {betaPendingFiltered.length === 0 ? (
+            <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+              Aucune demande Konnekt beta en attente.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {betaPendingFiltered.map(t => {
+                const cities = uniqueCitiesFromNavettes(t.navettes);
+                const created = t.created_at ? new Date(t.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                const name = formatTransporteurName(t.prenom, t.nom);
+                return (
+                  <div key={t.id} className="border border-border rounded-lg p-4 bg-card">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-foreground">{name}</span>
+                          <span className="text-[10px] font-bold rounded px-1.5 py-0.5" style={{ background: '#F5C518', color: '#0a0a0a' }}>BETA</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">📞 {t.telephone_1}</div>
+                        <div className="text-sm text-muted-foreground">🏠 Ville de base : {t.ville || '—'}</div>
+                        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1">
+                          <span>Villes desservies :</span>
+                          {cities.length === 0 ? <span>—</span> : cities.map(c => (
+                            <Badge key={c} variant="secondary" className="text-[10px] font-normal">{c}</Badge>
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Inscrit le {created}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={validatingId === t.id}
+                        onClick={async () => {
+                          setValidatingId(t.id);
+                          try { await validateBeta(t); } finally { setValidatingId(null); }
+                        }}
+                        style={{ background: '#F5C518', color: '#0a0a0a' }}
+                        className="hover:opacity-90"
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        {validatingId === t.id ? 'Activation…' : 'Valider beta Konnekt'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+
 
 
       <EditDrawer
