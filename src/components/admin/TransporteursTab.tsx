@@ -217,6 +217,10 @@ export function TransporteursTab() {
   };
 
   const validateBeta = async (gp: Transporteur) => {
+    if (gp.actif) {
+      toast.info('Ce GP est déjà actif');
+      return;
+    }
     const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
     let reference = String(gp.reference || '').replace(/\D/g, '');
     if (!/^\d{4}$/.test(reference)) reference = nextAvailableRef();
