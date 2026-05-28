@@ -326,7 +326,7 @@ Voir → https://yobbante.com/admin`;
         ?? null;
       if (fb && fb !== body.template_name) {
         console.warn('WA_FALLBACK', JSON.stringify({ from: body.template_name, to: fb }));
-        const retry = await callMeta(buildTemplateBody(fb));
+        const retry = await callMetaWithRetry(buildTemplateBody(fb));
         res = retry.res;
         json = retry.json;
         metaResult = json;
