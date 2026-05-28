@@ -1278,32 +1278,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 fieldErrors.description ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
               )}
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et améliore la détection automatique.</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et l'identification du contenu.</p>
           </label>
 
-          {/* AI auto-detection chip */}
-          {description.trim().length >= 4 && (
-            <div className="flex items-center gap-2 text-[11px]">
-              {goodsDetecting ? (
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <Sparkles className="w-3 h-3 animate-pulse" />
-                  Analyse de la description en cours…
-                </span>
-              ) : goodsAutoDetected ? (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border ${
-                  goodsAutoConfident
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-                    : 'border-amber-300 bg-amber-50 text-amber-900'
-                }`}>
-                  <Sparkles className="w-3 h-3" />
-                  Type détecté&nbsp;: <strong>{GOODS_TYPES.find(g => g.id === goodsAutoDetected.id)?.label}</strong>
-                  {!goodsAutoConfident && <span> · à confirmer</span>}
-                  <button type="button" onClick={() => { setGoodsManualOverride(true); setGoodsAutoDetected(null); }}
-                    className="ml-1 underline underline-offset-2 hover:opacity-80">Modifier</button>
-                </span>
-              ) : null}
-            </div>
-          )}
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
