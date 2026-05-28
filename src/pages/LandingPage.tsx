@@ -132,7 +132,7 @@ export default function LandingPage() {
               className="max-w-[380px] mb-5 sm:mb-7"
               style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}
             >
-              Prix instantané. Aucun appel. Dédouanement inclus. Paiement en ligne.
+              Prix instantané. Aucun appel. Dédouanement pris en charge. Paiement en ligne.
             </p>
             {/* Duplicate mobile CTAs removed — first set in IntentSearchBar (under nav) is canonical */}
           </div>

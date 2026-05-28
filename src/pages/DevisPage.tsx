@@ -103,7 +103,7 @@ export default function DevisPage() {
         </div>
 
         <p className="text-[12px] mt-3" style={{ color: 'hsl(var(--text-tertiary))' }}>
-          Poids taxable : {result.taxableWeight} kg · Volumétrique : {result.volumetricWeight} kg · Dédouanement inclus · Marge incluse
+          Poids taxable : {result.taxableWeight} kg · Volumétrique : {result.volumetricWeight} kg · Dédouanement pris en charge · Marge incluse
         </p>
       </main>
 

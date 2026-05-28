@@ -129,7 +129,6 @@ export function PricingSimulator({ compact = false }: { compact?: boolean }) {
             <span className="text-[14px] font-bold text-white">Total estimé</span>
             <span className="font-mono text-base font-bold" style={{ color: '#F5C518' }}>{fmt(result.total)} FCFA</span>
           </div>
-          <div className="text-right text-[11px] font-mono" style={{ color: '#888' }}>≈ {eur} € · ≈ {usd} $</div>
           <button onClick={() => navigate('/auth')}
             className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
             style={{ background: '#F5C518', color: '#0A0A0A' }}>
