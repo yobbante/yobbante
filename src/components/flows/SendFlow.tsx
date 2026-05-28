@@ -1519,12 +1519,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           const STANDARD_PERKS = [
             'Enlèvement gratuit à Dakar',
             'Suivi en temps réel',
-            'Dédouanement inclus',
+            'Dédouanement pris en charge',
           ];
           const EXPRESS_PERKS = [
             'Enlèvement prioritaire à Dakar',
             'Suivi renforcé',
-            'Dédouanement express',
+            'Dédouanement express pris en charge',
           ];
 
           const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
