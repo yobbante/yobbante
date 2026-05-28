@@ -94,7 +94,7 @@ export function lowestStartingPriceFcfa(
 ): number {
   const w = Math.max(0.5, Number(weightKg) || 0);
   const rate = ratePerKgForCorridor(originCountry, destinationCountry);
-  return Math.round(rate * w * YOBBANTE_MARGIN + DAKAR_CENTRE_ENLEVEMENT);
+  return Math.round(rate * w + DAKAR_CENTRE_ENLEVEMENT);
 }
 
 export function formatStartingFromFcfa(
