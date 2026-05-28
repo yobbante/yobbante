@@ -1840,20 +1840,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
               {/* Coût */}
               {(() => {
+                const ratePerKgFcfa = ratePerKgForCorridor(originCity?.country, destCity?.country);
                 const breakdown = buildRecapBreakdown({
-                  total: totalEur,
+                  ratePerKgFcfa,
                   weightKg: weight,
                   isAir: transportMode === 'AIR',
-                  insurance: insuranceCostEur,
-                  pickupSurcharge: surchargeEur,
+                  insuranceFcfa: Math.round(insuranceCostEur * 655),
+                  pickupSurchargeFcfa: fraisEnlevement.surcharge,
                 });
+                const toEur = (fcfa: number) => fcfa / 655;
                 return (
                   <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
                     <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                       <CreditCard className="w-3 h-3" /> Détail du coût
                     </p>
                     {breakdown.lines.map((l) => (
-                      <RecapRow key={l.label} label={l.label} value={formatLocalAmount(l.amount, originProfile)} />
+                      <RecapRow key={l.label} label={l.label} value={formatLocalAmount(toEur(l.amountFcfa), originProfile)} />
                     ))}
                     {deliveryMode === 'home_delivery' && deliveryCarrier && (
                       <RecapRow
@@ -1862,11 +1864,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       />
                     )}
                     <div className="pt-2 mt-1 border-t border-border/60">
-                      <RecapRow label="Sous-total HT" value={formatLocalAmount(breakdown.subtotalHt, originProfile)} />
-                      <RecapRow label={`TVA ${Math.round(breakdown.tvaRate * 100)} %`} value={formatLocalAmount(breakdown.tva, originProfile)} />
+                      <RecapRow label="Sous-total HT" value={formatLocalAmount(toEur(breakdown.subtotalHt), originProfile)} />
+                      <RecapRow label={`TVA ${Math.round(breakdown.tvaRate * 100)} %`} value={formatLocalAmount(toEur(breakdown.tva), originProfile)} />
                     </div>
                     <div className="pt-2.5 mt-1 border-t border-border">
-                      <RecapRow label="TOTAL TTC" value={formatLocalAmount(breakdown.totalTtc, originProfile)} strong />
+                      <RecapRow label="TOTAL TTC" value={formatLocalAmount(toEur(breakdown.totalTtc), originProfile)} strong />
                     </div>
                     <p className="mt-1.5 text-[11px] text-muted-foreground">
                       {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
