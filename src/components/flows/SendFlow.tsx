@@ -1467,11 +1467,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         {(() => {
           // ── Prix venant du moteur (pricing engine v2). Le surcoût d'enlèvement
           // (banlieue / hors-Dakar) est déjà calculé en haut (surchargeEur).
-          const fallbackBase = Math.max(15, Math.round(weight * 4));
+          // Prix STRICTEMENT issus du pricing engine (source unique).
+          // standardPrice / expressPrice sont exprimés en FCFA puis convertis
+          // en devise locale pour l'affichage. Le récap et la LiveSummaryBar
+          // utilisent EXACTEMENT le même calcul.
           const outsideDakar = fraisEnlevement.zone !== 'dakar_centre';
-
-          const standardPrice = (quoteStandard ? Math.round(quoteStandard.price_eur) : fallbackBase) + surchargeEur;
-          const expressPrice  = (quoteExpress  ? Math.round(quoteExpress.price_eur)  : Math.round(fallbackBase * 1.45)) + surchargeEur;
+          const standardPriceFcfa = pricing.prix_standard;
+          const expressPriceFcfa = pricing.prix_express;
+          const standardPrice = toEurFcfa(standardPriceFcfa);
+          const expressPrice = toEurFcfa(expressPriceFcfa);
 
           const standardEtaMin = quoteStandard?.eta_min_days ?? 5;
           const standardEtaMax = quoteStandard?.eta_max_days ?? 9;
