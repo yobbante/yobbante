@@ -1837,26 +1837,41 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </RecapGroup>
 
               {/* Coût */}
-              <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
-                  <CreditCard className="w-3 h-3" /> Détail du coût
-                </p>
-                <RecapRow label="Fret Yobbanté" value={formatLocalAmount(transportPriceEur, originProfile)} />
-                {insuranceCostEur > 0 && <RecapRow label="Assurance" value={`+ ${formatLocalAmount(insuranceCostEur, originProfile)}`} />}
-                <RecapRow label="Enlèvement" value={fraisEnlevement.zone === 'dakar_centre' ? 'Inclus (Dakar)' : `+ ${formatFcfa(fraisEnlevement.surcharge)}`} />
-                {deliveryMode === 'home_delivery' && deliveryCarrier && (
-                  <RecapRow
-                    label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
-                    value="Sur devis"
-                  />
-                )}
-                <div className="pt-2.5 mt-1 border-t border-border">
-                  <RecapRow label="TOTAL" value={formatLocalAmount(totalEur, originProfile)} strong />
-                </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
-                </p>
-              </div>
+              {(() => {
+                const breakdown = buildRecapBreakdown({
+                  total: totalEur,
+                  weightKg: weight,
+                  isAir: transportMode === 'AIR',
+                  insurance: insuranceCostEur,
+                  pickupSurcharge: surchargeEur,
+                });
+                return (
+                  <div className="px-5 py-4 bg-secondary/30 space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
+                      <CreditCard className="w-3 h-3" /> Détail du coût
+                    </p>
+                    {breakdown.lines.map((l) => (
+                      <RecapRow key={l.label} label={l.label} value={formatLocalAmount(l.amount, originProfile)} />
+                    ))}
+                    {deliveryMode === 'home_delivery' && deliveryCarrier && (
+                      <RecapRow
+                        label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
+                        value="Sur devis"
+                      />
+                    )}
+                    <div className="pt-2 mt-1 border-t border-border/60">
+                      <RecapRow label="Sous-total HT" value={formatLocalAmount(breakdown.subtotalHt, originProfile)} />
+                      <RecapRow label={`TVA ${Math.round(breakdown.tvaRate * 100)} %`} value={formatLocalAmount(breakdown.tva, originProfile)} />
+                    </div>
+                    <div className="pt-2.5 mt-1 border-t border-border">
+                      <RecapRow label="TOTAL TTC" value={formatLocalAmount(breakdown.totalTtc, originProfile)} strong />
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                      {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
