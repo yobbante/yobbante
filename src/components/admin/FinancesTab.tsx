@@ -110,8 +110,10 @@ export function FinancesTab() {
     const revenu = (monthly ?? []).reduce((s, d: any) => s + Number(d.final_amount_xof ?? 0), 0);
     const cout = (monthly ?? []).reduce((s, d: any) => s + Number(d.gp_amount ?? 0), 0);
     const marge = revenu - cout;
+    // TVA 18 % calculée sur la marge (bénéfice) — c'est ce que Yobbanté reverse.
+    const tvaDue = Math.max(0, Math.round(marge * 0.18));
     const dueByGp = pending.reduce((s, d) => s + Number(d.gp_amount ?? 0), 0);
-    return { revenu, cout, marge, dueByGp };
+    return { revenu, cout, marge, tvaDue, dueByGp };
   }, [monthly, pending]);
 
   // ---- Group pending by GP ----
@@ -180,7 +182,7 @@ export function FinancesTab() {
       </header>
 
       {/* ============ KPI cards ============ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard label="Revenus ce mois" value={formatXof(kpis.revenu)} icon={TrendingUp} />
         <KpiCard label="Coûts GP ce mois" value={formatXof(kpis.cout)} icon={Users} />
         <KpiCard
@@ -188,6 +190,12 @@ export function FinancesTab() {
           value={formatXof(kpis.marge)}
           accent
           extra={`${marginPercent(kpis.revenu, kpis.cout)} %`}
+        />
+        <KpiCard
+          label="TVA à reverser (18 % marge)"
+          value={formatXof(kpis.tvaDue)}
+          accent
+          extra="Calculée sur le bénéfice mensuel"
         />
         <KpiCard label="Paiements GP en attente" value={formatXof(kpis.dueByGp)} icon={Coins} accent />
       </div>
