@@ -281,6 +281,32 @@ Voir → https://yobbante.com/admin`;
     return { res, json };
   };
 
+  // Retry transient errors (5xx, rate-limit) once with small backoff before
+  // declaring the call failed. Keeps the interactive-list pipeline reliable.
+  const TRANSIENT_WA_CODES = new Set([130429, 131048, 131056, 368]);
+  const isTransient = (res: Response, json: any): boolean => {
+    if (res.status >= 500) return true;
+    const c = json?.error?.code;
+    return typeof c === 'number' && TRANSIENT_WA_CODES.has(c);
+  };
+  const callMetaWithRetry = async (payload: Record<string, unknown>) => {
+    let attempt;
+    try {
+      attempt = await callMeta(payload);
+    } catch (e) {
+      console.warn('WA_RETRY network error on first attempt, retrying once');
+      await new Promise((r) => setTimeout(r, 600));
+      attempt = await callMeta(payload);
+      return attempt;
+    }
+    if (!attempt.res.ok && isTransient(attempt.res, attempt.json)) {
+      console.warn('WA_RETRY transient error, retrying once', attempt.json?.error?.code);
+      await new Promise((r) => setTimeout(r, 600));
+      attempt = await callMeta(payload);
+    }
+    return attempt;
+  };
+
   const isTemplateNotApproved = (json: any, res: Response): boolean => {
     if (res.ok) return false;
     const code = json?.error?.code;
@@ -289,7 +315,7 @@ Voir → https://yobbante.com/admin`;
   };
 
   try {
-    let { res, json } = await callMeta(metaBody);
+    let { res, json } = await callMetaWithRetry(metaBody);
     metaResult = json;
     httpOk = res.ok;
 
