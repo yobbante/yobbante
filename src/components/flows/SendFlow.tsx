@@ -176,9 +176,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
-  const [goodsAutoDetected, setGoodsAutoDetected] = useState<{ id: GoodsId; confidence: 'high'|'medium'|'low'; rationale: string } | null>(null);
-  const [goodsManualOverride, setGoodsManualOverride] = useState(false);
-  const [goodsDetecting, setGoodsDetecting] = useState(false);
+  // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
