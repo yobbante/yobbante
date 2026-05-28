@@ -1898,54 +1898,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
-        priceLabel={(() => {
-          const r = ratePerKgForCorridor(originCity?.country, destCity?.country);
-          const b = buildRecapBreakdown({
-            ratePerKgFcfa: r, weightKg: weight,
-            isAir: transportMode === 'AIR',
-            insuranceFcfa: Math.round(insuranceCostEur * 655),
-            pickupSurchargeFcfa: fraisEnlevement.surcharge,
-            goodsCoef: goodsCoefFor(goodsType),
-            parcelCount,
-            isExpress: priority === 'express',
-          });
-          return b.totalTtc > 0 ? formatLocalAmount(b.totalTtc / 655, originProfile) : undefined;
-        })()}
+        priceLabel={pricing.total_ttc > 0 ? formatLocalAmount(toEurFcfa(pricing.total_ttc), originProfile) : undefined}
         priceHint={destCity
           ? `${priority === 'express' ? 'Express' : 'Standard'} · ${getDeliveryDelay(destCity.city, priority === 'express' ? 'express' : 'standard').label}`
           : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           (() => {
-            const ratePerKgFcfa = ratePerKgForCorridor(originCity?.country, destCity?.country);
-            const bd = buildRecapBreakdown({
-              ratePerKgFcfa,
-              weightKg: weight,
-              isAir: transportMode === 'AIR',
-              insuranceFcfa: Math.round(insuranceCostEur * 655),
-              pickupSurchargeFcfa: fraisEnlevement.surcharge,
-              goodsCoef: goodsCoefFor(goodsType),
-              parcelCount,
-              isExpress: priority === 'express',
-            });
-            const toEur = (fcfa: number) => fcfa / 655;
+            const bd = pricing;
+            const toEur = toEurFcfa;
             return (
               <div className="space-y-2 text-sm">
 
                 <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
                 <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
-                <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
+                <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label} · ${priority === 'express' ? 'Express' : 'Standard'}`} />
                 <div className="pt-2 mt-1 border-t border-border/60 space-y-1.5">
                   {bd.lines.map(l => (
                     <RecapRow key={l.label} label={l.label} value={formatLocalAmount(toEur(l.amountFcfa), originProfile)} />
                   ))}
                 </div>
                 <div className="pt-2 mt-1 border-t border-border/60">
-                  <RecapRow label="Sous-total HT" value={formatLocalAmount(toEur(bd.subtotalHt), originProfile)} />
-                  <RecapRow label={`TVA ${Math.round(bd.tvaRate * 100)} %`} value={formatLocalAmount(toEur(bd.tva), originProfile)} />
+                  <RecapRow label="Sous-total HT" value={formatLocalAmount(toEur(bd.sous_total_ht), originProfile)} />
+                  <RecapRow label={`TVA ${Math.round(bd.tva_rate * 100)} %`} value={formatLocalAmount(toEur(bd.tva), originProfile)} />
                 </div>
                 <div className="pt-2 mt-1 border-t border-border">
-                  <RecapRow label="Total TTC" value={formatLocalAmount(toEur(bd.totalTtc), originProfile)} strong />
+                  <RecapRow label="Total TTC" value={formatLocalAmount(toEur(bd.total_ttc), originProfile)} strong />
                 </div>
                 <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
               </div>
