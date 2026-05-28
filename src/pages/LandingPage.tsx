@@ -10,6 +10,7 @@ import { QuoteForm } from '@/components/quote/QuoteForm';
 import { TrustBar } from '@/components/quote/TrustBar';
 import { ArrowRight, MapPin } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
+import { useHasDossiers } from '@/hooks/useHasDossiers';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -114,6 +115,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
+      <ReturningClientBanner />
+
 
       {/* ───── HERO + QUOTE FORM ───── */}
       <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
