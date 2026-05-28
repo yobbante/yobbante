@@ -1927,20 +1927,31 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
         onSubmit={submit}
         submitting={submitting}
-        priceLabel={totalEur > 0 ? formatLocalAmount(totalEur, originProfile) : undefined}
+        priceLabel={(() => {
+          const r = ratePerKgForCorridor(originCity?.country, destCity?.country);
+          const b = buildRecapBreakdown({
+            ratePerKgFcfa: r, weightKg: weight,
+            isAir: transportMode === 'AIR',
+            insuranceFcfa: Math.round(insuranceCostEur * 655),
+            pickupSurchargeFcfa: fraisEnlevement.surcharge,
+          });
+          return b.totalTtc > 0 ? formatLocalAmount(b.totalTtc / 655, originProfile) : undefined;
+        })()}
         priceHint={destCity
           ? `${priority === 'express' ? 'Express' : 'Standard'} · ${getDeliveryDelay(destCity.city, priority === 'express' ? 'express' : 'standard').label}`
           : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
         details={
           (() => {
+            const ratePerKgFcfa = ratePerKgForCorridor(originCity?.country, destCity?.country);
             const bd = buildRecapBreakdown({
-              total: totalEur,
+              ratePerKgFcfa,
               weightKg: weight,
               isAir: transportMode === 'AIR',
-              insurance: insuranceCostEur,
-              pickupSurcharge: surchargeEur,
+              insuranceFcfa: Math.round(insuranceCostEur * 655),
+              pickupSurchargeFcfa: fraisEnlevement.surcharge,
             });
+            const toEur = (fcfa: number) => fcfa / 655;
             return (
               <div className="space-y-2 text-sm">
                 <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
@@ -1948,15 +1959,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
                 <div className="pt-2 mt-1 border-t border-border/60 space-y-1.5">
                   {bd.lines.map(l => (
-                    <RecapRow key={l.label} label={l.label} value={formatLocalAmount(l.amount, originProfile)} />
+                    <RecapRow key={l.label} label={l.label} value={formatLocalAmount(toEur(l.amountFcfa), originProfile)} />
                   ))}
                 </div>
                 <div className="pt-2 mt-1 border-t border-border/60">
-                  <RecapRow label="Sous-total HT" value={formatLocalAmount(bd.subtotalHt, originProfile)} />
-                  <RecapRow label={`TVA ${Math.round(bd.tvaRate * 100)} %`} value={formatLocalAmount(bd.tva, originProfile)} />
+                  <RecapRow label="Sous-total HT" value={formatLocalAmount(toEur(bd.subtotalHt), originProfile)} />
+                  <RecapRow label={`TVA ${Math.round(bd.tvaRate * 100)} %`} value={formatLocalAmount(toEur(bd.tva), originProfile)} />
                 </div>
                 <div className="pt-2 mt-1 border-t border-border">
-                  <RecapRow label="Total TTC" value={formatLocalAmount(bd.totalTtc, originProfile)} strong />
+                  <RecapRow label="Total TTC" value={formatLocalAmount(toEur(bd.totalTtc), originProfile)} strong />
                 </div>
                 <p className="text-[11px] text-muted-foreground pt-1">Estimation non contractuelle — confirmée après pesée.</p>
               </div>
