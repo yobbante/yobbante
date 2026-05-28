@@ -406,7 +406,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Surcharge en EUR (655 FCFA / €)
   const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
 
-  const totalEur = transportPriceEur + insuranceCostEur + surchargeEur;
+  // ── SOURCE UNIQUE DE VÉRITÉ — pricing engine v3 (FCFA).
+  // Recalcule à chaque changement d'input pertinent. TOUTES les UI
+  // (cards Standard/Express, récap, LiveSummaryBar, /pay, admin) lisent
+  // ici. Aucun autre calcul de prix ne doit coexister.
+  const pricing: PricingOutput = useMemo(() => calculatePricing({
+    tarifGPFcfa: ratePerKgForCorridor(originCity?.country, destCity?.country),
+    weightKg: weight,
+    marchandise: goodsType,
+    enlevementFcfa: fraisEnlevement.surcharge,
+    assuranceFcfa: Math.round((insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0) * 655),
+  }, priority === 'express' ? 'express' : 'standard'),
+    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insurance, priority]);
+
+  const toEurFcfa = (fcfa: number) => fcfa / 655;
+  const totalEur = toEurFcfa(pricing.total_ttc);
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
 
