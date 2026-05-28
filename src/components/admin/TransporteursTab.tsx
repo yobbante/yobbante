@@ -409,10 +409,42 @@ export function TransporteursTab() {
     );
   }, [list.data, q, showInactive, onlyIncomplete]);
 
+  const betaPending = useMemo(
+    () => (list.data ?? []).filter(t => !t.actif && t.konnekt_registered),
+    [list.data],
+  );
+
+  const betaPendingFiltered = useMemo(() => {
+    if (!q.trim()) return betaPending;
+    const s = q.trim().toLowerCase();
+    return betaPending.filter(t =>
+      (t.nom ?? '').toLowerCase().includes(s) ||
+      (t.prenom ?? '').toLowerCase().includes(s) ||
+      (t.telephone_1 ?? '').toLowerCase().includes(s) ||
+      (t.ville ?? '').toLowerCase().includes(s),
+    );
+  }, [betaPending, q]);
+
   return (
     <div className="space-y-5">
+      {betaPending.length > 0 && subTab !== 'beta' && (
+        <button
+          onClick={() => setSubTab('beta')}
+          className="w-full flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors"
+          style={{ borderColor: '#F5C518', background: 'rgba(245,197,24,0.08)', color: '#F5C518' }}
+        >
+          <span>
+            {betaPending.length} demande{betaPending.length > 1 ? 's' : ''} Konnekt beta en attente de validation
+          </span>
+          <span className="text-xs opacity-80">Voir →</span>
+        </button>
+      )}
+
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
+          <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
+          <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
+        </div>
           <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
           <p className="text-sm text-muted-foreground">Annuaire interne. Pré-remplit automatiquement les départs manuels.</p>
         </div>
