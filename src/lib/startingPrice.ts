@@ -23,7 +23,6 @@
  * clavier sur la landing — pas souhaitable).
  */
 
-export const YOBBANTE_MARGIN = 1.20;
 export const DAKAR_CENTRE_ENLEVEMENT = 5000;
 
 /** Tarif FCFA/kg par zone — miroir de `public.route_default_rates`. */
