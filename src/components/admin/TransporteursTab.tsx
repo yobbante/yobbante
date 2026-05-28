@@ -146,6 +146,8 @@ export function TransporteursTab() {
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
   const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<'all' | 'beta'>('all');
+  const [validatingId, setValidatingId] = useState<string | null>(null);
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
@@ -217,6 +219,10 @@ export function TransporteursTab() {
   };
 
   const validateBeta = async (gp: Transporteur) => {
+    if (gp.actif) {
+      toast.info('Ce GP est déjà actif');
+      return;
+    }
     const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
     let reference = String(gp.reference || '').replace(/\D/g, '');
     if (!/^\d{4}$/.test(reference)) reference = nextAvailableRef();
@@ -259,6 +265,23 @@ export function TransporteursTab() {
 
     if (res.ok) {
       toast.success(`GP activé — identifiants envoyés (Réf. ${gpRef(reference)})`);
+      // Notif admin : succès activation
+      try {
+        await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: SUPER_ADMIN_PHONE,
+            recipient_type: 'admin',
+            message: [
+              `GP Konnekt active :`,
+              `${formatTransporteurName(gp.prenom, gp.nom)}`,
+              `Tel : ${gp.telephone_1}`,
+              `Code : ${reference}`,
+            ].join('\n'),
+            client_name: formatTransporteurName(gp.prenom, gp.nom),
+            trigger_type: 'konnekt_beta_validated_admin',
+          },
+        });
+      } catch { /* non bloquant */ }
     } else {
       // 3. Notif admin pour envoi manuel
       try {
@@ -386,8 +409,37 @@ export function TransporteursTab() {
     );
   }, [list.data, q, showInactive, onlyIncomplete]);
 
+  const betaPending = useMemo(
+    () => (list.data ?? []).filter(t => !t.actif && t.konnekt_registered),
+    [list.data],
+  );
+
+  const betaPendingFiltered = useMemo(() => {
+    if (!q.trim()) return betaPending;
+    const s = q.trim().toLowerCase();
+    return betaPending.filter(t =>
+      (t.nom ?? '').toLowerCase().includes(s) ||
+      (t.prenom ?? '').toLowerCase().includes(s) ||
+      (t.telephone_1 ?? '').toLowerCase().includes(s) ||
+      (t.ville ?? '').toLowerCase().includes(s),
+    );
+  }, [betaPending, q]);
+
   return (
     <div className="space-y-5">
+      {betaPending.length > 0 && subTab !== 'beta' && (
+        <button
+          onClick={() => setSubTab('beta')}
+          className="w-full flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors"
+          style={{ borderColor: '#F5C518', background: 'rgba(245,197,24,0.08)', color: '#F5C518' }}
+        >
+          <span>
+            {betaPending.length} demande{betaPending.length > 1 ? 's' : ''} Konnekt beta en attente de validation
+          </span>
+          <span className="text-xs opacity-80">Voir →</span>
+        </button>
+      )}
+
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Transporteurs</h2>
@@ -433,6 +485,36 @@ export function TransporteursTab() {
         </div>
       </header>
 
+      {/* Sous-onglets All / Beta */}
+      <div className="flex items-center gap-2 border-b border-border">
+        <button
+          onClick={() => setSubTab('all')}
+          className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+            subTab === 'all' ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Tous
+        </button>
+        <button
+          onClick={() => setSubTab('beta')}
+          className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 transition-colors inline-flex items-center gap-2 ${
+            subTab === 'beta' ? 'border-[#F5C518] text-[#F5C518]' : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Beta
+          {betaPending.length > 0 && (
+            <span
+              className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
+              style={{ background: '#F5C518', color: '#0a0a0a' }}
+            >
+              {betaPending.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+
+      {subTab === 'all' && (<>
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -505,6 +587,14 @@ export function TransporteursTab() {
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
                 <div className="font-medium min-w-0 truncate">
                   {formatTransporteurName(t.prenom, t.nom)}
+                  {t.konnekt_registered && (
+                    <span
+                      className="ml-2 text-[9px] font-bold rounded px-1.5 py-0.5 align-middle"
+                      style={{ background: '#F5C518', color: '#0a0a0a' }}
+                    >
+                      BETA
+                    </span>
+                  )}
                   {!t.actif && <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">inactif</span>}
                 </div>
                 <div className="text-muted-foreground truncate">{t.telephone_1} <span className="text-[10px] block text-muted-foreground/70">{c.count} dép.</span></div>
@@ -609,6 +699,65 @@ export function TransporteursTab() {
           })}
         </div>
       )}
+      </>)}
+
+      {subTab === 'beta' && (
+        <div className="space-y-3">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher beta…" className="pl-9" />
+          </div>
+          {betaPendingFiltered.length === 0 ? (
+            <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+              Aucune demande Konnekt beta en attente.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {betaPendingFiltered.map(t => {
+                const cities = uniqueCitiesFromNavettes(t.navettes);
+                const created = t.created_at ? new Date(t.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                const name = formatTransporteurName(t.prenom, t.nom);
+                return (
+                  <div key={t.id} className="border border-border rounded-lg p-4 bg-card">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-foreground">{name}</span>
+                          <span className="text-[10px] font-bold rounded px-1.5 py-0.5" style={{ background: '#F5C518', color: '#0a0a0a' }}>BETA</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">📞 {t.telephone_1}</div>
+                        <div className="text-sm text-muted-foreground">🏠 Ville de base : {t.ville || '—'}</div>
+                        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1">
+                          <span>Villes desservies :</span>
+                          {cities.length === 0 ? <span>—</span> : cities.map(c => (
+                            <Badge key={c} variant="secondary" className="text-[10px] font-normal">{c}</Badge>
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Inscrit le {created}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={validatingId === t.id}
+                        onClick={async () => {
+                          setValidatingId(t.id);
+                          try { await validateBeta(t); } finally { setValidatingId(null); }
+                        }}
+                        style={{ background: '#F5C518', color: '#0a0a0a' }}
+                        className="hover:opacity-90"
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        {validatingId === t.id ? 'Activation…' : 'Valider beta Konnekt'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+
 
 
       <EditDrawer
