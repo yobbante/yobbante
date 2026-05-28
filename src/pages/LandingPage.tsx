@@ -317,3 +317,21 @@ export default function LandingPage() {
     </div>
   );
 }
+
+function ReturningClientBanner() {
+  const navigate = useNavigate();
+  const { hasDossiers } = useHasDossiers();
+  if (!hasDossiers) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => navigate('/app')}
+      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90"
+      style={{ background: '#F5C518', color: '#0A0A0A' }}
+    >
+      <span>Suivre mes commandes</span>
+      <ArrowRight className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
