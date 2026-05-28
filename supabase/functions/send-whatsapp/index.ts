@@ -348,12 +348,13 @@ Voir → https://yobbante.com/admin`;
       status = isTemplateNotApproved(metaResult, res) ? 'template_not_approved' : 'failed';
       console.error('WA_ERROR', JSON.stringify({ code, sub, msg }));
 
-      // Interactive hors fenêtre 24h → fallback texte automatique si possible
+      // Interactive : retry transient déjà fait. On bascule en TEXTE (avec son
+      // propre retry) pour garantir la délivrance même hors fenêtre 24h.
       if (messageType === 'interactive') {
         const fbText = body.fallback_text ?? body.interactive_body ?? body.message ?? null;
         if (fbText) {
           console.warn('WA_INTERACTIVE_FALLBACK_TEXT', JSON.stringify({ code, sub }));
-          const fbRes = await callMeta({
+          const fbRes = await callMetaWithRetry({
             messaging_product: 'whatsapp',
             to: recipient,
             type: 'text',
