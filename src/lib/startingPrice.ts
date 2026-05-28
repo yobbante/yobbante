@@ -4,18 +4,18 @@
  * Le tarif "à partir de" dépend du corridor : on prend le tarif par défaut
  * (route_default_rates) du pays NON-Dakar de la route, puis on applique :
  *
- *   total = rate_per_kg(zone corridor) × poids × 1.20 (marge Yobbanté)
+ *   total = rate_per_kg(zone corridor) × poids
  *         + 5 000 FCFA d'enlèvement Dakar centre (zone par défaut)
  *
  * Le client découvre les surcoûts réels (banlieue / hors Dakar, livraison
  * carrier à destination, type de marchandise) plus tard dans le flow d'envoi.
  *
  * Exemples (poids = 1 kg) :
- *  - Dakar ↔ Paris       (FR, 6 000) → 12 200 FCFA
- *  - Dakar ↔ Abidjan     (CI, 3 500) →  9 200 FCFA
- *  - Dakar ↔ Montréal    (CA, 7 500) → 14 000 FCFA
- *  - Dakar ↔ Dubai       (AE, 7 000) → 13 400 FCFA
- *  - Dakar ↔ New York    (US, 8 000) → 14 600 FCFA
+ *  - Dakar ↔ Paris       (FR, 6 000) → 11 000 FCFA
+ *  - Dakar ↔ Abidjan     (CI, 3 500) →  8 500 FCFA
+ *  - Dakar ↔ Montréal    (CA, 7 500) → 12 500 FCFA
+ *  - Dakar ↔ Dubai       (AE, 7 000) → 12 000 FCFA
+ *  - Dakar ↔ New York    (US, 8 000) → 13 000 FCFA
  *
  * NB : les valeurs reflètent la table `route_default_rates` (zones FCFA/kg).
  * Si la table évolue côté admin, mettre ces constantes à jour en miroir
