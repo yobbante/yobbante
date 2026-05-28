@@ -21,7 +21,7 @@ import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { formatFcfa } from '@/lib/yobbantePricing';
-import { buildRecapBreakdown } from '@/lib/recapBreakdown';
+import { buildRecapBreakdown, goodsCoefFor } from '@/lib/recapBreakdown';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
 import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
@@ -176,9 +176,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
-  const [goodsAutoDetected, setGoodsAutoDetected] = useState<{ id: GoodsId; confidence: 'high'|'medium'|'low'; rationale: string } | null>(null);
-  const [goodsManualOverride, setGoodsManualOverride] = useState(false);
-  const [goodsDetecting, setGoodsDetecting] = useState(false);
+  // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
@@ -419,42 +417,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     }
   }, [weight, weightTouched, transportMode, goodsType]);
 
-  // ── AI: classify goods type from description (debounced)
-  useEffect(() => {
-    const desc = description.trim();
-    if (desc.length < 4 || goodsManualOverride) return;
-    const handle = setTimeout(async () => {
-      try {
-        setGoodsDetecting(true);
-        const { data, error } = await supabase.functions.invoke('classify-goods', {
-          body: { description: desc, declared_value_eur: declaredEur || null },
-        });
-        if (error) throw error;
-        const id = data?.goods_type as GoodsId | null;
-        const conf = data?.confidence as 'high'|'medium'|'low' | undefined;
-        if (id && GOODS_TYPES.some(g => g.id === id) && conf) {
-          setGoodsAutoDetected({ id, confidence: conf, rationale: data?.rationale ?? '' });
-          // Auto-select only when confidence is high or medium
-          if ((conf === 'high' || conf === 'medium') && !goodsManualOverride) {
-            setGoodsType(id);
-          }
-        }
-      } catch (e) {
-        console.warn('classify-goods failed', e);
-      } finally {
-        setGoodsDetecting(false);
-      }
-    }, 700);
-    return () => clearTimeout(handle);
-  }, [description, declaredEur, goodsManualOverride]);
-
   // ── Validation (sections are all visible, gates only block submit)
   const routeOk = !!originCity && !!destCity;
   const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
   const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
   const packageOk = !!description.trim() && !!declaredLocal && weightTouched;
-  const goodsAutoConfident = !!goodsAutoDetected && (goodsAutoDetected.confidence === 'high' || goodsAutoDetected.confidence === 'medium') && !goodsManualOverride;
-  const skipGoodsStep = goodsAutoConfident && !!goodsType;
+  const goodsAutoConfident = false;
+  const skipGoodsStep = false;
   const goodsOk = !!goodsType;
   const allReady = routeOk && collecteOk && recipientOk && packageOk && goodsOk && !!senderName.trim() && !!senderPhone.trim();
 
@@ -1309,32 +1278,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 fieldErrors.description ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
               )}
             />
-            <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et améliore la détection automatique.</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Soyez précis : aide la douane et l'identification du contenu.</p>
           </label>
 
-          {/* AI auto-detection chip */}
-          {description.trim().length >= 4 && (
-            <div className="flex items-center gap-2 text-[11px]">
-              {goodsDetecting ? (
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <Sparkles className="w-3 h-3 animate-pulse" />
-                  Analyse de la description en cours…
-                </span>
-              ) : goodsAutoDetected ? (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border ${
-                  goodsAutoConfident
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-                    : 'border-amber-300 bg-amber-50 text-amber-900'
-                }`}>
-                  <Sparkles className="w-3 h-3" />
-                  Type détecté&nbsp;: <strong>{GOODS_TYPES.find(g => g.id === goodsAutoDetected.id)?.label}</strong>
-                  {!goodsAutoConfident && <span> · à confirmer</span>}
-                  <button type="button" onClick={() => { setGoodsManualOverride(true); setGoodsAutoDetected(null); }}
-                    className="ml-1 underline underline-offset-2 hover:opacity-80">Modifier</button>
-                </span>
-              ) : null}
-            </div>
-          )}
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
@@ -1429,7 +1375,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   return (
                     <button key={g.id} type="button"
                       title={g.desc}
-                      onClick={() => { setGoodsType(g.id); setGoodsManualOverride(true); advanceFromStep(4); }}
+                      onClick={() => { setGoodsType(g.id); advanceFromStep(4); }}
                       className={cn(
                         'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
@@ -1847,6 +1793,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   isAir: transportMode === 'AIR',
                   insuranceFcfa: Math.round(insuranceCostEur * 655),
                   pickupSurchargeFcfa: fraisEnlevement.surcharge,
+                  goodsCoef: goodsCoefFor(goodsType),
+                  parcelCount,
+                  isExpress: priority === 'express',
                 });
                 const toEur = (fcfa: number) => fcfa / 655;
                 return (
@@ -1934,6 +1883,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             isAir: transportMode === 'AIR',
             insuranceFcfa: Math.round(insuranceCostEur * 655),
             pickupSurchargeFcfa: fraisEnlevement.surcharge,
+            goodsCoef: goodsCoefFor(goodsType),
+            parcelCount,
+            isExpress: priority === 'express',
           });
           return b.totalTtc > 0 ? formatLocalAmount(b.totalTtc / 655, originProfile) : undefined;
         })()}
@@ -1950,10 +1902,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               isAir: transportMode === 'AIR',
               insuranceFcfa: Math.round(insuranceCostEur * 655),
               pickupSurchargeFcfa: fraisEnlevement.surcharge,
+              goodsCoef: goodsCoefFor(goodsType),
+              parcelCount,
+              isExpress: priority === 'express',
             });
             const toEur = (fcfa: number) => fcfa / 655;
             return (
               <div className="space-y-2 text-sm">
+
                 <RecapRow label="Trajet" value={originCity && destCity ? `${originCity.city} → ${destCity.city}` : '—'} />
                 <RecapRow label="Poids" value={`${weight} kg · ${parcelCount} colis`} />
                 <RecapRow label="Transport" value={`${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}`} />
