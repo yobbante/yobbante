@@ -2,7 +2,7 @@ import { Check } from 'lucide-react';
 
 const TRUST = [
   'Prix instantané, sans devis',
-  'Dédouanement pris en charge',
+  'Enlèvement gratuit à Dakar',
   'Suivi en temps réel',
   'Wave · Orange Money · CB',
 ];
