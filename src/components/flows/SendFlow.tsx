@@ -259,6 +259,31 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // Senegal heuristic: phone is the primary contact, address can be loose
   const destIsSenegal = destCity?.country === 'SN';
+  // Dakar = seule destination ou point relais et livraison à domicile sont disponibles
+  const destIsDakar = destIsSenegal && (destCity?.city?.toLowerCase() === 'dakar');
+
+  // Charger les points relais actifs (uniquement quand destination Dakar)
+  useEffect(() => {
+    if (!destIsDakar) { setActiveRelayPoints([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('relay_points')
+        .select('id, name, quartier, address')
+        .eq('is_active', true)
+        .order('quartier', { ascending: true });
+      if (!cancelled) setActiveRelayPoints((data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [destIsDakar]);
+
+  // Si destination change et n'est plus Dakar, forcer partner_pickup
+  useEffect(() => {
+    if (!destIsDakar && deliveryMode !== 'partner_pickup') {
+      setDeliveryMode('partner_pickup');
+      setRelayPointId('');
+    }
+  }, [destIsDakar, deliveryMode]);
 
   // ── Persist draft for auth round-trip
   const DRAFT_KEY = 'send-flow';
