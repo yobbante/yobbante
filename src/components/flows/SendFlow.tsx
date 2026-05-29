@@ -163,10 +163,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [recipientEmail, setRecipientEmail] = useState('');
   const [deliveryAddress, setDelivery]    = useState('');
   // Mode de reception finale
-  const [deliveryMode, setDeliveryMode]   = useState<'pickup_gp' | 'relay_point' | 'home_delivery'>('pickup_gp');
+  const [deliveryMode, setDeliveryMode]   = useState<'partner_pickup' | 'relay_point' | 'home_delivery'>('partner_pickup');
+  const [relayPointId, setRelayPointId]   = useState<string>('');
   const [relayPointName, setRelayPointName] = useState('');
   const [relayPointAddress, setRelayPointAddress] = useState('');
   const [deliveryCarrier, setDeliveryCarrier] = useState<string>('');
+  // Liste des points relais actifs (chargée depuis Supabase)
+  const [activeRelayPoints, setActiveRelayPoints] = useState<Array<{ id: string; name: string; quartier: string; address: string }>>([]);
   // Step 5 — package description
   const [description, setDescription]     = useState('');
   const [declaredLocal, setDeclaredLocal] = useState('');
@@ -256,6 +259,31 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // Senegal heuristic: phone is the primary contact, address can be loose
   const destIsSenegal = destCity?.country === 'SN';
+  // Dakar = seule destination ou point relais et livraison à domicile sont disponibles
+  const destIsDakar = destIsSenegal && (destCity?.city?.toLowerCase() === 'dakar');
+
+  // Charger les points relais actifs (uniquement quand destination Dakar)
+  useEffect(() => {
+    if (!destIsDakar) { setActiveRelayPoints([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('relay_points')
+        .select('id, name, quartier, address')
+        .eq('is_active', true)
+        .order('quartier', { ascending: true });
+      if (!cancelled) setActiveRelayPoints((data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [destIsDakar]);
+
+  // Si destination change et n'est plus Dakar, forcer partner_pickup
+  useEffect(() => {
+    if (!destIsDakar && deliveryMode !== 'partner_pickup') {
+      setDeliveryMode('partner_pickup');
+      setRelayPointId('');
+    }
+  }, [destIsDakar, deliveryMode]);
 
   // ── Persist draft for auth round-trip
   const DRAFT_KEY = 'send-flow';
@@ -587,6 +615,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         app_source: 'expedier',
         needs_sourcing: false,
         delivery_mode: deliveryMode,
+        relay_point_id: deliveryMode === 'relay_point' ? (relayPointId || null) : null,
         relay_point_name: deliveryMode === 'relay_point' ? relayPointName : null,
         relay_point_address: deliveryMode === 'relay_point' ? relayPointAddress : null,
         delivery_carrier: deliveryMode === 'home_delivery' ? (deliveryCarrier || null) : null,
@@ -1213,36 +1242,86 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             {/* Mode de reception finale */}
             <div className="rounded-2xl border-2 border-border bg-card p-4 space-y-3">
               <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
-              {[
-                { id: 'pickup_gp' as const, label: 'Récupérer chez notre partenaire', sub: 'Gratuit — adresse communiquée à l\'arrivée' },
-                { id: 'relay_point' as const, label: 'Livraison à un point relais', sub: 'Frais selon distance' },
-                { id: 'home_delivery' as const, label: 'Livraison à domicile', sub: 'Frais selon zone et carrier' },
-              ].map(opt => (
-                <label key={opt.id} className={cn(
-                  'flex items-start gap-3 cursor-pointer rounded-xl border-2 p-3 transition-colors',
-                  deliveryMode === opt.id ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40',
-                )}>
-                  <input
-                    type="radio" name="delivery_mode" value={opt.id}
-                    checked={deliveryMode === opt.id}
-                    onChange={() => setDeliveryMode(opt.id)}
-                    className="mt-1 accent-foreground"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-foreground">{opt.label}</span>
-                    <span className="block text-[11px] text-muted-foreground">{opt.sub}</span>
-                  </span>
-                </label>
-              ))}
-              {deliveryMode === 'relay_point' && (
+              {(() => {
+                const hasRelays = activeRelayPoints.length > 0;
+                const options: Array<{ id: 'partner_pickup' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
+                  {
+                    id: 'partner_pickup',
+                    label: 'Récupérer chez notre partenaire',
+                    sub: 'Gratuit — adresse communiquée à l\'arrivée',
+                  },
+                  {
+                    id: 'relay_point',
+                    label: 'Livraison à un point relais',
+                    sub: destIsDakar
+                      ? (hasRelays ? 'Choisissez un relais à Dakar' : 'Points relais bientôt disponibles à Dakar. Contactez-nous.')
+                      : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar || !hasRelays,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : (!hasRelays ? 'Points relais bientôt disponibles à Dakar' : undefined),
+                    hidden: destIsDakar && !hasRelays, // masqué si Dakar mais aucun relais actif
+                  },
+                  {
+                    id: 'home_delivery',
+                    label: 'Livraison à domicile',
+                    sub: destIsDakar ? 'Frais selon zone et transporteur' : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : undefined,
+                  },
+                ];
+                return options.filter(o => !o.hidden).map(opt => {
+                  const selected = deliveryMode === opt.id;
+                  return (
+                    <label
+                      key={opt.id}
+                      title={opt.disabledNote}
+                      className={cn(
+                        'flex items-start gap-3 rounded-xl border-2 p-3 transition-colors',
+                        opt.disabled
+                          ? 'border-border bg-muted/30 cursor-not-allowed opacity-60'
+                          : 'cursor-pointer',
+                        !opt.disabled && (selected ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40'),
+                      )}
+                    >
+                      <input
+                        type="radio" name="delivery_mode" value={opt.id}
+                        checked={selected}
+                        disabled={opt.disabled}
+                        onChange={() => { if (!opt.disabled) setDeliveryMode(opt.id); }}
+                        className="mt-1 accent-foreground"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-medium text-foreground">{opt.label}</span>
+                        <span className={cn('block text-[11px]', opt.disabled ? 'text-muted-foreground/80 italic' : 'text-muted-foreground')}>{opt.sub}</span>
+                      </span>
+                    </label>
+                  );
+                });
+              })()}
+
+              {deliveryMode === 'relay_point' && destIsDakar && activeRelayPoints.length > 0 && (
                 <div className="space-y-2 pt-1">
-                  <TextField label="Nom du point relais *" value={relayPointName} onChange={setRelayPointName}
-                    placeholder="Ex. Bureau de poste Liberté 6" />
-                  <TextField label="Adresse du point relais *" value={relayPointAddress} onChange={setRelayPointAddress}
-                    placeholder="N°, rue, quartier, ville" />
+                  <label className="block">
+                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Point relais *</span>
+                    <select
+                      value={relayPointId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setRelayPointId(id);
+                        const rp = activeRelayPoints.find(r => r.id === id);
+                        if (rp) { setRelayPointName(rp.name); setRelayPointAddress(rp.address); }
+                      }}
+                      className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-colors"
+                    >
+                      <option value="">— Choisir un point relais —</option>
+                      {activeRelayPoints.map(rp => (
+                        <option key={rp.id} value={rp.id}>{rp.name} — {rp.quartier}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               )}
-              {deliveryMode === 'home_delivery' && (
+
+              {deliveryMode === 'home_delivery' && destIsDakar && (
                 <div className="space-y-2 pt-1">
                   <p className="text-[11px] text-muted-foreground">
                     Choisissez un transporteur. Les tarifs seront calculés et confirmés avant le départ.
@@ -1262,6 +1341,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               )}
             </div>
+
 
             <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
           </div>

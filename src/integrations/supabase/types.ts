@@ -669,6 +669,45 @@ export type Database = {
           },
         ]
       }
+      delivery_partners: {
+        Row: {
+          address: string
+          created_at: string
+          destination_country: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          name: string
+          opening_hours: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          destination_country: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name: string
+          opening_hours?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          destination_country?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name?: string
+          opening_hours?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dossier_customs_documents: {
         Row: {
           created_at: string
@@ -941,6 +980,7 @@ export type Database = {
           recipient_phone: string | null
           reference: string
           relay_point_address: string | null
+          relay_point_id: string | null
           relay_point_name: string | null
           reminder_count: number
           reminder_sent_at: string | null
@@ -1072,6 +1112,7 @@ export type Database = {
           recipient_phone?: string | null
           reference?: string
           relay_point_address?: string | null
+          relay_point_id?: string | null
           relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
@@ -1203,6 +1244,7 @@ export type Database = {
           recipient_phone?: string | null
           reference?: string
           relay_point_address?: string | null
+          relay_point_id?: string | null
           relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
@@ -1264,6 +1306,13 @@ export type Database = {
             columns: ["livreur_livraison_id"]
             isOneToOne: false
             referencedRelation: "livreurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossiers_relay_point_id_fkey"
+            columns: ["relay_point_id"]
+            isOneToOne: false
+            referencedRelation: "relay_points"
             referencedColumns: ["id"]
           },
         ]
@@ -2418,6 +2467,48 @@ export type Database = {
         }
         Relationships: []
       }
+      relay_points: {
+        Row: {
+          address: string
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opening_hours: string | null
+          quartier: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opening_hours?: string | null
+          quartier: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opening_hours?: string | null
+          quartier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_default_rates: {
         Row: {
           active: boolean
@@ -3473,6 +3564,7 @@ export type Database = {
         | "customs_declaration"
         | "commercial_invoice"
         | "certificate_of_origin"
+      delivery_mode_type: "partner_pickup" | "relay_point" | "home_delivery"
       dossier_status:
         | "SUBMITTED"
         | "IN_REVIEW"
@@ -3675,6 +3767,7 @@ export const Constants = {
         "commercial_invoice",
         "certificate_of_origin",
       ],
+      delivery_mode_type: ["partner_pickup", "relay_point", "home_delivery"],
       dossier_status: [
         "SUBMITTED",
         "IN_REVIEW",
