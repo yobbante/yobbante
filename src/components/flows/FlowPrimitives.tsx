@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Loader2, RefreshCw, Search } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
