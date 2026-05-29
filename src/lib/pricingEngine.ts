@@ -151,13 +151,13 @@ function computeMode(
   enlevement: number,
   assurance: number,
 ): ModeBreakdown {
-  const fret = Math.max(0, Math.round(fretBase));
-  const billet_soute = Math.max(BILLET_MIN_FCFA, Math.round(fret * BILLET_PCT));
+  const fret = Math.max(0, roundFcfa(fretBase));
+  const billet_soute = Math.max(BILLET_MIN_FCFA, roundFcfa(fret * BILLET_PCT));
   const frais_dossier = FRAIS_DOSSIER_FCFA;
-  const frais_agence = Math.round(fret * AGENCE_PCT);
+  const frais_agence = roundFcfa(fret * AGENCE_PCT);
   const sous_total_ht =
     fret + billet_soute + frais_dossier + frais_agence + enlevement + assurance;
-  const tva = Math.round(sous_total_ht * TVA_RATE);
+  const tva = roundFcfa(sous_total_ht * TVA_RATE);
   const total_ttc = sous_total_ht + tva;
   return {
     fret,
