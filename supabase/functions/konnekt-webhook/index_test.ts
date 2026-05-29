@@ -69,7 +69,7 @@ function makeClient() {
     const api = {
       select() { return api; },
       eq(col: string, val: string) {
-        pending = pending.filter((r) => (r as Record<string, unknown>)[col] === val);
+        pending = pending.filter((r) => (r as unknown as Record<string, unknown>)[col] === val);
         return api;
       },
       maybeSingle() {
