@@ -2085,7 +2085,7 @@ function PriorityCarousel({
   outsideDakarSurchargeFcfa: number;
   onSelect: (p: 'normal' | 'express') => void;
 }) {
-  const scrollerRef = React.useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState<number>(priority === 'express' ? 1 : 0);
 
   const cards = [
