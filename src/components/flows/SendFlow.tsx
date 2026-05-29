@@ -1565,7 +1565,82 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               ) : (
                 <>
-                  {/* ── Choix du départ — affiché dès qu'on a 1+ départ Konnekt ── */}
+                  {/* ── Choix Standard / Express — EN HAUT ── */}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {cards.map(c => {
+                      const active = priority === c.id;
+                      const isStandard = c.id === 'normal';
+                      const perksMobile = c.perks.slice(0, 2);
+                      const perksDesktop = c.perks.slice(0, 3);
+                      return (
+                        <button key={c.id} type="button"
+                          onClick={() => {
+                            setPriority(c.id);
+                            if (c.id === 'express') setTransportMode('AIR');
+                          }}
+                          className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
+                            active
+                              ? 'border-[#F5C518] bg-card shadow-[0_0_0_2px_rgba(245,197,24,0.15)]'
+                              : 'border-border bg-card hover:border-foreground/40'
+                          }`}>
+                          {isStandard ? (
+                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
+                              style={{ background: '#22C55E', color: '#fff' }}>
+                              Recommandé
+                            </span>
+                          ) : (
+                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
+                              style={{ background: '#F5C518', color: '#0D1B2A' }}>
+                              Le plus rapide
+                            </span>
+                          )}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {c.icon}
+                              <p className="text-base font-bold truncate">{c.label}</p>
+                            </div>
+                            {active && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#F5C518]" />}
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{c.tagline}</p>
+
+                          <div className="mt-4">
+                            <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
+                              {formatLocalAmount(c.price, originProfile)}
+                            </span>
+                            {outsideDakar && fraisEnlevement.surcharge > 0 && (
+                              <span className="block mt-0.5 text-[11px] text-muted-foreground">
+                                dont +{formatFcfa(fraisEnlevement.surcharge)} déplacement hors zone
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Livraison estimée · {c.eta}
+                          </p>
+
+                          <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+                            {perksMobile.map(p => (
+                              <li key={`m-${p}`} className="sm:hidden flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                              </li>
+                            ))}
+                            {perksDesktop.map(p => (
+                              <li key={`d-${p}`} className="hidden sm:flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
+                              </li>
+                            ))}
+                          </ul>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {weight >= 30 && priority === 'express' && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Pour {weight} kg, le mode Standard peut diviser le coût par 2.
+                    </p>
+                  )}
+
+                  {/* ── Choix du départ — sous les cards ── */}
                   {options.length >= 1 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1580,7 +1655,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                           const dep = opt.departure_date
                             ? new Date(opt.departure_date + 'T00:00:00')
                             : null;
-                          // Estimate arrival date from eta_days "3-7 jours" → take upper bound
                           const etaMaxMatch = /(\d+)\s*[–-]\s*(\d+)/.exec(opt.eta_days);
                           const etaMaxDays = etaMaxMatch ? Number(etaMaxMatch[2]) : Number((opt.eta_days.match(/\d+/) || [0])[0]);
                           const arr = dep && etaMaxDays
@@ -1632,84 +1706,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     </div>
                   )}
 
-                  <div className="grid sm:grid-cols-2 gap-3">
-
-                    {cards.map(c => {
-                      const active = priority === c.id;
-                      const isStandard = c.id === 'normal';
-                      // Mobile : on n'affiche que 2 perks max ; desktop : 3.
-                      const perksMobile = c.perks.slice(0, 2);
-                      const perksDesktop = c.perks.slice(0, 3);
-                      return (
-                        <button key={c.id} type="button"
-                          onClick={() => {
-                            setPriority(c.id);
-                            if (c.id === 'express') setTransportMode('AIR');
-                          }}
-                          className={`text-left rounded-2xl border-2 p-5 transition-all relative ${
-                            active
-                              ? 'border-[#F5C518] bg-card shadow-[0_0_0_2px_rgba(245,197,24,0.15)]'
-                              : 'border-border bg-card hover:border-foreground/40'
-                          }`}>
-                          {/* Badge en haut à droite */}
-                          {isStandard ? (
-                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
-                              style={{ background: '#22C55E', color: '#fff' }}>
-                              Recommandé
-                            </span>
-                          ) : (
-                            <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5"
-                              style={{ background: '#F5C518', color: '#0D1B2A' }}>
-                              Le plus rapide
-                            </span>
-                          )}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {c.icon}
-                              <p className="text-base font-bold truncate">{c.label}</p>
-                            </div>
-                            {active && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#F5C518]" />}
-                          </div>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">{c.tagline}</p>
-
-                          <div className="mt-4">
-                            <span className="block text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap leading-tight">
-                              {formatLocalAmount(c.price, originProfile)}
-                            </span>
-                            {outsideDakar && fraisEnlevement.surcharge > 0 && (
-                              <span className="block mt-0.5 text-[11px] text-muted-foreground">
-                                dont +{formatFcfa(fraisEnlevement.surcharge)} déplacement hors zone
-                              </span>
-                            )}
-                          </div>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            Livraison estimée · {c.eta}
-                          </p>
-
-                          <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-                            {/* Mobile */}
-                            {perksMobile.map(p => (
-                              <li key={`m-${p}`} className="sm:hidden flex items-center gap-1.5">
-                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
-                              </li>
-                            ))}
-                            {/* Desktop */}
-                            {perksDesktop.map(p => (
-                              <li key={`d-${p}`} className="hidden sm:flex items-center gap-1.5">
-                                <span className="w-1 h-1 rounded-full bg-current opacity-60" /> {p}
-                              </li>
-                            ))}
-                          </ul>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {weight >= 30 && priority === 'express' && (
-                    <p className="text-[11px] text-muted-foreground">
-                      Pour {weight} kg, le mode Standard peut diviser le coût par 2.
-                    </p>
-                  )}
 
                   <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
                   <StepContinueBar enabled={true} onContinue={() => advanceFromStep(5)} />
