@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AdminOnlyGuard } from '@/components/AdminOnlyGuard';
+import { useUserRole } from '@/hooks/useUserRole';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -202,5 +203,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function ParametresPage() {
-  return <AdminOnlyGuard><ParametresPageInner /></AdminOnlyGuard>;
+  const { isAdmin, isLoading } = useUserRole();
+  if (isLoading) return null;
+  if (!isAdmin) return <Navigate to="/auth" replace />;
+  return <ParametresPageInner />;
 }
