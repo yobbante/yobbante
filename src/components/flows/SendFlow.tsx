@@ -163,10 +163,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [recipientEmail, setRecipientEmail] = useState('');
   const [deliveryAddress, setDelivery]    = useState('');
   // Mode de reception finale
-  const [deliveryMode, setDeliveryMode]   = useState<'pickup_gp' | 'relay_point' | 'home_delivery'>('pickup_gp');
+  const [deliveryMode, setDeliveryMode]   = useState<'partner_pickup' | 'relay_point' | 'home_delivery'>('partner_pickup');
+  const [relayPointId, setRelayPointId]   = useState<string>('');
   const [relayPointName, setRelayPointName] = useState('');
   const [relayPointAddress, setRelayPointAddress] = useState('');
   const [deliveryCarrier, setDeliveryCarrier] = useState<string>('');
+  // Liste des points relais actifs (chargée depuis Supabase)
+  const [activeRelayPoints, setActiveRelayPoints] = useState<Array<{ id: string; name: string; quartier: string; address: string }>>([]);
   // Step 5 — package description
   const [description, setDescription]     = useState('');
   const [declaredLocal, setDeclaredLocal] = useState('');
