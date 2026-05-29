@@ -1733,63 +1733,79 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                           <span className="text-[10px] text-muted-foreground">Touchez pour choisir</span>
                         )}
                       </div>
-                      <div role="radiogroup" aria-label="Choix du départ" className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-                        {options.map((opt) => {
-                          const active = chosen?.id === opt.id;
-                          const dep = opt.departure_date
-                            ? new Date(opt.departure_date + 'T00:00:00')
-                            : null;
-                          const etaMaxMatch = /(\d+)\s*[–-]\s*(\d+)/.exec(opt.eta_days);
-                          const etaMaxDays = etaMaxMatch ? Number(etaMaxMatch[2]) : Number((opt.eta_days.match(/\d+/) || [0])[0]);
-                          const arr = dep && etaMaxDays
-                            ? new Date(dep.getTime() + etaMaxDays * 86_400_000)
-                            : null;
-                          return (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={active}
-                              onClick={() => setChosen(opt)}
-                              className={cn(
-                                'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
-                                active ? 'bg-foreground/[0.04]' : 'hover:bg-secondary/40'
-                              )}
-                            >
-                              {/* Radio indicator */}
-                              <span
-                                aria-hidden
+                      <div role="radiogroup" aria-label="Choix du départ" className="rounded-2xl border border-border bg-card divide-y divide-border overflow-hidden">
+                        {(() => {
+                          const priorityLabel = priority === 'express' ? 'Express ⚡' : 'Standard';
+                          const priorityDelay = getDeliveryDelay(destCity?.city, priority === 'express' ? 'express' : 'standard');
+                          const priorityEtaLabel = priorityDelay.label;
+                          const priorityEtaMaxMatch = /(\d+)\s*[–-]\s*(\d+)/.exec(priorityEtaLabel);
+                          const priorityEtaMaxDays = priorityEtaMaxMatch
+                            ? Number(priorityEtaMaxMatch[2])
+                            : Number((priorityEtaLabel.match(/\d+/) || [0])[0]) || 0;
+                          return options.map((opt, idx) => {
+                            const active = chosen?.id === opt.id;
+                            const dep = opt.departure_date
+                              ? new Date(opt.departure_date + 'T00:00:00')
+                              : null;
+                            const arr = dep && priorityEtaMaxDays
+                              ? new Date(dep.getTime() + priorityEtaMaxDays * 86_400_000)
+                              : null;
+                            const isFirst = idx === 0 && options.length > 1;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                onClick={() => setChosen(opt)}
                                 className={cn(
-                                  'shrink-0 w-4 h-4 rounded-full border-2 grid place-items-center transition-colors',
-                                  active ? 'border-[#F5C518]' : 'border-muted-foreground/40'
+                                  'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
+                                  active ? 'bg-[#F5C518]/[0.07]' : 'hover:bg-secondary/40'
                                 )}
                               >
-                                {active && <span className="w-1.5 h-1.5 rounded-full bg-[#F5C518]" />}
-                              </span>
-                              {/* Icon */}
-                              <span className="shrink-0 text-muted-foreground">
-                                {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
-                              </span>
-                              {/* Date + label */}
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold truncate">
-                                  {dep ? dep.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : opt.label}
-                                  {arr && (
-                                    <span className="text-muted-foreground font-normal">
-                                      {' '}→ {arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                    </span>
+                                {/* Radio indicator */}
+                                <span
+                                  aria-hidden
+                                  className={cn(
+                                    'shrink-0 w-4 h-4 rounded-full border-2 grid place-items-center transition-colors',
+                                    active ? 'border-[#F5C518]' : 'border-muted-foreground/40'
                                   )}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground truncate">
-                                  {opt.label} · {opt.eta_days}
-                                </p>
-                              </div>
-                            </button>
-                          );
-                        })}
+                                >
+                                  {active && <span className="w-2 h-2 rounded-full bg-[#F5C518]" />}
+                                </span>
+                                {/* Icon */}
+                                <span className={cn('shrink-0', active ? 'text-foreground' : 'text-muted-foreground')}>
+                                  {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
+                                </span>
+                                {/* Date + label */}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-sm font-semibold truncate">
+                                      {dep ? dep.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : opt.label}
+                                      {arr && (
+                                        <span className="text-muted-foreground font-normal">
+                                          {' '}→ {arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                        </span>
+                                      )}
+                                    </p>
+                                    {isFirst && (
+                                      <span className="text-[9px] font-semibold uppercase tracking-wide rounded-full px-1.5 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                        Le plus tôt
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                    {priorityLabel} · {priorityEtaLabel}
+                                  </p>
+                                </div>
+                                {active && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#F5C518]" />}
+                              </button>
+                            );
+                          });
+                        })()}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Le tarif total s'affiche dans le récapitulatif ci-dessous.
+                        Délai et libellé suivent le mode <span className="font-medium text-foreground">{priority === 'express' ? 'Express' : 'Standard'}</span> choisi ci-dessus · tarif total dans le récapitulatif.
                       </p>
                     </div>
                   )}
