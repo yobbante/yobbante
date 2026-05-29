@@ -150,7 +150,7 @@ await import(blobUrl);
 if (!capturedHandler) {
   throw new Error('Deno.serve handler not captured');
 }
-const handler = capturedHandler;
+const handler: (req: Request) => Response | Promise<Response> = capturedHandler;
 
 async function postEvent(body: Record<string, unknown>, opts: { badSig?: boolean } = {}) {
   const raw = JSON.stringify(body);
