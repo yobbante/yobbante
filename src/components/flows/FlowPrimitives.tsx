@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Loader2, RefreshCw, Search } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useId, useMemo, useRef, useState, createContext, useContext, type KeyboardEvent, type ReactNode } from 'react';
@@ -764,7 +764,7 @@ export function MatchOptionCard({
 /* ─────────── Live summary sticky bar ─────────── */
 
 export function LiveSummaryBar({
-  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details, priceLabel, priceHint,
+  visible, summary, ctaLabel, onSubmit, submitting, sideContent, details, priceLabel, priceHint, topCard,
 }: {
   visible: boolean;
   summary: string;
@@ -772,8 +772,10 @@ export function LiveSummaryBar({
   onSubmit: () => void;
   submitting: boolean;
   sideContent?: ReactNode;
-  /** Optional rich content shown when the user expands the recap. */
+  /** Optional rich content shown in the fullscreen recap sheet. */
   details?: ReactNode;
+  /** Optional interactive block (e.g. Standard/Express swipeable cards) shown at top of recap sheet. */
+  topCard?: ReactNode;
   /** Optional sticky price (e.g. "12 500 FCFA") shown before the CTA. */
   priceLabel?: string;
   /** Optional short price hint shown under the price (e.g. "estimation"). */
@@ -782,110 +784,175 @@ export function LiveSummaryBar({
   const theme = useFlowTheme();
   const t = T[theme];
   const [expanded, setExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const hasRecap = !!(details || topCard);
 
-  // Auto-collapse when the user taps anywhere outside the summary bar
-  // (incl. scrolling the page or hitting Esc).
+  // Lock body scroll while sheet is open + close on Esc
   useEffect(() => {
     if (!expanded) return;
-    const handlePointer = (e: MouseEvent | TouchEvent) => {
-      const el = containerRef.current;
-      if (el && !el.contains(e.target as Node)) setExpanded(false);
-    };
-    const handleKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
-    document.addEventListener('mousedown', handlePointer);
-    document.addEventListener('touchstart', handlePointer, { passive: true });
-    document.addEventListener('keydown', handleKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', handlePointer);
-      document.removeEventListener('touchstart', handlePointer);
-      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prev;
+      document.removeEventListener('keydown', onKey);
     };
   }, [expanded]);
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          ref={containerRef}
-          role="region"
-          aria-label="Récapitulatif et confirmation"
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          className={cn('fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg', t.summaryBar)}
-        >
-          {/* Expandable details panel */}
-          <AnimatePresence initial={false}>
-            {expanded && details && (
-              <motion.div
-                id="flow-summary-details"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="overflow-hidden border-b"
+    <>
+      {/* ── Fullscreen recap sheet ── */}
+      <AnimatePresence>
+        {expanded && hasRecap && (
+          <motion.div
+            key="recap-overlay"
+            className="fixed inset-0 z-[60] flex items-end sm:items-center sm:justify-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+              onClick={() => setExpanded(false)}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            />
+            <motion.div
+              role="dialog" aria-modal="true" aria-label="Récapitulatif détaillé"
+              className={cn(
+                'relative w-full sm:max-w-2xl sm:rounded-2xl sm:my-8',
+                'h-[92vh] sm:h-auto sm:max-h-[88vh] flex flex-col overflow-hidden',
+                'rounded-t-3xl shadow-2xl',
+                theme === 'dark' ? 'bg-zinc-950 text-zinc-50' : 'bg-background text-foreground'
+              )}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 600) setExpanded(false);
+              }}
+            >
+              {/* Header with handle + close */}
+              <div className="shrink-0 pt-2 pb-3 px-5 sm:px-7 border-b" style={{ borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'hsl(var(--border))' }}>
+                <div className="mx-auto mb-2 h-1.5 w-10 rounded-full" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.18)' : 'hsl(var(--border))' }} />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium', t.eyebrow)}>Récapitulatif</p>
+                    <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(false)}
+                    aria-label="Fermer"
+                    className={cn(
+                      'shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors',
+                      theme === 'dark' ? 'bg-white/10 hover:bg-white/15 text-white' : 'bg-secondary hover:bg-secondary/80 text-foreground'
+                    )}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body: top interactive card + details */}
+              <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-7 py-4 space-y-5">
+                {topCard}
+                {details}
+              </div>
+
+              {/* Sticky CTA inside sheet */}
+              <div
+                className={cn(
+                  'shrink-0 border-t px-5 sm:px-7 py-3 flex items-center gap-3',
+                  theme === 'dark' ? 'bg-zinc-950' : 'bg-background'
+                )}
                 style={{ borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'hsl(var(--border))' }}
               >
-                <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 max-h-[55vh] overflow-y-auto">
-                  {details}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div className="mx-auto max-w-3xl px-5 sm:px-8 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
-            <button
-              type="button"
-              onClick={() => details && setExpanded(v => !v)}
-              disabled={!details}
-              className={cn(
-                'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                theme === 'dark'
-                  ? 'focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
-                  : 'focus-visible:ring-foreground focus-visible:ring-offset-background',
-                details && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
-              )}
-              aria-expanded={expanded}
-              aria-controls="flow-summary-details"
-              aria-label={expanded ? 'Masquer le détail du récapitulatif' : 'Afficher le détail du récapitulatif'}
-            >
-              <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
-                <span>Récapitulatif</span>
-                {details && (
-                  <span className={cn('text-[9px] font-semibold', t.muted)} aria-hidden="true">
-                    {expanded ? '▾' : '▴'}
-                  </span>
+                {priceLabel && (
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-[9px] uppercase tracking-[0.18em] font-medium leading-none', t.muted)}>
+                      {priceHint || 'Total estimé'}
+                    </p>
+                    <p className="mt-1 text-base font-bold tabular-nums leading-none truncate">{priceLabel}</p>
+                  </div>
                 )}
-              </p>
-              {/* Single-line recap that truncates with ellipsis to never wrap
-                  under the CTA. Tap to expand for full details. */}
-              <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
-              {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
-            </button>
-            {priceLabel && (
-              <div className="shrink-0 text-right hidden xs:block sm:block">
-                <p className={cn('text-[9px] uppercase tracking-[0.18em] font-medium leading-none', t.muted)}>
-                  {priceHint || 'Total estimé'}
-                </p>
-                <p className="mt-1 text-base sm:text-lg font-bold tabular-nums leading-none">{priceLabel}</p>
+                <button
+                  onClick={() => { onSubmit(); }}
+                  disabled={submitting}
+                  className={cn(
+                    'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-5 py-3 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0',
+                    t.cta
+                  )}
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+                  <span className="truncate">{ctaLabel}</span>
+                </button>
               </div>
-            )}
-            <button
-              onClick={onSubmit}
-              disabled={submitting}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-4 sm:px-6 py-3 sm:py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0 max-w-[55%] sm:max-w-none',
-                t.cta
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Sticky bottom bar ── */}
+      <AnimatePresence>
+        {visible && (
+          <motion.div
+            role="region"
+            aria-label="Récapitulatif et confirmation"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className={cn('fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg', t.summaryBar)}
+          >
+            <div className="mx-auto max-w-3xl px-5 sm:px-8 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
+              <button
+                type="button"
+                onClick={() => hasRecap && setExpanded(true)}
+                disabled={!hasRecap}
+                className={cn(
+                  'min-w-0 flex-1 text-left rounded-lg -mx-2 px-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                  theme === 'dark'
+                    ? 'focus-visible:ring-yellow-400 focus-visible:ring-offset-zinc-950'
+                    : 'focus-visible:ring-foreground focus-visible:ring-offset-background',
+                  hasRecap && (theme === 'dark' ? 'hover:bg-white/[0.04]' : 'hover:bg-secondary/60')
+                )}
+                aria-expanded={expanded}
+                aria-label="Afficher le détail du récapitulatif"
+              >
+                <p className={cn('text-[10px] uppercase tracking-[0.18em] font-medium flex items-center gap-1.5', t.eyebrow)}>
+                  <span>Récapitulatif</span>
+                  {hasRecap && (
+                    <span className={cn('text-[9px] font-semibold', t.muted)} aria-hidden="true">▴</span>
+                  )}
+                </p>
+                <p className="mt-0.5 text-sm font-semibold leading-tight truncate">{summary}</p>
+                {sideContent && <p className={cn('text-[11px] mt-0.5 truncate', t.muted)}>{sideContent}</p>}
+              </button>
+              {priceLabel && (
+                <div className="shrink-0 text-right hidden xs:block sm:block">
+                  <p className={cn('text-[9px] uppercase tracking-[0.18em] font-medium leading-none', t.muted)}>
+                    {priceHint || 'Total estimé'}
+                  </p>
+                  <p className="mt-1 text-base sm:text-lg font-bold tabular-nums leading-none">{priceLabel}</p>
+                </div>
               )}
-            >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-              <span className="truncate">{ctaLabel}</span>
-            </button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+              <button
+                onClick={onSubmit}
+                disabled={submitting}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 font-bold rounded-xl px-4 sm:px-6 py-3 sm:py-3.5 text-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shrink-0 max-w-[55%] sm:max-w-none',
+                  t.cta
+                )}
+              >
+                {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+                <span className="truncate">{ctaLabel}</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
