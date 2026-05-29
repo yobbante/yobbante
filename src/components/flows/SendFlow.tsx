@@ -1935,8 +1935,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <LiveSummaryBar
         visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
-        ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
-        onSubmit={submit}
+        ctaLabel={smartCtaLabel}
+        onSubmit={handleSummaryAction}
         submitting={submitting}
         priceLabel={pricing.total_ttc > 0 ? formatLocalAmount(toEurFcfa(pricing.total_ttc), originProfile) : undefined}
         priceHint={destCity
@@ -1971,6 +1971,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           })()
         }
       />
+    );
+  })()}
 
       {originCity && destCity && (
         <ManualQuoteDialog
