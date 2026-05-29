@@ -22,7 +22,7 @@ import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { formatFcfa } from '@/lib/yobbantePricing';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
-import { calculatePricing, type PricingOutput } from '@/lib/pricingEngine';
+import { calculatePricing, fcfaToEur, assertPriceCoherence, type PricingOutput } from '@/lib/pricingEngine';
 import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
