@@ -79,7 +79,7 @@ function makeClient() {
         return {
           eq(col: string, val: string) {
             state.shipments = state.shipments.map((s) =>
-              (s as Record<string, unknown>)[col] === val ? { ...s, ...patch } : s,
+              (s as unknown as Record<string, unknown>)[col] === val ? { ...s, ...patch } : s,
             );
             return Promise.resolve({ error: null });
           },
