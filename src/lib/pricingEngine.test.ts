@@ -152,7 +152,6 @@ describe('calculatePricing — TVA & arrondis', () => {
 
   it('inputs invalides (NaN, négatif) → pas de NaN dans la sortie', () => {
     const out = calculatePricing(
-      // @ts-expect-error test runtime
       { tarifGPFcfa: NaN, weightKg: -3, marchandise: null, enlevementFcfa: -100, assuranceFcfa: NaN },
       'standard',
     );
