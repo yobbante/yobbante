@@ -1501,14 +1501,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           const expressEtaMax  = quoteExpress?.eta_max_days  ?? Math.max(expressEtaMin + 1, Math.ceil(standardEtaMax * 0.6));
 
           const STANDARD_PERKS = [
-            'Enlèvement gratuit à Dakar',
-            'Suivi en temps réel',
-            'Dédouanement pris en charge',
+            'Groupé avec d\'autres colis · meilleur tarif',
+            'Départ au prochain vol disponible',
+            'Enlèvement gratuit à Dakar centre',
+            'Suivi en temps réel à chaque étape',
           ];
           const EXPRESS_PERKS = [
-            'Enlèvement prioritaire à Dakar',
-            'Suivi renforcé',
-            'Dédouanement express pris en charge',
+            'Embarqué sur le tout premier vol',
+            'Traitement prioritaire en agence (passe devant)',
+            'Dédouanement accéléré à l\'arrivée',
+            'Notifications SMS + WhatsApp à chaque étape',
           ];
 
           const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
