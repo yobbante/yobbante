@@ -172,13 +172,20 @@ function computeMode(
   };
 }
 
-function buildLines(m: ModeBreakdown): PricingLine[] {
+function buildLines(m: ModeBreakdown, opts?: { mode?: 'standard' | 'express'; fretStandard?: number }): PricingLine[] {
+  const isExpress = opts?.mode === 'express' && typeof opts.fretStandard === 'number' && opts.fretStandard > 0;
+  const fretStd = isExpress ? roundFcfa(opts!.fretStandard!) : m.fret;
+  const expressDelta = isExpress ? Math.max(0, m.fret - fretStd) : 0;
+
   const lines: PricingLine[] = [
-    { label: 'Fret transporteur', amountFcfa: m.fret },
-    { label: 'Billet / soute', amountFcfa: m.billet_soute },
-    { label: 'Frais de dossier', amountFcfa: m.frais_dossier },
-    { label: "Frais d'agence", amountFcfa: m.frais_agence },
+    { label: 'Fret transporteur', amountFcfa: fretStd },
   ];
+  if (expressDelta > 0) {
+    lines.push({ label: 'Supplément Express · priorité départ (+45 %)', amountFcfa: expressDelta });
+  }
+  lines.push({ label: 'Billet / soute', amountFcfa: m.billet_soute });
+  lines.push({ label: 'Frais de dossier', amountFcfa: m.frais_dossier });
+  lines.push({ label: "Frais d'agence", amountFcfa: m.frais_agence });
   if (m.enlevement > 0) lines.push({ label: 'Enlèvement (zone élargie)', amountFcfa: m.enlevement });
   if (m.assurance_amount > 0) lines.push({ label: 'Protection colis', amountFcfa: m.assurance_amount });
   return lines;
@@ -204,7 +211,7 @@ export function calculatePricing(
   return {
     ...selected,
     mode,
-    lines: buildLines(selected),
+    lines: buildLines(selected, { mode, fretStandard }),
     prix_standard: standard.total_ttc,
     prix_express: express.total_ttc,
     standard,
