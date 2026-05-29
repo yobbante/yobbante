@@ -8,17 +8,17 @@ import type { CoverageLevel } from '@/hooks/useCoverageZone';
 
 /** Short tagline displayed on cards / banners. */
 export const DOOR_TO_DOOR_TAGLINE =
-  'Porte-à-porte transparent';
+  'Collecte à Dakar · Livraison à destination via nos partenaires';
 
 /** Slightly longer one-liner — used in banners and emails. */
 export const DOOR_TO_DOOR_HEADLINE =
-  'Enlèvement chez vous et livraison au domicile du destinataire inclus, sans frais cachés.';
+  'Collecte à Dakar incluse. Livraison à destination via nos partenaires transporteurs.';
 
 /** Single canonical perk label, reused on every quote screen. */
 export const PICKUP_INCLUDED_LABEL =
-  'Enlèvement à domicile inclus';
+  'Enlèvement gratuit à Dakar';
 export const DELIVERY_INCLUDED_LABEL =
-  'Livraison à domicile incluse';
+  'Livraison à destination via nos partenaires';
 
 /** Default perks attached to every offer (Express + Standard). */
 export const INCLUDED_PERKS: readonly string[] = [
@@ -80,20 +80,20 @@ export function checkDoorToDoor(
     case 'direct':
       return {
         availability: 'direct',
-        message: `Enlèvement & livraison à domicile disponibles${city ? ` à ${city}` : ''} — équipe Yobbanté.`,
+        message: `Collecte & livraison assurées${city ? ` à ${city}` : ''} par l'équipe Yobbanté.`,
       };
     case 'partner':
       return {
         availability: 'partner',
-        message: `Porte-à-porte assuré${city ? ` à ${city}` : ''} via un partenaire local agréé.`,
+        message: `Livraison à destination${city ? ` (${city})` : ''} assurée via un partenaire transporteur local.`,
         alternative:
-          'Notre coordinateur vous confirme le créneau de collecte sous 2 h par WhatsApp.',
+          'Notre coordinateur vous confirme le créneau de livraison sous 2 h par WhatsApp.',
       };
     case 'none':
     default:
       return {
         availability: 'unavailable',
-        message: `Adresse hors zone porte-à-porte directe${city ? ` (${city})` : ''}.`,
+        message: `Adresse hors zone de livraison directe${city ? ` (${city})` : ''}.`,
         alternative:
           'Alternative proposée : dépôt / retrait dans le point relais Yobbanté le plus proche, ou rendez-vous personnalisé sur devis.',
       };

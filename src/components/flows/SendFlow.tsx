@@ -2195,7 +2195,9 @@ function ZoneBadge({
     return (
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-[12px] text-emerald-300 inline-flex items-center gap-2">
         <CheckCircle2 className="w-3.5 h-3.5" />
-        {mode === 'livraison' ? 'Livraison gratuite dans votre zone' : 'Enlèvement gratuit dans votre zone'}
+        {mode === 'livraison'
+          ? 'Livraison gratuite à Dakar centre'
+          : 'Enlèvement gratuit à Dakar centre'}
       </div>
     );
   }

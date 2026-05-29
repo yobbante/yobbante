@@ -77,7 +77,7 @@ export function buildRecapBreakdown(opts: BuildRecapOpts): RecapBreakdown {
   if (manutention > 0) lines.push({ label: `Manutention (${parcels} colis)`, amountFcfa: manutention });
   if (express > 0) lines.push({ label: 'Traitement express', amountFcfa: express });
   if (assurance > 0) lines.push({ label: 'Assurance colis', amountFcfa: assurance });
-  if (enlevement > 0) lines.push({ label: 'Enlèvement (zone élargie)', amountFcfa: enlevement });
+  if (enlevement > 0) lines.push({ label: 'Enlèvement zone élargie (hors Dakar centre)', amountFcfa: enlevement });
 
   const ht = lines.reduce((s, l) => s + l.amountFcfa, 0);
   const tva = Math.round(ht * TVA_RATE);
