@@ -1241,36 +1241,86 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             {/* Mode de reception finale */}
             <div className="rounded-2xl border-2 border-border bg-card p-4 space-y-3">
               <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
-              {[
-                { id: 'pickup_gp' as const, label: 'Récupérer chez notre partenaire', sub: 'Gratuit — adresse communiquée à l\'arrivée' },
-                { id: 'relay_point' as const, label: 'Livraison à un point relais', sub: 'Frais selon distance' },
-                { id: 'home_delivery' as const, label: 'Livraison à domicile', sub: 'Frais selon zone et carrier' },
-              ].map(opt => (
-                <label key={opt.id} className={cn(
-                  'flex items-start gap-3 cursor-pointer rounded-xl border-2 p-3 transition-colors',
-                  deliveryMode === opt.id ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40',
-                )}>
-                  <input
-                    type="radio" name="delivery_mode" value={opt.id}
-                    checked={deliveryMode === opt.id}
-                    onChange={() => setDeliveryMode(opt.id)}
-                    className="mt-1 accent-foreground"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-foreground">{opt.label}</span>
-                    <span className="block text-[11px] text-muted-foreground">{opt.sub}</span>
-                  </span>
-                </label>
-              ))}
-              {deliveryMode === 'relay_point' && (
+              {(() => {
+                const hasRelays = activeRelayPoints.length > 0;
+                const options: Array<{ id: 'partner_pickup' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
+                  {
+                    id: 'partner_pickup',
+                    label: 'Récupérer chez notre partenaire',
+                    sub: 'Gratuit — adresse communiquée à l\'arrivée',
+                  },
+                  {
+                    id: 'relay_point',
+                    label: 'Livraison à un point relais',
+                    sub: destIsDakar
+                      ? (hasRelays ? 'Choisissez un relais à Dakar' : 'Points relais bientôt disponibles à Dakar. Contactez-nous.')
+                      : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar || !hasRelays,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : (!hasRelays ? 'Points relais bientôt disponibles à Dakar' : undefined),
+                    hidden: destIsDakar && !hasRelays, // masqué si Dakar mais aucun relais actif
+                  },
+                  {
+                    id: 'home_delivery',
+                    label: 'Livraison à domicile',
+                    sub: destIsDakar ? 'Frais selon zone et transporteur' : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : undefined,
+                  },
+                ];
+                return options.filter(o => !o.hidden).map(opt => {
+                  const selected = deliveryMode === opt.id;
+                  return (
+                    <label
+                      key={opt.id}
+                      title={opt.disabledNote}
+                      className={cn(
+                        'flex items-start gap-3 rounded-xl border-2 p-3 transition-colors',
+                        opt.disabled
+                          ? 'border-border bg-muted/30 cursor-not-allowed opacity-60'
+                          : 'cursor-pointer',
+                        !opt.disabled && (selected ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40'),
+                      )}
+                    >
+                      <input
+                        type="radio" name="delivery_mode" value={opt.id}
+                        checked={selected}
+                        disabled={opt.disabled}
+                        onChange={() => { if (!opt.disabled) setDeliveryMode(opt.id); }}
+                        className="mt-1 accent-foreground"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-medium text-foreground">{opt.label}</span>
+                        <span className={cn('block text-[11px]', opt.disabled ? 'text-muted-foreground/80 italic' : 'text-muted-foreground')}>{opt.sub}</span>
+                      </span>
+                    </label>
+                  );
+                });
+              })()}
+
+              {deliveryMode === 'relay_point' && destIsDakar && activeRelayPoints.length > 0 && (
                 <div className="space-y-2 pt-1">
-                  <TextField label="Nom du point relais *" value={relayPointName} onChange={setRelayPointName}
-                    placeholder="Ex. Bureau de poste Liberté 6" />
-                  <TextField label="Adresse du point relais *" value={relayPointAddress} onChange={setRelayPointAddress}
-                    placeholder="N°, rue, quartier, ville" />
+                  <label className="block">
+                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Point relais *</span>
+                    <select
+                      value={relayPointId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setRelayPointId(id);
+                        const rp = activeRelayPoints.find(r => r.id === id);
+                        if (rp) { setRelayPointName(rp.name); setRelayPointAddress(rp.address); }
+                      }}
+                      className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-colors"
+                    >
+                      <option value="">— Choisir un point relais —</option>
+                      {activeRelayPoints.map(rp => (
+                        <option key={rp.id} value={rp.id}>{rp.name} — {rp.quartier}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               )}
-              {deliveryMode === 'home_delivery' && (
+
+              {deliveryMode === 'home_delivery' && destIsDakar && (
                 <div className="space-y-2 pt-1">
                   <p className="text-[11px] text-muted-foreground">
                     Choisissez un transporteur. Les tarifs seront calculés et confirmés avant le départ.
@@ -1290,6 +1340,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               )}
             </div>
+
 
             <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
           </div>
