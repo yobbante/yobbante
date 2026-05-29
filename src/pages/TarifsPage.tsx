@@ -49,7 +49,9 @@ export default function TarifsPage() {
         <section className="space-y-3">
           <h2>Tarifs indicatifs — Dakar → Monde</h2>
           <p className="text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Prix par kg, hors enlèvement (gratuit à Dakar centre).
+            Prix par kg. Collecte à Dakar incluse (gratuite à Dakar centre) + livraison à
+            destination via nos partenaires transporteurs. Les frais de livraison finale
+            varient selon la destination.
           </p>
           <div
             className="rounded-[12px] overflow-hidden"

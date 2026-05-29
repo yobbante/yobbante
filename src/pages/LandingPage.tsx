@@ -23,7 +23,7 @@ const fadeUp = {
 const STEPS = [
   { n: '01', title: 'Créez votre dossier', desc: 'Décrivez votre envoi en 2 minutes. Prix instantané.' },
   { n: '02', title: 'On prend en charge', desc: 'Collecte, transit, dédouanement — gérés par notre équipe et nos partenaires certifiés.' },
-  { n: '03', title: 'Vous recevez et suivez', desc: 'Notifications WhatsApp à chaque étape. Livraison à domicile ou point relais.' },
+  { n: '03', title: 'Vous recevez et suivez', desc: 'Notifications WhatsApp à chaque étape. Livraison à destination via nos partenaires ou point relais.' },
 ];
 
 const TESTIMONIALS = [
