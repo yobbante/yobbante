@@ -615,6 +615,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         app_source: 'expedier',
         needs_sourcing: false,
         delivery_mode: deliveryMode,
+        relay_point_id: deliveryMode === 'relay_point' ? (relayPointId || null) : null,
         relay_point_name: deliveryMode === 'relay_point' ? relayPointName : null,
         relay_point_address: deliveryMode === 'relay_point' ? relayPointAddress : null,
         delivery_carrier: deliveryMode === 'home_delivery' ? (deliveryCarrier || null) : null,
