@@ -2023,6 +2023,23 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           ? `${priority === 'express' ? 'Express' : 'Standard'} · ${getDeliveryDelay(destCity.city, priority === 'express' ? 'express' : 'standard').label}`
           : 'Estimation'}
         sideContent={next_departure_date ? `Départ ${formatDepartureDate(next_departure_date, { day: 'numeric', month: 'short' })}` : undefined}
+        topCard={
+          originCity && destCity ? (
+            <PriorityCarousel
+              priority={priority === 'express' ? 'express' : 'normal'}
+              standardPrice={toEurFcfa(pricing.prix_standard)}
+              expressPrice={toEurFcfa(pricing.prix_express)}
+              standardEta={`Livraison en ${getDeliveryDelay(destCity.city, 'standard').label}`}
+              expressEta={`Livraison en ${getDeliveryDelay(destCity.city, 'express').label}`}
+              originProfile={originProfile}
+              outsideDakarSurchargeFcfa={fraisEnlevement.zone !== 'dakar_centre' ? fraisEnlevement.surcharge : 0}
+              onSelect={(p) => {
+                setPriority(p);
+                if (p === 'express') setTransportMode('AIR');
+              }}
+            />
+          ) : undefined
+        }
         details={
           (() => {
             const bd = pricing;
