@@ -1722,16 +1722,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     </p>
                   )}
 
-                  {/* ── Choix du départ — sous les cards ── */}
+                  {/* ── Choix du départ — liste compacte ── */}
                   {options.length >= 1 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          {options.length > 1 ? `${options.length} départs disponibles` : 'Départ disponible'}
+                          {options.length > 1 ? `${options.length} départs disponibles` : 'Départs disponibles'}
                         </p>
-                        {chosen && <span className="text-[10px] text-muted-foreground">Cliquez pour changer</span>}
+                        {options.length > 1 && chosen && (
+                          <span className="text-[10px] text-muted-foreground">Touchez pour choisir</span>
+                        )}
                       </div>
-                      <div className={cn('grid gap-2.5', options.length > 1 ? 'sm:grid-cols-2' : '')}>
+                      <div role="radiogroup" aria-label="Choix du départ" className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
                         {options.map((opt) => {
                           const active = chosen?.id === opt.id;
                           const dep = opt.departure_date
@@ -1746,45 +1748,49 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                             <button
                               key={opt.id}
                               type="button"
+                              role="radio"
+                              aria-checked={active}
                               onClick={() => setChosen(opt)}
                               className={cn(
-                                'text-left rounded-2xl border-2 p-4 transition-all relative',
-                                active
-                                  ? 'border-foreground bg-foreground text-background shadow-md'
-                                  : 'border-border bg-card hover:border-foreground/40'
+                                'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
+                                active ? 'bg-foreground/[0.04]' : 'hover:bg-secondary/40'
                               )}
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
-                                  <p className="text-sm font-bold truncate">{opt.label}</p>
-                                </div>
-                                {active && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                              {/* Radio indicator */}
+                              <span
+                                aria-hidden
+                                className={cn(
+                                  'shrink-0 w-4 h-4 rounded-full border-2 grid place-items-center transition-colors',
+                                  active ? 'border-[#F5C518]' : 'border-muted-foreground/40'
+                                )}
+                              >
+                                {active && <span className="w-1.5 h-1.5 rounded-full bg-[#F5C518]" />}
+                              </span>
+                              {/* Icon */}
+                              <span className="shrink-0 text-muted-foreground">
+                                {OPTION_ICONS[opt.id as keyof typeof OPTION_ICONS] ?? <Plane className="w-4 h-4" />}
+                              </span>
+                              {/* Date + label */}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold truncate">
+                                  {dep ? dep.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : opt.label}
+                                  {arr && (
+                                    <span className="text-muted-foreground font-normal">
+                                      {' '}→ {arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  {opt.label} · {opt.eta_days}
+                                </p>
                               </div>
-                              <div className="mt-2.5 grid grid-cols-2 gap-2 text-[11px]">
-                                <div>
-                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Départ</p>
-                                  <p className="font-semibold mt-0.5">
-                                    {dep ? dep.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className={cn('uppercase tracking-wider', active ? 'text-background/60' : 'text-muted-foreground')}>Arrivée estimée</p>
-                                  <p className="font-semibold mt-0.5">
-                                    {arr ? arr.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : opt.eta_days}
-                                  </p>
-                                </div>
-                              </div>
-                              <p className={cn('mt-2 text-[11px]', active ? 'text-background/70' : 'text-muted-foreground')}>
-                                Délai · {opt.eta_days}
-                              </p>
-                              <p className="mt-2 text-base font-bold tabular-nums">
-                                {formatLocalAmount(Math.round(opt.price_eur), originProfile)}
-                              </p>
                             </button>
                           );
                         })}
                       </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Le tarif total s'affiche dans le récapitulatif ci-dessous.
+                      </p>
                     </div>
                   )}
 
