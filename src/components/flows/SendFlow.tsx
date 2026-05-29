@@ -1911,12 +1911,32 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
+      {(() => {
+        const LAST_STEP = 7;
+        const isLastStep = currentStep >= LAST_STEP;
+        const smartCtaLabel = isLastStep
+          ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
+          : 'Continuer';
+        function handleSummaryAction() {
+          if (!isLastStep) {
+            advanceFromStep(currentStep);
+          } else if (allReady) {
+            submit();
+          } else {
+            setSubmitAttempted(true);
+            scrollToFirstError();
+            setTimeout(() => {
+              toast.error('Étapes incomplètes', { description: 'Les champs manquants sont surlignés en rouge.' });
+            }, 350);
+          }
+        }
+        return (
 
       <LiveSummaryBar
         visible={routeOk}
         summary={summary || `${originProfile.flag} ${originCity?.city ?? ''} → ${destCity ? `${destProfile.flag} ${destCity.city}` : '…'}`}
-        ctaLabel={allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées'}
-        onSubmit={submit}
+        ctaLabel={smartCtaLabel}
+        onSubmit={handleSummaryAction}
         submitting={submitting}
         priceLabel={pricing.total_ttc > 0 ? formatLocalAmount(toEurFcfa(pricing.total_ttc), originProfile) : undefined}
         priceHint={destCity
@@ -1951,6 +1971,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           })()
         }
       />
+    );
+  })()}
 
       {originCity && destCity && (
         <ManualQuoteDialog
