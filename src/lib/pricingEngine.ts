@@ -22,9 +22,55 @@ export const TVA_RATE = 0.18;
 export const YOBBANTE_MARGIN = 1.20;
 export const EXPRESS_COEF = 1.45;
 
+/** Taux pivot FCFA ↔ EUR (XOF est fixé à 655,957 par euro — on arrondit à 655). */
+export const FCFA_PER_EUR = 655;
+
 const FRAIS_DOSSIER_FCFA = 1500;
 const AGENCE_PCT = 0.10;
 const BILLET_PCT = 0.15;
+
+/** Arrondi centralisé pour TOUS les montants FCFA. */
+export function roundFcfa(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n);
+}
+
+/** Conversion FCFA → EUR (arrondi à l'euro entier, jamais NaN/Infinity). */
+export function fcfaToEur(fcfa: number): number {
+  if (!Number.isFinite(fcfa) || fcfa <= 0) return 0;
+  return Math.round(fcfa / FCFA_PER_EUR);
+}
+
+/** Conversion EUR → FCFA (arrondi au FCFA entier). */
+export function eurToFcfa(eur: number): number {
+  if (!Number.isFinite(eur) || eur <= 0) return 0;
+  return Math.round(eur * FCFA_PER_EUR);
+}
+
+/**
+ * Vérifie qu'une valeur observée (cards Standard/Express, récap, LiveSummaryBar,
+ * /pay) correspond bien au TTC retourné par `calculatePricing`. Tolérance 1 FCFA
+ * pour absorber les arrondis intermédiaires.
+ *
+ * En DEV : log un avertissement + retourne false.
+ * En PROD : silencieux + retourne false (l'appelant peut décider de bloquer).
+ */
+export function assertPriceCoherence(
+  source: string,
+  expectedFcfa: number,
+  observedFcfa: number,
+  tolerance = 1,
+): boolean {
+  const diff = Math.abs(expectedFcfa - observedFcfa);
+  const ok = diff <= tolerance;
+  if (!ok && typeof console !== 'undefined' && (import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[pricingEngine] Divergence prix détectée @ ${source} — attendu ${expectedFcfa} FCFA, observé ${observedFcfa} FCFA (Δ ${diff}).`,
+    );
+  }
+  return ok;
+}
 const BILLET_MIN_FCFA = 2000;
 
 /** Coefficients faibles (0.95 → 1.12) par type de marchandise. */
