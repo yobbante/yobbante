@@ -238,7 +238,79 @@ export default function DossierDetail() {
           />
         )}
 
+        {/* Mode de livraison — affichage client (partenaire / relais / domicile) */}
+        {(() => {
+          const d = dossier as any;
+          if (!d?.delivery_mode) return null;
+          const isPartner = d.delivery_mode === 'partner_pickup';
+          const isRelay = d.delivery_mode === 'relay_point';
+          const isHome = d.delivery_mode === 'home_delivery';
+          const arrivedAtHub = ['IN_TRANSIT', 'CUSTOMS', 'ARRIVED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(d.status);
+          return (
+            <section>
+              <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+                <PackageIcon className="w-4 h-4" /> Mode de livraison
+              </h2>
+              <div className={cn(
+                'rounded-2xl border p-4',
+                isPartner && arrivedAtHub ? 'border-green-600/40 bg-green-600/5' : 'border-border bg-card',
+              )}>
+                {isPartner && (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">Récupération chez notre partenaire</p>
+                    {arrivedAtHub ? (
+                      <>
+                        <p className="text-xs text-green-300 mt-1">🎉 Votre colis est arrivé. Vous pouvez le récupérer.</p>
+                        {d.relay_point_address && (
+                          <p className="text-sm text-foreground mt-3"><span className="text-muted-foreground">Adresse : </span>{d.relay_point_address}</p>
+                        )}
+                        {d.relay_point_name && (
+                          <p className="text-sm text-foreground mt-1"><span className="text-muted-foreground">Partenaire : </span>{d.relay_point_name}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">L'adresse vous sera envoyée par WhatsApp à l'arrivée du colis.</p>
+                    )}
+                  </>
+                )}
+                {isRelay && (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">Livraison en point relais</p>
+                    {d.relay_point_name && <p className="text-sm text-foreground mt-2">{d.relay_point_name}</p>}
+                    {d.relay_point_address && <p className="text-sm text-muted-foreground mt-1">{d.relay_point_address}</p>}
+                  </>
+                )}
+                {isHome && (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">Livraison à domicile</p>
+                    {d.recipient_address && <p className="text-sm text-muted-foreground mt-2">{d.recipient_address}</p>}
+                  </>
+                )}
+              </div>
+            </section>
+          );
+        })()}
 
+        {/* Contact support */}
+        <section>
+          <a
+            href="https://wa.me/221786078080"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-foreground/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-green-500/15 text-green-400 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Contacter le support</p>
+                <p className="text-[11px] text-muted-foreground">Réponse rapide sur WhatsApp</p>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </a>
+        </section>
 
         {/* Customs documents */}
         <section>
