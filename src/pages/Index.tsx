@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
-import { HomeView } from '@/pages/HomeView';
+import { ClientSpaceView } from '@/pages/ClientSpaceView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
 
