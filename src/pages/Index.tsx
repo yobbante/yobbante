@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
-import { HomeView } from '@/pages/HomeView';
+import { ClientSpaceView } from '@/pages/ClientSpaceView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
 
@@ -89,17 +89,7 @@ export default function Index() {
     <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <DesktopNav active={view} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
       <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-8">
-        {view === 'home' && (
-          <HomeView
-            onNavigateOrders={(kind) => {
-              const next: TabId =
-                kind === 'sourcing' ? 'sourcing'
-                : kind === 'receive' ? 'receptions'
-                : 'envois';
-              setView(next);
-            }}
-          />
-        )}
+        {view === 'home' && <ClientSpaceView />}
         {isOrdersTab && <OrdersView fixedKind={ordersKind} />}
         {view === 'profile' && <ProfileView />}
       </main>

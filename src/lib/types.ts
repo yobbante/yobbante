@@ -190,6 +190,15 @@ export interface Dossier {
   destination_city?: string | null;
   assigned_transporteur_ref?: string | null;
   assigned_departure_id?: string | null;
+  payment_status?: 'pending' | 'paid' | 'refunded' | string | null;
+  delivery_mode?: 'partner_pickup' | 'pickup_gp' | 'relay_point' | 'home_delivery' | string | null;
+  delivery_carrier?: string | null;
+  delivery_cost_xof?: number | null;
+  relay_point_name?: string | null;
+  relay_point_address?: string | null;
+  is_express?: boolean | null;
+  is_gift?: boolean | null;
+  delivered_at?: string | null;
   created_at: string;
   updated_at: string;
 }
