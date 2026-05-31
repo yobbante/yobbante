@@ -183,10 +183,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
-  // Step 8 — insurance
-  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('standard');
-  // Step 9 — payment
+  // Step 8 — insurance (jamais pré-sélectionnée)
+  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('none');
+  // Step 9 — payment (Wave par défaut)
   const [paymentMethod, setPaymentMethod] = useState<string>('wave');
+  // Modale interstitielle d'authentification (pas de redirect brutal vers /auth)
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
