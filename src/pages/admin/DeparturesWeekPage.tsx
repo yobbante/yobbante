@@ -252,6 +252,8 @@ export default function DeparturesWeekPage() {
                 {deps.map(d => {
                   const remaining = d.available_capacity_kg;
                   const total = d.total_capacity_kg;
+                  const used = Math.max(0, total - remaining);
+                  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
                   const pub = PUB_BADGE[d.publication_status ?? 'draft'];
                   return (
                     <button
@@ -269,12 +271,14 @@ export default function DeparturesWeekPage() {
                           <div className="text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                         <span>{d.carrier_name ?? '—'}</span>
                         <span>·</span>
-                        <span>{remaining}kg / {total}kg dispo</span>
+                        <span>{used}kg / {total}kg</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
+                      <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
+                      <AssignedDossiersList departureId={d.id} />
+                      <div className="flex items-center justify-between gap-2 mt-3">
                         <Badge variant={pub.variant}>{pub.label}</Badge>
                         {(d.publication_status ?? 'draft') !== 'published' && (
                           <span
