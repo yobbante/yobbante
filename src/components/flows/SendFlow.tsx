@@ -471,15 +471,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       weightKg: weight,
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
-      assuranceFcfa: Math.round((insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0) * 655),
+      assuranceFcfa: insuranceCostFcfa,
     }, priority === 'express' ? 'express' : 'standard');
     assertPriceCoherence('SendFlow.pricing', check.total_ttc, pricing.total_ttc);
     assertPriceCoherence('SendFlow.prix_standard', check.prix_standard, pricing.prix_standard);
     assertPriceCoherence('SendFlow.prix_express', check.prix_express, pricing.prix_express);
-  }, [pricing, originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insurance, priority]);
+  }, [pricing, originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
-  const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
+  // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
+  const showInsuranceStep = true;
 
   // Auto-suggest mode based on weight
   useEffect(() => {
