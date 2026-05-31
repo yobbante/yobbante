@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Package, FileText, Boxes, Zap, Sparkles, ShieldCheck, MapPin, Phone, User,
   Search, Building2, Truck, Plane, Ship, Calendar as CalendarIcon, AlertTriangle,
-  CheckCircle2, MessageCircle, Smartphone, CreditCard, ArrowRight, Globe2, Clock,
+  CheckCircle2, MessageCircle, Smartphone, CreditCard, ArrowRight, Globe2, Clock, Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
