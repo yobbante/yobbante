@@ -451,11 +451,13 @@ export function RequestsTab() {
       )}
 
       {quickAssign && (
-        <QuickAssignGpDialog
+        <AssignDepartureDialog
           open={!!quickAssign}
           onOpenChange={(v) => { if (!v) setQuickAssign(null); }}
           dossierId={quickAssign.id}
           destinationCountry={quickAssign.destCountry}
+          destinationCity={quickAssign.destCity}
+          weightKg={quickAssign.weight}
         />
       )}
     </div>
