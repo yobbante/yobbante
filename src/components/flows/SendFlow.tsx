@@ -714,7 +714,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
-      toast.success('Expédition confirmée 🚀');
+      toast.success(`Commande créée — ${trackingId}`);
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
       const prenom = (senderName || 'Client').split(' ')[0];
