@@ -1838,37 +1838,118 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
-      {/* ─── Step 6 — Insurance (conditional) ─── */}
+      {/* ─── Step 6 — Protection colis (toggle OFF par défaut) ─── */}
       {showInsuranceStep && (
         routeOk && stepIsFuture(6) ? (
-          <div className="mt-6"><LockedStep step={6} total={7} title="Protégez votre envoi" /></div>
+          <div className="mt-6"><LockedStep step={6} total={7} title="Protection colis" /></div>
         ) : (
 
-        <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
-          <div className="space-y-2.5 max-w-xl">
-            {[
-              { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
-              { id: 'standard' as const, label: 'Standard',        desc: `Remboursement jusqu'à valeur déclarée`,                            price: 3 },
-              { id: 'premium'  as const, label: 'Premium',         desc: 'Remboursement + frais de réexpédition couverts',                  price: 5 },
-            ].map(opt => (
-              <button key={opt.id} type="button" onClick={() => setInsurance(opt.id)}
-                className={`w-full text-left rounded-xl border-2 px-4 py-3.5 transition-all flex items-center justify-between gap-3 ${
-                  insurance === opt.id ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'
-                }`}>
-                <div>
-                  <p className="text-sm font-semibold">{opt.label}</p>
-                  <p className={`text-xs ${insurance === opt.id ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.desc}</p>
+        <FlowSection
+          revealed={routeOk}
+          step={6}
+          total={7}
+          title="Protection colis"
+          hint={declaredLocal
+            ? `Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`
+            : 'Optionnel — protégez votre envoi contre la perte ou les dommages.'}
+        >
+          {(() => {
+            const insuranceOn = insurance !== 'none';
+            const declaredFcfa = declaredFcfaForInsurance;
+            const recommended = declaredFcfa > 50000;
+            const stdFcfa = Math.max(Math.round(declaredFcfa * 0.005), 500);
+            const premFcfa = Math.max(Math.round(declaredFcfa * 0.01), 1000);
+            return (
+              <div className="space-y-4 max-w-xl">
+                {/* Toggle principal */}
+                <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5">
+                  <Switch
+                    checked={insuranceOn}
+                    onCheckedChange={(v) => setInsurance(v ? 'standard' : 'none')}
+                    aria-label="Activer la protection colis"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground">Protéger mon colis</p>
+                      {recommended && (
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5"
+                          style={{ background: 'rgba(245,197,24,0.15)', color: '#F5C518' }}
+                        >
+                          Recommandé pour ce colis
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {insuranceOn
+                        ? 'Choisissez le niveau de couverture ci-dessous.'
+                        : 'Sans protection, les risques sont à votre charge.'}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm font-bold tabular-nums">
-                  {opt.price === 0 ? 'Gratuit' : `+ ${formatLocalAmount(opt.price, originProfile)}`}
-                </span>
-              </button>
-            ))}
-          </div>
+
+                {/* Options affichées seulement si ON */}
+                {insuranceOn && (
+                  <div className="space-y-2.5">
+                    {[
+                      {
+                        id: 'standard' as const,
+                        label: 'Standard',
+                        rate: '0,5 % de la valeur déclarée',
+                        desc: 'Remboursement si perte totale',
+                        priceFcfa: stdFcfa,
+                        minLabel: 'min. 500 FCFA',
+                      },
+                      {
+                        id: 'premium' as const,
+                        label: 'Premium',
+                        rate: '1 % de la valeur déclarée',
+                        desc: 'Remboursement perte + dommages',
+                        priceFcfa: premFcfa,
+                        minLabel: 'min. 1 000 FCFA',
+                      },
+                    ].map((opt) => {
+                      const active = insurance === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setInsurance(opt.id)}
+                          aria-pressed={active}
+                          className="w-full text-left rounded-xl border-2 px-4 py-3.5 transition-all flex items-start justify-between gap-3"
+                          style={{
+                            borderColor: active ? '#F5C518' : 'hsl(var(--border))',
+                            background: active ? 'rgba(245,197,24,0.08)' : 'hsl(var(--card))',
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                              {active && <CheckCircle2 className="w-4 h-4" style={{ color: '#F5C518' }} />}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{opt.rate}</p>
+                            <p className="text-xs text-foreground/80 mt-1">{opt.desc}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold tabular-nums text-foreground">
+                              + {new Intl.NumberFormat('fr-FR').format(opt.priceFcfa)} FCFA
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{opt.minLabel}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <StepContinueBar enabled={true} onContinue={() => advanceFromStep(6)} />
         </FlowSection>
         )
       )}
+
+
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
       {routeOk && stepIsFuture(7) ? (
