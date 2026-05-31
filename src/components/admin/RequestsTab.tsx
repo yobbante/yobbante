@@ -112,7 +112,7 @@ export function RequestsTab() {
     },
   });
 
-  const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null } | null>(null);
+  const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
 
 
 
