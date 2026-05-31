@@ -454,9 +454,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     weightKg: weight,
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
-    assuranceFcfa: Math.round((insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0) * 655),
+    assuranceFcfa: insuranceCostFcfa,
   }, priority === 'express' ? 'express' : 'standard'),
-    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insurance, priority]);
+    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
