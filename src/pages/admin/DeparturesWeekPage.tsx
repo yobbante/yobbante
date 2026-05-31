@@ -16,6 +16,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSeo } from '@/hooks/useSeo';
 import { WeekExportTemplate } from '@/components/admin/inbox/WeekExportTemplate';
 import { DepartureDetailDrawer } from '@/components/admin/inbox/DepartureDetailDrawer';
+import { CapacityBar } from '@/components/ui/capacity-bar';
+import { useQuery } from '@tanstack/react-query';
+import { Package } from 'lucide-react';
 
 const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
