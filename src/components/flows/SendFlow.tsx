@@ -29,6 +29,8 @@ import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
+import { AuthInterstitialModal } from '@/components/flows/AuthInterstitialModal';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
 import { DakarHubLock } from './FlowPrimitives';
