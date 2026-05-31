@@ -2200,6 +2200,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           defaultPhone={senderPhone || recipientPhone}
         />
       )}
+
+      {/* Modale interstitielle — auth Google/Apple sans redirect brutal */}
+      <AuthInterstitialModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        resumePath="/expedier/envoyer"
+      />
     </FlowShell>
   );
 }
