@@ -73,9 +73,9 @@ const PRIORITIES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'wave',          label: 'Wave',          icon: <Smartphone className="w-4 h-4" /> },
-  { id: 'orange_money',  label: 'Orange Money',  icon: <Smartphone className="w-4 h-4" /> },
-  { id: 'card',          label: 'Carte bancaire', icon: <CreditCard className="w-4 h-4" /> },
+  { id: 'wave',          label: 'Wave',          sub: 'Instantané',        icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'orange_money',  label: 'Orange Money',  sub: 'Instantané',        icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'cash',          label: 'Espèces',       sub: 'À la collecte',     icon: <Banknote   className="w-4 h-4" /> },
 ];
 
 const OPTION_ICONS = {
