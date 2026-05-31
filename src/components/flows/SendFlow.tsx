@@ -2091,6 +2091,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   >
                     <span style={{ color: active ? '#F5C518' : 'hsl(var(--foreground))' }}>{m.icon}</span>
                     <span className="text-xs font-semibold">{m.label}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground">{m.sub}</span>
                     {active && (
                       <span className="text-[10px] font-medium" style={{ color: '#F5C518' }}>Sélectionné</span>
                     )}
