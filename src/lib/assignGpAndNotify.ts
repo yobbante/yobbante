@@ -153,3 +153,155 @@ export async function assignTransporteurAndNotify({
 
   return { ok: true };
 }
+
+/**
+ * Assigner un dossier à un départ spécifique (manual_departures.id) :
+ * - Met à jour assigned_departure_id + assigned_transporteur_ref via RPC SECURITY DEFINER.
+ * - Décale la réservation entre l'ancien et le nouveau départ.
+ * - Déclenche la notification WhatsApp GP enrichie (route, date, nb colis, total kg).
+ */
+export async function assignDossierToDeparture(args: {
+  dossierId: string;
+  departureId: string;
+  transporteurRef: string;
+  notify?: boolean;
+}): Promise<{ ok: boolean }> {
+  const { dossierId, departureId, transporteurRef, notify = true } = args;
+
+  // 1) RPC : assignation + capacité
+  const { error: rpcErr } = await supabase.rpc('assign_dossier_to_departure' as any, {
+    p_dossier_id: dossierId,
+    p_departure_id: departureId,
+    p_transporteur_ref: transporteurRef,
+  });
+  if (rpcErr) {
+    toast.error(rpcErr.message || 'Échec assignation');
+    return { ok: false };
+  }
+
+  if (!notify) return { ok: true };
+
+  // 2) Charger dossier + départ + GP + total colis sur ce départ
+  const [{ data: dossier }, { data: dep }, { data: gp }, { data: peers }] = await Promise.all([
+    supabase
+      .from('dossiers')
+      .select('id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, estimated_weight, actual_weight_kg, pickup_date, contact_phone, buyer_name')
+      .eq('id', dossierId)
+      .maybeSingle(),
+    supabase
+      .from('manual_departures')
+      .select('id, origin_city, destination_city, departure_date, short_ref, total_capacity_kg, available_capacity_kg, reserved_capacity_kg')
+      .eq('id', departureId)
+      .maybeSingle(),
+    supabase
+      .from('transporteurs' as any)
+      .select('id, prenom, nom, telephone_1')
+      .eq('reference', transporteurRef)
+      .maybeSingle(),
+    supabase
+      .from('dossiers')
+      .select('id, tracking_id, estimated_weight, actual_weight_kg')
+      .eq('assigned_departure_id', departureId),
+  ]);
+
+  if (!dossier || !dep) return { ok: true };
+  const d: any = dossier;
+  const g: any = gp;
+  const m: any = dep;
+  const allPeers: any[] = peers ?? [];
+  const totalCount = allPeers.length;
+  const totalKg = allPeers.reduce(
+    (s, p) => s + Number(p.actual_weight_kg ?? p.estimated_weight ?? 0),
+    0,
+  );
+
+  // 3) Notif GP enrichie
+  if (g?.telephone_1) {
+    const dateStr = m.departure_date
+      ? new Date(m.departure_date).toLocaleDateString('fr-FR')
+      : 'a confirmer';
+    const w = d.actual_weight_kg ?? d.estimated_weight;
+    const msg = [
+      `Salam ${(g.prenom ?? '').split(/\s+/)[0] || ''},`,
+      ``,
+      `Nouveau colis assigne a votre depart`,
+      `${m.origin_city} -> ${m.destination_city} du ${dateStr}.`,
+      ``,
+      `Ref colis : ${d.tracking_id || d.reference}`,
+      `Poids : ${w ? `${w}kg` : 'a confirmer'}`,
+      `Client : ${d.sender_name || d.recipient_name || d.buyer_name || 'Non renseigne'}`,
+      d.sender_address ? `Adresse collecte : ${d.sender_address}` : null,
+      ``,
+      `Total colis ce depart : ${totalCount}`,
+      `Poids total : ${Math.round(totalKg * 10) / 10}kg`,
+      `Capacite restante : ${m.available_capacity_kg}kg`,
+      ``,
+      `Confirmez reception : RECU ${d.tracking_id || d.reference}`,
+    ].filter(Boolean).join('\n');
+
+    const res = await sendGpMessage({
+      phone: g.telephone_1,
+      message: msg,
+      dossier_id: d.id,
+      transporteur_id: g.id,
+      trigger_type: 'gp_departure_assignment',
+      silent: true,
+    });
+    if (res.ok) {
+      await supabase
+        .from('dossiers')
+        .update({ gp_reminded_at: new Date().toISOString() })
+        .eq('id', d.id);
+    }
+  }
+
+  // 4) Notif client (best-effort, message court)
+  const clientPhone = d.contact_phone || d.sender_phone || d.recipient_phone;
+  if (clientPhone) {
+    const gpFull = g
+      ? `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() || transporteurRef
+      : transporteurRef;
+    const ref = d.tracking_id || d.reference || '';
+    const dateStr = m.departure_date
+      ? new Date(m.departure_date).toLocaleDateString('fr-FR')
+      : null;
+    const prenom = (d.sender_name || d.buyer_name || d.recipient_name || 'Client')
+      .toString().trim().split(/\s+/)[0];
+    const txt = [
+      `Bonjour ${prenom},`,
+      ``,
+      `Votre dossier ${ref} a ete confie a ${gpFull}.`,
+      `Route : ${m.origin_city} -> ${m.destination_city}`,
+      dateStr ? `Depart prevu le ${dateStr}` : null,
+      ``,
+      `Suivi : yobbante.com/suivre/${ref}`,
+      ``,
+      `— Equipe Yobbante`,
+    ].filter(Boolean).join('\n');
+    try {
+      await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: clientPhone,
+          recipient_type: 'client',
+          message: txt,
+          dossier_id: d.id,
+          trigger_type: 'client_departure_assigned',
+        },
+      });
+    } catch { /* swallow */ }
+  }
+
+  return { ok: true };
+}
+
+/** Libérer la réservation d'un dossier sur son départ assigné. */
+export async function releaseDossierDeparture(dossierId: string): Promise<{ ok: boolean }> {
+  const { error } = await supabase.rpc('release_dossier_departure' as any, {
+    p_dossier_id: dossierId,
+  });
+  if (error) {
+    toast.error(error.message || 'Échec');
+    return { ok: false };
+  }
+  return { ok: true };
+}
