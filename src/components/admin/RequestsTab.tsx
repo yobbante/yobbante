@@ -353,7 +353,12 @@ export function RequestsTab() {
                     <GpAssignBadge
                       transporteurRef={(d as any).assigned_transporteur_ref}
                       onAssignClick={() =>
-                        setQuickAssign({ id: d.id, destCountry: d.destination_country })
+                        setQuickAssign({
+                          id: d.id,
+                          destCountry: d.destination_country,
+                          destCity: (d as any).destination_city ?? null,
+                          weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
+                        })
                       }
                     />
                   </div>
