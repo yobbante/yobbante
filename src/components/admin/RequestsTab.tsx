@@ -20,7 +20,7 @@ import {
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
-import { QuickAssignGpDialog } from './dossiers/QuickAssignGpDialog';
+import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 
