@@ -608,12 +608,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        // Sauvegarde du draft + ouverture de la modale interstitielle
+        // (pas de redirection silencieuse vers /auth).
         saveDraft(DRAFT_KEY, draftSnapshot);
         if (preset) { try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {} }
-        toast.message('Connectez-vous pour finaliser', {
-          description: 'On garde votre départ et votre dossier — vous reprendrez exactement ici.',
-        });
-        navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer?resume=1')}`);
+        setSubmitting(false);
+        setAuthModalOpen(true);
         return;
       }
 
