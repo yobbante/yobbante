@@ -310,3 +310,44 @@ export default function DeparturesWeekPage() {
     </div>
   );
 }
+
+function AssignedDossiersList({ departureId }: { departureId: string }) {
+  const { data } = useQuery({
+    queryKey: ['departure-dossiers', departureId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, reference, status, actual_weight_kg, estimated_weight')
+        .eq('assigned_departure_id', departureId)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    },
+  });
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-[11px] text-muted-foreground italic">
+        Aucun colis assigné à ce départ
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+        <Package className="w-3 h-3" /> {data.length} colis assigné{data.length > 1 ? 's' : ''}
+      </div>
+      <ul className="space-y-0.5 max-h-24 overflow-y-auto">
+        {data.slice(0, 6).map((d) => (
+          <li key={d.id} className="text-[11px] text-foreground/80 font-mono flex items-center justify-between gap-2">
+            <span className="truncate">{d.tracking_id ?? d.reference}</span>
+            <span className="text-muted-foreground tabular-nums">
+              {d.actual_weight_kg ?? d.estimated_weight ?? '—'}kg
+            </span>
+          </li>
+        ))}
+        {data.length > 6 && (
+          <li className="text-[10px] text-muted-foreground italic">+{data.length - 6} autres</li>
+        )}
+      </ul>
+    </div>
+  );
+}
