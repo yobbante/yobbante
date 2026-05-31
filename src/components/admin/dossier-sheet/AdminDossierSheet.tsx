@@ -32,7 +32,8 @@ import { WeighingDialog, type WeighingDossier } from '@/components/admin/Weighin
 import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
 import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
-import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
+import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assignGpAndNotify';
+import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 
