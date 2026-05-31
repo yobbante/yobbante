@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Package, FileText, Boxes, Zap, Sparkles, ShieldCheck, MapPin, Phone, User,
   Search, Building2, Truck, Plane, Ship, Calendar as CalendarIcon, AlertTriangle,
-  CheckCircle2, MessageCircle, Smartphone, CreditCard, ArrowRight, Globe2, Clock,
+  CheckCircle2, MessageCircle, Smartphone, CreditCard, ArrowRight, Globe2, Clock, Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -29,6 +29,8 @@ import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
 import { NextDepartureNotice } from '@/components/flows/NextDepartureNotice';
+import { AuthInterstitialModal } from '@/components/flows/AuthInterstitialModal';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { ORIGIN_CITIES, DESTINATION_CITIES, findCity, POPULAR_ORIGIN_IDS, POPULAR_DEST_IDS, HUB_DAKAR } from '@/lib/worldCities';
 import { DakarHubLock } from './FlowPrimitives';
@@ -71,9 +73,9 @@ const PRIORITIES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'wave',          label: 'Wave',          icon: <Smartphone className="w-4 h-4" /> },
-  { id: 'orange_money',  label: 'Orange Money',  icon: <Smartphone className="w-4 h-4" /> },
-  { id: 'card',          label: 'Carte bancaire', icon: <CreditCard className="w-4 h-4" /> },
+  { id: 'wave',          label: 'Wave',          sub: 'Instantané',        icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'orange_money',  label: 'Orange Money',  sub: 'Instantané',        icon: <Smartphone className="w-4 h-4" /> },
+  { id: 'cash',          label: 'Espèces',       sub: 'À la collecte',     icon: <Banknote   className="w-4 h-4" /> },
 ];
 
 const OPTION_ICONS = {
@@ -183,10 +185,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
-  // Step 8 — insurance
-  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('standard');
-  // Step 9 — payment
+  // Step 8 — insurance (jamais pré-sélectionnée)
+  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('none');
+  // Step 9 — payment (Wave par défaut)
   const [paymentMethod, setPaymentMethod] = useState<string>('wave');
+  // Modale interstitielle d'authentification (pas de redirect brutal vers /auth)
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   // Sender contact
   const [senderName, setSenderName]       = useState('');
   const [senderPhone, setSenderPhone]     = useState('');
@@ -419,7 +423,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const transportPriceEur = chosen
     ? rawTransportEur
     : Math.round(rawTransportEur * priceVolatilityCoeff);
-  const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
+  // Coût d'assurance basé sur la valeur déclarée (en FCFA) :
+  //  - Standard : 0,5 % avec minimum 500 FCFA
+  //  - Premium  : 1 %   avec minimum 1 000 FCFA
+  const declaredFcfaForInsurance = Math.max(0, Math.round(((declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0)) * 655));
+  const insuranceCostFcfa = insurance === 'standard'
+    ? Math.max(Math.round(declaredFcfaForInsurance * 0.005), 500)
+    : insurance === 'premium'
+      ? Math.max(Math.round(declaredFcfaForInsurance * 0.01), 1000)
+      : 0;
+  const insuranceCostEur = Math.round(insuranceCostFcfa / 655);
   const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
 
   // ── Surcoût enlèvement / livraison à Dakar (zone-based, only when one side is Dakar)
@@ -443,9 +456,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     weightKg: weight,
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
-    assuranceFcfa: Math.round((insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0) * 655),
+    assuranceFcfa: insuranceCostFcfa,
   }, priority === 'express' ? 'express' : 'standard'),
-    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insurance, priority]);
+    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
@@ -460,15 +473,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       weightKg: weight,
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
-      assuranceFcfa: Math.round((insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0) * 655),
+      assuranceFcfa: insuranceCostFcfa,
     }, priority === 'express' ? 'express' : 'standard');
     assertPriceCoherence('SendFlow.pricing', check.total_ttc, pricing.total_ttc);
     assertPriceCoherence('SendFlow.prix_standard', check.prix_standard, pricing.prix_standard);
     assertPriceCoherence('SendFlow.prix_express', check.prix_express, pricing.prix_express);
-  }, [pricing, originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insurance, priority]);
+  }, [pricing, originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
-  const showInsuranceStep = declaredEur >= 100 || (goodsType && ['high_value', 'electronics', 'fragile'].includes(goodsType));
+  // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
+  const showInsuranceStep = true;
 
   // Auto-suggest mode based on weight
   useEffect(() => {
@@ -596,12 +610,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        // Sauvegarde du draft + ouverture de la modale interstitielle
+        // (pas de redirection silencieuse vers /auth).
         saveDraft(DRAFT_KEY, draftSnapshot);
         if (preset) { try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {} }
-        toast.message('Connectez-vous pour finaliser', {
-          description: 'On garde votre départ et votre dossier — vous reprendrez exactement ici.',
-        });
-        navigate(`/auth?redirect=${encodeURIComponent('/expedier/envoyer?resume=1')}`);
+        setSubmitting(false);
+        setAuthModalOpen(true);
         return;
       }
 
@@ -702,7 +716,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
-      toast.success('Expédition confirmée 🚀');
+      toast.success(`Commande créée — ${trackingId}`);
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
       const prenom = (senderName || 'Client').split(' ')[0];
@@ -1824,37 +1838,118 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
-      {/* ─── Step 6 — Insurance (conditional) ─── */}
+      {/* ─── Step 6 — Protection colis (toggle OFF par défaut) ─── */}
       {showInsuranceStep && (
         routeOk && stepIsFuture(6) ? (
-          <div className="mt-6"><LockedStep step={6} total={7} title="Protégez votre envoi" /></div>
+          <div className="mt-6"><LockedStep step={6} total={7} title="Protection colis" /></div>
         ) : (
 
-        <FlowSection revealed={routeOk} step={6} total={7} title="Protégez votre envoi" hint={`Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`}>
-          <div className="space-y-2.5 max-w-xl">
-            {[
-              { id: 'none'     as const, label: 'Sans assurance',  desc: 'Risque à charge de l\'expéditeur',                                price: 0 },
-              { id: 'standard' as const, label: 'Standard',        desc: `Remboursement jusqu'à valeur déclarée`,                            price: 3 },
-              { id: 'premium'  as const, label: 'Premium',         desc: 'Remboursement + frais de réexpédition couverts',                  price: 5 },
-            ].map(opt => (
-              <button key={opt.id} type="button" onClick={() => setInsurance(opt.id)}
-                className={`w-full text-left rounded-xl border-2 px-4 py-3.5 transition-all flex items-center justify-between gap-3 ${
-                  insurance === opt.id ? 'border-foreground bg-foreground text-background' : 'border-border bg-card hover:border-foreground/40'
-                }`}>
-                <div>
-                  <p className="text-sm font-semibold">{opt.label}</p>
-                  <p className={`text-xs ${insurance === opt.id ? 'text-background/70' : 'text-muted-foreground'}`}>{opt.desc}</p>
+        <FlowSection
+          revealed={routeOk}
+          step={6}
+          total={7}
+          title="Protection colis"
+          hint={declaredLocal
+            ? `Valeur déclarée : ${declaredLocal} ${originProfile.currencySymbol}`
+            : 'Optionnel — protégez votre envoi contre la perte ou les dommages.'}
+        >
+          {(() => {
+            const insuranceOn = insurance !== 'none';
+            const declaredFcfa = declaredFcfaForInsurance;
+            const recommended = declaredFcfa > 50000;
+            const stdFcfa = Math.max(Math.round(declaredFcfa * 0.005), 500);
+            const premFcfa = Math.max(Math.round(declaredFcfa * 0.01), 1000);
+            return (
+              <div className="space-y-4 max-w-xl">
+                {/* Toggle principal */}
+                <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5">
+                  <Switch
+                    checked={insuranceOn}
+                    onCheckedChange={(v) => setInsurance(v ? 'standard' : 'none')}
+                    aria-label="Activer la protection colis"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground">Protéger mon colis</p>
+                      {recommended && (
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5"
+                          style={{ background: 'rgba(245,197,24,0.15)', color: '#F5C518' }}
+                        >
+                          Recommandé pour ce colis
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {insuranceOn
+                        ? 'Choisissez le niveau de couverture ci-dessous.'
+                        : 'Sans protection, les risques sont à votre charge.'}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm font-bold tabular-nums">
-                  {opt.price === 0 ? 'Gratuit' : `+ ${formatLocalAmount(opt.price, originProfile)}`}
-                </span>
-              </button>
-            ))}
-          </div>
+
+                {/* Options affichées seulement si ON */}
+                {insuranceOn && (
+                  <div className="space-y-2.5">
+                    {[
+                      {
+                        id: 'standard' as const,
+                        label: 'Standard',
+                        rate: '0,5 % de la valeur déclarée',
+                        desc: 'Remboursement si perte totale',
+                        priceFcfa: stdFcfa,
+                        minLabel: 'min. 500 FCFA',
+                      },
+                      {
+                        id: 'premium' as const,
+                        label: 'Premium',
+                        rate: '1 % de la valeur déclarée',
+                        desc: 'Remboursement perte + dommages',
+                        priceFcfa: premFcfa,
+                        minLabel: 'min. 1 000 FCFA',
+                      },
+                    ].map((opt) => {
+                      const active = insurance === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setInsurance(opt.id)}
+                          aria-pressed={active}
+                          className="w-full text-left rounded-xl border-2 px-4 py-3.5 transition-all flex items-start justify-between gap-3"
+                          style={{
+                            borderColor: active ? '#F5C518' : 'hsl(var(--border))',
+                            background: active ? 'rgba(245,197,24,0.08)' : 'hsl(var(--card))',
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                              {active && <CheckCircle2 className="w-4 h-4" style={{ color: '#F5C518' }} />}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{opt.rate}</p>
+                            <p className="text-xs text-foreground/80 mt-1">{opt.desc}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold tabular-nums text-foreground">
+                              + {new Intl.NumberFormat('fr-FR').format(opt.priceFcfa)} FCFA
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{opt.minLabel}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <StepContinueBar enabled={true} onContinue={() => advanceFromStep(6)} />
         </FlowSection>
         )
       )}
+
+
 
       {/* ─── Step 7 — Coordonnées + paiement + récapitulatif ─── */}
       {routeOk && stepIsFuture(7) ? (
@@ -1996,6 +2091,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   >
                     <span style={{ color: active ? '#F5C518' : 'hsl(var(--foreground))' }}>{m.icon}</span>
                     <span className="text-xs font-semibold">{m.label}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground">{m.sub}</span>
                     {active && (
                       <span className="text-[10px] font-medium" style={{ color: '#F5C518' }}>Sélectionné</span>
                     )}
@@ -2105,6 +2201,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           defaultPhone={senderPhone || recipientPhone}
         />
       )}
+
+      {/* Modale interstitielle — auth Google/Apple sans redirect brutal */}
+      <AuthInterstitialModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        resumePath="/expedier/envoyer"
+      />
     </FlowShell>
   );
 }
