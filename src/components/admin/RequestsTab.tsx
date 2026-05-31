@@ -20,7 +20,7 @@ import {
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
-import { QuickAssignGpDialog } from './dossiers/QuickAssignGpDialog';
+import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 
@@ -112,7 +112,7 @@ export function RequestsTab() {
     },
   });
 
-  const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null } | null>(null);
+  const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
 
 
 
@@ -353,7 +353,12 @@ export function RequestsTab() {
                     <GpAssignBadge
                       transporteurRef={(d as any).assigned_transporteur_ref}
                       onAssignClick={() =>
-                        setQuickAssign({ id: d.id, destCountry: d.destination_country })
+                        setQuickAssign({
+                          id: d.id,
+                          destCountry: d.destination_country,
+                          destCity: (d as any).destination_city ?? null,
+                          weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
+                        })
                       }
                     />
                   </div>
@@ -446,11 +451,13 @@ export function RequestsTab() {
       )}
 
       {quickAssign && (
-        <QuickAssignGpDialog
+        <AssignDepartureDialog
           open={!!quickAssign}
           onOpenChange={(v) => { if (!v) setQuickAssign(null); }}
           dossierId={quickAssign.id}
           destinationCountry={quickAssign.destCountry}
+          destinationCity={quickAssign.destCity}
+          weightKg={quickAssign.weight}
         />
       )}
     </div>

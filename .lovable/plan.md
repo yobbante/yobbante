@@ -1,65 +1,63 @@
-# Espace client /app — refonte intelligente
+## Objectif
 
-Cette demande touche des zones déjà fonctionnelles (HomeView, BottomNav 5 onglets, OrdersView, DossierDetail). Avant de tout casser, voici comment je propose de l'implémenter en cohabitation avec l'existant.
+Remplacer l'assignation « GP seul » par une assignation **GP + Départ**. Chaque dossier sera lié à un `manual_departures.id` réel, avec vérification de capacité, mise à jour des kg réservés, blocage du passage en transit sans départ, et notification GP enrichie.
 
-## Décisions structurantes (à valider rapidement)
+## Changements DB (migration unique)
 
-1. **Remplacer l'onglet `home` actuel** par la nouvelle vue "Espace client" (Bonjour + Mes expéditions en cours + Historique + Actions rapides). L'ancien HomeView (KPI rail + ActionBar) est archivé.
-2. **Garder la BottomNav existante à 5 onglets** mais la simplifier sur cette tâche : `Accueil · Colis · Historique · Contact` est demandé mais entre en conflit avec Envois/Réceptions/Sourcing/Profil déjà utilisés. **Proposition** : on garde la nav 5-onglets actuelle (qui marche partout), et la section "Historique" + "Contact" vivent à l'intérieur de la nouvelle home. Sinon dis-moi et je remplace.
-3. **`/app/dossier/:id`** existe déjà (DossierDetail, 395 lignes, version admin+client). Je le **garde** et j'ajoute juste les manques (section livraison partner_pickup avec adresse en clair, bouton "Payer maintenant" mieux mis en avant). Pas de réécriture complète.
+1. **Trigger `enforce_departure_before_transit`** sur `dossiers` : empêche `status → IN_TRANSIT` si `assigned_departure_id IS NULL`.
+2. **Fonction `assign_dossier_to_departure(p_dossier_id, p_departure_id, p_transporteur_ref)`** (SECURITY DEFINER, staff only) :
+   - Vérifie que le départ existe et n'est pas annulé/complet.
+   - UPDATE `dossiers` : `assigned_departure_id`, `assigned_transporteur_ref`, `estimated_departure_date = departure.departure_date`, bump status à `ASSIGNED` si encore en amont.
+   - UPDATE `manual_departures` : recalcule `available_capacity_kg` = `total - reserved` (incrémente `reserved_capacity_kg` du poids du dossier, en libérant l'ancien départ s'il existait).
+3. **Fonction `release_dossier_departure(p_dossier_id)`** : libère la réservation côté départ et nettoie le dossier (pour « Détacher » / « Changer »).
 
-## Plan d'implémentation
+## Front-end
 
-### 1. Redirection intelligente (PARTIE 1)
-- Nouveau hook `useHasDossiers` existe déjà → l'utiliser.
-- Modifier `LandingPage` : si connecté + a des dossiers → bannière sticky top "Suivre mes commandes →" linkant /app.
-- Modifier `Auth.tsx` : après login, si `has_dossiers` → redirect `/app`, sinon `/`.
-- `homeHref.ts` : retourne `/app` si connecté+dossiers, sinon `/`.
+### Nouveau composant `AssignDepartureDialog.tsx` (3 étapes)
 
-### 2. Nouvelle home `/app` (PARTIES 2-5, 8, 9)
-- Créer `src/pages/ClientSpaceView.tsx` (remplace HomeView dans Index quand `view=home`).
-- Header : "Bonjour {prenom} 👋" + sous-texte + bouton "+ Nouvelle expédition" → `/expedier`.
-- Section **Mes expéditions en cours** :
-  - Filtre `status NOT IN ('DELIVERED','ARCHIVED','CANCELLED')` triés DESC.
-  - Nouveau composant `ClientDossierCard` (différent de DossierCard actuel) avec : pill statut coloré, ref, route, poids, mode, mini-timeline 5 dots, ETA, boutons [Suivre] et [Payer] conditionnel.
-  - Bordure orange + CTA "Payer maintenant" si `payment_status='pending'` ET status >= WEIGHED.
-  - Bandeau vert "Colis arrivé — récupérez chez notre partenaire" si `delivery_mode='partner_pickup'` ET `status='ARRIVED_HUB'`.
-- Section **Historique** : 5 derniers `DELIVERED`/`ARCHIVED`, card simplifiée + lien "Voir tout".
-- Section **Actions rapides** : 3 boutons (Nouveau colis, Mes paiements, Mes factures).
-- Empty state si zéro dossier : illustration + CTA "Envoyer mon premier colis".
-- FAB "+" flottant mobile en bas droite.
+- **Étape 1 — GP** : Liste filtrée par destination (réutilise `TransporteurReferenceLookup` ou requête `transporteurs` servant la destination via `transporteur_serves_city`). Colonnes : nom, destinations, date du prochain départ (mini-aperçu via subquery sur `manual_departures`).
+- **Étape 2 — Départ** : `SELECT * FROM manual_departures WHERE transporteur_ref = ? AND departure_date >= now() AND status IN ('active','draft','ready','published') AND (destination_city ILIKE %dest% OR destination_country = ?) ORDER BY departure_date`. Pour chaque ligne : date, route, kg dispo, nb colis déjà assignés (count sur `dossiers.assigned_departure_id`). Si aucun → message orange + bouton « + Créer un départ » (pré-remplit le formulaire existant via un drawer, pré-rempli avec GP+destination).
+- **Étape 3 — Confirmation** : résumé GP / départ / capacité après. Warning orange non bloquant si poids > capacité restante. Bouton « Confirmer » → appelle la RPC `assign_dossier_to_departure`, puis re-déclenche l'envoi WhatsApp via `assignGpAndNotify` (modifié pour accepter un `departureId` et inclure date/route dans le message).
 
-### 3. Realtime (PARTIE 6)
-- Hook `useDossiersRealtime` : `supabase.channel().on('postgres_changes', { table: 'dossiers', filter: 'user_id=eq.{uid}' })` → invalide la query react-query + toast sonner "Votre colis YOB-XXXX est maintenant {statut}".
+### Mise à jour `assignGpAndNotify.ts`
 
-### 4. Page détail (PARTIE 7) — patch ciblé sur DossierDetail.tsx
-- Ajouter bloc "Mode de livraison" affichant `relay_point_address` ou adresse partenaire quand `partner_pickup` + ARRIVED_HUB.
-- S'assurer que le CTA "Payer" pending est bien visible orange.
-- Bouton "Contacter le support" → `wa.me/221786078080`.
+- Nouvelle signature : `{ dossierId, transporteurRef, departureId? }`.
+- Si `departureId` fourni → appel RPC `assign_dossier_to_departure` au lieu du UPDATE direct.
+- Le template WhatsApp GP intègre : route, date du départ, poids, nb total colis sur ce départ, total kg réservés sur ce départ.
 
-### 5. Sécurité (PARTIE 10)
-- RLS déjà en place sur `dossiers` (policy "Users can view own dossiers"). Rien à migrer.
-- Index.tsx redirige déjà vers /auth si pas de session — OK.
+### `TransportTab` (AdminDossierSheet)
+
+- Ajout d'une carte « Départ assigné » avec ✈ route + date + GP + ref du départ + capacité restante.
+- Bouton « Changer le départ » → réouvre le dialog directement à l'étape 2.
+- Si pas de départ mais GP assigné : badge orange « Aucun départ — assignez-en un ».
+
+### `RequestsTab`
+
+- Le bouton « Attribuer un GP » ouvre maintenant `AssignDepartureDialog` (en remplacement de `QuickAssignGpDialog` que l'on garde pour rétro-compat mais qui n'est plus monté).
+
+### Vue `/admin/departs` (DeparturesWeekPage)
+
+- Pour chaque départ : section « Colis assignés » (liste tracking + poids + statut depuis `dossiers WHERE assigned_departure_id = …`) + `CapacityBar` `reserved/total`.
+
+## Contraintes respectées
+
+- `assigned_departure_id` obligatoire avant `IN_TRANSIT` (trigger DB).
+- Warning capacité non bloquant (front uniquement).
+- Filtre départs par destination du dossier.
+- Notification GP enrichie avec infos départ.
+- Design Yobbanté dark + `#F5C518`, mobile-first, FR.
 
 ## Fichiers touchés
 
-**Créés**
-- `src/pages/ClientSpaceView.tsx`
-- `src/components/client/ClientDossierCard.tsx`
-- `src/components/client/StatusPill.tsx`
-- `src/components/client/MiniTimeline.tsx`
-- `src/hooks/useDossiersRealtime.ts`
+- **Nouveau** : `src/components/admin/dossiers/AssignDepartureDialog.tsx`
+- **Migration** : trigger `enforce_departure_before_transit` + RPC `assign_dossier_to_departure` / `release_dossier_departure`
+- **Modifiés** :
+  - `src/lib/assignGpAndNotify.ts` (signature + message enrichi)
+  - `src/components/admin/RequestsTab.tsx` (utilise le nouveau dialog)
+  - `src/components/admin/dossier-sheet/AdminDossierSheet.tsx` (TransportTab : carte départ + changer)
+  - `src/pages/admin/DeparturesWeekPage.tsx` (liste colis + barre capacité)
 
-**Modifiés**
-- `src/pages/Index.tsx` (utiliser ClientSpaceView au lieu de HomeView quand view=home)
-- `src/pages/Auth.tsx` (redirect post-login intelligent)
-- `src/pages/LandingPage.tsx` (bannière sticky)
-- `src/pages/DossierDetail.tsx` (bloc livraison partner + CTA payer + support)
-- `src/lib/homeHref.ts` (logique /app vs /)
+## Hors scope (à confirmer)
 
-## Questions
-
-1. **BottomNav** : je garde les 5 onglets actuels (Accueil/Envois/Réceptions/Sourcing/Profil) OU je passe à 4 (Accueil/Colis/Historique/Contact) comme demandé ? Le 4-onglets casse Envois/Réceptions/Sourcing existants.
-2. **HomeView actuel** : je le remplace complètement par ClientSpaceView, ou je le garde accessible quelque part ?
-
-Sans réponse je pars sur : **garder 5 onglets, remplacer HomeView par ClientSpaceView**.
+- Pas de refonte des templates côté `_wa_send_via_function` SQL.
+- Pas de modification de l'attribution depuis le bot GP.

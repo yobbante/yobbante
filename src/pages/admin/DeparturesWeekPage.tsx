@@ -16,6 +16,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSeo } from '@/hooks/useSeo';
 import { WeekExportTemplate } from '@/components/admin/inbox/WeekExportTemplate';
 import { DepartureDetailDrawer } from '@/components/admin/inbox/DepartureDetailDrawer';
+import { CapacityBar } from '@/components/ui/capacity-bar';
+import { useQuery } from '@tanstack/react-query';
+import { Package } from 'lucide-react';
 
 const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
@@ -249,6 +252,8 @@ export default function DeparturesWeekPage() {
                 {deps.map(d => {
                   const remaining = d.available_capacity_kg;
                   const total = d.total_capacity_kg;
+                  const used = Math.max(0, total - remaining);
+                  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
                   const pub = PUB_BADGE[d.publication_status ?? 'draft'];
                   return (
                     <button
@@ -266,12 +271,14 @@ export default function DeparturesWeekPage() {
                           <div className="text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                         <span>{d.carrier_name ?? '—'}</span>
                         <span>·</span>
-                        <span>{remaining}kg / {total}kg dispo</span>
+                        <span>{used}kg / {total}kg</span>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
+                      <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
+                      <AssignedDossiersList departureId={d.id} />
+                      <div className="flex items-center justify-between gap-2 mt-3">
                         <Badge variant={pub.variant}>{pub.label}</Badge>
                         {(d.publication_status ?? 'draft') !== 'published' && (
                           <span
@@ -300,6 +307,47 @@ export default function DeparturesWeekPage() {
       )}
 
       <DepartureDetailDrawer departure={selected} onClose={() => setSelected(null)} />
+    </div>
+  );
+}
+
+function AssignedDossiersList({ departureId }: { departureId: string }) {
+  const { data } = useQuery({
+    queryKey: ['departure-dossiers', departureId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('dossiers')
+        .select('id, tracking_id, reference, status, actual_weight_kg, estimated_weight')
+        .eq('assigned_departure_id', departureId)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    },
+  });
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-[11px] text-muted-foreground italic">
+        Aucun colis assigné à ce départ
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+        <Package className="w-3 h-3" /> {data.length} colis assigné{data.length > 1 ? 's' : ''}
+      </div>
+      <ul className="space-y-0.5 max-h-24 overflow-y-auto">
+        {data.slice(0, 6).map((d) => (
+          <li key={d.id} className="text-[11px] text-foreground/80 font-mono flex items-center justify-between gap-2">
+            <span className="truncate">{d.tracking_id ?? d.reference}</span>
+            <span className="text-muted-foreground tabular-nums">
+              {d.actual_weight_kg ?? d.estimated_weight ?? '—'}kg
+            </span>
+          </li>
+        ))}
+        {data.length > 6 && (
+          <li className="text-[10px] text-muted-foreground italic">+{data.length - 6} autres</li>
+        )}
+      </ul>
     </div>
   );
 }

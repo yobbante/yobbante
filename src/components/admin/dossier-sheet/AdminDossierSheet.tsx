@@ -32,7 +32,8 @@ import { WeighingDialog, type WeighingDossier } from '@/components/admin/Weighin
 import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
 import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
-import { assignTransporteurAndNotify } from '@/lib/assignGpAndNotify';
+import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assignGpAndNotify';
+import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 
@@ -561,81 +562,132 @@ function ClientNotesPanel({ parsed, raw }: { parsed: ParsedClientNotes; raw?: st
 
 function TransportTab({ dossier }: { dossier: DossierRow }) {
   const qc = useQueryClient();
-  const [ref, setRef] = useState(dossier.assigned_transporteur_ref ?? '');
-  const [matched, setMatched] = useState<any>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignStep, setAssignStep] = useState<1 | 2>(1);
 
-  useEffect(() => {
-    setRef(dossier.assigned_transporteur_ref ?? '');
-  }, [dossier.id, dossier.assigned_transporteur_ref]);
+  const currentRef = dossier.assigned_transporteur_ref as string | null;
+  const departureId = dossier.assigned_departure_id as string | null;
 
-  const assign = useMutation({
-    mutationFn: async (newRef: string | null) => {
-      if (!newRef) {
-        const { error } = await supabase
-          .from('dossiers')
-          .update({ assigned_transporteur_ref: null })
-          .eq('id', dossier.id);
-        if (error) throw error;
-        return;
-      }
-      const res = await assignTransporteurAndNotify({
-        dossierId: dossier.id,
-        transporteurRef: newRef,
-      });
-      if (!res.ok) throw new Error('Echec');
+  const { data: dep } = useQuery({
+    queryKey: ['dossier-departure', departureId],
+    enabled: !!departureId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('manual_departures')
+        .select('id, origin_city, destination_city, departure_date, short_ref, total_capacity_kg, available_capacity_kg, transporteur_ref')
+        .eq('id', departureId!)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const detach = useMutation({
+    mutationFn: async () => {
+      await releaseDossierDeparture(dossier.id);
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ assigned_transporteur_ref: null })
+        .eq('id', dossier.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
+      qc.invalidateQueries({ queryKey: ['manual_departures'] });
+      toast.success('GP et départ détachés');
     },
     onError: (e: any) => toast.error(e?.message || 'Échec'),
   });
 
-  const currentRef = dossier.assigned_transporteur_ref;
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div className="space-y-6">
-      {currentRef ? (
-        <div className="rounded-lg border border-border p-4 space-y-3">
+      {currentRef && dep ? (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-primary" />
-            <div className="font-medium text-sm">Transporteur assigné</div>
-            <Badge variant="secondary" className="ml-auto font-mono">{currentRef}</Badge>
+            <Truck className="w-4 h-4 text-[#F5C518]" />
+            <div className="font-medium text-sm">Départ assigné</div>
+            <Badge variant="outline" className="ml-auto font-mono text-[10px]">
+              #{dep.short_ref ?? '----'}
+            </Badge>
+          </div>
+          <div className="text-sm space-y-1">
+            <div className="flex items-center gap-2 font-medium text-foreground">
+              ✈ {dep.origin_city} → {dep.destination_city}
+            </div>
+            <div className="text-xs text-muted-foreground">Date : {fmtDate(dep.departure_date)}</div>
+            <div className="text-xs text-muted-foreground">
+              Capacité restante : <span className="text-foreground font-medium">{dep.available_capacity_kg}kg</span> / {dep.total_capacity_kg}kg
+            </div>
           </div>
           <CurrentTransporteurInfo ref_={currentRef} />
           <NotifyGpButton dossier={dossier} transporteurRef={currentRef} />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={() => { setAssignStep(2); setAssignOpen(true); }}
+            >
+              Changer le départ
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-muted-foreground"
+              onClick={() => detach.mutate()}
+              disabled={detach.isPending}
+            >
+              Détacher
+            </Button>
+          </div>
+        </div>
+      ) : currentRef ? (
+        <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Truck className="w-4 h-4 text-orange-300" />
+            <div className="font-medium text-sm text-orange-100">GP assigné — aucun départ</div>
+            <Badge variant="outline" className="ml-auto font-mono text-[10px]">#{currentRef}</Badge>
+          </div>
+          <p className="text-xs text-orange-200/80">
+            Assignez un départ pour permettre la mise en transit du dossier.
+          </p>
           <Button
             size="sm"
-            variant="outline"
-            onClick={() => { setRef(''); assign.mutate(null); }}
-            disabled={assign.isPending}
-            className="text-xs"
+            className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
+            onClick={() => { setAssignStep(2); setAssignOpen(true); }}
           >
-            Détacher
+            Choisir un départ
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            Saisis la référence à 4 chiffres du transporteur (GP) à qui confier ce dossier.
+            Aucun GP assigné. Choisissez un transporteur et un départ.
           </div>
-          <TransporteurReferenceLookup
-            value={ref}
-            onChange={setRef}
-            onMatch={setMatched}
-            destinationCity={(dossier as any).destination_city ?? null}
-            destinationCountry={dossier.destination_country ?? null}
-          />
           <Button
             size="sm"
-            onClick={() => assign.mutate(ref)}
-            disabled={ref.length !== 4 || assign.isPending}
+            onClick={() => { setAssignStep(1); setAssignOpen(true); }}
+            className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
           >
-            {assign.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Truck className="w-3.5 h-3.5 mr-1" />}
-            Assigner
+            <Truck className="w-3.5 h-3.5 mr-1.5" />
+            Attribuer un GP et un départ
           </Button>
         </div>
       )}
+
+      <AssignDepartureDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        dossierId={dossier.id}
+        destinationCity={(dossier as any).destination_city ?? null}
+        destinationCountry={dossier.destination_country ?? null}
+        weightKg={dossier.actual_weight_kg ?? dossier.estimated_weight ?? null}
+        initialTransporteurRef={assignStep === 2 ? currentRef : null}
+        initialStep={assignStep}
+      />
 
       <PricingBreakdownPanel
         gpRatePerKg={(dossier as any).gp_rate_per_kg}
@@ -653,7 +705,6 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
       />
     </div>
   );
-
 }
 
 

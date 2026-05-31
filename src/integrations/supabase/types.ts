@@ -3350,6 +3350,14 @@ export type Database = {
         Args: { p_payload: Json; p_token: string }
         Returns: Json
       }
+      assign_dossier_to_departure: {
+        Args: {
+          p_departure_id: string
+          p_dossier_id: string
+          p_transporteur_ref: string
+        }
+        Returns: Json
+      }
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       auto_progress_departures: { Args: never; Returns: number }
       calculate_dossier_pricing: {
@@ -3509,6 +3517,10 @@ export type Database = {
       recompute_departure_reserved_capacity: {
         Args: { p_departure_id: string }
         Returns: undefined
+      }
+      release_dossier_departure: {
+        Args: { p_dossier_id: string }
+        Returns: Json
       }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
