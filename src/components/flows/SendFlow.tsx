@@ -421,7 +421,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const transportPriceEur = chosen
     ? rawTransportEur
     : Math.round(rawTransportEur * priceVolatilityCoeff);
-  const insuranceCostEur = insurance === 'standard' ? 3 : insurance === 'premium' ? 5 : 0;
+  // Coût d'assurance basé sur la valeur déclarée (en FCFA) :
+  //  - Standard : 0,5 % avec minimum 500 FCFA
+  //  - Premium  : 1 %   avec minimum 1 000 FCFA
+  const declaredFcfaForInsurance = Math.max(0, Math.round(((declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0)) * 655));
+  const insuranceCostFcfa = insurance === 'standard'
+    ? Math.max(Math.round(declaredFcfaForInsurance * 0.005), 500)
+    : insurance === 'premium'
+      ? Math.max(Math.round(declaredFcfaForInsurance * 0.01), 1000)
+      : 0;
+  const insuranceCostEur = Math.round(insuranceCostFcfa / 655);
   const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
 
   // ── Surcoût enlèvement / livraison à Dakar (zone-based, only when one side is Dakar)
