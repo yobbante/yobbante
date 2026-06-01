@@ -837,6 +837,28 @@ export function MessagesTab() {
                 )}
               </div>
 
+              {/* Multi-dossier picker (when several active dossiers found) */}
+              {!linkedDossier && availableDossiers.length > 1 && (
+                <div className="px-4 py-2 border-b border-border bg-card/40 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground">
+                    Plusieurs dossiers actifs trouvés. Choisissez celui à lier à la conversation :
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableDossiers.slice(0, 6).map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => linkDossierToConv(d)}
+                        className="text-[11px] px-2.5 py-1.5 rounded-md border border-border hover:border-[#F5C518] hover:bg-muted/50 transition-colors text-left"
+                      >
+                        <span className="font-semibold text-foreground">{d.tracking_id || d.reference}</span>
+                        <span className="text-muted-foreground"> · {d.origin_country} → {d.destination_country}</span>
+                        <Badge variant="outline" className="ml-1 h-3.5 text-[9px]">{d.status}</Badge>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
                 {thread.map((t) => {
