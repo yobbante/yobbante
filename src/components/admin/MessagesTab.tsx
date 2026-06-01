@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
+import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/whatsappTemplateHelpers';
 import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
+import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
 
 interface LinkedDossier {
@@ -159,6 +161,8 @@ export function MessagesTab() {
   const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
   const [availableDossiers, setAvailableDossiers] = useState<LinkableDossier[]>([]);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [newMsgOpen, setNewMsgOpen] = useState(false);
+  const [clientFreeText, setClientFreeText] = useState('');
   const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
@@ -513,23 +517,52 @@ export function MessagesTab() {
 
   // ---------- Auto-fill client template params from linked dossier ----------
   useEffect(() => {
-    if (!linkedDossier || !activeConv || activeConv.channel !== 'client') return;
+    if (!activeConv || activeConv.channel !== 'client') return;
     const tpl = getTemplate(templateKey);
-    const map: Record<string, string> = {
-      client_name: linkedDossier.buyer_name || linkedDossier.recipient_name || activeConv.name || '',
-      tracking_id: linkedDossier.tracking_id || linkedDossier.reference || '',
-      destination: linkedDossier.destination_country || '',
-      origin: linkedDossier.origin_country || '',
-      amount: linkedDossier.final_amount_xof ? `${linkedDossier.final_amount_xof} FCFA` : '',
-      eta: linkedDossier.estimated_delivery_date || '',
-      departure_date: linkedDossier.estimated_delivery_date || '',
-      review_link: linkedDossier.tracking_id ? `https://yobbante.com/avis/${linkedDossier.tracking_id}` : '',
-      payment_link: linkedDossier.tracking_id ? `https://yobbante.com/payer/${linkedDossier.tracking_id}` : '',
-    };
+    const map = buildAutoFill(linkedDossier as any);
+    // Inject client_name fallback to the conversation contact name
+    if (!map.client_name && activeConv.name) map.client_name = activeConv.name;
+    if (!map.prenom && activeConv.name) map.prenom = activeConv.name.split(' ')[0] || '';
     const next: Record<string, string> = {};
     tpl.params.forEach((p) => { if (map[p]) next[p] = map[p]; });
-    setParams((prev) => ({ ...next, ...prev }));
+    // Reset (don't preserve previous template's residual values)
+    setParams(next);
   }, [linkedDossier, templateKey, activeConv]);
+
+  // ---------- WhatsApp 24h window status for active conversation ----------
+  const lastInboundAt = useMemo(() => {
+    if (!openPhone) return null;
+    const msgs = inbound.filter((m) => m.from_phone === openPhone);
+    if (msgs.length === 0) return null;
+    return msgs.reduce((a, b) => (a.received_at > b.received_at ? a : b)).received_at;
+  }, [openPhone, inbound]);
+  const windowStatus = useMemo(() => computeWindowStatus(lastInboundAt), [lastInboundAt]);
+
+  async function sendClientFree() {
+    if (!openPhone || !clientFreeText.trim()) return;
+    if (windowStatus !== 'open') {
+      toast.error('Fenêtre WhatsApp fermée — utilisez un template.');
+      return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: openPhone,
+          recipient_type: 'client',
+          message: clientFreeText.trim(),
+          trigger_type: 'admin_free_text_client',
+        },
+      });
+      if (error) throw error;
+      toast.success('Message envoyé');
+      setClientFreeText('');
+    } catch (e) {
+      toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSending(false);
+    }
+  }
 
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
@@ -599,16 +632,25 @@ export function MessagesTab() {
           </h1>
           <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 122</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => loadMessages().then(() => toast.success('Messagerie rechargée'))}
-          disabled={reloading}
-          className="h-8 text-xs gap-1.5"
-        >
-          <RefreshCcw className={cn('w-3.5 h-3.5', reloading && 'animate-spin')} />
-          Recharger
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setNewMsgOpen(true)}
+            className="h-8 text-xs gap-1.5 bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90"
+          >
+            <Plus className="w-3.5 h-3.5" /> Nouveau message
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadMessages().then(() => toast.success('Messagerie rechargée'))}
+            disabled={reloading}
+            className="h-8 text-xs gap-1.5"
+          >
+            <RefreshCcw className={cn('w-3.5 h-3.5', reloading && 'animate-spin')} />
+            Recharger
+          </Button>
+        </div>
       </header>
 
 
@@ -731,9 +773,26 @@ export function MessagesTab() {
                     <div className="text-[10px] text-muted-foreground">{activeConv.phone}</div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleMarkHandled} className="text-xs">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Traité
-                </Button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {activeConv.channel === 'client' && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'h-5 text-[9px] gap-1 hidden sm:inline-flex',
+                        windowStatus === 'open' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                        windowStatus === 'closed' && 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+                        windowStatus === 'unknown' && 'bg-muted text-muted-foreground border-border',
+                      )}
+                    >
+                      {windowStatus === 'open' && <><Unlock className="w-2.5 h-2.5" />Fenêtre ouverte</>}
+                      {windowStatus === 'closed' && <><Lock className="w-2.5 h-2.5" />Fenêtre fermée</>}
+                      {windowStatus === 'unknown' && <><Clock className="w-2.5 h-2.5" />Nouveau contact</>}
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={handleMarkHandled} className="text-xs">
+                    <CheckCheck className="w-3.5 h-3.5 mr-1" /> Traité
+                  </Button>
+                </div>
               </header>
 
               {/* Linked dossier card */}
@@ -777,6 +836,28 @@ export function MessagesTab() {
                   </>
                 )}
               </div>
+
+              {/* Multi-dossier picker (when several active dossiers found) */}
+              {!linkedDossier && availableDossiers.length > 1 && (
+                <div className="px-4 py-2 border-b border-border bg-card/40 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground">
+                    Plusieurs dossiers actifs trouvés. Choisissez celui à lier à la conversation :
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableDossiers.slice(0, 6).map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => linkDossierToConv(d)}
+                        className="text-[11px] px-2.5 py-1.5 rounded-md border border-border hover:border-[#F5C518] hover:bg-muted/50 transition-colors text-left"
+                      >
+                        <span className="font-semibold text-foreground">{d.tracking_id || d.reference}</span>
+                        <span className="text-muted-foreground"> · {d.origin_country} → {d.destination_country}</span>
+                        <Badge variant="outline" className="ml-1 h-3.5 text-[9px]">{d.status}</Badge>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
@@ -832,32 +913,94 @@ export function MessagesTab() {
 
               {/* Composer */}
               {activeConv.channel === 'client' ? (
-                <div className="border-t border-border p-3 space-y-2 bg-card">
-                  <select
-                    value={templateKey}
-                    onChange={(e) => { setTemplateKey(e.target.value as WaTemplateKey); setParams({}); }}
-                    className="w-full text-xs bg-background border border-border rounded-md px-2 py-1.5 text-foreground"
-                  >
-                    {WA_TEMPLATES_CLIENT.map((t) => (
-                      <option key={t.key} value={t.key}>{t.label}</option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
-                    {tpl.params.map((p) => (
-                      <Input
-                        key={p}
-                        value={params[p] || ''}
-                        onChange={(e) => setParams((prev) => ({ ...prev, [p]: e.target.value }))}
-                        placeholder={p}
-                        className="h-8 text-xs"
-                      />
-                    ))}
+                <div className="border-t border-border bg-card">
+                  {/* Free text composer (24h window) */}
+                  <div className="p-3 border-b border-border/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Message libre
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'h-4 text-[9px] gap-1',
+                          windowStatus === 'open' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                          windowStatus === 'closed' && 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+                          windowStatus === 'unknown' && 'bg-muted text-muted-foreground border-border',
+                        )}
+                      >
+                        {windowStatus === 'open' && 'Fenêtre ouverte (< 24h)'}
+                        {windowStatus === 'closed' && 'Fenêtre fermée — templates uniquement'}
+                        {windowStatus === 'unknown' && 'Nouveau contact — templates uniquement'}
+                      </Badge>
+                    </div>
+                    {windowStatus === 'open' ? (
+                      <>
+                        <Textarea
+                          value={clientFreeText}
+                          onChange={(e) => setClientFreeText(e.target.value)}
+                          placeholder="Écrire un message..."
+                          rows={2}
+                          className="text-xs resize-none"
+                        />
+                        <div className="flex justify-end">
+                          <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                            {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                            Envoyer
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-orange-400/90 italic">
+                        Le client n'a pas écrit dans les dernières 24h. Utilisez un template ci-dessous.
+                      </p>
+                    )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground bg-muted/30 rounded p-2 whitespace-pre-wrap font-mono">{previewBody}</div>
-                  <Button onClick={handleSend} disabled={sending} size="sm" className="w-full">
-                    {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                    Envoyer
-                  </Button>
+
+                  {/* Templates (categorized) */}
+                  <div className="p-3 space-y-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                      Template approuvé
+                    </span>
+                    <select
+                      value={templateKey}
+                      onChange={(e) => setTemplateKey(e.target.value as WaTemplateKey)}
+                      className="w-full text-xs bg-background border border-border rounded-md px-2 py-1.5 text-foreground"
+                    >
+                      {TEMPLATE_CATEGORIES.map((cat) => (
+                        <optgroup key={cat.label} label={cat.label}>
+                          {cat.keys.map((k) => {
+                            const t = WA_TEMPLATES_CLIENT.find((x) => x.key === k);
+                            if (!t) return null;
+                            return <option key={k} value={k}>{t.label}</option>;
+                          })}
+                        </optgroup>
+                      ))}
+                    </select>
+                    {!linkedDossier && (
+                      <p className="text-[10px] text-orange-400/80 italic">
+                        Aucun dossier lié — les champs ne seront pas pré-remplis automatiquement.
+                      </p>
+                    )}
+                    {tpl.params.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {tpl.params.map((p) => (
+                          <Input
+                            key={p}
+                            value={params[p] || ''}
+                            onChange={(e) => setParams((prev) => ({ ...prev, [p]: e.target.value }))}
+                            placeholder={p}
+                            className="h-8 text-xs"
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-muted-foreground bg-muted/30 rounded p-2 whitespace-pre-wrap font-mono max-h-28 overflow-y-auto">{previewBody}</div>
+                    <Button onClick={handleSend} disabled={sending} size="sm" className="w-full">
+                      {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                      Envoyer template
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="border-t border-border bg-card">
@@ -944,6 +1087,7 @@ export function MessagesTab() {
         phone={openPhone}
         onPick={(d) => linkDossierToConv(d)}
       />
+      <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
     </div>
   );
 }
