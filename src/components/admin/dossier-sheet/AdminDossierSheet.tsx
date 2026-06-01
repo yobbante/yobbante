@@ -342,7 +342,86 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
   );
 }
 
+/* ---------------- Departure summary banner ---------------- */
+
+function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
+  const departureId = (dossier as any).assigned_departure_id as string | null;
+  const decision = (dossier as any).client_departure_decision as string | undefined;
+
+  const { data: dep } = useQuery({
+    queryKey: ['dossier-apercu-departure', departureId],
+    enabled: !!departureId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('manual_departures')
+        .select('id, origin_city, destination_city, departure_date, short_ref')
+        .eq('id', departureId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (!departureId) {
+    return (
+      <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+        <div className="space-y-0.5">
+          <div className="text-sm font-semibold text-red-500">Aucune date de départ assignée</div>
+          <div className="text-xs text-red-400/90">
+            Pensez à trouver et assigner un départ pour ce dossier (onglet Transport).
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const fmt = (d?: string | null) =>
+    d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+  const confirmed = decision === 'confirmed';
+  const reschedule = decision === 'reschedule_requested';
+  const cancelled = decision === 'cancelled';
+
+  const tone = cancelled
+    ? 'border-red-500/40 bg-red-500/10'
+    : reschedule
+    ? 'border-amber-500/40 bg-amber-500/10'
+    : confirmed
+    ? 'border-emerald-500/40 bg-emerald-500/10'
+    : 'border-[#F5C518]/40 bg-[#F5C518]/10';
+
+  const badge = cancelled
+    ? { text: 'Annulé par client', cls: 'bg-red-500/20 text-red-400 border-red-500/30' }
+    : reschedule
+    ? { text: 'Date plus proche demandée', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' }
+    : confirmed
+    ? { text: 'Confirmé & synchronisé', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
+    : { text: 'En attente confirmation client', cls: 'bg-[#F5C518]/20 text-[#F5C518] border-[#F5C518]/30' };
+
+  return (
+    <div className={`rounded-xl border p-3 flex items-start gap-3 ${tone}`}>
+      <Truck className="h-5 w-5 mt-0.5 shrink-0 text-foreground" />
+      <div className="flex-1 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-sm font-semibold">
+            Départ {dep?.short_ref ? `· ${dep.short_ref}` : ''}
+          </div>
+          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${badge.cls}`}>
+            {badge.text}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {dep?.origin_city ?? '?'} → {dep?.destination_city ?? '?'} ·{' '}
+          <span className="text-foreground font-medium">{fmt(dep?.departure_date)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Aperçu (editable) ---------------- */
+
 
 type ContactInfo = { name: string | null; phone: string | null; address: string | null };
 
