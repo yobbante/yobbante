@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { DepartureDetailDrawer } from '@/components/admin/inbox/DepartureDetailD
 import { CapacityBar } from '@/components/ui/capacity-bar';
 import { useQuery } from '@tanstack/react-query';
 import { Package } from 'lucide-react';
+import { WhatsAppImportDepartureDialog } from '@/components/admin/WhatsAppImportDepartureDialog';
 
 const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
@@ -57,7 +58,18 @@ export default function DeparturesWeekPage() {
   const [copied, setCopied] = useState(false);
   const [exportFormat, setExportFormat] = useState<'square' | 'story' | null>(null);
   const [selected, setSelected] = useState<ManualDeparture | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+
+  // Realtime — refetch on any change to manual_departures
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-departures-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'manual_departures' },
+        () => qc.invalidateQueries({ queryKey: ['manual_departures'] }))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
 
   const upcoming = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -181,6 +193,9 @@ export default function DeparturesWeekPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={() => setImportOpen(true)} variant="outline" className="gap-2">
+            <MessageSquarePlus className="w-4 h-4" /> Importer depuis WhatsApp
+          </Button>
           <Button onClick={copyWhatsApp} variant="outline" className="gap-2" disabled={upcoming.length === 0}>
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             Copier texte WhatsApp
@@ -275,6 +290,16 @@ export default function DeparturesWeekPage() {
                         <span>{d.carrier_name ?? '—'}</span>
                         <span>·</span>
                         <span>{used}kg / {total}kg</span>
+                        <span
+                          className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5"
+                          style={{
+                            background: remaining > 15 ? '#10b98122' : remaining >= 5 ? '#f59e0b22' : '#ef444422',
+                            color: remaining > 15 ? '#10b981' : remaining >= 5 ? '#f59e0b' : '#ef4444',
+                          }}
+                          title="Capacité restante"
+                        >
+                          {remaining}kg libre
+                        </span>
                       </div>
                       <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
                       <AssignedDossiersList departureId={d.id} />
@@ -307,6 +332,11 @@ export default function DeparturesWeekPage() {
       )}
 
       <DepartureDetailDrawer departure={selected} onClose={() => setSelected(null)} />
+      <WhatsAppImportDepartureDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onCreated={() => qc.invalidateQueries({ queryKey: ['manual_departures'] })}
+      />
     </div>
   );
 }
