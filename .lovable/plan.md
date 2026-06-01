@@ -1,63 +1,97 @@
-## Objectif
+# Système Départs GP Autonome
 
-Remplacer l'assignation « GP seul » par une assignation **GP + Départ**. Chaque dossier sera lié à un `manual_departures.id` réel, avec vérification de capacité, mise à jour des kg réservés, blocage du passage en transit sans départ, et notification GP enrichie.
+Objectif : permettre aux GP de déclarer eux-mêmes leurs départs via une URL personnelle sans login, avec rappels WhatsApp automatiques et dashboard admin temps réel.
 
-## Changements DB (migration unique)
+## 1. Base de données
 
-1. **Trigger `enforce_departure_before_transit`** sur `dossiers` : empêche `status → IN_TRANSIT` si `assigned_departure_id IS NULL`.
-2. **Fonction `assign_dossier_to_departure(p_dossier_id, p_departure_id, p_transporteur_ref)`** (SECURITY DEFINER, staff only) :
-   - Vérifie que le départ existe et n'est pas annulé/complet.
-   - UPDATE `dossiers` : `assigned_departure_id`, `assigned_transporteur_ref`, `estimated_departure_date = departure.departure_date`, bump status à `ASSIGNED` si encore en amont.
-   - UPDATE `manual_departures` : recalcule `available_capacity_kg` = `total - reserved` (incrémente `reserved_capacity_kg` du poids du dossier, en libérant l'ancien départ s'il existait).
-3. **Fonction `release_dossier_departure(p_dossier_id)`** : libère la réservation côté départ et nettoie le dossier (pour « Détacher » / « Changer »).
+**Migration** (`supabase/migrations/`)
+- `transporteurs` : ajouter `depart_url TEXT` (auto-généré à partir de `reference`).
+- `manual_departures` : ajouter `created_via TEXT` (`gp_self`, `admin`, `whatsapp_import`), `gp_reference TEXT`, `notified_admin_at TIMESTAMPTZ`, `reminder_48h_sent_at TIMESTAMPTZ`.
+- Index sur `manual_departures(transporteur_id, departure_date)`.
 
-## Front-end
+**RPC `gp_publish_departure(p_ref, p_destination, p_date, p_kg, p_phone)`** SECURITY DEFINER, pas de login requis :
+- Résout le transporteur via `reference`.
+- INSERT dans `manual_departures` avec `created_via='gp_self'`.
+- Trigger `_wa_send_via_function` pour notifier admin (+221784604003) et confirmer au GP depuis 122.
+- Retourne `{ ok, departure_id, transporteur_name }`.
 
-### Nouveau composant `AssignDepartureDialog.tsx` (3 étapes)
+**Trigger `trg_manual_departure_gp_notify`** sur INSERT `manual_departures` : si `created_via='gp_self'` → enqueue admin notification + WhatsApp GP (déjà géré dans la RPC, donc le trigger n'est qu'un fallback).
 
-- **Étape 1 — GP** : Liste filtrée par destination (réutilise `TransporteurReferenceLookup` ou requête `transporteurs` servant la destination via `transporteur_serves_city`). Colonnes : nom, destinations, date du prochain départ (mini-aperçu via subquery sur `manual_departures`).
-- **Étape 2 — Départ** : `SELECT * FROM manual_departures WHERE transporteur_ref = ? AND departure_date >= now() AND status IN ('active','draft','ready','published') AND (destination_city ILIKE %dest% OR destination_country = ?) ORDER BY departure_date`. Pour chaque ligne : date, route, kg dispo, nb colis déjà assignés (count sur `dossiers.assigned_departure_id`). Si aucun → message orange + bouton « + Créer un départ » (pré-remplit le formulaire existant via un drawer, pré-rempli avec GP+destination).
-- **Étape 3 — Confirmation** : résumé GP / départ / capacité après. Warning orange non bloquant si poids > capacité restante. Bouton « Confirmer » → appelle la RPC `assign_dossier_to_departure`, puis re-déclenche l'envoi WhatsApp via `assignGpAndNotify` (modifié pour accepter un `departureId` et inclure date/route dans le message).
+**RPC `gp_get_context(p_ref)`** : retourne `{ prenom, telephone, destinations_servies }` pour pré-remplir la page publique.
 
-### Mise à jour `assignGpAndNotify.ts`
+**Backfill** : `UPDATE transporteurs SET depart_url = 'https://yobbante.com/gp/depart/' || reference WHERE depart_url IS NULL`.
 
-- Nouvelle signature : `{ dossierId, transporteurRef, departureId? }`.
-- Si `departureId` fourni → appel RPC `assign_dossier_to_departure` au lieu du UPDATE direct.
-- Le template WhatsApp GP intègre : route, date du départ, poids, nb total colis sur ce départ, total kg réservés sur ce départ.
+## 2. Page publique GP (sans login)
 
-### `TransportTab` (AdminDossierSheet)
+`src/pages/gp/GpDepartPage.tsx` — route `/gp/depart/:ref`
+- Mobile-first, dark + #F5C518.
+- Appelle `gp_get_context(ref)` au mount pour récupérer prénom + téléphone.
+- 4 champs : destination (Select villes catalogue), date (shadcn DatePicker, min=aujourd'hui), kilos (Input number), contact WhatsApp (Input pré-rempli).
+- Bouton "Publier mon départ →" appelle `gp_publish_departure`.
+- Écran de succès avec ref départ + bouton "Déclarer un autre départ".
 
-- Ajout d'une carte « Départ assigné » avec ✈ route + date + GP + ref du départ + capacité restante.
-- Bouton « Changer le départ » → réouvre le dialog directement à l'étape 2.
-- Si pas de départ mais GP assigné : badge orange « Aucun départ — assignez-en un ».
+Route ajoutée dans `src/App.tsx` hors layout app (public).
 
-### `RequestsTab`
+## 3. Edge functions
 
-- Le bouton « Attribuer un GP » ouvre maintenant `AssignDepartureDialog` (en remplacement de `QuickAssignGpDialog` que l'on garde pour rétro-compat mais qui n'est plus monté).
+**`supabase/functions/gp-departure-reminders/`** (déclenché par cron) :
+- Mode `weekly` (lundi 8h Dakar) : tous GP `is_active=true` sans départ dans 14 jours → WhatsApp depuis 122 (texte sans accents).
+- Mode `48h` (toutes les heures) : départs dont `departure_date` ∈ [now+47h, now+49h] et `reminder_48h_sent_at IS NULL` → WhatsApp + marquer `reminder_48h_sent_at`.
+- Mode `coverage_alert` (lundi 8h) : pour chaque destination active, si 0 départ dans 7 jours → admin notification.
+- Param `?mode=weekly|48h|coverage` ou auto selon heure.
 
-### Vue `/admin/departs` (DeparturesWeekPage)
+**`supabase/functions/parse-departure-message/`** : POST `{ text: "DEP Paris 15/06 25kg" }` → utilise Lovable AI (google/gemini-2.5-flash-lite) ou regex pour retourner `{ destination, date, kg }`.
 
-- Pour chaque départ : section « Colis assignés » (liste tracking + poids + statut depuis `dossiers WHERE assigned_departure_id = …`) + `CapacityBar` `reserved/total`.
+## 4. Cron jobs (via `supabase--insert`, pas migration)
 
-## Contraintes respectées
+```sql
+select cron.schedule(
+  'gp-weekly-reminder',
+  '0 8 * * 1', -- lundi 8h UTC = 8h Dakar (Dakar = UTC+0)
+  $$ select net.http_post(url:='.../gp-departure-reminders?mode=weekly', ...); $$
+);
+select cron.schedule('gp-48h-reminder', '0 * * * *', $$...mode=48h...$$);
+select cron.schedule('gp-coverage-alert', '0 8 * * 1', $$...mode=coverage...$$);
+```
 
-- `assigned_departure_id` obligatoire avant `IN_TRANSIT` (trigger DB).
-- Warning capacité non bloquant (front uniquement).
-- Filtre départs par destination du dossier.
-- Notification GP enrichie avec infos départ.
-- Design Yobbanté dark + `#F5C518`, mobile-first, FR.
+## 5. UI admin
 
-## Fichiers touchés
+**`src/pages/admin/DeparturesWeekPage.tsx`** — extension :
+- Bouton "Importer depuis WhatsApp" → ouvre `WhatsAppImportDepartureDialog` : textarea + appel `parse-departure-message` + formulaire pré-rempli (transporteur, destination, date, kg) → INSERT.
+- Section "Stock de départs" déjà présente : ajouter colonne capacité avec code couleur (vert >15kg, orange 5-15, rouge <5).
+- Realtime : abonnement `postgres_changes` sur `manual_departures`.
 
-- **Nouveau** : `src/components/admin/dossiers/AssignDepartureDialog.tsx`
-- **Migration** : trigger `enforce_departure_before_transit` + RPC `assign_dossier_to_departure` / `release_dossier_departure`
-- **Modifiés** :
-  - `src/lib/assignGpAndNotify.ts` (signature + message enrichi)
-  - `src/components/admin/RequestsTab.tsx` (utilise le nouveau dialog)
-  - `src/components/admin/dossier-sheet/AdminDossierSheet.tsx` (TransportTab : carte départ + changer)
-  - `src/pages/admin/DeparturesWeekPage.tsx` (liste colis + barre capacité)
+**`src/pages/admin/RelaisPage.tsx` (ou page /admin/terrain équivalente)** : pour chaque transporteur, ajouter colonne "URL départ" avec :
+- Lien copiable (icône Copy + toast).
+- Bouton "Envoyer par WhatsApp" → `wa.me/{phone}?text=` avec message pré-rempli incluant l'URL.
 
-## Hors scope (à confirmer)
+## Contraintes techniques
 
-- Pas de refonte des templates côté `_wa_send_via_function` SQL.
-- Pas de modification de l'attribution depuis le bot GP.
+- Page `/gp/depart/:ref` accessible sans auth (route publique, pas de guard).
+- RPC `gp_publish_departure` doit être SECURITY DEFINER + GRANT EXECUTE TO anon.
+- Tous textes WhatsApp sans accents (Salam, prevu, declarez, etc.).
+- Africa/Dakar = UTC+0, donc `0 8 * * 1` UTC fonctionne directement.
+- Realtime : `ALTER PUBLICATION supabase_realtime ADD TABLE public.manual_departures` (si pas déjà).
+- Aucune migration ne touche aux schémas réservés (auth, storage…).
+
+## Fichiers créés/modifiés
+
+**Créés**
+- `supabase/migrations/<timestamp>_gp_autonomous_departures.sql`
+- `supabase/functions/gp-departure-reminders/index.ts`
+- `supabase/functions/parse-departure-message/index.ts`
+- `src/pages/gp/GpDepartPage.tsx`
+- `src/components/admin/WhatsAppImportDepartureDialog.tsx`
+
+**Modifiés**
+- `src/App.tsx` (route `/gp/depart/:ref`)
+- `src/pages/admin/DeparturesWeekPage.tsx` (bouton import + realtime + couleurs capacité)
+- `src/pages/admin/RelaisPage.tsx` (ou équivalent terrain) — colonne URL + WhatsApp
+- `src/integrations/supabase/types.ts` (auto via migration)
+
+## Hors scope
+
+- Refonte du dashboard admin existant.
+- Notification SMS (uniquement WhatsApp).
+- Gestion multi-langues (FR uniquement).
+- Statistiques historiques GP.

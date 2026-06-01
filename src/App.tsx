@@ -42,6 +42,7 @@ import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
 import KonnektLandingPage from "./pages/KonnektLandingPage";
 import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
+import GpDepartPage from "./pages/gp/GpDepartPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
@@ -99,6 +100,7 @@ const DekkRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
 
 
     {/* Admin accessible des deux côtés (session partagée) */}
@@ -176,6 +178,7 @@ const MainRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
 
     <Route path="/business" element={<BusinessPage />} />
     <Route path="/business/join" element={<BusinessJoinPage />} />
