@@ -3382,6 +3382,10 @@ export type Database = {
         }
         Returns: Json
       }
+      audit_departure_confirmed_inconsistencies: {
+        Args: never
+        Returns: number
+      }
       auto_match_shipment: { Args: { p_shipment_id: string }; Returns: string }
       auto_progress_departures: { Args: never; Returns: number }
       calculate_dossier_pricing: {
