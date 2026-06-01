@@ -168,6 +168,16 @@ export async function assignDossierToDeparture(args: {
 }): Promise<{ ok: boolean }> {
   const { dossierId, departureId, transporteurRef, notify = true } = args;
 
+  // 0) Snapshot AVANT mutation : pour notifier l'ancien GP / mentionner reschedule
+  const { data: prev } = await supabase
+    .from('dossiers')
+    .select('assigned_departure_id, assigned_transporteur_ref, client_departure_decision, client_requested_pickup_date')
+    .eq('id', dossierId)
+    .maybeSingle();
+  const prevDepartureId = (prev as any)?.assigned_departure_id ?? null;
+  const prevTransporteurRef = (prev as any)?.assigned_transporteur_ref ?? null;
+  const wasRescheduleRequested = (prev as any)?.client_departure_decision === 'reschedule_requested';
+
   // 1) RPC : assignation + capacité
   const { error: rpcErr } = await supabase.rpc('assign_dossier_to_departure' as any, {
     p_dossier_id: dossierId,
@@ -180,6 +190,61 @@ export async function assignDossierToDeparture(args: {
   }
 
   if (!notify) return { ok: true };
+
+  // 1bis) Notifier l'ancien GP si on a changé de transporteur
+  if (
+    prevTransporteurRef &&
+    prevTransporteurRef !== transporteurRef &&
+    prevDepartureId &&
+    prevDepartureId !== departureId
+  ) {
+    try {
+      const [{ data: oldGp }, { data: oldDep }, { data: dCur }] = await Promise.all([
+        supabase
+          .from('transporteurs' as any)
+          .select('id, prenom, telephone_1')
+          .eq('reference', prevTransporteurRef)
+          .maybeSingle(),
+        supabase
+          .from('manual_departures')
+          .select('id, origin_city, destination_city, departure_date')
+          .eq('id', prevDepartureId)
+          .maybeSingle(),
+        supabase
+          .from('dossiers')
+          .select('tracking_id, reference')
+          .eq('id', dossierId)
+          .maybeSingle(),
+      ]);
+      const og: any = oldGp;
+      const om: any = oldDep;
+      const dc: any = dCur;
+      if (og?.telephone_1) {
+        const refLabel = dc?.tracking_id || dc?.reference || dossierId;
+        const dateStr = om?.departure_date
+          ? new Date(om.departure_date).toLocaleDateString('fr-FR')
+          : '';
+        const msg = [
+          `Salam ${(og.prenom ?? '').split(/\s+/)[0] || ''},`,
+          ``,
+          `Le colis ${refLabel} a ete reassigne a un autre transporteur.`,
+          om ? `Depart concerne : ${om.origin_city} -> ${om.destination_city}${dateStr ? ` du ${dateStr}` : ''}.` : null,
+          ``,
+          `Vous n'avez plus rien a faire sur ce colis.`,
+          `Merci, equipe Yobbante.`,
+        ].filter(Boolean).join('\n');
+        await sendGpMessage({
+          phone: og.telephone_1,
+          message: msg,
+          dossier_id: dossierId,
+          transporteur_id: og.id,
+          trigger_type: 'gp_departure_unassigned',
+          silent: true,
+        });
+      }
+    } catch { /* swallow */ }
+  }
+
 
   // 2) Charger dossier + départ + GP + total colis sur ce départ
   const [{ data: dossier }, { data: dep }, { data: gp }, { data: peers }] = await Promise.all([
@@ -270,9 +335,15 @@ export async function assignDossierToDeparture(args: {
     const txt = [
       `Bonjour ${prenom},`,
       ``,
-      `Votre dossier ${ref} a ete confie a ${gpFull}.`,
+      wasRescheduleRequested
+        ? `Bonne nouvelle : suite a votre demande, nous avons trouve un nouveau depart pour ${ref}.`
+        : `Votre dossier ${ref} a ete confie a ${gpFull}.`,
+      wasRescheduleRequested ? `Transporteur : ${gpFull}` : null,
       `Route : ${m.origin_city} -> ${m.destination_city}`,
       dateStr ? `Depart prevu le ${dateStr}` : null,
+      ``,
+      `Merci de confirmer ce nouveau depart depuis votre espace :`,
+      `yobbante.com/app/dossier/${d.id}`,
       ``,
       `Suivi : yobbante.com/suivre/${ref}`,
       ``,

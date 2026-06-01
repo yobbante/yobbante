@@ -602,8 +602,56 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 
+  const decision = (dossier as any).client_departure_decision as string | undefined;
+  const requestedDate = (dossier as any).client_requested_pickup_date as string | null;
+  const clientNote = (dossier as any).client_departure_note as string | null;
+  const decidedAt = (dossier as any).client_departure_decided_at as string | null;
+
   return (
     <div className="space-y-6">
+      {/* Demande client : date plus proche */}
+      {decision === 'reschedule_requested' && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-amber-100 font-medium text-sm">
+            ⏱ Le client a demandé une date plus proche
+          </div>
+          {requestedDate && (
+            <div className="text-sm text-amber-50">
+              Date souhaitée : <span className="font-semibold">{fmtDate(requestedDate)}</span>
+            </div>
+          )}
+          {clientNote && <div className="text-xs italic text-amber-100/90">« {clientNote} »</div>}
+          {decidedAt && (
+            <div className="text-[11px] text-amber-200/70">
+              Demandé le {new Date(decidedAt).toLocaleString('fr-FR')}
+            </div>
+          )}
+          <Button
+            size="sm"
+            className="bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
+            onClick={() => { setAssignStep(1); setAssignOpen(true); }}
+          >
+            Changer GP & départ
+          </Button>
+        </div>
+      )}
+      {decision === 'cancelled' && (
+        <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-1">
+          <div className="text-sm font-medium text-red-100">🚫 Le client a annulé cet envoi</div>
+          {clientNote && <div className="text-xs italic text-red-100/90">« {clientNote} »</div>}
+          {decidedAt && (
+            <div className="text-[11px] text-red-200/70">
+              Annulé le {new Date(decidedAt).toLocaleString('fr-FR')}
+            </div>
+          )}
+        </div>
+      )}
+      {decision === 'confirmed' && currentRef && (
+        <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs text-green-100">
+          ✓ Client a confirmé ce départ{decidedAt ? ` le ${new Date(decidedAt).toLocaleString('fr-FR')}` : ''}.
+        </div>
+      )}
+
       {currentRef && dep ? (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
@@ -624,14 +672,22 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
           </div>
           <CurrentTransporteurInfo ref_={currentRef} />
           <NotifyGpButton dossier={dossier} transporteurRef={currentRef} />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
               className="text-xs"
               onClick={() => { setAssignStep(2); setAssignOpen(true); }}
             >
-              Changer le départ
+              Changer le départ (même GP)
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={() => { setAssignStep(1); setAssignOpen(true); }}
+            >
+              Changer GP & départ
             </Button>
             <Button
               size="sm"
