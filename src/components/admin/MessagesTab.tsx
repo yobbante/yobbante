@@ -913,32 +913,94 @@ export function MessagesTab() {
 
               {/* Composer */}
               {activeConv.channel === 'client' ? (
-                <div className="border-t border-border p-3 space-y-2 bg-card">
-                  <select
-                    value={templateKey}
-                    onChange={(e) => { setTemplateKey(e.target.value as WaTemplateKey); setParams({}); }}
-                    className="w-full text-xs bg-background border border-border rounded-md px-2 py-1.5 text-foreground"
-                  >
-                    {WA_TEMPLATES_CLIENT.map((t) => (
-                      <option key={t.key} value={t.key}>{t.label}</option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
-                    {tpl.params.map((p) => (
-                      <Input
-                        key={p}
-                        value={params[p] || ''}
-                        onChange={(e) => setParams((prev) => ({ ...prev, [p]: e.target.value }))}
-                        placeholder={p}
-                        className="h-8 text-xs"
-                      />
-                    ))}
+                <div className="border-t border-border bg-card">
+                  {/* Free text composer (24h window) */}
+                  <div className="p-3 border-b border-border/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Message libre
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'h-4 text-[9px] gap-1',
+                          windowStatus === 'open' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                          windowStatus === 'closed' && 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+                          windowStatus === 'unknown' && 'bg-muted text-muted-foreground border-border',
+                        )}
+                      >
+                        {windowStatus === 'open' && 'Fenêtre ouverte (< 24h)'}
+                        {windowStatus === 'closed' && 'Fenêtre fermée — templates uniquement'}
+                        {windowStatus === 'unknown' && 'Nouveau contact — templates uniquement'}
+                      </Badge>
+                    </div>
+                    {windowStatus === 'open' ? (
+                      <>
+                        <Textarea
+                          value={clientFreeText}
+                          onChange={(e) => setClientFreeText(e.target.value)}
+                          placeholder="Écrire un message..."
+                          rows={2}
+                          className="text-xs resize-none"
+                        />
+                        <div className="flex justify-end">
+                          <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                            {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                            Envoyer
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-orange-400/90 italic">
+                        Le client n'a pas écrit dans les dernières 24h. Utilisez un template ci-dessous.
+                      </p>
+                    )}
                   </div>
-                  <div className="text-[10px] text-muted-foreground bg-muted/30 rounded p-2 whitespace-pre-wrap font-mono">{previewBody}</div>
-                  <Button onClick={handleSend} disabled={sending} size="sm" className="w-full">
-                    {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                    Envoyer
-                  </Button>
+
+                  {/* Templates (categorized) */}
+                  <div className="p-3 space-y-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                      Template approuvé
+                    </span>
+                    <select
+                      value={templateKey}
+                      onChange={(e) => setTemplateKey(e.target.value as WaTemplateKey)}
+                      className="w-full text-xs bg-background border border-border rounded-md px-2 py-1.5 text-foreground"
+                    >
+                      {TEMPLATE_CATEGORIES.map((cat) => (
+                        <optgroup key={cat.label} label={cat.label}>
+                          {cat.keys.map((k) => {
+                            const t = WA_TEMPLATES_CLIENT.find((x) => x.key === k);
+                            if (!t) return null;
+                            return <option key={k} value={k}>{t.label}</option>;
+                          })}
+                        </optgroup>
+                      ))}
+                    </select>
+                    {!linkedDossier && (
+                      <p className="text-[10px] text-orange-400/80 italic">
+                        Aucun dossier lié — les champs ne seront pas pré-remplis automatiquement.
+                      </p>
+                    )}
+                    {tpl.params.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {tpl.params.map((p) => (
+                          <Input
+                            key={p}
+                            value={params[p] || ''}
+                            onChange={(e) => setParams((prev) => ({ ...prev, [p]: e.target.value }))}
+                            placeholder={p}
+                            className="h-8 text-xs"
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-muted-foreground bg-muted/30 rounded p-2 whitespace-pre-wrap font-mono max-h-28 overflow-y-auto">{previewBody}</div>
+                    <Button onClick={handleSend} disabled={sending} size="sm" className="w-full">
+                      {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+                      Envoyer template
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="border-t border-border bg-card">
