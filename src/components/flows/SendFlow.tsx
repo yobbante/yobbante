@@ -784,9 +784,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <FlowShell theme="light" compactHeader={compactHeader}>
         <FlowSuccess
           reference={confirmed.trackingId}
-          title="Expédition enregistrée."
-          subtitle={`${originCity?.city} → ${destCity?.city} · ${formatLocalAmount(confirmed.price, originProfile)}${confirmed.arrivalDate ? ` · Arrivée estimée le ${confirmed.arrivalDate} (estimation)` : ` · ETA ${confirmed.eta}`}.`}
-          ctaHref="/app" ctaLabel="Voir mon espace"
+          title="Commande confirmée !"
+          subtitle="Votre commande est enregistrée. Notre équipe vous contacte sous 24h pour organiser la collecte."
+          ctaHref="/app" ctaLabel="Suivre ma commande →"
         />
 
         {/* Dual reference block — tracking + order */}
@@ -1524,7 +1524,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Vérif. requise</span>
                 <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Restriction douanière</span>
               </div>
-              {corridorWarning && (
+              {corridorWarning && !(originCity && destCity && weight > 0) && (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{corridorWarning}</span>
@@ -1559,7 +1559,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )
 
 
-      ) : corridorWarning ? (
+      ) : corridorWarning && !(originCity && destCity && weight > 0) ? (
         <div className="mx-auto max-w-2xl px-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -2037,9 +2037,30 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                       <CreditCard className="w-3 h-3" /> Détail du coût · {priority === 'express' ? 'Express' : 'Standard'}
                     </p>
-                    {breakdown.lines.map((l) => (
-                      <RecapRow key={l.label} label={l.label} value={formatLocalAmount(toEur(l.amountFcfa), originProfile)} />
-                    ))}
+                    {breakdown.lines
+                      // Correction 2 : on ne montre PAS la ligne "Protection colis"
+                      // quand l'utilisateur n'a pas activé d'assurance.
+                      .filter((l) => !(insurance === 'none' && l.label === 'Protection colis'))
+                      .map((l) => (
+                        <RecapRow key={l.label} label={l.label} value={formatLocalAmount(toEur(l.amountFcfa), originProfile)} />
+                      ))}
+                    {/* Correction 3 — Ligne enlèvement (statut clair selon zone) */}
+                    {fraisEnlevement.zone === 'dakar_centre' ? (
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-muted-foreground">Enlèvement Dakar</span>
+                        <span className="font-medium text-emerald-500">Inclus</span>
+                      </div>
+                    ) : fraisEnlevement.zone === 'dakar_banlieue' ? (
+                      <RecapRow
+                        label="Enlèvement zone élargie"
+                        value={`+ ${formatLocalAmount(toEur(5000), originProfile)}`}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-muted-foreground">Dépôt hub Yobbanté</span>
+                        <span className="font-medium text-muted-foreground">À confirmer</span>
+                      </div>
+                    )}
                     {deliveryMode === 'home_delivery' && deliveryCarrier && (
                       <RecapRow
                         label={`Livraison ${destCity?.city ?? ''} (${deliveryCarrier})`}
@@ -2058,6 +2079,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                         </span>
                       </div>
                     </div>
+                    {/* Correction 2 — note de base affichée si pas d'assurance optionnelle */}
+                    {insurance === 'none' && (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground italic">
+                        Protection de base incluse (voir conditions).
+                      </p>
+                    )}
                     <p className="mt-1.5 text-[11px] text-muted-foreground">
                       {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
                     </p>

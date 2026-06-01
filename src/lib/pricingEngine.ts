@@ -21,6 +21,8 @@
 export const TVA_RATE = 0.18;
 export const YOBBANTE_MARGIN = 1.20;
 export const EXPRESS_COEF = 1.45;
+/** Alias explicite — multiplicateur Express appliqué uniquement sur le fret. */
+export const EXPRESS_MULTIPLIER = EXPRESS_COEF;
 
 /** Taux pivot FCFA ↔ EUR (XOF est fixé à 655,957 par euro — on arrondit à 655). */
 export const FCFA_PER_EUR = 655;
