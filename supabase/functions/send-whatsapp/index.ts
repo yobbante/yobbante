@@ -406,6 +406,29 @@ Voir → https://yobbante.com/admin`;
     console.error('WA_ERROR log', logErr instanceof Error ? logErr.message : String(logErr));
   }
 
+  // Mirror outbound client WhatsApp messages into the dossier chat so staff
+  // can see in the conversation what was sent automatically (assignment,
+  // departure notifications, etc.).
+  try {
+    if (
+      status === 'sent' &&
+      body.dossier_id &&
+      recipientType === 'client' &&
+      messageBody &&
+      messageBody.trim().length > 0
+    ) {
+      await supa.from('dossier_messages').insert({
+        dossier_id: body.dossier_id,
+        author_id: null,
+        author_role: 'staff',
+        body: `📲 WhatsApp → client\n\n${messageBody}`,
+        internal_note: false,
+      });
+    }
+  } catch (mirrorErr) {
+    console.error('WA_ERROR mirror_chat', mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr));
+  }
+
   // Return 200 even on template_not_approved (so callers don't crash)
   const responseStatus = status === 'sent' || status === 'template_not_approved' ? 200 : 400;
   return new Response(
