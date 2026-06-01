@@ -607,6 +607,7 @@ function ApercuTab({
   return (
     <div className="space-y-6">
       <DepartureSummaryBanner dossier={dossier} />
+      <ClientDepartureDecisionsTimeline dossierId={dossier.id} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
