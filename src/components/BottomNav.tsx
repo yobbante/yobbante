@@ -7,8 +7,8 @@ const tabs = [
   { id: 'profile',    icon: User,    label: 'Profil' },
 ] as const;
 
-// Kept for backwards-compatibility with ?view=sourcing URLs (no longer in nav).
-export type LegacyTabId = 'sourcing';
+// 'sourcing' is no longer in the bottom nav but the route/view still works.
+export type TabId = typeof tabs[number]['id'] | 'sourcing';
 
 export type TabId = typeof tabs[number]['id'];
 
