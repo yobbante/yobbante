@@ -163,6 +163,7 @@ export function MessagesTab() {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [newMsgOpen, setNewMsgOpen] = useState(false);
   const [clientFreeText, setClientFreeText] = useState('');
+  const [clientComposerTab, setClientComposerTab] = useState<'free' | 'templates'>('free');
   const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
