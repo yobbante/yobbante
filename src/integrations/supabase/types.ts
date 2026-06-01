@@ -1805,6 +1805,7 @@ export type Database = {
           carrier_name: string | null
           created_at: string
           created_by: string | null
+          created_via: string
           departure_date: string
           destination_city: string
           destination_country: string | null
@@ -1812,11 +1813,13 @@ export type Database = {
           max_capacity_kg: number | null
           notes: string | null
           notes_admin: string | null
+          notified_admin_at: string | null
           origin_city: string
           origin_country: string | null
           price_override_xof: number | null
           publication_status: string
           published_at: string | null
+          reminder_48h_sent_at: string | null
           reserved_capacity_kg: number
           short_ref: string | null
           source: string
@@ -1833,6 +1836,7 @@ export type Database = {
           carrier_name?: string | null
           created_at?: string
           created_by?: string | null
+          created_via?: string
           departure_date: string
           destination_city: string
           destination_country?: string | null
@@ -1840,11 +1844,13 @@ export type Database = {
           max_capacity_kg?: number | null
           notes?: string | null
           notes_admin?: string | null
+          notified_admin_at?: string | null
           origin_city: string
           origin_country?: string | null
           price_override_xof?: number | null
           publication_status?: string
           published_at?: string | null
+          reminder_48h_sent_at?: string | null
           reserved_capacity_kg?: number
           short_ref?: string | null
           source?: string
@@ -1861,6 +1867,7 @@ export type Database = {
           carrier_name?: string | null
           created_at?: string
           created_by?: string | null
+          created_via?: string
           departure_date?: string
           destination_city?: string
           destination_country?: string | null
@@ -1868,11 +1875,13 @@ export type Database = {
           max_capacity_kg?: number | null
           notes?: string | null
           notes_admin?: string | null
+          notified_admin_at?: string | null
           origin_city?: string
           origin_country?: string | null
           price_override_xof?: number | null
           publication_status?: string
           published_at?: string | null
+          reminder_48h_sent_at?: string | null
           reserved_capacity_kg?: number
           short_ref?: string | null
           source?: string
@@ -2855,6 +2864,7 @@ export type Database = {
           creneau_dakar: string[] | null
           default_rate_per_kg: number | null
           default_routes: Json
+          depart_url: string | null
           destinations: string[] | null
           email: string | null
           id: string
@@ -2893,6 +2903,7 @@ export type Database = {
           creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
           default_routes?: Json
+          depart_url?: string | null
           destinations?: string[] | null
           email?: string | null
           id?: string
@@ -2931,6 +2942,7 @@ export type Database = {
           creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
           default_routes?: Json
+          depart_url?: string | null
           destinations?: string[] | null
           email?: string | null
           id?: string
@@ -3465,6 +3477,18 @@ export type Database = {
           full_name: string
           phone: string
         }[]
+      }
+      gp_get_context: { Args: { p_ref: string }; Returns: Json }
+      gp_publish_departure: {
+        Args: {
+          p_departure_date: string
+          p_destination_city: string
+          p_destination_country: string
+          p_kg: number
+          p_phone: string
+          p_ref: string
+        }
+        Returns: Json
       }
       has_role: {
         Args: {
