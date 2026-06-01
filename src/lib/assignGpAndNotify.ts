@@ -335,9 +335,15 @@ export async function assignDossierToDeparture(args: {
     const txt = [
       `Bonjour ${prenom},`,
       ``,
-      `Votre dossier ${ref} a ete confie a ${gpFull}.`,
+      wasRescheduleRequested
+        ? `Bonne nouvelle : suite a votre demande, nous avons trouve un nouveau depart pour ${ref}.`
+        : `Votre dossier ${ref} a ete confie a ${gpFull}.`,
+      wasRescheduleRequested ? `Transporteur : ${gpFull}` : null,
       `Route : ${m.origin_city} -> ${m.destination_city}`,
       dateStr ? `Depart prevu le ${dateStr}` : null,
+      ``,
+      `Merci de confirmer ce nouveau depart depuis votre espace :`,
+      `yobbante.com/app/dossier/${d.id}`,
       ``,
       `Suivi : yobbante.com/suivre/${ref}`,
       ``,
