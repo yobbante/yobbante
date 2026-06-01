@@ -27,8 +27,8 @@ export default function ExpedierPage() {
           path: '/reception',
         }
       : {
-          title: 'Envoyer un colis à l\'international | Yobbanté',
-          description: 'Expédiez vos colis depuis Dakar vers le monde entier. Aérien, maritime, routier — Yobbanté gère tout.',
+          title: 'Envoyer un colis depuis Dakar — Devis gratuit | Yobbanté',
+          description: 'Obtenez votre prix en 30 secondes. Paiement Wave et Orange Money. Collecte gratuite.',
           path: '/expedier',
         }
   );
