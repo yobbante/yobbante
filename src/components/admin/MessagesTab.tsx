@@ -773,9 +773,26 @@ export function MessagesTab() {
                     <div className="text-[10px] text-muted-foreground">{activeConv.phone}</div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={handleMarkHandled} className="text-xs">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Traité
-                </Button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {activeConv.channel === 'client' && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'h-5 text-[9px] gap-1 hidden sm:inline-flex',
+                        windowStatus === 'open' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+                        windowStatus === 'closed' && 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+                        windowStatus === 'unknown' && 'bg-muted text-muted-foreground border-border',
+                      )}
+                    >
+                      {windowStatus === 'open' && <><Unlock className="w-2.5 h-2.5" />Fenêtre ouverte</>}
+                      {windowStatus === 'closed' && <><Lock className="w-2.5 h-2.5" />Fenêtre fermée</>}
+                      {windowStatus === 'unknown' && <><Clock className="w-2.5 h-2.5" />Nouveau contact</>}
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={handleMarkHandled} className="text-xs">
+                    <CheckCheck className="w-3.5 h-3.5 mr-1" /> Traité
+                  </Button>
+                </div>
               </header>
 
               {/* Linked dossier card */}
