@@ -517,23 +517,52 @@ export function MessagesTab() {
 
   // ---------- Auto-fill client template params from linked dossier ----------
   useEffect(() => {
-    if (!linkedDossier || !activeConv || activeConv.channel !== 'client') return;
+    if (!activeConv || activeConv.channel !== 'client') return;
     const tpl = getTemplate(templateKey);
-    const map: Record<string, string> = {
-      client_name: linkedDossier.buyer_name || linkedDossier.recipient_name || activeConv.name || '',
-      tracking_id: linkedDossier.tracking_id || linkedDossier.reference || '',
-      destination: linkedDossier.destination_country || '',
-      origin: linkedDossier.origin_country || '',
-      amount: linkedDossier.final_amount_xof ? `${linkedDossier.final_amount_xof} FCFA` : '',
-      eta: linkedDossier.estimated_delivery_date || '',
-      departure_date: linkedDossier.estimated_delivery_date || '',
-      review_link: linkedDossier.tracking_id ? `https://yobbante.com/avis/${linkedDossier.tracking_id}` : '',
-      payment_link: linkedDossier.tracking_id ? `https://yobbante.com/payer/${linkedDossier.tracking_id}` : '',
-    };
+    const map = buildAutoFill(linkedDossier as any);
+    // Inject client_name fallback to the conversation contact name
+    if (!map.client_name && activeConv.name) map.client_name = activeConv.name;
+    if (!map.prenom && activeConv.name) map.prenom = activeConv.name.split(' ')[0] || '';
     const next: Record<string, string> = {};
     tpl.params.forEach((p) => { if (map[p]) next[p] = map[p]; });
-    setParams((prev) => ({ ...next, ...prev }));
+    // Reset (don't preserve previous template's residual values)
+    setParams(next);
   }, [linkedDossier, templateKey, activeConv]);
+
+  // ---------- WhatsApp 24h window status for active conversation ----------
+  const lastInboundAt = useMemo(() => {
+    if (!openPhone) return null;
+    const msgs = inbound.filter((m) => m.from_phone === openPhone);
+    if (msgs.length === 0) return null;
+    return msgs.reduce((a, b) => (a.received_at > b.received_at ? a : b)).received_at;
+  }, [openPhone, inbound]);
+  const windowStatus = useMemo(() => computeWindowStatus(lastInboundAt), [lastInboundAt]);
+
+  async function sendClientFree() {
+    if (!openPhone || !clientFreeText.trim()) return;
+    if (windowStatus !== 'open') {
+      toast.error('Fenêtre WhatsApp fermée — utilisez un template.');
+      return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipient_phone: openPhone,
+          recipient_type: 'client',
+          message: clientFreeText.trim(),
+          trigger_type: 'admin_free_text_client',
+        },
+      });
+      if (error) throw error;
+      toast.success('Message envoyé');
+      setClientFreeText('');
+    } catch (e) {
+      toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSending(false);
+    }
+  }
 
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
