@@ -43,8 +43,8 @@ const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 
 export default function LandingPage() {
   useSeo({
-    title: 'Yobbanté — Expédition internationale depuis Dakar',
-    description: "Expédiez, recevez ou achetez à l'international. Yobbanté gère tout, de A à Z, depuis Dakar vers le monde entier.",
+    title: 'Yobbanté — Envoyer un colis de Dakar vers le monde',
+    description: 'Envoyez vos colis de Dakar vers Paris, New York, Dubai, Abidjan. Prix instantané, paiement Wave ou Orange Money. Collecte gratuite à Dakar.',
     path: '/',
   });
   const navigate = useNavigate();
