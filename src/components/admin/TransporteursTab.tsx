@@ -674,6 +674,21 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setHistoryGp(t)}>
                         <History className="w-4 h-4 mr-2" /> Historique WhatsApp
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
+                        try { await navigator.clipboard.writeText(url); toast.success('URL départ copiée'); }
+                        catch { toast.error('Copie impossible'); }
+                      }}>
+                        <Copy className="w-4 h-4 mr-2" /> Copier URL départ GP
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
+                        const phone = (t.whatsapp || t.telephone_1 || '').replace(/\D/g, '');
+                        const text = `Salam ${t.prenom || ''}, voici ton lien pour publier tes departs Yobbante en 30s :\n${url}`;
+                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      }}>
+                        <Send className="w-4 h-4 mr-2" /> Envoyer URL départ (WhatsApp)
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
