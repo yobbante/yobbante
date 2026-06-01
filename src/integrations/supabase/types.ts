@@ -839,31 +839,34 @@ export type Database = {
       }
       dossier_messages: {
         Row: {
-          author_id: string
+          author_id: string | null
           author_role: string
           body: string
           created_at: string
           dossier_id: string
           id: string
           internal_note: boolean
+          source: string | null
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           author_role: string
           body: string
           created_at?: string
           dossier_id: string
           id?: string
           internal_note?: boolean
+          source?: string | null
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           author_role?: string
           body?: string
           created_at?: string
           dossier_id?: string
           id?: string
           internal_note?: boolean
+          source?: string | null
         }
         Relationships: [
           {
