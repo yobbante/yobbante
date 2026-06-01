@@ -29,7 +29,7 @@ interface Props {
 }
 
 const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, buyer_name, assigned_transporteur_ref';
-const CLOSED = "('DELIVERED','ARCHIVED','CANCELLED')";
+const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
 export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, onPick }: Props) {
   const [q, setQ] = useState('');
