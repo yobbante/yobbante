@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
@@ -73,17 +74,35 @@ export default function Index() {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
+    let cancelled = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
       if (!session) {
         const here = location.pathname + location.search;
         navigate(`/auth?redirect=${encodeURIComponent(here)}`, { replace: true });
+        return;
       }
+      setIsLoading(false);
     });
+    return () => { cancelled = true; };
   }, [navigate, location.pathname, location.search]);
 
   const ordersKind = TAB_TO_KIND[view];
   const isOrdersTab = !!ordersKind;
+
+  if (isLoading) {
+    return (
+      <div
+        className="min-h-screen bg-background flex items-center justify-center"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <Loader2 className="w-7 h-7 animate-spin text-[#F5C518]" aria-label="Chargement" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
