@@ -562,7 +562,13 @@ export function MessagesTab() {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setSending(false);
-    }
+  }
+
+  // Default composer tab based on WhatsApp window status
+  useEffect(() => {
+    if (!openPhone) return;
+    setClientComposerTab(windowStatus === 'open' ? 'free' : 'templates');
+  }, [windowStatus, openPhone]);
   }
 
 
