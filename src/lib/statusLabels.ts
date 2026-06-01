@@ -34,6 +34,7 @@ const STATUS_FR: Record<string, string> = {
   PURCHASED: 'Acheté',
   EN_RECHERCHE_DEPART: 'Recherche départ',
   ASSIGNED: 'Assigné à un GP',
+  DEPARTURE_CONFIRMED: 'Départ confirmé & synchronisé',
   COLLECTING: 'Collecte en cours',
   COLLECTED: 'Collecté',
   WEIGHED: 'Pesé — Paiement en attente',

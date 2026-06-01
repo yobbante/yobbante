@@ -18,6 +18,7 @@ export const STATUTS_PAR_TYPE: Record<'expedier' | 'recevoir' | 'sourcing', Stat
     { value: 'AWAITING_CLIENT',   label: 'En attente client' },
     { value: 'CONFIRMED',         label: 'Confirmé' },
     { value: 'ASSIGNED',          label: 'Assigné à un GP' },
+    { value: 'DEPARTURE_CONFIRMED', label: 'Départ confirmé & synchronisé' },
     { value: 'COLLECTED',         label: 'Collecté' },
     { value: 'WEIGHED',           label: 'Pesé — Paiement en attente' },
     { value: 'IN_TRANSIT',        label: 'En transit' },
