@@ -632,16 +632,25 @@ export function MessagesTab() {
           </h1>
           <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 122</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => loadMessages().then(() => toast.success('Messagerie rechargée'))}
-          disabled={reloading}
-          className="h-8 text-xs gap-1.5"
-        >
-          <RefreshCcw className={cn('w-3.5 h-3.5', reloading && 'animate-spin')} />
-          Recharger
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setNewMsgOpen(true)}
+            className="h-8 text-xs gap-1.5 bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90"
+          >
+            <Plus className="w-3.5 h-3.5" /> Nouveau message
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadMessages().then(() => toast.success('Messagerie rechargée'))}
+            disabled={reloading}
+            className="h-8 text-xs gap-1.5"
+          >
+            <RefreshCcw className={cn('w-3.5 h-3.5', reloading && 'animate-spin')} />
+            Recharger
+          </Button>
+        </div>
       </header>
 
 
