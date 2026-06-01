@@ -42,6 +42,7 @@ import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
 import KonnektLandingPage from "./pages/KonnektLandingPage";
 import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
+import GpDepartPage from "./pages/gp/GpDepartPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
