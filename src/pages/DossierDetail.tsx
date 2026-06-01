@@ -224,6 +224,17 @@ export default function DossierDetail() {
           )}
         </section>
 
+        {/* Décision client sur le départ assigné */}
+        <ClientDepartureDecision
+          dossierId={(dossier as any).id}
+          assignedDepartureId={(dossier as any).assigned_departure_id}
+          decision={(dossier as any).client_departure_decision}
+          decidedAt={(dossier as any).client_departure_decided_at}
+          requestedDate={(dossier as any).client_requested_pickup_date}
+          note={(dossier as any).client_departure_note}
+          dossierStatus={(dossier as any).status}
+        />
+
         {/* Invoice */}
         <InvoiceSection dossier={dossier as any} isStaff={isStaff} />
 
