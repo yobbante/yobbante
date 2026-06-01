@@ -1087,6 +1087,7 @@ export function MessagesTab() {
         phone={openPhone}
         onPick={(d) => linkDossierToConv(d)}
       />
+      <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
     </div>
   );
 }
