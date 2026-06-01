@@ -347,6 +347,9 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
 function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
   const departureId = (dossier as any).assigned_departure_id as string | null;
   const decision = (dossier as any).client_departure_decision as string | undefined;
+  const status = (dossier as any).status as string | undefined;
+  const transporteurRef = (dossier as any).assigned_transporteur_ref as string | null;
+  const confirmedStatus = status === 'DEPARTURE_CONFIRMED';
 
   const { data: dep } = useQuery({
     queryKey: ['dossier-apercu-departure', departureId],
@@ -362,14 +365,28 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     },
   });
 
+  const missingIssue: string | null = confirmedStatus
+    ? !transporteurRef
+      ? 'GP non assigné'
+      : !departureId
+      ? 'Départ non assigné'
+      : (dep && !dep.departure_date)
+      ? 'Date de départ manquante'
+      : null
+    : null;
+
   if (!departureId) {
     return (
       <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 flex items-start gap-3">
         <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
         <div className="space-y-0.5">
-          <div className="text-sm font-semibold text-red-500">Aucune date de départ assignée</div>
+          <div className="text-sm font-semibold text-red-500">
+            {confirmedStatus
+              ? '⚠️ Incohérence : Départ confirmé mais aucun départ assigné'
+              : 'Aucune date de départ assignée'}
+          </div>
           <div className="text-xs text-red-400/90">
-            Pensez à trouver et assigner un départ pour ce dossier (onglet Transport).
+            Assignez un GP et un départ dans l'onglet Transport.
           </div>
         </div>
       </div>
@@ -383,7 +400,9 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
   const reschedule = decision === 'reschedule_requested';
   const cancelled = decision === 'cancelled';
 
-  const tone = cancelled
+  const tone = missingIssue
+    ? 'border-red-500/40 bg-red-500/10'
+    : cancelled
     ? 'border-red-500/40 bg-red-500/10'
     : reschedule
     ? 'border-amber-500/40 bg-amber-500/10'
@@ -410,6 +429,11 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${badge.cls}`}>
             {badge.text}
           </span>
+          {missingIssue && (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border bg-red-500/20 text-red-400 border-red-500/30 inline-flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" /> {missingIssue}
+            </span>
+          )}
         </div>
         <div className="text-xs text-muted-foreground">
           {dep?.origin_city ?? '?'} → {dep?.destination_city ?? '?'} ·{' '}
@@ -417,6 +441,80 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ---------------- Client departure decisions timeline ---------------- */
+
+function ClientDepartureDecisionsTimeline({ dossierId }: { dossierId: string }) {
+  const qc = useQueryClient();
+  const { data: events } = useQuery({
+    queryKey: ['dossier-client-decisions', dossierId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossier_events')
+        .select('id, event_type, event_data, created_at')
+        .eq('dossier_id', dossierId)
+        .like('event_type', 'client_departure_%')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`dossier-decisions-${dossierId}-${crypto.randomUUID()}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dossier_events', filter: `dossier_id=eq.${dossierId}` },
+        () => qc.invalidateQueries({ queryKey: ['dossier-client-decisions', dossierId] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dossierId, qc]);
+
+  if (!events || events.length === 0) return null;
+
+  const fmtDt = (d: string) =>
+    new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  const labelOf = (t: string) => {
+    if (t === 'client_departure_confirmed') return { label: 'Départ confirmé', tone: 'text-emerald-400', dot: 'bg-emerald-500' };
+    if (t === 'client_departure_reschedule_requested') return { label: 'Date plus proche demandée', tone: 'text-amber-400', dot: 'bg-amber-500' };
+    if (t === 'client_departure_cancelled') return { label: 'Départ annulé', tone: 'text-red-400', dot: 'bg-red-500' };
+    return { label: t, tone: 'text-muted-foreground', dot: 'bg-muted-foreground' };
+  };
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        <History className="w-3.5 h-3.5" /> Décisions client (départ)
+      </h3>
+      <ol className="space-y-2 border-l border-border pl-4">
+        {events.map((ev: any) => {
+          const meta = labelOf(ev.event_type);
+          const ed = ev.event_data ?? {};
+          return (
+            <li key={ev.id} className="relative">
+              <span className={`absolute -left-[21px] top-1.5 w-2 h-2 rounded-full ${meta.dot}`} />
+              <div className="flex items-baseline justify-between gap-3">
+                <span className={`text-xs font-medium ${meta.tone}`}>{meta.label}</span>
+                <span className="text-[10px] text-muted-foreground">{fmtDt(ev.created_at)}</span>
+              </div>
+              {ed.requested_date && (
+                <div className="text-[11px] text-muted-foreground">
+                  Date souhaitée : <span className="text-foreground">{new Date(ed.requested_date).toLocaleDateString('fr-FR')}</span>
+                </div>
+              )}
+              {ed.note && (
+                <div className="text-[11px] text-muted-foreground italic">« {ed.note} »</div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
