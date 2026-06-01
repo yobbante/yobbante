@@ -683,7 +683,7 @@ export function TransporteursTab() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
                         const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
-                        const phone = (t.whatsapp || t.telephone_1 || '').replace(/\D/g, '');
+                        const phone = (((t as any).whatsapp as string | null) || t.telephone_1 || '').replace(/\D/g, '');
                         const text = `Salam ${t.prenom || ''}, voici ton lien pour publier tes departs Yobbante en 30s :\n${url}`;
                         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
                       }}>
