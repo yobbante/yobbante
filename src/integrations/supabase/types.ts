@@ -888,6 +888,10 @@ export type Database = {
           buyer_country: string | null
           buyer_name: string | null
           cash_on_delivery: boolean
+          client_departure_decided_at: string | null
+          client_departure_decision: string
+          client_departure_note: string | null
+          client_requested_pickup_date: string | null
           collecte_confirmee_at: string | null
           collecte_creneau: string | null
           collecte_photos: string[] | null
@@ -1020,6 +1024,10 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cash_on_delivery?: boolean
+          client_departure_decided_at?: string | null
+          client_departure_decision?: string
+          client_departure_note?: string | null
+          client_requested_pickup_date?: string | null
           collecte_confirmee_at?: string | null
           collecte_creneau?: string | null
           collecte_photos?: string[] | null
@@ -1152,6 +1160,10 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cash_on_delivery?: boolean
+          client_departure_decided_at?: string | null
+          client_departure_decision?: string
+          client_departure_note?: string | null
+          client_requested_pickup_date?: string | null
           collecte_confirmee_at?: string | null
           collecte_creneau?: string | null
           collecte_photos?: string[] | null
@@ -3437,6 +3449,15 @@ export type Database = {
       }
       cancel_shipment: {
         Args: { p_reason?: string; p_shipment_id: string }
+        Returns: Json
+      }
+      client_decide_departure: {
+        Args: {
+          p_decision: string
+          p_dossier_id: string
+          p_note?: string
+          p_requested_date?: string
+        }
         Returns: Json
       }
       dekk_consume_promo: {
