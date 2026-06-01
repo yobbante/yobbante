@@ -10,7 +10,7 @@ const tabs = [
 // 'sourcing' is no longer in the bottom nav but the route/view still works.
 export type TabId = typeof tabs[number]['id'] | 'sourcing';
 
-export type TabId = typeof tabs[number]['id'];
+
 
 export function BottomNav({ active, onChange }: { active: TabId; onChange: (tab: TabId) => void }) {
   return (
