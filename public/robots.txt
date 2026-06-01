@@ -15,6 +15,7 @@ Allow: /
 Disallow: /admin
 Disallow: /app
 Disallow: /auth
+Disallow: /pay
 Disallow: /panier
 Disallow: /business
 
