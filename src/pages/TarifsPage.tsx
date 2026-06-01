@@ -13,8 +13,8 @@ import { useSeo } from '@/hooks/useSeo';
 
 export default function TarifsPage() {
   useSeo({
-    title: "Tarifs d'expédition Dakar ↔ Monde | Yobbanté",
-    description: "Prix d'expédition clairs et transparents. Aérien, maritime, routier depuis Dakar vers le monde entier.",
+    title: 'Tarifs envoi colis Dakar — Paris New York Dubai | Yobbanté',
+    description: 'Tarifs transparents depuis Dakar. Paris dès 12 200 FCFA, New York dès 14 600 FCFA.',
     path: '/tarifs',
   });
   const navigate = useNavigate();
