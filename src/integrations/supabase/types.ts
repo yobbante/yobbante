@@ -3643,6 +3643,7 @@ export type Database = {
         | "OUT_FOR_DELIVERY"
         | "CANCELLED"
         | "ARCHIVED"
+        | "DEPARTURE_CONFIRMED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -3846,6 +3847,7 @@ export const Constants = {
         "OUT_FOR_DELIVERY",
         "CANCELLED",
         "ARCHIVED",
+        "DEPARTURE_CONFIRMED",
       ],
       dossier_type: [
         "individual",
