@@ -761,6 +761,19 @@ export default function GuidePage() {
   const expandAll = () => setOpen(Object.fromEntries(CHAPTERS.map((c) => [c.id, true])));
   const collapseAll = () => setOpen(Object.fromEntries(CHAPTERS.map((c) => [c.id, false])));
 
+  const jumpTo = (chapterId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    setOpen((o) => ({ ...o, [chapterId]: true }));
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`chapter-trigger-${chapterId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.focus({ preventScroll: true });
+      }
+    });
+  };
+
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
@@ -818,17 +831,20 @@ export default function GuidePage() {
         </div>
 
         {/* Sommaire */}
-        <nav className="mb-8 rounded-xl border border-border p-4">
-          <h3 className="text-sm uppercase tracking-wider text-muted-foreground mb-3">Sommaire</h3>
+        <nav className="mb-8 rounded-xl border border-border p-4" aria-labelledby="sommaire-title">
+          <h3 id="sommaire-title" className="text-sm uppercase tracking-wider text-muted-foreground mb-3">Sommaire</h3>
           <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
             {CHAPTERS.map((c) => (
               <li key={c.id}>
                 <a
                   href={`#${c.id}`}
-                  onClick={() => setOpen((o) => ({ ...o, [c.id]: true }))}
-                  className="hover:text-[#F5C518] transition-colors"
+                  onClick={(e) => jumpTo(c.id, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') jumpTo(c.id, e);
+                  }}
+                  className="inline-flex items-baseline rounded px-1 -mx-1 hover:text-[#F5C518] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5C518] focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors"
                 >
-                  <span className="text-muted-foreground mr-2">{String(c.number).padStart(2, "0")}</span>
+                  <span className="text-muted-foreground mr-2 font-mono">{String(c.number).padStart(2, "0")}</span>
                   {c.title}
                 </a>
               </li>
@@ -839,41 +855,59 @@ export default function GuidePage() {
         {/* Chapters */}
         <div className="space-y-4">
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-12">Aucun resultat pour "{q}".</p>
+            <p className="text-sm text-muted-foreground text-center py-12" role="status">Aucun resultat pour "{q}".</p>
           )}
           {filtered.map((c) => {
             const isOpen = open[c.id] ?? true;
+            const panelId = `chapter-panel-${c.id}`;
+            const triggerId = `chapter-trigger-${c.id}`;
+            const showContent = isOpen || !!q;
             return (
               <section
                 key={c.id}
                 id={c.id}
+                aria-labelledby={triggerId}
                 className="rounded-xl border border-border overflow-hidden scroll-mt-20"
               >
-                <button
-                  onClick={() => toggle(c.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left print:bg-transparent"
+                <h2 className="m-0">
+                  <button
+                    id={triggerId}
+                    onClick={() => toggle(c.id)}
+                    aria-expanded={showContent}
+                    aria-controls={panelId}
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left print:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5C518]"
+                  >
+                    {isOpen ? <ChevronDown aria-hidden="true" className="h-4 w-4 text-[#F5C518]" /> : <ChevronRight aria-hidden="true" className="h-4 w-4 text-[#F5C518]" />}
+                    <span className="text-xs font-mono text-muted-foreground">CH.{String(c.number).padStart(2, "0")}</span>
+                    <span className="text-base font-semibold flex-1">{c.title}</span>
+                    <span className="sr-only">{showContent ? 'Replier' : 'Déplier'} le chapitre</span>
+                  </button>
+                </h2>
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={triggerId}
+                  hidden={!showContent}
                 >
-                  {isOpen ? <ChevronDown className="h-4 w-4 text-[#F5C518]" /> : <ChevronRight className="h-4 w-4 text-[#F5C518]" />}
-                  <span className="text-xs font-mono text-muted-foreground">CH.{String(c.number).padStart(2, "0")}</span>
-                  <h2 className="text-base font-semibold flex-1">{c.title}</h2>
-                </button>
-                {(isOpen || q) && (
-                  <div className="p-4 space-y-5">
-                    {c.intro && <p className="text-sm text-muted-foreground italic">{c.intro}</p>}
-                    {c.sections.map((s) => (
-                      <div key={s.id} id={s.id} className="scroll-mt-20">
-                        <h3 className="text-sm font-semibold text-foreground border-l-2 border-[#F5C518] pl-2 mb-1">
-                          {s.title}
-                        </h3>
-                        <div>{s.blocks.map(renderBlock)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {showContent && (
+                    <div className="p-4 space-y-5">
+                      {c.intro && <p className="text-sm text-muted-foreground italic">{c.intro}</p>}
+                      {c.sections.map((s) => (
+                        <div key={s.id} id={s.id} className="scroll-mt-20">
+                          <h3 className="text-sm font-semibold text-foreground border-l-2 border-[#F5C518] pl-2 mb-1">
+                            {s.title}
+                          </h3>
+                          <div>{s.blocks.map(renderBlock)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </section>
             );
           })}
         </div>
+
 
         <footer className="mt-10 pt-6 border-t border-border text-xs text-muted-foreground text-center print:hidden">
           YOBBANTE · Guide operateur · {CHAPTERS.length} chapitres ·{" "}
