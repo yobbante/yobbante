@@ -50,29 +50,82 @@ async function sendMessage(supa: any, message: string) {
 
 async function buildMorningReport(supa: any): Promise<string> {
   const today = todayDakarISO(0);
-  const yesterday = todayDakarISO(-1);
+  const weekEnd = new Date(Date.now() + 7 * 86400 * 1000).toISOString().slice(0, 10);
+  const todayYmd = today.slice(0, 10);
+  const weekStart = todayDakarISO(-7);
 
-  const [actifs, paiement, livresHier, nouveaux, msgs] = await Promise.all([
+  const [actifs, paiement, blocHub, msgs, gpActifs] = await Promise.all([
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
       .not('status', 'in', '(DELIVERED,ARCHIVED,CANCELLED)')),
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
-      .eq('payment_status', 'pending')),
+      .eq('payment_status', 'pending').not('status', 'in', '(CANCELLED,DELIVERED)')),
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
-      .eq('status', 'DELIVERED').gte('delivered_at', yesterday).lt('delivered_at', today)),
-    safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
-      .gte('created_at', today)),
+      .eq('status', 'ARRIVED_HUB').lt('updated_at', new Date(Date.now() - 5 * 86400 * 1000).toISOString())),
     safeCount(supa.from('whatsapp_inbound_messages').select('*', { count: 'exact', head: true })
       .eq('is_read', false)),
+    safeCount(supa.from('transporteurs').select('*', { count: 'exact', head: true }).eq('actif', true)),
   ]);
 
-  return `Bonjour ! Resume Yobbante :
-Dossiers actifs : ${Math.round(actifs)}
-En attente paiement : ${Math.round(paiement)}
-Livres hier : ${Math.round(livresHier)}
-Nouveaux aujourd hui : ${Math.round(nouveaux)}
-Messages non lus : ${Math.round(msgs)}
-Bonne journee !`;
+  // Departs semaine
+  const { data: deps } = await supa.from('manual_departures')
+    .select('short_ref, destination_city, destination_country, departure_date, available_capacity_kg, max_capacity_kg, total_capacity_kg')
+    .gte('departure_date', todayYmd).lte('departure_date', weekEnd)
+    .in('status', ['active', 'OPEN', 'open']).order('departure_date').limit(10);
+  const depLines = (deps ?? []).length
+    ? (deps as any[]).map((d) => {
+        const dt = String(d.departure_date).split('-').reverse().slice(0, 2).join('/');
+        const dispo = Math.round(Number(d.available_capacity_kg ?? d.max_capacity_kg ?? d.total_capacity_kg ?? 0));
+        return `. ${d.destination_city || d.destination_country} ${dt} . ${dispo}kg dispo`;
+      }).join('\n')
+    : '. Aucun';
+
+  // Finances
+  const { data: pendingRows } = await supa.from('dossiers')
+    .select('final_amount_xof').eq('payment_status', 'pending').not('status', 'in', '(CANCELLED,DELIVERED)');
+  const pendingAmt = (pendingRows ?? []).reduce((s: number, r: any) => s + (Number(r.final_amount_xof) || 0), 0);
+  const { data: paidWeek } = await supa.from('dossiers')
+    .select('final_amount_xof').eq('payment_status', 'paid').gte('paid_at', weekStart);
+  const paidAmt = (paidWeek ?? []).reduce((s: number, r: any) => s + (Number(r.final_amount_xof) || 0), 0);
+
+  // Action requise : 1er dossier en attente paiement
+  const { data: topPay } = await supa.from('dossiers')
+    .select('tracking_id, reference').eq('payment_status', 'pending')
+    .not('status', 'in', '(CANCELLED,DELIVERED)').order('created_at').limit(1);
+  const topAction = (topPay ?? [])[0]
+    ? `. ${(topPay as any[])[0].tracking_id || (topPay as any[])[0].reference} . Paiement pending\n  Action : RELANCE ${(topPay as any[])[0].tracking_id || (topPay as any[])[0].reference}`
+    : '. Aucune action prioritaire';
+
+  const fmt = (n: number) => Math.round(n).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ');
+  const now = new Date();
+  const day = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][now.getDay()];
+
+  return [
+    `YOBBANTE . ${day} ${formatDateFR()} . 08h00`,
+    '',
+    'DOSSIERS :',
+    `. ${actifs} actifs`,
+    `. ${paiement} en attente paiement`,
+    `. ${blocHub} bloque au hub`,
+    '',
+    'DEPARTS SEMAINE :',
+    depLines,
+    '',
+    `GP ACTIFS : ${gpActifs}`,
+    '',
+    'FINANCES :',
+    `. En attente : ${fmt(pendingAmt)} FCFA`,
+    `. Encaisse semaine : ${fmt(paidAmt)} FCFA`,
+    '',
+    'MESSAGES :',
+    `. ${msgs} conversations non traitees`,
+    '',
+    'ACTION REQUISE :',
+    topAction,
+    '',
+    'Commandes : STATUS . DEPARTS . DOSSIERS . PAIEMENTS',
+  ].join('\n');
 }
+
 
 async function buildEveningReport(supa: any): Promise<string> {
   const today = todayDakarISO(0);
