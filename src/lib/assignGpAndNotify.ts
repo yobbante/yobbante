@@ -256,7 +256,7 @@ export async function assignDossierToDeparture(args: {
   const [{ data: dossier }, { data: dep }, { data: gp }, { data: peers }] = await Promise.all([
     supabase
       .from('dossiers')
-      .select('id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, estimated_weight, actual_weight_kg, pickup_date, contact_phone, buyer_name')
+      .select('id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, pickup_date, contact_phone, buyer_name')
       .eq('id', dossierId)
       .maybeSingle(),
     supabase
