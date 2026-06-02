@@ -217,7 +217,7 @@ export function SourcingTab() {
                       <div className="flex items-center gap-2 text-xs flex-wrap">
                         <span className="font-mono font-semibold text-foreground">{d.reference}</span>
                         <span className="text-muted-foreground">· {DOSSIER_STATUS_LABELS[d.status]}</span>
-                        <span className="text-muted-foreground">· {COUNTRY_FLAGS[d.origin_country]} → {d.destination_country}</span>
+                        <span className="text-muted-foreground">· {COUNTRY_FLAGS[d.origin_country]} {(d as any).origin_city || d.origin_country} → {(d as any).destination_city || d.destination_country}</span>
                       </div>
                       <p className="text-sm font-semibold text-foreground line-clamp-2 mt-1">
                         {isUrl ? (
