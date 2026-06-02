@@ -224,6 +224,8 @@ async function classifyMessage(msg: string): Promise<NlpResult | null> {
         response: parsed.entities?.response ?? null,
       },
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+      urgency: (parsed.urgency === 'HIGH' || parsed.urgency === 'MEDIUM' || parsed.urgency === 'LOW') ? parsed.urgency : 'LOW',
+      language: (['fr', 'en', 'wo', 'mixed', 'other'].includes(parsed.language)) ? parsed.language : 'fr',
     };
   } catch (e) {
     console.error('NLP parse err', e instanceof Error ? e.message : String(e));
