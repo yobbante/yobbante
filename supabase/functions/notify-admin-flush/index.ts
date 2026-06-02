@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     // Pull all pending notifications
     const { data: pending, error } = await supa
       .from('admin_notifications')
-      .select('id, event_type, message, created_at')
+      .select('id, event_type, message, created_at, dossier_id, payload')
       .is('notified_at', null)
       .order('created_at', { ascending: true })
       .limit(50);
@@ -35,17 +35,50 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch tracking_ids for dossier-linked notifications
+    const dossierIds = Array.from(new Set(pending.map((p: any) => p.dossier_id).filter(Boolean)));
+    const trackingMap = new Map<string, string>();
+    if (dossierIds.length) {
+      const { data: ds } = await supa.from('dossiers')
+        .select('id, tracking_id, reference').in('id', dossierIds);
+      for (const d of (ds ?? []) as any[]) {
+        trackingMap.set(d.id, d.tracking_id || d.reference || '');
+      }
+    }
+
+    function actionHintFor(p: any): string | null {
+      const tid = p.dossier_id ? trackingMap.get(p.dossier_id) : null;
+      const t = p.event_type || '';
+      if (t === 'new_dossier' || t === 'dossier_created') {
+        return tid ? `Actions :\nASSIGNE ${tid} GP0001\nMSG ${tid} votre message` : null;
+      }
+      if (t === 'payment_received' || (t === 'dossier_status_changed' && (p.payload?.to === 'WEIGHED'))) {
+        return tid ? `Actions :\nTRANSIT ${tid}\nMSG ${tid} message` : null;
+      }
+      if (t === 'gp_departure_declared' || t === 'new_departure') {
+        const sr = p.payload?.short_ref;
+        return sr ? `Actions :\nVALIDE ${sr}\nDEPART ${sr}` : null;
+      }
+      if (t === 'dossier_status_changed' && tid) {
+        return `Action : DOSSIER ${tid}`;
+      }
+      return null;
+    }
+
     // Build message
     let messageText: string;
     if (pending.length === 1) {
-      messageText = pending[0].message;
+      const p = pending[0] as any;
+      const hint = actionHintFor(p);
+      messageText = hint ? `${p.message}\n\n${hint}` : p.message;
     } else {
-      const summaries = pending.map((p) => {
+      const summaries = pending.map((p: any) => {
         const firstLine = (p.message || '').split('\n')[0];
         return `- ${firstLine}`;
       }).join('\n');
-      messageText = `${pending.length} evenements recents :\n${summaries}`;
+      messageText = `${pending.length} evenements recents :\n${summaries}\n\nTapez STATUS pour le resume.`;
     }
+
 
     // Send via send-whatsapp
     try {
