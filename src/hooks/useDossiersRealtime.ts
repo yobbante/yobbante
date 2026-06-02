@@ -56,8 +56,16 @@ export function useDossiersRealtime() {
           const prevStatus = seenStatusRef.current.get(next.id);
           seenStatusRef.current.set(next.id, next.status);
           if (prevStatus && prevStatus !== next.status) {
-            const label = DOSSIER_STATUS_LABELS[next.status] ?? next.status;
-            toast.success(`Colis ${ref} → ${label}`, { id: `status-${next.id}` });
+            const CLIENT_STATUS_TOASTS: Record<string, string> = {
+              ASSIGNED: 'Pris en charge ✓',
+              COLLECTED: 'Collecté ✓',
+              IN_TRANSIT: 'En route ✈',
+              ARRIVED_HUB: 'Arrivé ✓',
+              DELIVERED: 'Livré ✓',
+            };
+            const customLabel = CLIENT_STATUS_TOASTS[next.status as string];
+            const label = customLabel ?? (DOSSIER_STATUS_LABELS[next.status] ?? next.status);
+            toast.success(`${ref} — ${label}`, { id: `status-${next.id}`, duration: 3000 });
           }
 
           // New departure assigned
