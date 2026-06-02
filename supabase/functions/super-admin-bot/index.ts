@@ -146,6 +146,49 @@ function fmtDate(iso: any): string {
   catch { return String(iso); }
 }
 
+const COUNTRY_FR: Record<string, string> = {
+  SN: 'Senegal', FR: 'France', BE: 'Belgique', CH: 'Suisse', CA: 'Canada',
+  US: 'Etats-Unis', GB: 'Royaume-Uni', UK: 'Royaume-Uni', ES: 'Espagne',
+  IT: 'Italie', DE: 'Allemagne', PT: 'Portugal', NL: 'Pays-Bas', MA: 'Maroc',
+  CI: 'Cote d Ivoire', ML: 'Mali', GN: 'Guinee', MR: 'Mauritanie', CN: 'Chine',
+  TR: 'Turquie', AE: 'Emirats', GM: 'Gambie', BJ: 'Benin', TG: 'Togo',
+};
+function countryFr(code?: string | null): string {
+  if (!code) return '';
+  const up = String(code).toUpperCase();
+  return COUNTRY_FR[up] ?? up;
+}
+function placeFr(city?: string | null, country?: string | null): string {
+  const c = (city ?? '').trim();
+  const co = countryFr(country);
+  if (c && co) return `${c}, ${co}`;
+  return c || co || '—';
+}
+
+const STATUS_FR: Record<string, string> = {
+  SUBMITTED: 'Soumis', IN_REVIEW: 'En analyse', AWAITING_CLIENT: 'En attente client',
+  CONFIRMED: 'Confirme', ASSIGNED: 'Assigne a un GP', COLLECTING: 'Collecte en cours',
+  COLLECTED: 'Collecte', WEIGHED: 'Pese - Paiement en attente', IN_TRANSIT: 'En transit',
+  ARRIVED_HUB: 'Arrive au hub', ARRIVED: 'Arrive', OUT_FOR_DELIVERY: 'En livraison',
+  DELIVERED: 'Livre', CANCELLED: 'Annule', CLOSED: 'Cloture',
+  DEPARTURE_CONFIRMED: 'Depart confirme', SOURCING: 'Sourcing', QUOTE_SENT: 'Devis envoye',
+  PURCHASED: 'Achete', PROCURED: 'Achete', CUSTOMS: 'En douane',
+};
+const PAY_FR: Record<string, string> = {
+  pending: 'En attente', paid: 'Paye', failed: 'Echec',
+  refunded: 'Rembourse', cancelled: 'Annule',
+};
+const DELIVERY_FR: Record<string, string> = {
+  pickup_gp: 'Collecte par le GP',
+  partner_pickup: 'Point relais partenaire',
+  home_delivery: 'Livraison domicile',
+  relay: 'Point relais partenaire',
+  pickup: 'Collecte sur place',
+};
+const statusFr = (s?: string | null) => (s ? STATUS_FR[s] ?? s : '—');
+const payFr = (s?: string | null) => (s ? PAY_FR[s] ?? s : '—');
+const deliveryFr = (s?: string | null) => (s ? DELIVERY_FR[s] ?? s : '—');
+
 function hoursAgo(iso: any): number {
   if (!iso) return 0;
   return Math.floor((Date.now() - new Date(iso).getTime()) / 3600_000);
@@ -188,56 +231,78 @@ async function cmdInfo(tracking: string): Promise<string> {
 
   // Depart
   let depLine = '—';
+  let depDate = '—';
   if (d.assigned_departure_id) {
     const { data: dep } = await sb
       .from('manual_departures')
       .select('short_ref, departure_date, origin_city, destination_city')
       .eq('id', d.assigned_departure_id)
       .maybeSingle();
-    if (dep) depLine = `Ref #${dep.short_ref ?? '—'} - ${fmtDate(dep.departure_date).split(' ')[0]}`;
+    if (dep) {
+      depDate = fmtDate(dep.departure_date).split(' ')[0];
+      depLine = `#${dep.short_ref ?? '—'} - ${depDate}`;
+    }
   }
 
-  const margin = (Number(d.final_amount_xof) || 0) - (Number(d.gp_amount) || 0);
+  const clientAmt = Number(d.final_amount_xof) || 0;
+  const gpAmt = Number(d.gp_amount) || 0;
+  const gpTarifLine = gpAmt > 0
+    ? `${fmtXof(gpAmt)} XOF · Paye: ${d.gp_paid ? 'OUI' : 'NON'}`
+    : 'Non renseigne ⚠️';
+  const marginLine = gpAmt > 0 ? `${fmtXof(clientAmt - gpAmt)} XOF` : 'N/A';
+
+  const declaredVal = Number(d.declared_value) || 0;
+  const valeurLine = declaredVal > 0
+    ? `${fmtXof(declaredVal)} ${d.currency ?? 'XOF'}`
+    : 'Non declaree';
+
+  const estW = d.estimated_weight != null ? `${d.estimated_weight}kg estime` : 'Poids estime non renseigne';
+  const realW = d.actual_weight_kg != null ? `${d.actual_weight_kg}kg reel` : 'Non pese encore';
+
+  const quartier = d.pickup_quartier
+    ? (d.is_outside_dakar ? `${d.pickup_quartier} (Hors Dakar)` : d.pickup_quartier)
+    : (d.is_outside_dakar ? 'Hors Dakar' : (d.pickup_zone ?? '—'));
+
+  const destLabel = placeFr(d.destination_city, d.destination_country);
+  const originLabel = placeFr(d.origin_city, d.origin_country) || 'Dakar';
+  const tracking = d.tracking_id ?? d.reference;
 
   return [
-    `DOSSIER ${d.tracking_id ?? d.reference}`,
+    `DOSSIER ${tracking}`,
+    `Cree le ${fmtDate(d.created_at)} · Source : ${d.source ?? '—'}`,
     '',
     'CLIENT :',
-    `Nom : ${d.sender_name ?? d.buyer_name ?? '—'}`,
-    `Tel : ${d.sender_phone ?? d.contact_phone ?? '—'}`,
-    `Adresse collecte : ${d.sender_address ?? '—'}`,
-    `Quartier : ${d.pickup_quartier ?? '—'} (${d.pickup_zone ?? '—'})`,
+    `${d.sender_name ?? d.buyer_name ?? '—'} · ${d.sender_phone ?? d.contact_phone ?? '—'}`,
+    `Collecte : ${d.sender_address ?? '—'}`,
+    `Zone : ${quartier}`,
     '',
     'DESTINATAIRE :',
-    `Nom : ${d.recipient_name ?? '—'}`,
-    `Tel : ${d.recipient_phone ?? '—'}`,
-    `Adresse : ${d.recipient_address ?? '—'}`,
-    `Ville : ${d.destination_country ?? '—'}`,
+    `${d.recipient_name ?? '—'} · ${d.recipient_phone ?? '—'}`,
+    `${d.recipient_address ?? '—'}`,
+    `${destLabel}`,
     '',
     'COLIS :',
-    `Poids estime : ${d.estimated_weight ?? '—'} kg`,
-    `Poids reel : ${d.actual_weight_kg ?? '—'} kg`,
-    `Description : ${d.product_description ?? '—'}`,
-    `Valeur : ${fmtXof(d.declared_value)} ${d.currency ?? 'XOF'}`,
+    `${estW} / ${realW}`,
+    `${d.product_description ?? '—'}`,
+    `Valeur : ${valeurLine}`,
     '',
     'TRANSPORT :',
-    `Statut : ${d.status}`,
+    `Statut : ${statusFr(d.status)}`,
     `GP : ${gpLine}`,
     `Tel GP : ${gpPhone}`,
     `Depart : ${depLine}`,
-    `Navette : ${d.origin_country ?? '—'} -> ${d.destination_country ?? '—'}`,
-    `Mode livraison : ${d.delivery_mode ?? '—'}`,
+    `Route : ${originLabel} → ${destLabel}`,
+    `Livraison : ${deliveryFr(d.delivery_mode)}`,
     '',
     'FINANCES :',
-    `Montant client : ${fmtXof(d.final_amount_xof)} XOF`,
-    `Tarif GP : ${fmtXof(d.gp_amount)} XOF (paye: ${d.gp_paid ? 'OUI' : 'NON'})`,
-    `Marge : ${fmtXof(margin)} XOF`,
-    `Paiement : ${d.payment_status}`,
+    `Client : ${fmtXof(clientAmt)} XOF`,
+    `GP : ${gpTarifLine}`,
+    `Marge : ${marginLine}`,
+    `Paiement client : ${payFr(d.payment_status)}`,
     '',
-    'TIMELINE :',
-    `Derniere maj : ${fmtDate(d.updated_at)}`,
-    `Creee le : ${fmtDate(d.created_at)}`,
-    `Source : ${d.source ?? '—'}`,
+    'Actions :',
+    `MSG ${tracking} · ASSIGNE ${tracking} GP`,
+    `TRANSIT ${tracking} · LIVRE ${tracking}`,
   ].join('\n');
 }
 
