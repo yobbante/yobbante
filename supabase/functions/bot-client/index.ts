@@ -1071,10 +1071,14 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
-    // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
-    else if (/^[1-5]$/.test(nMsg)) {
+    // PRIORITY 2: numeric (legacy) OR interactive list/button id -> top-level menu choice
+    else if (/^[1-5]$/.test(nMsg) || ['suivi','expedition','departs','devis','agent'].includes(nMsg)) {
+      const idMap: Record<string, string> = {
+        '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+        departs: '1', suivi: '2', expedition: '3', devis: '4', agent: '5',
+      };
       await saveSession(supa, phone, null, {});
-      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
     }
 
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
