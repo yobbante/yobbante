@@ -761,6 +761,19 @@ export default function GuidePage() {
   const expandAll = () => setOpen(Object.fromEntries(CHAPTERS.map((c) => [c.id, true])));
   const collapseAll = () => setOpen(Object.fromEntries(CHAPTERS.map((c) => [c.id, false])));
 
+  const jumpTo = (chapterId: string, e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    setOpen((o) => ({ ...o, [chapterId]: true }));
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`chapter-trigger-${chapterId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.focus({ preventScroll: true });
+      }
+    });
+  };
+
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
