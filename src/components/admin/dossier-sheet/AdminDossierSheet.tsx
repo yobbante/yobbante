@@ -301,7 +301,11 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
         </Select>
 
         {dossier.contact_phone && (() => {
-          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`;
+          const prenom = (dossier.sender_name || dossier.recipient_name || 'Client').toString().trim().split(/\s+/)[0];
+          const ref = dossier.tracking_id || dossier.reference || '';
+          const route = `${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`;
+          const waText = `Bonjour ${prenom},\n\nA propos de votre dossier ${ref}.\nRoute : ${route}\n\n-- Equipe Yobbante`;
+          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(waText)}`;
           return (
             <div className="inline-flex">
               <Button size="sm" variant="outline" className="h-8 text-xs rounded-r-none border-r-0" asChild>
@@ -313,9 +317,9 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
                 size="sm"
                 variant="outline"
                 className="h-8 px-2 rounded-l-none"
-                title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+                title="Copier le lien wa.me (envoyer depuis mon telephone)"
                 onClick={() => {
-                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copié'));
+                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copie'));
                 }}
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -444,19 +448,21 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     // Senegal default if no country code (local 9-digit numbers starting with 7)
     if (digits.length === 9 && digits.startsWith('7')) digits = '221' + digits;
     if (digits.length < 8) return null;
-    const prenom = (d.sender_name || d.recipient_name || '')
-      .toString().trim().split(/\s+/)[0] || 'Bonjour';
-    const ref = d.reference || '';
+    const prenom = (d.sender_name || d.recipient_name || 'Client')
+      .toString().trim().split(/\s+/)[0];
+    const ref = d.tracking_id || d.reference || '';
+    const route = `${d.origin_city || '-'} -> ${d.destination_city || '-'}`;
     const txt = [
       `Bonjour ${prenom},`,
       ``,
-      `Petit rappel : merci de confirmer le départ pour votre dossier ${ref}.`,
-      dep?.departure_date ? `Date prévue : ${fmt(dep.departure_date)}` : null,
+      `Petit rappel : merci de confirmer le depart pour votre dossier ${ref}.`,
+      `Route : ${route}`,
+      dep?.departure_date ? `Date prevue : ${fmt(dep.departure_date)}` : null,
       ``,
-      `Confirmez ou demandez un autre départ ici :`,
+      `Confirmez ou demandez un autre depart ici :`,
       `https://yobbante.com/app/dossier/${d.id}`,
       ``,
-      `— Équipe Yobbanté`,
+      `-- Equipe Yobbante`,
     ].filter(Boolean).join('\n');
     return `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
   };
@@ -711,7 +717,7 @@ function ApercuTab({
           phone={sender.phone}
           address={sender.address}
           extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
-          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+          whatsappPrefill={`Bonjour, a propos de votre dossier ${dossier.tracking_id || dossier.reference || ''} — Route : ${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`}
         />
         <ContactBlock
           title="Destinataire"
