@@ -1358,21 +1358,30 @@ Deno.serve(async (req) => {
 
 
     if (reply) {
-      await sendWa(supa, phone, reply, 'bot_client_reply');
-      // Si la réponse contient le menu principal, ajouter des boutons interactifs
-      // (les ids matchent les commandes texte existantes "2"/"3"/"5").
-      if (reply.includes(MAIN_MENU) || reply.includes(SHORT_MENU)) {
+      const wantsMenu = reply.includes(UI_MENU);
+      const wantsBack = !wantsMenu && reply.includes(UI_BACK);
+      const cleanReply = reply.replaceAll(UI_MENU, '').replaceAll(UI_BACK, '').replace(/\n{3,}/g, '\n\n').trim();
+
+      if (wantsMenu) {
+        // Liste interactive 5 options — pas d envoi texte separe pour eviter le doublon menu.
+        await sendWaList(
+          phone,
+          cleanReply || MAIN_MENU_TEXT,
+          'Voir les options',
+          MAIN_MENU_SECTIONS,
+          MAIN_MENU_FALLBACK,
+          'bot_client_main_menu',
+        );
+      } else if (wantsBack) {
         await sendWaButtons(
           phone,
-          'Choisissez une option :',
-          [
-            { id: '2', label: 'Mes colis' },
-            { id: '3', label: 'Envoyer' },
-            { id: '5', label: 'Un agent' },
-          ],
-          'Tapez 2 pour suivre, 3 pour envoyer, 5 pour un agent.',
-          'bot_client_menu_buttons',
+          cleanReply,
+          BACK_BUTTONS,
+          `${cleanReply}\n\nRepondez MENU pour revenir au menu.`,
+          'bot_client_back_button',
         );
+      } else if (cleanReply) {
+        await sendWa(supa, phone, cleanReply, 'bot_client_reply');
       }
     }
   } catch (e) {
