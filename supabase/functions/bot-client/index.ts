@@ -1504,8 +1504,13 @@ Deno.serve(async (req) => {
         const greet = firstName ? `Salam ${firstName} ! ` : '';
 
         if (nlp.intent === 'DEPARTS') {
-          const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', nlp.entities.destination);
-          if (r) reply = withShortMenu(greet ? `${greet}\n${r}` : r);
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else {
+            const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', dest?.city ?? null);
+            if (r) reply = withShortMenu(greet ? greet + '\n' + r : r);
+          }
         } else if (nlp.intent === 'SUIVI') {
           const r = await handleSmartTracking(supa, phone, nlp.entities.tracking_id);
           if (r) reply = r;
