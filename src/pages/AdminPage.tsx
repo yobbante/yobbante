@@ -19,6 +19,7 @@ import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesTab } from '@/components/admin/FinancesTab';
 import { RevenusTab } from '@/components/admin/RevenusTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
+import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -158,6 +159,7 @@ export default function AdminPage() {
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/8 px-2 py-1 rounded">
             <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : 'Staff'}
           </span>
+          <AdminLiveBadge />
           <button
             onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-colors"
@@ -193,6 +195,7 @@ export default function AdminPage() {
           </button>
           <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
           <div className="flex items-center gap-1">
+            <AdminLiveBadge className="mr-1" />
             <button
               onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
               aria-label="Se déconnecter"
