@@ -399,7 +399,7 @@ Ex : TARIF Paris 6500`,
     }
   } catch (e) { console.error('RELANCE H', e); stats.errors++; }
 
-
+  return new Response(JSON.stringify(stats), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
