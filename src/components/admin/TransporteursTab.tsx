@@ -899,6 +899,8 @@ export function TransporteursTab() {
         activeCount={botActiveCount}
         onSent={(gp) => openBotInvite(gp)}
       />
+
+      <DupNamesDialog open={dupNamesOpen} onOpenChange={setDupNamesOpen} />
     </div>
   );
 }
