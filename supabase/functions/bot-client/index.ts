@@ -1521,10 +1521,11 @@ Deno.serve(async (req) => {
         } else if (nlp.intent === 'AGENT') {
           reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
         } else if (nlp.intent === 'EXPEDITION') {
-          // Flow guide : destination -> poids -> type -> lien pre-rempli
-          if (nlp.entities.destination) {
-            const country = COUNTRY_BY_CITY[norm(nlp.entities.destination)] || null;
-            await askExpeditionWeight(supa, phone, { dest_city: nlp.entities.destination, dest_country: country });
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else if (dest) {
+            await askExpeditionWeight(supa, phone, { dest_city: dest.city, dest_country: dest.country });
           } else {
             await askExpeditionDestination(supa, phone);
           }
