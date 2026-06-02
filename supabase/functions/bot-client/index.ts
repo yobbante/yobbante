@@ -1112,9 +1112,28 @@ Deno.serve(async (req) => {
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
     }
 
+    // PRIORITY 2a: closure words ("rien", "merci", "ok", "d accord")
+    // -> Une seule reponse polie, fin de session, PAS de menu.
+    // (uniquement si pas de flow en cours, pour ne pas casser une saisie attendue)
+    else if (!intent && /^(rien|merci|mercii+|ok|okay|d accord|daccord)\s*!?\s*$/.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      await sendWa(supa, phone, `D accord ! N hesitez pas si vous avez besoin.`, 'bot_client_closure');
+      return new Response(JSON.stringify({ ok: true, closed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
     else if (/^(oui|ok|yes|y|confirme|confirmer|valide|valider|d accord|daccord)\b/.test(nMsg)) {
       reply = await handleOui(supa, phone, input.from_name ?? null);
+    }
+    else if (!intent && /^(non|no)\s*!?\s*$/.test(nMsg)) {
+      // "non" tout seul sans flow = fermeture polie, pas d annulation
+      await saveSession(supa, phone, null, {});
+      await sendWa(supa, phone, `D accord ! N hesitez pas si vous avez besoin.`, 'bot_client_closure');
+      return new Response(JSON.stringify({ ok: true, closed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     else if (/^(non|no|annul|annuler|refuse|refuser)\b/.test(nMsg)) {
       reply = await handleNon(supa, phone, input.from_name ?? null);
