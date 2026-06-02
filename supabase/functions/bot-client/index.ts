@@ -51,6 +51,76 @@ function validateWeight(raw: string): WeightCheck {
   return { ok: true, weight: w, heavy: w > HEAVY_WEIGHT_THRESHOLD_KG };
 }
 
+// --- Destinations Yobbante reconnues (free-text) ---
+const VALID_DESTINATIONS: { city: string; aliases: string[]; country: string }[] = [
+  { city: 'Paris', aliases: ['paris', 'france'], country: 'FR' },
+  { city: 'Lyon', aliases: ['lyon'], country: 'FR' },
+  { city: 'Marseille', aliases: ['marseille'], country: 'FR' },
+  { city: 'Bordeaux', aliases: ['bordeaux'], country: 'FR' },
+  { city: 'Toulouse', aliases: ['toulouse'], country: 'FR' },
+  { city: 'Nice', aliases: ['nice'], country: 'FR' },
+  { city: 'New York', aliases: ['new york', 'newyork', 'nyc', 'usa', 'etats unis', 'etats-unis'], country: 'US' },
+  { city: 'Washington', aliases: ['washington', 'dc'], country: 'US' },
+  { city: 'Rhode Island', aliases: ['rhode island', 'providence'], country: 'US' },
+  { city: 'Miami', aliases: ['miami'], country: 'US' },
+  { city: 'Boston', aliases: ['boston'], country: 'US' },
+  { city: 'Montreal', aliases: ['montreal', 'canada'], country: 'CA' },
+  { city: 'Toronto', aliases: ['toronto'], country: 'CA' },
+  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'emirats', 'uae'], country: 'AE' },
+  { city: 'Abidjan', aliases: ['abidjan', 'cote d ivoire', 'cote divoire'], country: 'CI' },
+  { city: 'Douala', aliases: ['douala', 'cameroun'], country: 'CM' },
+  { city: 'Londres', aliases: ['londres', 'london'], country: 'GB' },
+];
+
+function resolveDestination(input?: string | null): { city: string; country: string } | null {
+  if (!input) return null;
+  const q = (input ?? '')
+    .toString()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  if (!q) return null;
+  for (const d of VALID_DESTINATIONS) {
+    if (d.aliases.some((a) => q === a || q.includes(a) || a.includes(q))) {
+      return { city: d.city, country: d.country };
+    }
+  }
+  return null;
+}
+
+const INVALID_DESTINATION_MSG =
+  `Je ne reconnais pas cette destination.\n` +
+  `Nous desservons : Paris, New York, Dubai, Abidjan, Montreal et plus.\n\n` +
+  `Quelle est votre destination ?`;
+
+// --- Detection d'intent pour messages en anglais (deterministe, avant NLP) ---
+type Intent2 =
+  | 'EXPEDITION' | 'DEVIS' | 'SUIVI' | 'AGENT' | 'DEPARTS' | 'HELP_EN' | null;
+
+function detectEnglishIntent(raw: string): Intent2 {
+  const s = (raw ?? '').toLowerCase().trim();
+  if (!s) return null;
+  // Doit "ressembler" a de l anglais (mots-cles courants) pour eviter les faux positifs.
+  const englishMarkers = /\b(what|how|where|when|why|can|could|would|i\s+want|i\s+need|please|hello|hi|hey|help|send|track|package|parcel|agent|human|cost|price|how\s+much)\b/;
+  if (!englishMarkers.test(s)) return null;
+  if (/\b(agent|human|representative|person|speak\s+to)\b/.test(s)) return 'AGENT';
+  if (/\b(where|track)\b.*\b(package|parcel|order|shipment)\b/.test(s)) return 'SUIVI';
+  if (/\bwhere\s+is\s+my\b/.test(s)) return 'SUIVI';
+  if (/\b(how\s+much|price|cost|rate|quote)\b/.test(s)) return 'DEVIS';
+  if (/\b(i\s+want\s+to\s+send|send\s+a?\s*(package|parcel)|ship\s+(a|something))\b/.test(s)) return 'EXPEDITION';
+  if (/\b(next\s+departures?|available\s+departures?|when\s+is\s+the\s+next)\b/.test(s)) return 'DEPARTS';
+  if (/\b(what\s+can\s+you|what\s+do\s+you\s+do|help|hello|hi|hey)\b/.test(s)) return 'HELP_EN';
+  return 'HELP_EN';
+}
+
+const HELP_EN_REPLY =
+  `Je suis l assistant Yobbante.\n` +
+  `Je peux vous aider a :\n` +
+  `- envoyer un colis\n` +
+  `- suivre votre expedition\n` +
+  `- obtenir un devis`;
+
 type Intent =
   | 'DEPARTS'
   | 'SUIVI'
@@ -90,6 +160,13 @@ Exemples:
 - "combien ca coute pour Paris 5kg" -> DEVIS, destination Paris, weight 5
 - "prochains departs" / "departs disponibles" -> DEPARTS
 - "annule mon dossier" -> ANNULATION
+- "I want to send a package" -> EXPEDITION
+- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5
+- "where is my package" -> SUIVI
+- "speak to an agent" / "human" -> AGENT
+- "what can you do" / "hello" -> UNKNOWN (laisser destination null)
+REGLE STRICTE : ne JAMAIS mettre une question anglaise generique ("what","how","where") comme valeur de destination. Si le message est une question generale, intent=UNKNOWN, destination=null.
+Destinations valides connues : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres. Si la ville ne fait pas partie de cette liste, mettre destination=null.
 Reponds STRICTEMENT en JSON, rien d autre.`;
 
 async function classifyMessage(msg: string): Promise<NlpResult | null> {
@@ -761,6 +838,29 @@ async function saveSession(
   }
 }
 
+// Marque la derniere action contextuelle dans la session (sans relancer un flow).
+// pending_data conserve `last_action` + `last_data` pour interpreter le prochain OUI.
+async function markLastAction(
+  supa: any,
+  phone: string,
+  action: string,
+  data: Record<string, any>,
+) {
+  try {
+    const { session } = await getSession(supa, phone);
+    const prevData = (session?.pending_data ?? {}) as Record<string, any>;
+    const currentIntent = session?.pending_intent ?? null;
+    await saveSession(supa, phone, currentIntent, {
+      ...prevData,
+      last_action: action,
+      last_data: data,
+      last_action_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('BOT_CLIENT markLastAction err', e instanceof Error ? e.message : String(e));
+  }
+}
+
 async function handleMenu1Departures(supa: any) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: deps } = await supa
@@ -996,19 +1096,44 @@ async function logDossierEvent(supa: any, dossierId: string, eventType: string, 
 }
 
 async function handleOui(supa: any, phone: string, fromName: string | null): Promise<string> {
-  const d = await findPendingDossier(supa, phone);
-  if (!d) {
-    return withShortMenu(`Merci ! Aucune action en attente trouvee sur votre dossier.`);
+  // 1) Contexte session : last_action stocke dans pending_data
+  try {
+    const { session } = await getSession(supa, phone);
+    const pd = (session?.pending_data ?? {}) as Record<string, any>;
+    const lastAction = pd?.last_action ?? null;
+    const lastData = (pd?.last_data ?? {}) as Record<string, any>;
+
+    if (lastAction === 'devis_shown' && lastData?.dest) {
+      // Le client vient de voir un devis et tape OUI : on lance le flow expedition pre-rempli
+      const dest = resolveDestination(lastData.dest) ?? { city: lastData.dest, country: COUNTRY_BY_CITY[norm(lastData.dest)] || null };
+      const weight = Number(lastData.weight) || 0;
+      if (weight > 0) {
+        await askExpeditionType(supa, phone, { dest_city: dest.city, dest_country: dest.country, weight });
+      } else {
+        await askExpeditionWeight(supa, phone, { dest_city: dest.city, dest_country: dest.country });
+      }
+      return '';
+    }
+  } catch (e) {
+    console.error('BOT_CLIENT handleOui ctx err', e instanceof Error ? e.message : String(e));
   }
-  const ref = d.tracking_id || d.reference;
-  await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
-  await sendWa(
-    supa,
-    ADMIN_PHONE,
-    `Client ${fromName ?? phone} a confirme (OUI) sur ${ref}\nStatut actuel : ${STATUS_FR[d.status] || d.status}`,
-    'admin_notification',
-  );
-  return withShortMenu(`Merci ! Votre confirmation pour ${ref} est enregistree.\nUn agent prend le relais.`);
+
+  // 2) Dossier en attente -> confirmation
+  const d = await findPendingDossier(supa, phone);
+  if (d) {
+    const ref = d.tracking_id || d.reference;
+    await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
+    await sendWa(
+      supa,
+      ADMIN_PHONE,
+      `Client ${fromName ?? phone} a confirme (OUI) sur ${ref}\nStatut actuel : ${STATUS_FR[d.status] || d.status}`,
+      'admin_notification',
+    );
+    return withShortMenu(`Merci ! Votre confirmation pour ${ref} est enregistree.\nUn agent prend le relais.`);
+  }
+
+  // 3) Aucun contexte -> afficher le menu (ne plus dire "Aucune action")
+  return MAIN_MENU;
 }
 
 async function handleNon(supa: any, phone: string, fromName: string | null): Promise<string> {
@@ -1143,10 +1268,28 @@ Deno.serve(async (req) => {
       reply = await handleModifierClient(supa, phone);
     }
     // PRIORITY 3: explicit RESERVER command
-    else if (/^reserver\s/.test(nMsg)) {
+    else if (/^reserver(\s|$)/.test(nMsg)) {
       const p = parseReserver(msg);
       if (!p) {
-        reply = withFullMenu(`Format: RESERVER {ref} {poids}kg\nEx: RESERVER 5508 3kg`);
+        // Aucune ref fournie : afficher la liste des departs actifs, NE PAS lancer le flow expedition.
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: deps } = await supa
+          .from('public_active_departures')
+          .select('short_ref,transporteur_ref,departure_date,origin_city,destination_city,available_capacity_kg')
+          .gte('departure_date', today)
+          .order('departure_date', { ascending: true })
+          .limit(8);
+        let depList = '';
+        for (const d of (deps ?? [])) {
+          const ref = d.short_ref || d.transporteur_ref || '----';
+          depList += `* ${fmtDate(d.departure_date)} #${ref} - ${d.origin_city || '?'} -> ${d.destination_city || '?'} (${d.available_capacity_kg ?? 0}kg dispo)\n`;
+        }
+        if (!depList) depList = '(aucun depart actif pour le moment)';
+        reply = withFullMenu(
+          `Pour reserver un depart, indiquez la reference.\n` +
+          `Ex : RESERVER 5421 3kg\n\n` +
+          `Departs disponibles :\n${depList}`,
+        );
       } else {
         const r = await handleReserver(supa, phone, input.from_name ?? null, p.ref, p.weight);
         reply = r.startsWith('Super') ? r : withFullMenu(r);
@@ -1211,13 +1354,22 @@ Deno.serve(async (req) => {
         reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
         const r = await handleQuoteCalc(supa, data.dest, v.weight);
-        await saveSession(supa, phone, null, {});
+        await saveSession(supa, phone, null, {
+          last_action: 'devis_shown',
+          last_data: { dest: data.dest, weight: v.weight },
+          last_action_at: new Date().toISOString(),
+        });
         reply = withShortMenu(r);
       }
     } else if (intent === 'quote_weight_confirm' && msg) {
       if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
-        const r = await handleQuoteCalc(supa, data.dest, Number(data.pending_weight));
-        await saveSession(supa, phone, null, {});
+        const w = Number(data.pending_weight);
+        const r = await handleQuoteCalc(supa, data.dest, w);
+        await saveSession(supa, phone, null, {
+          last_action: 'devis_shown',
+          last_data: { dest: data.dest, weight: w },
+          last_action_at: new Date().toISOString(),
+        });
         reply = withShortMenu(r);
       } else {
         await saveSession(supa, phone, 'quote_weight', { dest: data.dest, origin: data.origin });
@@ -1335,16 +1487,22 @@ Deno.serve(async (req) => {
       const id = nMsg;
       let city: string | null = null;
       let country: string | null = null;
-      // match "expdest_paris" -> dest_paris
+      // match "expdest_paris" -> dest_paris (liste interactive)
       const matchId = id.startsWith('expdest_') ? `dest_${id.replace('expdest_', '')}` : id;
       const picked = DESTINATIONS_LIST.find((d) => d.id === matchId);
-      if (picked && picked.city) { city = picked.city; country = picked.country; }
-      else if (matchId === 'dest_other' || id === 'expdest_other') {
+      if (picked && picked.city) {
+        city = picked.city; country = picked.country;
+      } else if (matchId === 'dest_other' || id === 'expdest_other') {
         await saveSession(supa, phone, 'exp_destination', {});
         reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
       } else {
-        city = msg;
-        country = COUNTRY_BY_CITY[norm(msg)] || null;
+        // Texte libre : valider contre la liste Yobbante
+        const resolved = resolveDestination(msg);
+        if (!resolved) {
+          reply = withBack(INVALID_DESTINATION_MSG);
+        } else {
+          city = resolved.city; country = resolved.country;
+        }
       }
       if (city) {
         await askExpeditionWeight(supa, phone, { dest_city: city, dest_country: country });
@@ -1394,6 +1552,24 @@ Deno.serve(async (req) => {
       reply = withShortMenu(r);
     } else if (!nMsg) {
       reply = MAIN_MENU;
+    } else if (detectEnglishIntent(msg)) {
+      // ---- English fast-path : repondre en francais, ne jamais traiter de l anglais comme destination ----
+      const enIntent = detectEnglishIntent(msg);
+      if (enIntent === 'AGENT') {
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+      } else if (enIntent === 'SUIVI') {
+        const r = await handleSmartTracking(supa, phone, null);
+        if (r) reply = r;
+      } else if (enIntent === 'DEVIS') {
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
+      } else if (enIntent === 'EXPEDITION') {
+        await askExpeditionDestination(supa, phone);
+      } else if (enIntent === 'DEPARTS') {
+        const r = await handleSmartDepartures(supa, phone, 'Dakar', null);
+        if (r) reply = withShortMenu(r);
+      } else {
+        reply = withFullMenu(HELP_EN_REPLY);
+      }
     } else {
       // ---- NLP fallback : analyse intelligente du message ----
       const nlp = await classifyMessage(msg);
@@ -1402,8 +1578,13 @@ Deno.serve(async (req) => {
         const greet = firstName ? `Salam ${firstName} ! ` : '';
 
         if (nlp.intent === 'DEPARTS') {
-          const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', nlp.entities.destination);
-          if (r) reply = withShortMenu(greet ? `${greet}\n${r}` : r);
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else {
+            const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', dest?.city ?? null);
+            if (r) reply = withShortMenu(greet ? greet + '\n' + r : r);
+          }
         } else if (nlp.intent === 'SUIVI') {
           const r = await handleSmartTracking(supa, phone, nlp.entities.tracking_id);
           if (r) reply = r;
@@ -1414,20 +1595,25 @@ Deno.serve(async (req) => {
         } else if (nlp.intent === 'AGENT') {
           reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
         } else if (nlp.intent === 'EXPEDITION') {
-          // Flow guide : destination -> poids -> type -> lien pre-rempli
-          if (nlp.entities.destination) {
-            const country = COUNTRY_BY_CITY[norm(nlp.entities.destination)] || null;
-            await askExpeditionWeight(supa, phone, { dest_city: nlp.entities.destination, dest_country: country });
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else if (dest) {
+            await askExpeditionWeight(supa, phone, { dest_city: dest.city, dest_country: dest.country });
           } else {
             await askExpeditionDestination(supa, phone);
           }
         } else if (nlp.intent === 'DEVIS') {
-          if (nlp.entities.destination && nlp.entities.weight) {
-            const r = await handleQuoteCalc(supa, nlp.entities.destination, nlp.entities.weight);
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else if (dest && nlp.entities.weight) {
+            const r = await handleQuoteCalc(supa, dest.city, nlp.entities.weight);
+            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight });
             reply = withShortMenu(r);
-          } else if (nlp.entities.destination) {
-            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: nlp.entities.destination });
-            reply = withBack(`${greet}Pour un devis vers ${nlp.entities.destination}, quel poids (kg) ?`);
+          } else if (dest) {
+            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: dest.city });
+            reply = withBack(`${greet}Pour un devis vers ${dest.city}, quel poids (kg) ?`);
           } else {
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
           }
