@@ -3,7 +3,7 @@
 // (erreur #131058). On tente donc directement le texte libre :
 //   - si le GP a deja ecrit au 122 dans les 24h -> message envoye via API
 //   - sinon -> echec attendu, on bascule sur wa.me et on notifie l'admin
-//     en lui rappelant d'envoyer depuis le compte 122 (+221 78 122 18 91).
+//     en lui rappelant d'envoyer depuis le compte 122 (+221 78 926 97 56).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 const SUPER_ADMIN_PHONE = '+221784604003';
-const GP_LINE_DISPLAY = '+221 78 122 18 91';
+const GP_LINE_DISPLAY = '+221 78 926 97 56';
 
 type InviteKind = 'bot_onboard' | 'konnekt_invite' | 'konnekt_signup';
 
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         ? (blockedReason ? `Cause Meta : ${blockedReason}` : `Echec API`)
         : `Cause : pas d'historique WhatsApp 24h (fenetre Meta fermee)`,
       ``,
-      `Ouvrir WhatsApp depuis le compte ${GP_LINE_DISPLAY} (122),`,
+      `Ouvrir WhatsApp depuis le compte ${GP_LINE_DISPLAY} (926),`,
       `pas depuis votre numero personnel :`,
       `wa.me/${phoneDigits}`,
     ].join('\n');

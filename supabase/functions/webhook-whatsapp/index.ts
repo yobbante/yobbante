@@ -1,7 +1,7 @@
 // webhook-whatsapp — receives Meta webhooks for BOTH numbers (607 + 122).
 // Routes:
 //   - 607 (clients) -> log inbound + notify admin
-//   - 122 (GP)      -> delegate to gp-bot
+//   - 926 (GP)      -> delegate to gp-bot
 //   - statuses      -> update whatsapp_outbound_messages
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -273,11 +273,11 @@ Deno.serve(async (req) => {
                     const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
                     const ref = `GP${String(gp.reference ?? '').replace(/\D/g, '').padStart(4, '0')}`;
                     const onboardMsg =
-                      `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Yobbante GP (122). ` +
+                      `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Yobbante GP (926). ` +
                       `Envoyez AIDE pour voir comment recevoir vos missions. Reference : ${ref}.`;
                     (async () => {
                       const SUPER_ADMIN_PHONE = '+221784604003';
-                      const GP_LINE_DISPLAY = '+221 78 122 18 91';
+                      const GP_LINE_DISPLAY = '+221 78 926 97 56';
                       const supaUrl = Deno.env.get('SUPABASE_URL')!;
                       const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
                       const gpLabel = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || 'GP';
@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
                             `${gpLabel} (${ref}) - ${gp.telephone_1}`,
                             `Cause : ${cause}`,
                             ``,
-                            `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (122) :`,
+                            `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (926) :`,
                             fallback,
                           ].join('\n');
                           await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {
@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
                           `${gpLabel} (${ref}) - ${gp.telephone_1}`,
                           `Cause : ${cause}`,
                           ``,
-                          `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (122) :`,
+                          `Envoyer manuellement depuis le compte ${GP_LINE_DISPLAY} (926) :`,
                           waLink,
                         ].join('\n');
                         await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {

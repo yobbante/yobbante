@@ -1,4 +1,4 @@
-// gp-bot — assistant WhatsApp tolerant pour transporteurs Yobbanté (122).
+// gp-bot — assistant WhatsApp tolerant pour transporteurs Yobbanté (926).
 // Parser tolérant + conversation guidée + onboarding + alertes admin.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -1143,7 +1143,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   if (/^pause\b/i.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'pause_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 926 97 56`, 'pause_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     const m = msg.match(/pause\s+(\d{1,3})/i);
@@ -1163,7 +1163,7 @@ Voir : yobbante.com/admin`);
   }
   if (/^(reprendre|reprise|resume|reactiver|on)$/i.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'resume_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 926 97 56`, 'resume_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     await supa.from('transporteurs')
@@ -1179,7 +1179,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   if (/^modifier\b/.test(msg)) {
     if (!transporteur) {
-      await reply(`Numero inconnu. Ecrivez-nous au +221 78 122 18 91`, 'modifier_unknown');
+      await reply(`Numero inconnu. Ecrivez-nous au +221 78 926 97 56`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
     }
     // Sous-commandes
