@@ -119,13 +119,26 @@ export function AssignDepartureDialog({
         transporteurRef: ref,
       });
       if (!res.ok) throw new Error('Échec assignation');
+      return res;
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['admin-requests'] });
       qc.invalidateQueries({ queryKey: ['admin-dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
       qc.invalidateQueries({ queryKey: ['manual_departures'] });
-      toast.success('Départ assigné');
+      const fb = res?.clientFallback;
+      if (fb) {
+        toast.success('Départ assigné', {
+          description: 'Si le client ne reçoit pas le WhatsApp auto, envoyez-le depuis votre téléphone.',
+          duration: 12000,
+          action: {
+            label: 'Envoyer via mon tel',
+            onClick: () => window.open(fb.waHref, '_blank', 'noopener,noreferrer'),
+          },
+        });
+      } else {
+        toast.success('Départ assigné');
+      }
       onOpenChange(false);
     },
     onError: (e: any) => toast.error(e?.message || 'Échec'),
