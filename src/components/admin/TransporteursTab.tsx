@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy } from 'lucide-react';
 import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
+import { DupNamesDialog } from './transporteurs/DupNamesDialog';
 import { GpImportDialog } from './GpImportDialog';
 import { GpActionsPanel } from './GpActionsPanel';
 import { Input } from '@/components/ui/input';
@@ -142,6 +143,7 @@ export function TransporteursTab() {
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [failedMap, setFailedMap] = useState<Record<string, { kind: 'bot' | 'konnekt'; wa: string; name: string }>>({});
   const [importOpen, setImportOpen] = useState(false);
+  const [dupNamesOpen, setDupNamesOpen] = useState(false);
   const [actionsGp, setActionsGp] = useState<Transporteur | null>(null);
   const [editLinkGp, setEditLinkGp] = useState<Transporteur | null>(null);
   const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
@@ -474,6 +476,17 @@ export function TransporteursTab() {
             <Bot className="w-4 h-4 mr-2" />
             Onboarder sur le Bot GP
           </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDupNamesOpen(true)}
+            className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Corriger les noms dupliques
+          </Button>
+
 
           <Button variant="outline" size="sm" onClick={() => setEditing({
             id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
@@ -886,6 +899,8 @@ export function TransporteursTab() {
         activeCount={botActiveCount}
         onSent={(gp) => openBotInvite(gp)}
       />
+
+      <DupNamesDialog open={dupNamesOpen} onOpenChange={setDupNamesOpen} />
     </div>
   );
 }

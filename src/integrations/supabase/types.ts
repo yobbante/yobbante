@@ -2884,6 +2884,42 @@ export type Database = {
           },
         ]
       }
+      transporteur_cleanup_log: {
+        Row: {
+          deleted_at: string
+          id: string
+          nom: string | null
+          payload: Json | null
+          prenom: string | null
+          reason: string
+          reference: string | null
+          telephone_1: string | null
+          transporteur_id: string | null
+        }
+        Insert: {
+          deleted_at?: string
+          id?: string
+          nom?: string | null
+          payload?: Json | null
+          prenom?: string | null
+          reason: string
+          reference?: string | null
+          telephone_1?: string | null
+          transporteur_id?: string | null
+        }
+        Update: {
+          deleted_at?: string
+          id?: string
+          nom?: string | null
+          payload?: Json | null
+          prenom?: string | null
+          reason?: string
+          reference?: string | null
+          telephone_1?: string | null
+          transporteur_id?: string | null
+        }
+        Relationships: []
+      }
       transporteur_events: {
         Row: {
           created_at: string
