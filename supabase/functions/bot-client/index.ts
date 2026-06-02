@@ -160,6 +160,13 @@ Exemples:
 - "combien ca coute pour Paris 5kg" -> DEVIS, destination Paris, weight 5
 - "prochains departs" / "departs disponibles" -> DEPARTS
 - "annule mon dossier" -> ANNULATION
+- "I want to send a package" -> EXPEDITION
+- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5
+- "where is my package" -> SUIVI
+- "speak to an agent" / "human" -> AGENT
+- "what can you do" / "hello" -> UNKNOWN (laisser destination null)
+REGLE STRICTE : ne JAMAIS mettre une question anglaise generique ("what","how","where") comme valeur de destination. Si le message est une question generale, intent=UNKNOWN, destination=null.
+Destinations valides connues : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres. Si la ville ne fait pas partie de cette liste, mettre destination=null.
 Reponds STRICTEMENT en JSON, rien d autre.`;
 
 async function classifyMessage(msg: string): Promise<NlpResult | null> {
