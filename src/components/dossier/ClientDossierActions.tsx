@@ -60,7 +60,7 @@ export function ClientDossierActions({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
-      toast.success('Modification envoyée à l\'équipe');
+      toast.success(`Modification envoyée — ${trackingId ?? ''}`.trim());
       setMode(null);
       setReason('');
     },
