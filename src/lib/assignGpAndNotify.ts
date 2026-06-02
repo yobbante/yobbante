@@ -118,7 +118,7 @@ export async function assignTransporteurAndNotify({
       `Bonjour ${prenom},`,
       ``,
       `Votre dossier ${ref} a ete confie a notre transporteur ${gpFull}.`,
-      `Route : ${d.origin_country || '-'} -> ${d.destination_country || '-'}`,
+      `Route : ${d.origin_city || d.origin_country || '-'} -> ${d.destination_city || d.destination_country || '-'}`,
       g?.telephone_1 ? `Contact GP : ${g.telephone_1}` : null,
       ``,
       `Notre equipe passera collecter votre colis a votre adresse.`,
