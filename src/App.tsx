@@ -31,6 +31,7 @@ import InboxImportPage from "./pages/admin/InboxImportPage";
 import DeparturesWeekPage from "./pages/admin/DeparturesWeekPage";
 import RelaisPage from "./pages/admin/RelaisPage";
 import ParametresPage from "./pages/admin/ParametresPage";
+import GuidePage from "./pages/admin/GuidePage";
 import SuivreEntry from "./pages/SuivreEntry";
 import AvisPage from "./pages/AvisPage";
 import PayPage from "./pages/PayPage";
