@@ -128,6 +128,7 @@ type Intent =
   | 'EXPEDITION'
   | 'DEVIS'
   | 'AGENT'
+  | 'PLAINTE'
   | 'CONFIRMATION'
   | 'ANNULATION'
   | 'UNKNOWN';
@@ -141,18 +142,34 @@ interface NlpEntities {
   response: 'OUI' | 'NON' | null;
 }
 
+type Urgency = 'LOW' | 'MEDIUM' | 'HIGH';
+
 interface NlpResult {
   intent: Intent;
   entities: NlpEntities;
   confidence: number;
+  urgency: Urgency;
+  language: 'fr' | 'en' | 'wo' | 'mixed' | 'other';
 }
 
 const NLP_SYSTEM = `Tu es le bot WhatsApp de Yobbante, service logistique Dakar vers le monde.
 Analyse le message du client et retourne UNIQUEMENT un JSON valide :
-{"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number}
+{"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|PLAINTE|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number,"urgency":"LOW|MEDIUM|HIGH","language":"fr|en|wo|mixed|other"}
+
+REGLES STRICTES :
+1. Origine par defaut = Dakar si non specifie.
+2. Normaliser destinations vers les villes valides ci-dessous. Si non reconnue, destination=null.
+3. Poids accepte en chiffres OU en lettres (ex "cinq kg" = 5). Plage 0.1-500 kg.
+4. Si le message est en anglais, l intent reste normal mais la reponse sera en francais (ne change pas l intent).
+5. PLAINTE = client mecontent, en colere, parle de probleme grave, retard inacceptable, colis perdu/casse, remboursement, "scandale", "honte", "voleurs", "j en ai marre", "inadmissible". urgency=HIGH.
+6. "What can you do" / "que faites-vous" / questions generiques sur le service -> intent=UNKNOWN.
+7. Si la ville mentionnee n est pas dans la liste valide -> destination=null (ne JAMAIS inventer).
+8. urgency=HIGH si plainte, urgence, "tres urgent", "vite", "aujourd hui meme". MEDIUM si demande sensible. LOW sinon.
+9. language : detecter fr, en, wo (wolof : nanga def, jamm, naka, deuk, ndaal, baxna, mbaa), mixed, other.
+
 Exemples:
-- "Dakar Paris" -> DEPARTS, origin Dakar, destination Paris, conf 0.95
-- "je veux envoyer un colis a Paris" -> EXPEDITION, destination Paris
+- "Dakar Paris" -> DEPARTS, origin Dakar, destination Paris, conf 0.95, urgency LOW, language fr
+- "je veux envoyer un colis a Paris" -> EXPEDITION, destination Paris, urgency LOW
 - "YOB-9KPR4A" ou "YOB9KPR4A" -> SUIVI, tracking_id YOB-9KPR4A
 - "mon colis" / "ou est mon colis" -> SUIVI
 - "oui","ok","yes","ouii","d accord" -> CONFIRMATION, response OUI
@@ -161,13 +178,16 @@ Exemples:
 - "combien ca coute pour Paris 5kg" -> DEVIS, destination Paris, weight 5
 - "prochains departs" / "departs disponibles" -> DEPARTS
 - "annule mon dossier" -> ANNULATION
-- "I want to send a package" -> EXPEDITION
-- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5
-- "where is my package" -> SUIVI
-- "speak to an agent" / "human" -> AGENT
+- "ou est mon colis ca fait 3 semaines c est inadmissible" -> PLAINTE, urgency HIGH
+- "I want to send a package" -> EXPEDITION, language en
+- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5, language en
+- "where is my package" -> SUIVI, language en
+- "speak to an agent" / "human" -> AGENT, language en
 - "what can you do" / "hello" -> UNKNOWN (laisser destination null)
-REGLE STRICTE : ne JAMAIS mettre une question anglaise generique ("what","how","where") comme valeur de destination. Si le message est une question generale, intent=UNKNOWN, destination=null.
-Destinations valides connues : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres. Si la ville ne fait pas partie de cette liste, mettre destination=null.
+- "nanga def" -> UNKNOWN, language wo
+
+REGLE STRICTE : ne JAMAIS mettre une question generique ("what","how","where","que","comment") comme destination.
+Destinations valides : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres.
 Reponds STRICTEMENT en JSON, rien d autre.`;
 
 async function classifyMessage(msg: string): Promise<NlpResult | null> {
