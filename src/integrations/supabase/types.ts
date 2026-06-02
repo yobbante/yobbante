@@ -363,6 +363,44 @@ export type Database = {
         }
         Relationships: []
       }
+      client_notifications_sent: {
+        Row: {
+          channel: string
+          dossier_id: string
+          error: string | null
+          id: string
+          notification_type: string
+          payload: Json
+          sent_at: string
+        }
+        Insert: {
+          channel?: string
+          dossier_id: string
+          error?: string | null
+          id?: string
+          notification_type: string
+          payload?: Json
+          sent_at?: string
+        }
+        Update: {
+          channel?: string
+          dossier_id?: string
+          error?: string | null
+          id?: string
+          notification_type?: string
+          payload?: Json
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notifications_sent_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coverage_zones: {
         Row: {
           active: boolean
@@ -2578,6 +2616,44 @@ export type Database = {
         }
         Relationships: []
       }
+      satisfaction_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          dossier_id: string
+          id: string
+          rating: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          dossier_id: string
+          id?: string
+          rating: string
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          dossier_id?: string
+          id?: string
+          rating?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_ratings_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_events: {
         Row: {
           created_at: string
@@ -3400,6 +3476,10 @@ export type Database = {
       }
     }
     Functions: {
+      _dispatch_client_notification: {
+        Args: { p_dossier_id: string; p_notification_type: string }
+        Returns: undefined
+      }
       _wa_send_via_function: {
         Args: {
           p_dossier_id: string

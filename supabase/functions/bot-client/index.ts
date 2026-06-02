@@ -458,6 +458,153 @@ function withBack(reply: string): string {
 }
 
 
+// --- Notification button handlers (proactive flow replies) -------------------
+// Returns true if the message was an interactive button id we handled.
+async function handleNotificationButton(supa: any, phone: string, raw: string): Promise<true | null> {
+  const id = (raw || '').trim();
+  if (!id) return null;
+
+  // Satisfaction ratings: rate_<level>_<dossier_id>
+  const rateMatch = id.match(/^rate_(excellent|bien|moyen|probleme)_([0-9a-f-]{36})$/i);
+  if (rateMatch) {
+    const [, rating, dossierId] = rateMatch;
+    const { data: dos } = await supa.from('dossiers')
+      .select('id, user_id, tracking_id, reference').eq('id', dossierId).maybeSingle();
+    await supa.from('satisfaction_ratings').insert({
+      dossier_id: dossierId, user_id: dos?.user_id ?? null,
+      rating: rating.toLowerCase(), source: 'whatsapp',
+    });
+    const trk = dos?.tracking_id || dos?.reference || dossierId;
+    if (rating === 'probleme') {
+      await supa.from('admin_notifications').insert({
+        event_type: 'satisfaction_problem',
+        message: `Avis probleme recu pour ${trk} (${phone})`,
+        dossier_id: dossierId,
+        payload: { rating, phone, tracking: trk },
+      }).then(() => null, () => null);
+      await sendWa(supa, phone,
+        `Merci pour votre retour. Un agent Yobbante vous recontacte rapidement au sujet du colis ${trk}.`,
+        'bot_client_rating_problem');
+    } else {
+      await sendWa(supa, phone,
+        `Merci ${rating === 'excellent' ? 'beaucoup' : ''} pour votre avis ! Nous sommes ravis de vous avoir servi.`,
+        'bot_client_rating_thanks');
+    }
+    return true;
+  }
+
+  // Review trigger: review_<dossier_id> -> send satisfaction buttons immediately
+  const revMatch = id.match(/^review_([0-9a-f-]{36})$/i);
+  if (revMatch) {
+    const dossierId = revMatch[1];
+    const { data: dos } = await supa.from('dossiers')
+      .select('tracking_id, reference').eq('id', dossierId).maybeSingle();
+    const trk = dos?.tracking_id || dos?.reference || '';
+    await sendWaButtons(supa, phone,
+      `Comment s est passee votre experience avec Yobbante (colis ${trk}) ?`,
+      [
+        { id: `rate_excellent_${dossierId}`, title: 'Excellent' },
+        { id: `rate_bien_${dossierId}`, title: 'Bien' },
+        { id: `rate_probleme_${dossierId}`, title: 'Probleme' },
+      ], 'bot_client_review');
+    return true;
+  }
+
+  // Pickup confirmation: confirm_pickup_<dossier_id>
+  const confirmPickup = id.match(/^confirm_pickup_([0-9a-f-]{36})$/i);
+  if (confirmPickup) {
+    const dossierId = confirmPickup[1];
+    const { data: dos } = await supa.from('dossiers')
+      .select('tracking_id, reference, pickup_date').eq('id', dossierId).maybeSingle();
+    const trk = dos?.tracking_id || dos?.reference || '';
+    await supa.from('admin_notifications').insert({
+      event_type: 'client_pickup_confirmed',
+      message: `Client ${phone} confirme la collecte du ${dos?.pickup_date ?? ''} pour ${trk}`,
+      dossier_id: dossierId, payload: { phone, tracking: trk },
+    }).then(() => null, () => null);
+    await sendWa(supa, phone,
+      `Parfait, collecte confirmee pour ${trk}. Notre GP vous appellera 30 min avant.`,
+      'bot_client_pickup_confirmed');
+    return true;
+  }
+
+  // Change date: change_date_<dossier_id>
+  const changeDate = id.match(/^change_date_([0-9a-f-]{36})$/i);
+  if (changeDate) {
+    const dossierId = changeDate[1];
+    await sendWa(supa, phone,
+      `Pas de souci. Connectez-vous sur yobbante.com/app pour choisir une nouvelle date, ou repondez ici avec la date souhaitee (ex: 15/06/2026).`,
+      'bot_client_change_date');
+    await supa.from('admin_notifications').insert({
+      event_type: 'client_pickup_change_requested',
+      message: `Client ${phone} souhaite changer la date de collecte (dossier ${dossierId})`,
+      dossier_id: dossierId, payload: { phone },
+    }).then(() => null, () => null);
+    return true;
+  }
+
+  // Track button: track_<tracking_id>
+  const track = id.match(/^track_(.+)$/i);
+  if (track) {
+    const trk = track[1];
+    await sendWa(supa, phone,
+      `Suivez votre colis en direct : https://yobbante.com/suivre/${trk}`,
+      'bot_client_track_link');
+    return true;
+  }
+
+  // Contact agent
+  if (id === 'contact_agent') {
+    await sendWa(supa, phone,
+      `Un agent Yobbante vous recontacte rapidement. Vous pouvez aussi nous joindre au +221 78 460 40 03.`,
+      'bot_client_contact_agent');
+    await supa.from('admin_notifications').insert({
+      event_type: 'client_requested_agent',
+      message: `Client ${phone} demande un agent humain`,
+      payload: { phone },
+    }).then(() => null, () => null);
+    return true;
+  }
+
+  // Payment buttons : pay_wave_<trk>, pay_om_<trk>, pay_cod_<trk>
+  const pay = id.match(/^pay_(wave|om|cod)_(.+)$/i);
+  if (pay) {
+    const method = pay[1].toLowerCase();
+    const trk = pay[2];
+    if (method === 'cod') {
+      try { await supa.rpc('set_dossier_cod_public', { p_tracking: trk }); } catch {}
+      await sendWa(supa, phone,
+        `Paiement a la livraison enregistre pour ${trk}. Vous reglerez a la remise du colis.`,
+        'bot_client_pay_cod');
+    } else {
+      const label = method === 'wave' ? 'Wave' : 'Orange Money';
+      await sendWa(supa, phone,
+        `Pour payer par ${label} le colis ${trk}, suivez ce lien securise :\nhttps://yobbante.com/pay/${trk}?method=${method}`,
+        `bot_client_pay_${method}`);
+    }
+    return true;
+  }
+
+  // Confirm delivery address: confirm_delivery_<dossier_id>
+  const confirmDel = id.match(/^confirm_delivery_([0-9a-f-]{36})$/i);
+  if (confirmDel) {
+    const dossierId = confirmDel[1];
+    await supa.from('admin_notifications').insert({
+      event_type: 'client_delivery_address_confirmed',
+      message: `Client ${phone} confirme l adresse de livraison (${dossierId})`,
+      dossier_id: dossierId, payload: { phone },
+    }).then(() => null, () => null);
+    await sendWa(supa, phone,
+      `Merci, adresse confirmee. Notre livreur vous contacte sous 24-48h.`,
+      'bot_client_delivery_confirmed');
+    return true;
+  }
+
+  return null;
+}
+
+
+
 async function sendWa(supa: any, phone: string, message: string, trigger: string) {
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
@@ -902,6 +1049,14 @@ Deno.serve(async (req) => {
     let data = session?.pending_data ?? {};
 
     let reply = '';
+
+    // PRIORITY -1: button IDs from proactive notifications (rate_*, review_*, confirm_pickup_*, etc.)
+    const buttonHandled = await handleNotificationButton(supa, phone, msg);
+    if (buttonHandled !== null) {
+      return new Response(JSON.stringify({ ok: true, button: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // PRIORITY 0: back-to-menu commands (0 / menu / retour / annuler)
     if (BACK_TO_MENU.test(nMsg)) {
