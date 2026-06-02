@@ -887,15 +887,17 @@ async function handleMenuChoice(
     await saveSession(supa, phone, 'quote_origin', {});
     return withBack(`Origine ?`);
   }
-  // 5
+  // 5 — AGENT
   const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
   await saveSession(supa, phone, null, {}, pauseUntil);
-  await sendWa(
-    supa,
-    ADMIN_PHONE,
-    `Client ${fromName ?? phone} (${phone}) demande un agent.\nDernier message : "${lastMsg.slice(0, 200)}"`,
-    'agent_handoff',
-  );
+  const firstName = fromName ? fromName.split(' ')[0] : '';
+  const agentMsg =
+    `AGENT DEMANDE\n` +
+    `Client : ${phone}${firstName ? ` (${firstName})` : ''}\n` +
+    `Dernier message : ${lastMsg.slice(0, 200)}\n\n` +
+    `Action requise sous 2h.\n` +
+    `Repondre : MSG ${phone} [message]`;
+  await sendWa(supa, ADMIN_PHONE, agentMsg, 'agent_handoff');
   return withShortMenu(`Un agent vous contacte sous 2h.\nMerci de votre patience.`);
 }
 
