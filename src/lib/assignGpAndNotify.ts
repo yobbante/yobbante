@@ -366,6 +366,15 @@ export async function assignDossierToDeparture(args: {
         },
       });
     } catch { /* swallow */ }
+    const digits = String(clientPhone).replace(/\D/g, '');
+    return {
+      ok: true,
+      clientFallback: {
+        phone: clientPhone,
+        message: txt,
+        waHref: `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`,
+      },
+    };
   }
 
   return { ok: true };
