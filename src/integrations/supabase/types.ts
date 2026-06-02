@@ -3519,6 +3519,23 @@ export type Database = {
       generate_shipment_tracking_number: { Args: never; Returns: string }
       generate_tracking_id_v2: { Args: never; Returns: string }
       generate_unique_short_ref: { Args: never; Returns: string }
+      get_assigned_departure_public: {
+        Args: { p_tracking: string }
+        Returns: {
+          assigned_departure_id: string
+          client_departure_decided_at: string
+          client_departure_decision: string
+          client_departure_note: string
+          departure_date: string
+          destination_city: string
+          dossier_id: string
+          origin_city: string
+          reference: string
+          short_ref: string
+          status: Database["public"]["Enums"]["dossier_status"]
+          tracking_id: string
+        }[]
+      }
       get_edit_token: { Args: { p_token: string }; Returns: Json }
       get_user_contact: {
         Args: { _user_id: string }
