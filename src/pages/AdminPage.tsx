@@ -195,7 +195,7 @@ export default function AdminPage() {
           </button>
           <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
           <div className="flex items-center gap-1">
-            <button
+            <AdminLiveBadge className="mr-1" />
               onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
               aria-label="Se déconnecter"
               className="p-2 rounded text-muted-foreground hover:text-destructive"
