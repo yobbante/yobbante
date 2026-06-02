@@ -831,6 +831,29 @@ async function saveSession(
   }
 }
 
+// Marque la derniere action contextuelle dans la session (sans relancer un flow).
+// pending_data conserve `last_action` + `last_data` pour interpreter le prochain OUI.
+async function markLastAction(
+  supa: any,
+  phone: string,
+  action: string,
+  data: Record<string, any>,
+) {
+  try {
+    const { session } = await getSession(supa, phone);
+    const prevData = (session?.pending_data ?? {}) as Record<string, any>;
+    const currentIntent = session?.pending_intent ?? null;
+    await saveSession(supa, phone, currentIntent, {
+      ...prevData,
+      last_action: action,
+      last_data: data,
+      last_action_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('BOT_CLIENT markLastAction err', e instanceof Error ? e.message : String(e));
+  }
+}
+
 async function handleMenu1Departures(supa: any) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: deps } = await supa
