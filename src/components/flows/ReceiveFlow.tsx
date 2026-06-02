@@ -1311,7 +1311,7 @@ function OrdersOverview({
             id: d.id, source: 'dossier',
             reference: d.reference,
             title: d.product_description?.split('\n')[0]?.slice(0, 80) ?? 'Dossier',
-            subtitle: `${d.origin_country} → ${d.destination_country}`,
+            subtitle: `${(d as any).origin_city || d.origin_country} → ${(d as any).destination_city || d.destination_country}`,
             status: d.status, statusLabel: meta.label, statusTone: meta.tone,
             createdAt: d.created_at,
           });
