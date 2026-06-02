@@ -173,38 +173,64 @@ COLLECTE {tracking_id}`;
   } catch (e) { console.error('RELANCE C', e); stats.errors++; }
 
   // ============================================================
-  // RELANCE D — POIDS manquant 1h apres COLLECTE
+  // RELANCE D — POIDS manquant 4h apres COLLECTE
+  //   - 1 seul rappel WhatsApp au GP (pas de spam)
+  //   - 1 seule alerte admin
   // ============================================================
   try {
     const { data: rows } = await supa
       .from('dossiers')
-      .select('id, tracking_id, assigned_transporteur_ref, collected_at, gp_reminded_at, gp_reminder_count, gp_last_action_at')
+      .select('id, tracking_id, assigned_transporteur_ref, collected_at, gp_reminded_at, gp_reminder_count, gp_last_action_at, weight_alert_sent_at')
       .eq('status', 'COLLECTED')
       .is('actual_weight_kg', null)
-      .lt('collected_at', iso(now - 3600_000))
+      .lt('collected_at', iso(now - 4 * 3600_000))
       .limit(50);
 
     for (const d of rows ?? []) {
-      if (shouldThrottle(d)) continue;
+      // Une seule passe par dossier (pas de spam)
+      if (d.weight_alert_sent_at) continue;
+
       const gp = await getGp(d.assigned_transporteur_ref);
       const phone = gpPhone(gp);
-      if (!phone) continue;
-      const msg = `N oubliez pas d enregistrer le poids du colis ${d.tracking_id}.
 
-Envoyez :
+      // --- WhatsApp GP ---
+      if (phone) {
+        const msg = `Salam ${prenomOf(gp)},
+Le colis ${d.tracking_id} a ete collecte mais le poids n est pas encore enregistre.
+
+Envoyez le poids maintenant :
 POIDS ${d.tracking_id} [poids]kg
 
-Exemple :
-POIDS ${d.tracking_id} 2.3kg`;
-      const ok = await sendWa({
-        recipient_phone: phone,
-        recipient_type: 'gp',
-        message: msg,
-        transporteur_id: gp.id,
+Ex : POIDS ${d.tracking_id} 4.5kg
+
+Si vous etes occupe, notre equipe peut peser le colis a la reception.`;
+        const ok = await sendWa({
+          recipient_phone: phone,
+          recipient_type: 'gp',
+          message: msg,
+          transporteur_id: gp.id,
+          dossier_id: d.id,
+          trigger_type: 'gp_weight_fallback_4h',
+        });
+        if (ok) { await bumpReminder(d.id, d.gp_reminder_count); stats.D++; }
+      }
+
+      // --- Alerte admin ---
+      const gpName = gp ? `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim() || gp.reference : (d.assigned_transporteur_ref ?? '—');
+      const adminMsg = `ALERTE POIDS :
+${d.tracking_id} collecte depuis 4h sans poids enregistre.
+GP : ${gpName}
+Action requise.`;
+      const okAdmin = await sendWa({
+        recipient_phone: ADMIN_PHONE,
+        recipient_type: 'admin',
+        message: adminMsg,
         dossier_id: d.id,
-        trigger_type: 'gp_reminder',
+        trigger_type: 'admin_weight_missing_4h',
       });
-      if (ok) { await bumpReminder(d.id, d.gp_reminder_count); stats.D++; }
+      if (okAdmin) {
+        await supa.from('dossiers').update({ weight_alert_sent_at: new Date().toISOString() }).eq('id', d.id);
+      }
     }
   } catch (e) { console.error('RELANCE D', e); stats.errors++; }
 
