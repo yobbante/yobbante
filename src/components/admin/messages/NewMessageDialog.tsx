@@ -14,7 +14,7 @@ interface Props {
 }
 
 const DOSSIER_FIELDS =
-  'id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, estimated_delivery_date, buyer_name, sender_name, recipient_name, recipient_address, sender_address, final_amount_xof, actual_weight_kg';
+  'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, estimated_delivery_date, buyer_name, sender_name, recipient_name, recipient_address, sender_address, final_amount_xof, actual_weight_kg';
 
 export function NewMessageDialog({ open, onOpenChange }: Props) {
   const [phone, setPhone] = useState('+221');
