@@ -130,27 +130,37 @@ async function buildMorningReport(supa: any): Promise<string> {
 async function buildEveningReport(supa: any): Promise<string> {
   const today = todayDakarISO(0);
 
-  const [nouvelles, confirmees, collectees, livrees, msgs] = await Promise.all([
+  const [nouvelles, collectees, livrees, msgs, paidRows] = await Promise.all([
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
       .gte('created_at', today)),
-    safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
-      .eq('status', 'CONFIRMED').gte('updated_at', today)),
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
       .eq('status', 'COLLECTED').gte('collected_at', today)),
     safeCount(supa.from('dossiers').select('*', { count: 'exact', head: true })
       .eq('status', 'DELIVERED').gte('delivered_at', today)),
     safeCount(supa.from('whatsapp_inbound_messages').select('*', { count: 'exact', head: true })
       .eq('is_read', false)),
+    supa.from('dossiers').select('final_amount_xof')
+      .eq('payment_status', 'paid').gte('paid_at', today),
   ]);
 
-  return `Bilan du ${formatDateFR()} :
-Nouvelles commandes : ${Math.round(nouvelles)}
-Confirmees : ${Math.round(confirmees)}
-Collectees : ${Math.round(collectees)}
-Livrees : ${Math.round(livrees)}
-Messages non traites : ${Math.round(msgs)}
-Bonne soiree !`;
+  const paid = (paidRows?.data ?? []) as any[];
+  const paidCount = paid.length;
+  const paidAmt = paid.reduce((s, r) => s + (Number(r.final_amount_xof) || 0), 0);
+  const fmt = (n: number) => Math.round(n).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ');
+
+  return [
+    `BILAN YOBBANTE . ${formatDateFR()} . 20h`,
+    '',
+    `Commandes aujourd hui : ${Math.round(nouvelles)}`,
+    `Collectes confirmees : ${Math.round(collectees)}`,
+    `Livraisons : ${Math.round(livrees)}`,
+    `Paiements recus : ${paidCount} . ${fmt(paidAmt)} FCFA`,
+    `Messages non traites : ${Math.round(msgs)}`,
+    '',
+    'Bonne soiree !',
+  ].join('\n');
 }
+
 
 async function buildWeeklyReport(supa: any): Promise<string> {
   const weekStart = todayDakarISO(-7);
