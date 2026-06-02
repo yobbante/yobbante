@@ -415,47 +415,50 @@ const STATUS_FR: Record<string, string> = {
   CANCELLED: 'Annule',
 };
 
-const MAIN_MENU = `Bonjour ! Je suis l assistant Yobbante.
+// Interactive menu prompt — affiche uniquement via liste interactive Meta.
+const MAIN_MENU_TEXT = `Bonjour ! Je suis l assistant Yobbante. Comment puis-je vous aider ?`;
+const SHORT_MENU_TEXT = `Que souhaitez-vous faire ensuite ?`;
+const SESSION_EXPIRED_TEXT = `Votre session a expire.`;
+const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
 
-1 - Prochains departs disponibles
-2 - Suivre mon colis
-3 - Nouvelle expedition
-4 - Obtenir un devis
-5 - Parler a un agent`;
+// Sentinels: stripped before envoi, declenchent l UI interactive correspondante.
+const UI_MENU = '[[UI_MENU]]';
+const UI_BACK = '[[UI_BACK]]';
 
-const SHORT_MENU = `Choisissez :
-
-1 - Departs
-2 - Suivi
-3 - Expedition
-4 - Devis
-5 - Agent`;
-
-
-const SESSION_EXPIRED = `Votre session a expire.
-
-1 - Prochains departs
-2 - Suivre mon colis
-3 - Nouvelle expedition
-4 - Obtenir un devis
-5 - Parler a un agent`;
+const MAIN_MENU = `${MAIN_MENU_TEXT}\n${UI_MENU}`;
+const SHORT_MENU = `${SHORT_MENU_TEXT}\n${UI_MENU}`;
+const SESSION_EXPIRED = `${SESSION_EXPIRED_TEXT}\n${UI_MENU}`;
 
 const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
 const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
-const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
-
-// Append short menu after info replies, full menu after errors/fallback
+// Append interactive menu list (5 options) after info replies.
 function withShortMenu(reply: string): string {
-  return `${reply}\n\n${SHORT_MENU}`;
+  return `${reply}\n\n${SHORT_MENU_TEXT}\n${UI_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\n${MAIN_MENU}`;
+  return `${reply}\n\n${MAIN_MENU_TEXT}\n${UI_MENU}`;
 }
-// Used while a session is waiting for a precise input (tracking, weight, etc.)
+// Used while a session attend une saisie precise (tracking, poids, etc.)
 function withBack(reply: string): string {
-  return `${reply}\n\nOu tapez 0 pour revenir au menu.`;
+  return `${reply}\n${UI_BACK}`;
 }
+
+// Sections de la liste interactive principale (5 options).
+const MAIN_MENU_SECTIONS = [
+  {
+    title: 'Nos services',
+    rows: [
+      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expeditions' },
+      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expedition depuis Dakar' },
+      { id: 'DEPARTS', title: 'Prochains departs', description: 'Voir les departs disponibles' },
+      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantane en ligne' },
+      { id: 'AGENT', title: 'Parler a un agent', description: 'Contacter notre equipe' },
+    ],
+  },
+];
+const MAIN_MENU_FALLBACK = `${MAIN_MENU_TEXT}\nRepondez : SUIVI, EXPEDITION, DEPARTS, DEVIS ou AGENT.`;
+const BACK_BUTTONS = [{ id: 'MENU', label: 'Retour au menu' }];
 
 
 // --- Notification button handlers (proactive flow replies) -------------------
