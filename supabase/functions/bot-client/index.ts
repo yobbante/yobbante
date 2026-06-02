@@ -52,24 +52,25 @@ function validateWeight(raw: string): WeightCheck {
 }
 
 // --- Destinations Yobbante reconnues (free-text) ---
+// Aliases tolerent typos, accents, abreviations courantes.
 const VALID_DESTINATIONS: { city: string; aliases: string[]; country: string }[] = [
-  { city: 'Paris', aliases: ['paris', 'france'], country: 'FR' },
+  { city: 'Paris', aliases: ['paris', 'pari', 'france', 'fr'], country: 'FR' },
   { city: 'Lyon', aliases: ['lyon'], country: 'FR' },
-  { city: 'Marseille', aliases: ['marseille'], country: 'FR' },
-  { city: 'Bordeaux', aliases: ['bordeaux'], country: 'FR' },
+  { city: 'Marseille', aliases: ['marseille', 'marseill'], country: 'FR' },
+  { city: 'Bordeaux', aliases: ['bordeaux', 'bordeau'], country: 'FR' },
   { city: 'Toulouse', aliases: ['toulouse'], country: 'FR' },
   { city: 'Nice', aliases: ['nice'], country: 'FR' },
-  { city: 'New York', aliases: ['new york', 'newyork', 'nyc', 'usa', 'etats unis', 'etats-unis'], country: 'US' },
-  { city: 'Washington', aliases: ['washington', 'dc'], country: 'US' },
-  { city: 'Rhode Island', aliases: ['rhode island', 'providence'], country: 'US' },
+  { city: 'New York', aliases: ['new york', 'newyork', 'new-york', 'nyc', 'usa', 'us', 'etats unis', 'etats-unis', 'amerique', 'america'], country: 'US' },
+  { city: 'Washington', aliases: ['washington', 'washington dc', 'dc'], country: 'US' },
+  { city: 'Rhode Island', aliases: ['rhode island', 'rhodeisland', 'providence'], country: 'US' },
   { city: 'Miami', aliases: ['miami'], country: 'US' },
   { city: 'Boston', aliases: ['boston'], country: 'US' },
-  { city: 'Montreal', aliases: ['montreal', 'canada'], country: 'CA' },
+  { city: 'Montreal', aliases: ['montreal', 'montréal', 'canada', 'ca'], country: 'CA' },
   { city: 'Toronto', aliases: ['toronto'], country: 'CA' },
-  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'emirats', 'uae'], country: 'AE' },
-  { city: 'Abidjan', aliases: ['abidjan', 'cote d ivoire', 'cote divoire'], country: 'CI' },
-  { city: 'Douala', aliases: ['douala', 'cameroun'], country: 'CM' },
-  { city: 'Londres', aliases: ['londres', 'london'], country: 'GB' },
+  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'dubaï', 'doubai', 'doubaï', 'emirats', 'emirates', 'uae', 'eau'], country: 'AE' },
+  { city: 'Abidjan', aliases: ['abidjan', 'abdijan', 'abijan', 'cote d ivoire', 'cote divoire', 'cote-divoire', 'ivory coast', 'ci'], country: 'CI' },
+  { city: 'Douala', aliases: ['douala', 'cameroun', 'cameroon'], country: 'CM' },
+  { city: 'Londres', aliases: ['londres', 'london', 'uk', 'angleterre'], country: 'GB' },
 ];
 
 function resolveDestination(input?: string | null): { city: string; country: string } | null {
