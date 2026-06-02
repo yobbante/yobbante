@@ -1184,14 +1184,25 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, 'quote_weight', data);
       reply = withBack(`Poids (kg) ?`);
     } else if (intent === 'quote_weight' && msg) {
-      const w = parseFloat(nMsg.replace(',', '.'));
-      if (!w || w <= 0) {
-        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
-
+      const v = validateWeight(nMsg);
+      if (!v.ok) {
+        reply = withBack(v.error);
+      } else if (v.heavy && !data.weight_confirmed) {
+        await saveSession(supa, phone, 'quote_weight_confirm', { ...data, pending_weight: v.weight });
+        reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
-        const r = await handleQuoteCalc(supa, data.dest, w);
+        const r = await handleQuoteCalc(supa, data.dest, v.weight);
         await saveSession(supa, phone, null, {});
         reply = withShortMenu(r);
+      }
+    } else if (intent === 'quote_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        const r = await handleQuoteCalc(supa, data.dest, Number(data.pending_weight));
+        await saveSession(supa, phone, null, {});
+        reply = withShortMenu(r);
+      } else {
+        await saveSession(supa, phone, 'quote_weight', { dest: data.dest, origin: data.origin });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     }
     // ---- Shipment flow ----
@@ -1204,13 +1215,26 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, 'ship_weight', data);
       reply = withBack(`Poids estime (kg) ?`);
     } else if (intent === 'ship_weight' && msg) {
-      const w = parseFloat(nMsg.replace(',', '.'));
-      if (!w || w <= 0) {
-        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
+      const v = validateWeight(nMsg);
+      if (!v.ok) {
+        reply = withBack(v.error);
+      } else if (v.heavy && !data.weight_confirmed) {
+        await saveSession(supa, phone, 'ship_weight_confirm', { ...data, pending_weight: v.weight });
+        reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
-        data.weight = w;
+        data.weight = v.weight;
         await saveSession(supa, phone, 'ship_name', data);
         reply = withBack(`Merci. Quel est votre nom complet ?`);
+      }
+    } else if (intent === 'ship_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        const d2 = { ...data, weight: Number(data.pending_weight) };
+        delete d2.pending_weight;
+        await saveSession(supa, phone, 'ship_name', d2);
+        reply = withBack(`Merci. Quel est votre nom complet ?`);
+      } else {
+        await saveSession(supa, phone, 'ship_weight', { origin: data.origin, dest: data.dest });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     } else if (intent === 'ship_name' && msg) {
       data.name = msg;
