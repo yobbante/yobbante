@@ -248,6 +248,44 @@ Deno.serve(async (req) => {
             console.error('WA_ERROR insert inbound', e);
           }
 
+          // ---- SUPER ADMIN (+221784604003) priorite absolue ----
+          // Ce numero n'est NI client NI GP. On le route directement vers
+          // super-admin-bot, peu importe le channel (607 ou 926), et on
+          // saute toute notification "MESSAGE CLIENT" / bot-client / gp-bot.
+          const SUPER_ADMIN_PHONE = (
+            Deno.env.get('SUPER_ADMIN_PHONE')
+            || Deno.env.get('ADMIN_WHATSAPP_NUMBER')
+            || '+221784604003'
+          ).replace(/\D/g, '');
+          const isSuperAdmin = !!SUPER_ADMIN_PHONE && (
+            fromPhone === SUPER_ADMIN_PHONE
+            || fromPhone.endsWith(SUPER_ADMIN_PHONE)
+            || SUPER_ADMIN_PHONE.endsWith(fromPhone)
+          );
+
+          if (isSuperAdmin) {
+            try {
+              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/super-admin-bot`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({
+                  inbound_id: insertedRow?.id,
+                  from_phone: fromPhone,
+                  from_name: fromName,
+                  message: body,
+                  channel,
+                }),
+              });
+              if (!botRes.ok) console.error('WA_ERROR super-admin-bot', await botRes.text());
+            } catch (e) {
+              console.error('WA_ERROR super-admin-bot fetch', e);
+            }
+            continue; // skip client/gp routing for super admin
+          }
+
           // Route to bot or notify admin
           if (channel === 'gp' && isLivreur) {
             // Delegate to livreur-bot
