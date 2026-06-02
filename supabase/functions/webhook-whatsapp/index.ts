@@ -91,6 +91,27 @@ Deno.serve(async (req) => {
           const fromPhone = normalizePhone(msg?.from);
           const fromName = contactByWaId[msg?.from]?.profile?.name ?? null;
           const wamid = msg?.id ?? null;
+
+          // ---- ANTI-DOUBLON : wamid deja traite recemment ? ----
+          if (wamid) {
+            try {
+              const cutoff = new Date(Date.now() - 30_000).toISOString();
+              const { data: dup } = await supa
+                .from('whatsapp_inbound_messages')
+                .select('id, created_at')
+                .eq('wamid', wamid)
+                .gte('created_at', cutoff)
+                .limit(1)
+                .maybeSingle();
+              if (dup) {
+                console.log('WA_DEDUP skip wamid', wamid);
+                continue;
+              }
+            } catch (e) {
+              console.error('WA_DEDUP check failed', e instanceof Error ? e.message : String(e));
+            }
+          }
+
           let body: string | null = null;
           let mediaUrl: string | null = null;
           const messageType: string = msg?.type ?? 'text';
