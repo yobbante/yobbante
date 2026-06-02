@@ -429,14 +429,24 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     lastTouchMs > 0 && Date.now() - lastTouchMs >= RESEND_AFTER_MS;
 
   const buildFallbackHref = (): string | null => {
+    const d: any = dossier;
+    const parsedNotes = parseClientNotes(d?.notes);
     const phoneRaw =
-      (dossier as any).contact_phone ?? (dossier as any).sender_phone ?? null;
+      d.contact_phone ??
+      d.sender_phone ??
+      parsedNotes?.senderPhone ??
+      d.recipient_phone ??
+      parsedNotes?.recipientPhone ??
+      null;
     if (!phoneRaw) return null;
-    const digits = String(phoneRaw).replace(/\D/g, '');
-    if (digits.length < 6) return null;
-    const prenom = ((dossier as any).sender_name || (dossier as any).recipient_name || '')
+    let digits = String(phoneRaw).replace(/\D/g, '');
+    if (!digits) return null;
+    // Senegal default if no country code (local 9-digit numbers starting with 7)
+    if (digits.length === 9 && digits.startsWith('7')) digits = '221' + digits;
+    if (digits.length < 8) return null;
+    const prenom = (d.sender_name || d.recipient_name || '')
       .toString().trim().split(/\s+/)[0] || 'Bonjour';
-    const ref = (dossier as any).reference || '';
+    const ref = d.reference || '';
     const txt = [
       `Bonjour ${prenom},`,
       ``,
@@ -444,11 +454,29 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
       dep?.departure_date ? `Date prévue : ${fmt(dep.departure_date)}` : null,
       ``,
       `Confirmez ou demandez un autre départ ici :`,
-      `https://yobbante.com/app/dossier/${(dossier as any).id}`,
+      `https://yobbante.com/app/dossier/${d.id}`,
       ``,
       `— Équipe Yobbanté`,
     ].filter(Boolean).join('\n');
     return `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
+  };
+
+  const fallbackHref = showFallback ? buildFallbackHref() : null;
+  const copyFallbackLink = async () => {
+    if (!fallbackHref) {
+      toast.error('Numéro client introuvable');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(fallbackHref);
+      toast.success('Lien wa.me copié — collez-le dans WhatsApp depuis votre téléphone');
+      clarityEvent('wa_fallback_copied', {
+        dossier_id: (dossier as any).id,
+        source: 'departure_panel',
+      });
+    } catch {
+      toast.error('Impossible de copier le lien');
+    }
   };
 
   return (
@@ -473,12 +501,11 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
           <span className="text-foreground font-medium">{fmt(dep?.departure_date)}</span>
         </div>
         {showFallback && (
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
-                const href = buildFallbackHref();
-                if (!href) {
+                if (!fallbackHref) {
                   toast.error('Numéro client introuvable');
                   return;
                 }
@@ -486,13 +513,21 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
                   dossier_id: (dossier as any).id,
                   source: 'departure_panel',
                 });
-                window.open(href, '_blank', 'noopener,noreferrer');
+                window.open(fallbackHref, '_blank', 'noopener,noreferrer');
               }}
               className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
             >
               <Send className="h-3 w-3" /> Renvoyer via mon tel
             </button>
-            <div className="text-[10px] text-muted-foreground mt-1">
+            <button
+              type="button"
+              onClick={copyFallbackLink}
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md border border-emerald-500/30 bg-emerald-500/5 text-emerald-500/90 hover:bg-emerald-500/15 transition-colors"
+              title="Copier le lien wa.me pour l'envoyer depuis un autre téléphone"
+            >
+              <Copy className="h-3 w-3" /> Copier le lien wa.me
+            </button>
+            <div className="basis-full text-[10px] text-muted-foreground mt-0.5">
               Client sans réponse depuis &gt; 2h — relancez depuis votre téléphone.
             </div>
           </div>
