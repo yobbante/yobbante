@@ -1094,6 +1094,54 @@ Deno.serve(async (req) => {
         if (r) reply = withShortMenu(r);
       }
     }
+    // ---- Guided EXPEDITION flow (destination -> poids -> type -> lien pre-rempli) ----
+    else if (intent === 'exp_destination' && msg) {
+      const id = nMsg;
+      let city: string | null = null;
+      let country: string | null = null;
+      // match "expdest_paris" -> dest_paris
+      const matchId = id.startsWith('expdest_') ? `dest_${id.replace('expdest_', '')}` : id;
+      const picked = DESTINATIONS_LIST.find((d) => d.id === matchId);
+      if (picked && picked.city) { city = picked.city; country = picked.country; }
+      else if (matchId === 'dest_other' || id === 'expdest_other') {
+        await saveSession(supa, phone, 'exp_destination', {});
+        reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
+      } else {
+        city = msg;
+        country = COUNTRY_BY_CITY[norm(msg)] || null;
+      }
+      if (city) {
+        await askExpeditionWeight(supa, phone, { dest_city: city, dest_country: country });
+      }
+    }
+    else if (intent === 'exp_weight' && msg) {
+      const id = nMsg;
+      let kg: number | null = null;
+      const picked = EXP_WEIGHT_OPTIONS.find((w) => w.id === id);
+      if (picked) kg = picked.kg;
+      else {
+        const n = parseFloat(nMsg.replace(',', '.'));
+        if (n && n > 0) kg = n;
+      }
+      if (!kg) {
+        reply = withBack(`Poids invalide. Choisissez dans la liste ou tapez un nombre (ex: 5)`);
+      } else {
+        await askExpeditionType(supa, phone, { ...data, weight: kg });
+      }
+    }
+    else if (intent === 'exp_type' && msg) {
+      const id = nMsg;
+      let typeCode: string | null = null;
+      let typeLabel: string | null = null;
+      const picked = EXP_TYPE_OPTIONS.find((t) => t.id === id);
+      if (picked) { typeCode = picked.code; typeLabel = picked.title; }
+      else {
+        const byText = EXP_TYPE_OPTIONS.find((t) => norm(t.title).includes(id) || id.includes(t.code));
+        if (byText) { typeCode = byText.code; typeLabel = byText.title; }
+        else { typeCode = 'autre'; typeLabel = msg; }
+      }
+      reply = await finalizeExpedition(supa, phone, { ...data, type_code: typeCode, type_label: typeLabel });
+    }
     // ---- Direct tracking number outside flow ----
     else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       const r = await handleTrackingLookup(supa, msg);
