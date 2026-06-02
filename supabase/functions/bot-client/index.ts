@@ -1304,13 +1304,22 @@ Deno.serve(async (req) => {
         reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
         const r = await handleQuoteCalc(supa, data.dest, v.weight);
-        await saveSession(supa, phone, null, {});
+        await saveSession(supa, phone, null, {
+          last_action: 'devis_shown',
+          last_data: { dest: data.dest, weight: v.weight },
+          last_action_at: new Date().toISOString(),
+        });
         reply = withShortMenu(r);
       }
     } else if (intent === 'quote_weight_confirm' && msg) {
       if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
-        const r = await handleQuoteCalc(supa, data.dest, Number(data.pending_weight));
-        await saveSession(supa, phone, null, {});
+        const w = Number(data.pending_weight);
+        const r = await handleQuoteCalc(supa, data.dest, w);
+        await saveSession(supa, phone, null, {
+          last_action: 'devis_shown',
+          last_data: { dest: data.dest, weight: w },
+          last_action_at: new Date().toISOString(),
+        });
         reply = withShortMenu(r);
       } else {
         await saveSession(supa, phone, 'quote_weight', { dest: data.dest, origin: data.origin });
