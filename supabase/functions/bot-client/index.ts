@@ -1120,17 +1120,33 @@ async function handleMenuChoice(
     await saveSession(supa, phone, 'quote_origin', {});
     return withBack(`Origine ?`);
   }
-  // 5 — AGENT
+  // 5 — AGENT (event 3 : agent demande)
   const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
   await saveSession(supa, phone, null, {}, pauseUntil);
   const firstName = fromName ? fromName.split(' ')[0] : '';
   const agentMsg =
     `AGENT DEMANDE\n` +
-    `Client : ${phone}${firstName ? ` (${firstName})` : ''}\n` +
+    `Client : ${phone}${firstName ? ` (${firstName})` : ''}\n\n` +
     `Dernier message : ${lastMsg.slice(0, 200)}\n\n` +
-    `Action requise sous 2h.\n` +
-    `Repondre : MSG ${phone} [message]`;
-  await sendWa(supa, ADMIN_PHONE, agentMsg, 'agent_handoff');
+    `Repondre dans les 30 min :\n` +
+    `MSG ${phone} [votre message]`;
+  try {
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        notification_type: 'agent_handoff',
+        message: agentMsg,
+        dedup_key: `agent_handoff:${phone}`,
+        window_minutes: 240,
+      }),
+    });
+  } catch (e) {
+    console.error('admin-notify agent_handoff failed', e);
+  }
   return withShortMenu(`Un agent vous contacte sous 2h.\nMerci de votre patience.`);
 }
 
