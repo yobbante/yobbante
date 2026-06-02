@@ -1496,6 +1496,24 @@ Deno.serve(async (req) => {
       reply = withShortMenu(r);
     } else if (!nMsg) {
       reply = MAIN_MENU;
+    } else if (detectEnglishIntent(msg)) {
+      // ---- English fast-path : repondre en francais, ne jamais traiter de l anglais comme destination ----
+      const enIntent = detectEnglishIntent(msg);
+      if (enIntent === 'AGENT') {
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+      } else if (enIntent === 'SUIVI') {
+        const r = await handleSmartTracking(supa, phone, null);
+        if (r) reply = r;
+      } else if (enIntent === 'DEVIS') {
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
+      } else if (enIntent === 'EXPEDITION') {
+        await askExpeditionDestination(supa, phone);
+      } else if (enIntent === 'DEPARTS') {
+        const r = await handleSmartDepartures(supa, phone, 'Dakar', null);
+        if (r) reply = withShortMenu(r);
+      } else {
+        reply = withFullMenu(HELP_EN_REPLY);
+      }
     } else {
       // ---- NLP fallback : analyse intelligente du message ----
       const nlp = await classifyMessage(msg);
