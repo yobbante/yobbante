@@ -415,47 +415,50 @@ const STATUS_FR: Record<string, string> = {
   CANCELLED: 'Annule',
 };
 
-const MAIN_MENU = `Bonjour ! Je suis l assistant Yobbante.
+// Interactive menu prompt — affiche uniquement via liste interactive Meta.
+const MAIN_MENU_TEXT = `Bonjour ! Je suis l assistant Yobbante. Comment puis-je vous aider ?`;
+const SHORT_MENU_TEXT = `Que souhaitez-vous faire ensuite ?`;
+const SESSION_EXPIRED_TEXT = `Votre session a expire.`;
+const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
 
-1 - Prochains departs disponibles
-2 - Suivre mon colis
-3 - Nouvelle expedition
-4 - Obtenir un devis
-5 - Parler a un agent`;
+// Sentinels: stripped before envoi, declenchent l UI interactive correspondante.
+const UI_MENU = '[[UI_MENU]]';
+const UI_BACK = '[[UI_BACK]]';
 
-const SHORT_MENU = `Choisissez :
-
-1 - Departs
-2 - Suivi
-3 - Expedition
-4 - Devis
-5 - Agent`;
-
-
-const SESSION_EXPIRED = `Votre session a expire.
-
-1 - Prochains departs
-2 - Suivre mon colis
-3 - Nouvelle expedition
-4 - Obtenir un devis
-5 - Parler a un agent`;
+const MAIN_MENU = `${MAIN_MENU_TEXT}\n${UI_MENU}`;
+const SHORT_MENU = `${SHORT_MENU_TEXT}\n${UI_MENU}`;
+const SESSION_EXPIRED = `${SESSION_EXPIRED_TEXT}\n${UI_MENU}`;
 
 const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
 const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
-const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
-
-// Append short menu after info replies, full menu after errors/fallback
+// Append interactive menu list (5 options) after info replies.
 function withShortMenu(reply: string): string {
-  return `${reply}\n\n${SHORT_MENU}`;
+  return `${reply}\n\n${SHORT_MENU_TEXT}\n${UI_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\n${MAIN_MENU}`;
+  return `${reply}\n\n${MAIN_MENU_TEXT}\n${UI_MENU}`;
 }
-// Used while a session is waiting for a precise input (tracking, weight, etc.)
+// Used while a session attend une saisie precise (tracking, poids, etc.)
 function withBack(reply: string): string {
-  return `${reply}\n\nOu tapez 0 pour revenir au menu.`;
+  return `${reply}\n${UI_BACK}`;
 }
+
+// Sections de la liste interactive principale (5 options).
+const MAIN_MENU_SECTIONS = [
+  {
+    title: 'Nos services',
+    rows: [
+      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expeditions' },
+      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expedition depuis Dakar' },
+      { id: 'DEPARTS', title: 'Prochains departs', description: 'Voir les departs disponibles' },
+      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantane en ligne' },
+      { id: 'AGENT', title: 'Parler a un agent', description: 'Contacter notre equipe' },
+    ],
+  },
+];
+const MAIN_MENU_FALLBACK = `${MAIN_MENU_TEXT}\nRepondez : SUIVI, EXPEDITION, DEPARTS, DEVIS ou AGENT.`;
+const BACK_BUTTONS = [{ id: 'MENU', label: 'Retour au menu' }];
 
 
 // --- Notification button handlers (proactive flow replies) -------------------
@@ -1068,10 +1071,14 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
-    // PRIORITY 2: numeric menu choice 1-5 always wins over any session content
-    else if (/^[1-5]$/.test(nMsg)) {
+    // PRIORITY 2: numeric (legacy) OR interactive list/button id -> top-level menu choice
+    else if (/^[1-5]$/.test(nMsg) || ['suivi','expedition','departs','devis','agent'].includes(nMsg)) {
+      const idMap: Record<string, string> = {
+        '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+        departs: '1', suivi: '2', expedition: '3', devis: '4', agent: '5',
+      };
       await saveSession(supa, phone, null, {});
-      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, nMsg, msg);
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
     }
 
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
@@ -1351,27 +1358,36 @@ Deno.serve(async (req) => {
 
 
     if (reply) {
-      await sendWa(supa, phone, reply, 'bot_client_reply');
-      // Si la réponse contient le menu principal, ajouter des boutons interactifs
-      // (les ids matchent les commandes texte existantes "2"/"3"/"5").
-      if (reply.includes(MAIN_MENU) || reply.includes(SHORT_MENU)) {
+      const wantsMenu = reply.includes(UI_MENU);
+      const wantsBack = !wantsMenu && reply.includes(UI_BACK);
+      const cleanReply = reply.replaceAll(UI_MENU, '').replaceAll(UI_BACK, '').replace(/\n{3,}/g, '\n\n').trim();
+
+      if (wantsMenu) {
+        // Liste interactive 5 options — pas d envoi texte separe pour eviter le doublon menu.
+        await sendWaList(
+          phone,
+          cleanReply || MAIN_MENU_TEXT,
+          'Voir les options',
+          MAIN_MENU_SECTIONS,
+          MAIN_MENU_FALLBACK,
+          'bot_client_main_menu',
+        );
+      } else if (wantsBack) {
         await sendWaButtons(
           phone,
-          'Choisissez une option :',
-          [
-            { id: '2', label: 'Mes colis' },
-            { id: '3', label: 'Envoyer' },
-            { id: '5', label: 'Un agent' },
-          ],
-          'Tapez 2 pour suivre, 3 pour envoyer, 5 pour un agent.',
-          'bot_client_menu_buttons',
+          cleanReply,
+          BACK_BUTTONS,
+          `${cleanReply}\n\nRepondez MENU pour revenir au menu.`,
+          'bot_client_back_button',
         );
+      } else if (cleanReply) {
+        await sendWa(supa, phone, cleanReply, 'bot_client_reply');
       }
     }
   } catch (e) {
     console.error('BOT_CLIENT error', e instanceof Error ? e.message : String(e));
     try {
-      await sendWa(supa, phone, withFullMenu(FALLBACK), 'bot_client_error');
+      await sendWaList(phone, FALLBACK, 'Voir les options', MAIN_MENU_SECTIONS, MAIN_MENU_FALLBACK, 'bot_client_error');
     } catch {}
   }
 
