@@ -49,7 +49,9 @@ export function buildAutoFill(d: AutoFillDossier | null): Record<string, string>
   if (!d) return {};
   const prenom = firstName(d.sender_name) || firstName(d.buyer_name) || firstName(d.recipient_name);
   const trackingId = d.tracking_id || d.reference || '';
-  const route = `${d.origin_country || ''} → ${d.destination_country || ''}`;
+  const originLabel = d.origin_city || d.origin_country || '';
+  const destLabel = d.destination_city || d.destination_country || '';
+  const route = `${originLabel} → ${destLabel}`;
   const weight = (d.actual_weight_kg ?? d.estimated_weight) ?? null;
   const amount = fmtAmount(d.final_amount_xof);
   const eta = fmtDate(d.estimated_delivery_date);
