@@ -890,6 +890,8 @@ export type Database = {
           buyer_contact: string | null
           buyer_country: string | null
           buyer_name: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           cash_on_delivery: boolean
           client_departure_decided_at: string | null
           client_departure_decision: string
@@ -1026,6 +1028,8 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           cash_on_delivery?: boolean
           client_departure_decided_at?: string | null
           client_departure_decision?: string
@@ -1162,6 +1166,8 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           cash_on_delivery?: boolean
           client_departure_decided_at?: string | null
           client_departure_decision?: string
@@ -3458,6 +3464,10 @@ export type Database = {
         Args: { p_reason?: string; p_shipment_id: string }
         Returns: Json
       }
+      client_cancel_dossier: {
+        Args: { p_dossier_id: string; p_reason?: string }
+        Returns: Json
+      }
       client_decide_departure: {
         Args: {
           p_decision: string
@@ -3465,6 +3475,18 @@ export type Database = {
           p_note?: string
           p_requested_date?: string
         }
+        Returns: Json
+      }
+      client_update_pickup: {
+        Args: {
+          p_dossier_id: string
+          p_pickup_address?: string
+          p_pickup_date?: string
+        }
+        Returns: Json
+      }
+      confirm_departure_public: {
+        Args: { p_confirmed: boolean; p_reason?: string; p_tracking: string }
         Returns: Json
       }
       dekk_consume_promo: {
@@ -3497,6 +3519,23 @@ export type Database = {
       generate_shipment_tracking_number: { Args: never; Returns: string }
       generate_tracking_id_v2: { Args: never; Returns: string }
       generate_unique_short_ref: { Args: never; Returns: string }
+      get_assigned_departure_public: {
+        Args: { p_tracking: string }
+        Returns: {
+          assigned_departure_id: string
+          client_departure_decided_at: string
+          client_departure_decision: string
+          client_departure_note: string
+          departure_date: string
+          destination_city: string
+          dossier_id: string
+          origin_city: string
+          reference: string
+          short_ref: string
+          status: Database["public"]["Enums"]["dossier_status"]
+          tracking_id: string
+        }[]
+      }
       get_edit_token: { Args: { p_token: string }; Returns: Json }
       get_user_contact: {
         Args: { _user_id: string }
