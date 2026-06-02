@@ -157,8 +157,8 @@ export default function DossierDetail() {
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-border">
-            <Stat label="Origine" value={`${COUNTRY_FLAGS[dossier.origin_country]} ${COUNTRY_NAMES[dossier.origin_country]}`} />
-            <Stat label="Destination" value={dossier.destination_country} />
+            <Stat label="Origine" value={`${COUNTRY_FLAGS[dossier.origin_country] ?? ''} ${(dossier as any).origin_city || COUNTRY_NAMES[dossier.origin_country] || dossier.origin_country}`} />
+            <Stat label="Destination" value={(dossier as any).destination_city || COUNTRY_NAMES[dossier.destination_country] || dossier.destination_country} />
             <Stat label="Poids" value={dossier.estimated_weight ? `${dossier.estimated_weight} kg` : '—'} />
             <Stat label="Estimation" value={dossier.estimated_cost ? `${Math.round(dossier.estimated_cost)} €` : '—'} />
           </div>
