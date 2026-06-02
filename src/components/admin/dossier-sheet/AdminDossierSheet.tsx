@@ -1251,12 +1251,20 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
         )}
       </div>
 
-      {!dossier.actual_weight_kg && (
-        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 flex items-start gap-2 text-xs">
-          <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-          <span>Le dossier n'a pas encore été pesé. Pèse-le pour générer le montant final.</span>
-        </div>
-      )}
+      {!dossier.actual_weight_kg && (() => {
+        const collectedAt = (dossier as any).collected_at ? new Date((dossier as any).collected_at).getTime() : null;
+        const overdue = collectedAt && (Date.now() - collectedAt) > 4 * 3600_000 && dossier.status === 'COLLECTED';
+        return (
+          <div className={`rounded-lg p-3 flex items-start gap-2 text-xs ${overdue ? 'bg-red-500/10 border border-red-500/40' : 'bg-amber-500/10 border border-amber-500/30'}`}>
+            <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${overdue ? 'text-red-500' : 'text-amber-500'}`} />
+            <span>
+              {overdue
+                ? <>Collecté depuis plus de 4h sans poids. Entre le poids manuellement depuis l'onglet <strong>Colis &amp; poids</strong> pour débloquer le paiement.</>
+                : <>Le dossier n'a pas encore été pesé. Pèse-le pour générer le montant final.</>}
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
