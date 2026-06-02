@@ -35,7 +35,7 @@ interface LinkedDossier {
   final_amount_xof: number | null;
 }
 
-const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
+const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
 
 interface GpTemplate {
   key: string;
