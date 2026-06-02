@@ -149,10 +149,14 @@ Deno.serve(async (req) => {
         .eq('status', 'WEIGHED').eq('payment_status', 'pending')
         .lt('weighed_at', h24).limit(20);
 
-      // 5. 0 commande depuis 48h
-      const { count: newOrders } = await supa.from('dossiers')
-        .select('id', { count: 'exact', head: true }).gte('created_at', h48);
-      const zeroCmd = (newOrders ?? 0) === 0;
+      // 5. 0 commande depuis 48h — uniquement apres lancement (>= 2026-06-15)
+      const LAUNCH_DATE = new Date('2026-06-15T00:00:00Z').getTime();
+      let zeroCmd = false;
+      if (Date.now() >= LAUNCH_DATE) {
+        const { count: newOrders } = await supa.from('dossiers')
+          .select('id', { count: 'exact', head: true }).gte('created_at', h48);
+        zeroCmd = (newOrders ?? 0) === 0;
+      }
 
       const totalAlerts =
         gpSansTarif.length + gpSansDepart.length + bloques.length + (latePay?.length ?? 0) + (zeroCmd ? 1 : 0);
