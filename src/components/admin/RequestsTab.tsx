@@ -551,7 +551,7 @@ function KanbanView({
                   </div>
                   <div className="text-foreground line-clamp-2 leading-snug">{d.product_description}</div>
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>{d.origin_country} → {d.destination_country}</span>
+                    <span>{(d as any).origin_city || d.origin_country} → {(d as any).destination_city || d.destination_country}</span>
                     {d.business_id && (
                       <span className="inline-flex items-center gap-0.5 text-primary">
                         <Building2 className="w-2.5 h-2.5" />B2B
