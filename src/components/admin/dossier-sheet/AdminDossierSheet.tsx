@@ -717,7 +717,7 @@ function ApercuTab({
           phone={sender.phone}
           address={sender.address}
           extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
-          whatsappPrefill={`Bonjour, à propos de votre dossier ${dossier.reference}`}
+          whatsappPrefill={`Bonjour, a propos de votre dossier ${dossier.tracking_id || dossier.reference || ''} — Route : ${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`}
         />
         <ContactBlock
           title="Destinataire"
