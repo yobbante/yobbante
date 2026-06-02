@@ -903,6 +903,14 @@ Deno.serve(async (req) => {
 
     let reply = '';
 
+    // PRIORITY -1: button IDs from proactive notifications (rate_*, review_*, confirm_pickup_*, etc.)
+    const buttonHandled = await handleNotificationButton(supa, phone, msg);
+    if (buttonHandled !== null) {
+      return new Response(JSON.stringify({ ok: true, button: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // PRIORITY 0: back-to-menu commands (0 / menu / retour / annuler)
     if (BACK_TO_MENU.test(nMsg)) {
       await saveSession(supa, phone, null, {});
