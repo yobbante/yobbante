@@ -11,8 +11,9 @@ import { SourcingTab } from './SourcingTab';
 import { NewIntakeDialog } from './inbox/NewIntakeDialog';
 import { DossierSheetProvider } from './dossier-sheet/useDossierSheet';
 import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
+import { ClientAuditPanel } from './ClientAuditPanel';
 
-const TABS = ['tous', 'demandes', 'reception', 'sourcing'] as const;
+const TABS = ['tous', 'demandes', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
 
 export function DossiersHubTab() {
@@ -47,12 +48,14 @@ export function DossiersHubTab() {
             <TabsTrigger value="demandes">Demandes entrantes</TabsTrigger>
             <TabsTrigger value="reception">Réception</TabsTrigger>
             <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
+            <TabsTrigger value="audit">Audit & Test</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
           <TabsContent value="demandes"  className="mt-4"><InboxTab /></TabsContent>
           <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
+          <TabsContent value="audit"     className="mt-4"><ClientAuditPanel /></TabsContent>
         </Tabs>
       </div>
 
