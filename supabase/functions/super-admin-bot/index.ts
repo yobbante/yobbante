@@ -744,8 +744,258 @@ async function createDossierFromSession(phone: string, dataObj: any): Promise<st
 }
 
 // =================================================================
+//  ADMIN V2 — STATUS / DEPARTS / DOSSIERS / PAIEMENTS / actions
+// =================================================================
+
+function clientPhoneOf(d: any): string | null {
+  return d?.contact_phone || d?.sender_phone || d?.recipient_phone || null;
+}
+
+function clientFirstName(d: any): string {
+  const full = d?.sender_name || d?.buyer_name || d?.recipient_name || 'Client';
+  return String(full).split(/\s+/)[0];
+}
+
+async function notifyClientFromBot(dossier: any, msg: string, trigger: string) {
+  const phone = clientPhoneOf(dossier);
+  if (!phone) return false;
+  await sendWa(phone, msg, { recipient_type: 'client', trigger });
+  return true;
+}
+
+async function fetchDossier(tracking: string) {
+  const { data } = await supa().from('dossiers').select('*')
+    .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`).maybeSingle();
+  return data;
+}
+
+async function cmdStatus(): Promise<string> {
+  const sb = supa();
+  const monday = new Date(); monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const sundayIso = new Date(monday.getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const mondayYmd = monday.toISOString().slice(0, 10);
+
+  const [actifs, pendingPay, gpActifs, departsWeek, unread, top] = await Promise.all([
+    sb.from('dossiers').select('id', { count: 'exact', head: true }).not('status', 'in', '(DELIVERED,CANCELLED,ARCHIVED)'),
+    sb.from('dossiers').select('final_amount_xof').eq('payment_status', 'pending').not('status', 'in', '(CANCELLED)'),
+    sb.from('transporteurs').select('id', { count: 'exact', head: true }).eq('actif', true),
+    sb.from('manual_departures').select('id', { count: 'exact', head: true }).gte('departure_date', mondayYmd).lte('departure_date', sundayIso),
+    sb.from('whatsapp_inbound_messages').select('id', { count: 'exact', head: true }).eq('is_read', false),
+    sb.from('dossiers').select('tracking_id, sender_name, buyer_name, payment_status, status')
+      .eq('payment_status', 'pending').not('status', 'in', '(CANCELLED,DELIVERED)')
+      .order('created_at').limit(1),
+  ]);
+
+  const pendingCount = (pendingPay.data ?? []).length;
+  const pendingAmount = (pendingPay.data ?? []).reduce((s, r: any) => s + (Number(r.final_amount_xof) || 0), 0);
+  const topRow = (top.data ?? [])[0] as any;
+  const topLine = topRow
+    ? `${topRow.tracking_id} . ${(topRow.sender_name || topRow.buyer_name || 'Client')} . Paiement en attente`
+    : 'Aucun';
+
+  const now = new Date();
+  const day = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][now.getDay()];
+  return [
+    `YOBBANTE . ${day} ${now.toLocaleDateString('fr-FR')} . ${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`,
+    '',
+    `Dossiers actifs : ${actifs.count ?? 0}`,
+    `En attente paiement : ${pendingCount} (${fmtXof(pendingAmount)} FCFA)`,
+    `GP actifs : ${gpActifs.count ?? 0}`,
+    `Departs semaine : ${departsWeek.count ?? 0}`,
+    `Messages non traites : ${unread.count ?? 0}`,
+    '',
+    `Top priorite : ${topLine}`,
+  ].join('\n');
+}
+
+async function cmdDeparts(): Promise<string> {
+  const sb = supa();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await sb.from('manual_departures')
+    .select('short_ref, origin_city, destination_city, origin_country, destination_country, departure_date, max_capacity_kg, total_capacity_kg, available_capacity_kg, transporteur_ref, status')
+    .gte('departure_date', today).in('status', ['active', 'OPEN', 'open'])
+    .order('departure_date').limit(20);
+  const list = (data ?? []);
+  if (!list.length) return 'DEPARTS ACTIFS\n\nAucun depart actif a venir.';
+  const lines = ['DEPARTS ACTIFS', ''];
+  for (const d of list as any[]) {
+    const cap = Number(d.max_capacity_kg ?? d.total_capacity_kg ?? 0);
+    const dispo = Number(d.available_capacity_kg ?? cap);
+    const dt = String(d.departure_date).slice(0, 10).split('-').reverse().slice(0, 2).join('/');
+    lines.push(`#${d.short_ref ?? '?'} . ${d.origin_city || d.origin_country} -> ${d.destination_city || d.destination_country}`);
+    lines.push(`  ${dt} . ${Math.round(dispo)}kg / ${Math.round(cap)}kg`);
+  }
+  lines.push('', 'Action : VALIDE [short_ref] . DEPART [short_ref]');
+  return lines.join('\n');
+}
+
+async function cmdDossiers(): Promise<string> {
+  const { data } = await supa().from('dossiers')
+    .select('tracking_id, reference, sender_name, buyer_name, status, payment_status, origin_country, destination_country, assigned_transporteur_ref, created_at')
+    .not('status', 'in', '(DELIVERED,CANCELLED,ARCHIVED)')
+    .order('created_at', { ascending: false }).limit(20);
+  const list = (data ?? []);
+  if (!list.length) return 'DOSSIERS ACTIFS\n\nAucun.';
+  const lines = ['DOSSIERS ACTIFS', ''];
+  for (const d of list as any[]) {
+    const name = (d.sender_name || d.buyer_name || '—').split(/\s+/).slice(0, 2).join(' ');
+    const gp = d.assigned_transporteur_ref ? `[${d.assigned_transporteur_ref}]` : '[sans GP]';
+    lines.push(`${d.tracking_id ?? d.reference} . ${name}`);
+    lines.push(`  ${d.origin_country}->${d.destination_country} . ${d.status} . ${d.payment_status} ${gp}`);
+  }
+  lines.push('', 'DOSSIER [tracking] pour la fiche complete');
+  return lines.join('\n');
+}
+
+async function cmdPaiements(): Promise<string> {
+  const { data } = await supa().from('dossiers')
+    .select('tracking_id, reference, sender_name, buyer_name, final_amount_xof, status, weighed_at, created_at')
+    .eq('payment_status', 'pending').not('status', 'in', '(CANCELLED,DELIVERED)')
+    .order('weighed_at', { ascending: true, nullsFirst: false }).limit(20);
+  const list = (data ?? []);
+  if (!list.length) return 'PAIEMENTS EN ATTENTE\n\nAucun.';
+  const lines = ['PAIEMENTS EN ATTENTE', ''];
+  let total = 0;
+  for (const d of list as any[]) {
+    const name = (d.sender_name || d.buyer_name || '—').split(/\s+/).slice(0, 2).join(' ');
+    const amt = Number(d.final_amount_xof) || 0;
+    total += amt;
+    const since = d.weighed_at ? `${hoursAgo(d.weighed_at)}h` : `${hoursAgo(d.created_at)}h`;
+    lines.push(`${d.tracking_id ?? d.reference} . ${name} . ${fmtXof(amt)} FCFA . ${since}`);
+  }
+  lines.push('', `TOTAL : ${fmtXof(total)} FCFA`);
+  lines.push('Actions : RELANCE [tracking] . PAYE [tracking]');
+  return lines.join('\n');
+}
+
+// ----- Action: free message to a dossier client from 607
+async function cmdMsgDossier(tracking: string, message: string): Promise<string> {
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  const ok = await notifyClientFromBot(d, message, 'super_admin_msg_to_client');
+  if (!ok) return `Aucun numero client pour ${tracking}.`;
+  await logEvent(d.id, 'admin_message_to_client', { message });
+  return `Message envoye a ${clientFirstName(d)} (${d.tracking_id ?? d.reference}).`;
+}
+
+// ----- Action: mark dossier as paid (client paid)
+async function cmdPaye(tracking: string): Promise<string> {
+  const sb = supa();
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (d.payment_status === 'paid') return `${d.tracking_id ?? tracking} deja marque comme paye.`;
+  await sb.from('dossiers').update({
+    payment_status: 'paid',
+    paid_at: new Date().toISOString(),
+  }).eq('id', d.id);
+  await logEvent(d.id, 'payment_marked_paid_by_super_admin', {});
+  const ref = d.tracking_id ?? d.reference;
+  await notifyClientFromBot(d,
+    `Bonjour ${clientFirstName(d)},\n\nNous confirmons la reception de votre paiement pour le dossier ${ref}.\nMerci de votre confiance.\n\n— Equipe Yobbante`,
+    'client_payment_confirmed_admin');
+  return `OK ${ref} marque comme paye. Client notifie.`;
+}
+
+// ----- Action: move to IN_TRANSIT
+async function cmdTransit(tracking: string): Promise<string> {
+  const sb = supa();
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (d.status === 'IN_TRANSIT') return `${d.tracking_id ?? tracking} deja en transit.`;
+  if (d.payment_status !== 'paid' && !d.cash_on_delivery) {
+    return `Impossible : paiement non recu pour ${d.tracking_id ?? tracking}.\nUtilisez PAYE ${d.tracking_id ?? tracking} si le client a paye.`;
+  }
+  const { error } = await sb.from('dossiers').update({
+    status: 'IN_TRANSIT',
+    departed_at: new Date().toISOString(),
+  }).eq('id', d.id);
+  if (error) return `Erreur : ${error.message}`;
+  await logEvent(d.id, 'status_in_transit_by_super_admin', {});
+  const ref = d.tracking_id ?? d.reference;
+  await notifyClientFromBot(d,
+    `Bonjour ${clientFirstName(d)},\n\nVotre colis ${ref} vient de partir vers ${d.destination_country}.\nVous serez notifie a l arrivee.\n\nSuivi : yobbante.com/suivre/${ref}\n— Yobbante`,
+    'client_in_transit_admin');
+  return `OK ${ref} passe en IN_TRANSIT. Client notifie.`;
+}
+
+// ----- Action: mark delivered
+async function cmdLivre(tracking: string): Promise<string> {
+  const sb = supa();
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (d.status === 'DELIVERED') return `${d.tracking_id ?? tracking} deja livre.`;
+  await sb.from('dossiers').update({
+    status: 'DELIVERED',
+    delivered_at: new Date().toISOString(),
+  }).eq('id', d.id);
+  await logEvent(d.id, 'status_delivered_by_super_admin', {});
+  const ref = d.tracking_id ?? d.reference;
+  await notifyClientFromBot(d,
+    `Bonjour ${clientFirstName(d)},\n\nVotre colis ${ref} a ete livre.\nMerci de votre confiance.\n\n— Yobbante`,
+    'client_delivered_admin');
+  return `OK ${ref} marque LIVRE. Client notifie.`;
+}
+
+// ----- Action: confirm pickup/collected
+async function cmdCollecte(tracking: string): Promise<string> {
+  const sb = supa();
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  await sb.from('dossiers').update({
+    status: 'COLLECTED',
+    collected_at: new Date().toISOString(),
+  }).eq('id', d.id);
+  await logEvent(d.id, 'status_collected_by_super_admin', {});
+  const ref = d.tracking_id ?? d.reference;
+  await notifyClientFromBot(d,
+    `Bonjour ${clientFirstName(d)},\n\nVotre colis ${ref} a ete collecte.\nProchaine etape : pesee et facturation.\n\n— Yobbante`,
+    'client_collected_admin');
+  return `OK ${ref} marque COLLECTE. Client notifie.`;
+}
+
+// ----- Action: relance paiement
+async function cmdRelance(tracking: string): Promise<string> {
+  const d = await fetchDossier(tracking);
+  if (!d) return `Dossier ${tracking} introuvable.`;
+  const ref = d.tracking_id ?? d.reference;
+  const amt = Number(d.final_amount_xof) || 0;
+  const ok = await notifyClientFromBot(d,
+    `Bonjour ${clientFirstName(d)},\n\nRappel amical : votre dossier ${ref} est en attente de paiement.\nMontant : ${fmtXof(amt)} FCFA\n\nReglez en ligne : yobbante.com/payer/${ref}\nOu repondez ici pour Wave / Orange Money.\n\n— Yobbante`,
+    'client_payment_reminder_admin');
+  if (!ok) return `Aucun numero client pour ${tracking}.`;
+  await logEvent(d.id, 'payment_reminder_by_super_admin', { amount: amt });
+  return `Relance envoyee a ${clientFirstName(d)} pour ${ref} (${fmtXof(amt)} FCFA).`;
+}
+
+// ----- Action: validate GP departure
+async function cmdValideDepart(shortRef: string): Promise<string> {
+  const sb = supa();
+  const refClean = shortRef.replace(/\D/g, '');
+  const { data: dep } = await sb.from('manual_departures').select('*').eq('short_ref', refClean).maybeSingle();
+  if (!dep) return `Depart #${shortRef} introuvable.`;
+  if ((dep as any).status === 'active') return `Depart #${refClean} deja actif.`;
+  await sb.from('manual_departures').update({ status: 'active' }).eq('id', (dep as any).id);
+  // Notify GP if linked
+  if ((dep as any).transporteur_ref) {
+    const { data: gp } = await sb.from('transporteurs')
+      .select('prenom, telephone_1, whatsapp')
+      .eq('reference', (dep as any).transporteur_ref).maybeSingle();
+    const phone = (gp as any)?.telephone_1 || (gp as any)?.whatsapp;
+    if (phone) {
+      await sendWa(phone,
+        `Salam ${(gp as any).prenom ?? ''},\n\nVotre depart #${refClean} est valide.\nRoute : ${(dep as any).origin_city ?? (dep as any).origin_country} -> ${(dep as any).destination_city ?? (dep as any).destination_country}\n\nMerci !\n— Yobbante`,
+        { recipient_type: 'gp', trigger: 'gp_departure_validated_admin' });
+    }
+  }
+  return `Depart #${refClean} valide. GP notifie.`;
+}
+
+// =================================================================
 //  SESSION
 // =================================================================
+
+
 
 async function getSession(phone: string) {
   const { data } = await supa().from('super_admin_sessions').select('*').eq('from_phone', phone).maybeSingle();
