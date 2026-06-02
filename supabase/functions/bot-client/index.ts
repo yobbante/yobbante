@@ -1656,6 +1656,23 @@ Deno.serve(async (req) => {
       reply = withShortMenu(r);
     } else if (!nMsg) {
       reply = MAIN_MENU;
+    } else if (detectFaq(msg)) {
+      // ---- FAQ deterministe : reponse directe, pas de NLP ----
+      const faqReply = detectFaq(msg)!;
+      await markLastAction(supa, phone, 'faq_shown', { topic: msg.slice(0, 60), retry_count: 0 });
+      reply = withShortMenu(faqReply);
+    } else if (detectComplaint(msg)) {
+      // ---- PLAINTE : agent immediat + alerte URGENT admin ----
+      try {
+        await sendWa(
+          supa,
+          ADMIN_PHONE,
+          `URGENT : ${phone}\n${(input.from_name ?? '').slice(0, 40)}\n${msg.slice(0, 300)}`,
+          'agent_handoff_urgent',
+        );
+      } catch (e) { console.error('BOT_CLIENT urgent admin notify err', e); }
+      await markLastAction(supa, phone, 'plainte', { urgency: 'HIGH', retry_count: 0, message: msg.slice(0, 200) });
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
     } else if (detectEnglishIntent(msg)) {
       // ---- English fast-path : repondre en francais, ne jamais traiter de l anglais comme destination ----
       const enIntent = detectEnglishIntent(msg);
