@@ -108,7 +108,7 @@ function DossierRow({ dossier, onOpen }: { dossier: BusinessDossier; onOpen: () 
           <Badge variant="outline" className="text-[10px]">{dossier.status}</Badge>
         </div>
         <div className="text-xs text-muted-foreground mt-1 truncate">
-          {dossier.origin_country} → {dossier.destination_country} · {dossier.product_description}
+          {(dossier.origin_city || dossier.origin_country)} → {(dossier.destination_city || dossier.destination_country)} · {dossier.product_description}
         </div>
       </div>
       <div className="text-right shrink-0 hidden sm:block">
