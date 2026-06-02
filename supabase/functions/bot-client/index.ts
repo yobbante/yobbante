@@ -51,6 +51,76 @@ function validateWeight(raw: string): WeightCheck {
   return { ok: true, weight: w, heavy: w > HEAVY_WEIGHT_THRESHOLD_KG };
 }
 
+// --- Destinations Yobbante reconnues (free-text) ---
+const VALID_DESTINATIONS: { city: string; aliases: string[]; country: string }[] = [
+  { city: 'Paris', aliases: ['paris', 'france'], country: 'FR' },
+  { city: 'Lyon', aliases: ['lyon'], country: 'FR' },
+  { city: 'Marseille', aliases: ['marseille'], country: 'FR' },
+  { city: 'Bordeaux', aliases: ['bordeaux'], country: 'FR' },
+  { city: 'Toulouse', aliases: ['toulouse'], country: 'FR' },
+  { city: 'Nice', aliases: ['nice'], country: 'FR' },
+  { city: 'New York', aliases: ['new york', 'newyork', 'nyc', 'usa', 'etats unis', 'etats-unis'], country: 'US' },
+  { city: 'Washington', aliases: ['washington', 'dc'], country: 'US' },
+  { city: 'Rhode Island', aliases: ['rhode island', 'providence'], country: 'US' },
+  { city: 'Miami', aliases: ['miami'], country: 'US' },
+  { city: 'Boston', aliases: ['boston'], country: 'US' },
+  { city: 'Montreal', aliases: ['montreal', 'canada'], country: 'CA' },
+  { city: 'Toronto', aliases: ['toronto'], country: 'CA' },
+  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'emirats', 'uae'], country: 'AE' },
+  { city: 'Abidjan', aliases: ['abidjan', 'cote d ivoire', 'cote divoire'], country: 'CI' },
+  { city: 'Douala', aliases: ['douala', 'cameroun'], country: 'CM' },
+  { city: 'Londres', aliases: ['londres', 'london'], country: 'GB' },
+];
+
+function resolveDestination(input?: string | null): { city: string; country: string } | null {
+  if (!input) return null;
+  const q = (input ?? '')
+    .toString()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  if (!q) return null;
+  for (const d of VALID_DESTINATIONS) {
+    if (d.aliases.some((a) => q === a || q.includes(a) || a.includes(q))) {
+      return { city: d.city, country: d.country };
+    }
+  }
+  return null;
+}
+
+const INVALID_DESTINATION_MSG =
+  `Je ne reconnais pas cette destination.\n` +
+  `Nous desservons : Paris, New York, Dubai, Abidjan, Montreal et plus.\n\n` +
+  `Quelle est votre destination ?`;
+
+// --- Detection d'intent pour messages en anglais (deterministe, avant NLP) ---
+type Intent2 =
+  | 'EXPEDITION' | 'DEVIS' | 'SUIVI' | 'AGENT' | 'DEPARTS' | 'HELP_EN' | null;
+
+function detectEnglishIntent(raw: string): Intent2 {
+  const s = (raw ?? '').toLowerCase().trim();
+  if (!s) return null;
+  // Doit "ressembler" a de l anglais (mots-cles courants) pour eviter les faux positifs.
+  const englishMarkers = /\b(what|how|where|when|why|can|could|would|i\s+want|i\s+need|please|hello|hi|hey|help|send|track|package|parcel|agent|human|cost|price|how\s+much)\b/;
+  if (!englishMarkers.test(s)) return null;
+  if (/\b(agent|human|representative|person|speak\s+to)\b/.test(s)) return 'AGENT';
+  if (/\b(where|track)\b.*\b(package|parcel|order|shipment)\b/.test(s)) return 'SUIVI';
+  if (/\bwhere\s+is\s+my\b/.test(s)) return 'SUIVI';
+  if (/\b(how\s+much|price|cost|rate|quote)\b/.test(s)) return 'DEVIS';
+  if (/\b(i\s+want\s+to\s+send|send\s+a?\s*(package|parcel)|ship\s+(a|something))\b/.test(s)) return 'EXPEDITION';
+  if (/\b(next\s+departures?|available\s+departures?|when\s+is\s+the\s+next)\b/.test(s)) return 'DEPARTS';
+  if (/\b(what\s+can\s+you|what\s+do\s+you\s+do|help|hello|hi|hey)\b/.test(s)) return 'HELP_EN';
+  return 'HELP_EN';
+}
+
+const HELP_EN_REPLY =
+  `Je suis l assistant Yobbante.\n` +
+  `Je peux vous aider a :\n` +
+  `- envoyer un colis\n` +
+  `- suivre votre expedition\n` +
+  `- obtenir un devis`;
+
 type Intent =
   | 'DEPARTS'
   | 'SUIVI'
