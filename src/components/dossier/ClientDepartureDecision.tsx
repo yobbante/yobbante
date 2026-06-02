@@ -72,6 +72,16 @@ export function ClientDepartureDecision({
     return () => { supabase.removeChannel(ch); };
   }, [dossierId, qc]);
 
+  // Track when the client lands on the confirmation card (from wa.me link)
+  useEffect(() => {
+    if (!assignedDepartureId) return;
+    if (decision && decision !== 'pending') return;
+    clarityEvent('client_departure_confirmation_opened', {
+      dossier_id: dossierId,
+      decision: decision ?? 'pending',
+    });
+  }, [assignedDepartureId, decision, dossierId]);
+
   const decide = useMutation({
     mutationFn: async (vars: { decision: 'confirmed' | 'reschedule_requested' | 'cancelled'; date?: string | null; note?: string | null }) => {
       const { error } = await supabase.rpc('client_decide_departure' as any, {
