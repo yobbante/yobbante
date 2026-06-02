@@ -159,6 +159,7 @@ export default function AdminPage() {
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/8 px-2 py-1 rounded">
             <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : 'Staff'}
           </span>
+          <AdminLiveBadge />
           <button
             onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2 py-1 rounded transition-colors"
