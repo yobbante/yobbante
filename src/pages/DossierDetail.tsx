@@ -240,6 +240,7 @@ export default function DossierDetail() {
         {!isStaff && (
           <ClientDossierActions
             dossierId={(dossier as any).id}
+            trackingId={(dossier as any).tracking_id ?? (dossier as any).reference ?? null}
             status={(dossier as any).status}
             assignedDepartureId={(dossier as any).assigned_departure_id}
             decision={(dossier as any).client_departure_decision}
