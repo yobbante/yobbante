@@ -15,6 +15,8 @@ interface PublicDossier {
   payment_status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city: string | null;
+  destination_city: string | null;
   estimated_delivery_date: string | null;
   created_at: string;
 }
