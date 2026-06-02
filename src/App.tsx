@@ -31,6 +31,7 @@ import InboxImportPage from "./pages/admin/InboxImportPage";
 import DeparturesWeekPage from "./pages/admin/DeparturesWeekPage";
 import RelaisPage from "./pages/admin/RelaisPage";
 import ParametresPage from "./pages/admin/ParametresPage";
+import GuidePage from "./pages/admin/GuidePage";
 import SuivreEntry from "./pages/SuivreEntry";
 import AvisPage from "./pages/AvisPage";
 import PayPage from "./pages/PayPage";
@@ -109,6 +110,7 @@ const DekkRoutes = () => (
     <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
     <Route path="/admin/relais" element={<RelaisPage />} />
     <Route path="/admin/parametres" element={<ParametresPage />} />
+    <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
@@ -170,6 +172,7 @@ const MainRoutes = () => (
     <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
     <Route path="/admin/relais" element={<RelaisPage />} />
     <Route path="/admin/parametres" element={<ParametresPage />} />
+    <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
     {/* Canonical tracking URL — /suivre redirects to /track */}
     <Route path="/suivre" element={<SuivreEntry />} />
