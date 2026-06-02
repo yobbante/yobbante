@@ -1480,16 +1480,22 @@ Deno.serve(async (req) => {
       const id = nMsg;
       let city: string | null = null;
       let country: string | null = null;
-      // match "expdest_paris" -> dest_paris
+      // match "expdest_paris" -> dest_paris (liste interactive)
       const matchId = id.startsWith('expdest_') ? `dest_${id.replace('expdest_', '')}` : id;
       const picked = DESTINATIONS_LIST.find((d) => d.id === matchId);
-      if (picked && picked.city) { city = picked.city; country = picked.country; }
-      else if (matchId === 'dest_other' || id === 'expdest_other') {
+      if (picked && picked.city) {
+        city = picked.city; country = picked.country;
+      } else if (matchId === 'dest_other' || id === 'expdest_other') {
         await saveSession(supa, phone, 'exp_destination', {});
         reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
       } else {
-        city = msg;
-        country = COUNTRY_BY_CITY[norm(msg)] || null;
+        // Texte libre : valider contre la liste Yobbante
+        const resolved = resolveDestination(msg);
+        if (!resolved) {
+          reply = withBack(INVALID_DESTINATION_MSG);
+        } else {
+          city = resolved.city; country = resolved.country;
+        }
       }
       if (city) {
         await askExpeditionWeight(supa, phone, { dest_city: city, dest_country: country });
