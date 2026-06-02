@@ -11,8 +11,9 @@ import { SourcingTab } from './SourcingTab';
 import { NewIntakeDialog } from './inbox/NewIntakeDialog';
 import { DossierSheetProvider } from './dossier-sheet/useDossierSheet';
 import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
+import { ClientAuditPanel } from './ClientAuditPanel';
 
-const TABS = ['tous', 'demandes', 'reception', 'sourcing'] as const;
+const TABS = ['tous', 'demandes', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
 
 export function DossiersHubTab() {
