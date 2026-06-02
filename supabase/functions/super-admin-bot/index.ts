@@ -1066,7 +1066,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   }
 
   // ===== V2 commands: STATUS / DEPARTS / DOSSIERS / PAIEMENTS
-  if (upper === 'STATUS') return await cmdStatus();
+  if (upper === 'STATUS' || isStatusWord) return await cmdStatus();
   if (upper === 'DEPARTS') return await cmdDeparts();
   if (upper === 'DOSSIERS') return await cmdDossiers();
   if (upper === 'PAIEMENTS' || upper === 'PAIEMENT') return await cmdPaiements();
