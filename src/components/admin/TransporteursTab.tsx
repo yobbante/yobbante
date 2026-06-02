@@ -477,6 +477,17 @@ export function TransporteursTab() {
             Onboarder sur le Bot GP
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDupNamesOpen(true)}
+            className="border-[#F5C518] text-[#F5C518] hover:bg-[#F5C518]/10 hover:text-[#F5C518]"
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Corriger les noms dupliques
+          </Button>
+
+
           <Button variant="outline" size="sm" onClick={() => setEditing({
             id: '', reference: '', nom: '', telephone_1: '', telephone_2: null,
             adresse_1: '', adresse_2: null, ville: 'Dakar', zone: null, notes: null,
