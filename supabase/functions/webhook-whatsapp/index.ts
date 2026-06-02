@@ -425,6 +425,31 @@ Deno.serve(async (req) => {
                 console.error('WA_ERROR super-admin-bot fetch', e);
               }
             } else {
+              // EVENT 8 — Notify admin of new client message (dedup 30 min per contact).
+              try {
+                const firstName = fromName ? fromName.split(' ')[0] : '';
+                const adminMsg =
+                  `MESSAGE CLIENT\n` +
+                  `${firstName ? firstName + ' ' : ''}(${fromPhone})\n\n` +
+                  `Message : ${(body || '').slice(0, 240)}\n\n` +
+                  `Repondre :\nMSG ${fromPhone} [message]`;
+                await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  },
+                  body: JSON.stringify({
+                    notification_type: 'client_message',
+                    message: adminMsg,
+                    dedup_key: `client_message:${fromPhone}`,
+                    window_minutes: 30,
+                  }),
+                });
+              } catch (e) {
+                console.error('WA_ERROR admin-notify client_message', e);
+              }
+
               // Delegate to bot-client
               try {
                 const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bot-client`, {

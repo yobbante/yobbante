@@ -79,6 +79,33 @@ export type Database = {
           },
         ]
       }
+      admin_notifications_sent: {
+        Row: {
+          dedup_key: string
+          dossier_id: string | null
+          id: string
+          notification_type: string
+          phone_sent_to: string | null
+          sent_at: string
+        }
+        Insert: {
+          dedup_key: string
+          dossier_id?: string | null
+          id?: string
+          notification_type: string
+          phone_sent_to?: string | null
+          sent_at?: string
+        }
+        Update: {
+          dedup_key?: string
+          dossier_id?: string | null
+          id?: string
+          notification_type?: string
+          phone_sent_to?: string | null
+          sent_at?: string
+        }
+        Relationships: []
+      }
       business_account_managers: {
         Row: {
           business_id: string
@@ -928,6 +955,7 @@ export type Database = {
           buyer_contact: string | null
           buyer_country: string | null
           buyer_name: string | null
+          cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           cash_on_delivery: boolean
@@ -955,6 +983,9 @@ export type Database = {
           delivery_mode: string
           delivery_notified_at: string | null
           delivery_reminder_count: number
+          departure_confirmed_by_client: boolean | null
+          departure_decided_at: string | null
+          departure_decision_reason: string | null
           dernier_km_adresse: string | null
           dernier_km_carrier: string | null
           dernier_km_label_url: string | null
@@ -1069,6 +1100,7 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           cash_on_delivery?: boolean
@@ -1096,6 +1128,9 @@ export type Database = {
           delivery_mode?: string
           delivery_notified_at?: string | null
           delivery_reminder_count?: number
+          departure_confirmed_by_client?: boolean | null
+          departure_decided_at?: string | null
+          departure_decision_reason?: string | null
           dernier_km_adresse?: string | null
           dernier_km_carrier?: string | null
           dernier_km_label_url?: string | null
@@ -1210,6 +1245,7 @@ export type Database = {
           buyer_contact?: string | null
           buyer_country?: string | null
           buyer_name?: string | null
+          cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           cash_on_delivery?: boolean
@@ -1237,6 +1273,9 @@ export type Database = {
           delivery_mode?: string
           delivery_notified_at?: string | null
           delivery_reminder_count?: number
+          departure_confirmed_by_client?: boolean | null
+          departure_decided_at?: string | null
+          departure_decision_reason?: string | null
           dernier_km_adresse?: string | null
           dernier_km_carrier?: string | null
           dernier_km_label_url?: string | null
@@ -3771,6 +3810,16 @@ export type Database = {
       }
       mark_overdue_invoices: { Args: never; Returns: number }
       monitor_shipment_etas: { Args: never; Returns: number }
+      notify_admin_http: {
+        Args: {
+          p_dedup_key?: string
+          p_dossier_id?: string
+          p_message: string
+          p_notification_type: string
+          p_window_minutes?: number
+        }
+        Returns: undefined
+      }
       recompute_departure_reserved_capacity: {
         Args: { p_departure_id: string }
         Returns: undefined
