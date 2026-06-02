@@ -1387,7 +1387,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error('BOT_CLIENT error', e instanceof Error ? e.message : String(e));
     try {
-      await sendWa(supa, phone, withFullMenu(FALLBACK), 'bot_client_error');
+      await sendWaList(phone, FALLBACK, 'Voir les options', MAIN_MENU_SECTIONS, MAIN_MENU_FALLBACK, 'bot_client_error');
     } catch {}
   }
 
