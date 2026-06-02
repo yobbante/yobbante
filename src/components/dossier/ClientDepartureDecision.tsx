@@ -18,6 +18,7 @@ import {
 import { Calendar, CheckCircle2, Clock, Loader2, Plane, ShieldAlert, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { clarityEvent } from '@/lib/clarity';
 
 type Decision = 'pending' | 'confirmed' | 'reschedule_requested' | 'cancelled';
 
