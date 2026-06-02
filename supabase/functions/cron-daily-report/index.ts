@@ -214,6 +214,45 @@ Routes top 3 : ${topRoutes}
 Bonne semaine !`;
 }
 
+async function sendKeepaliveTemplate(supa: any) {
+  // Verifie la derniere reception entrante de la part du super admin sur le 607.
+  // Si > 20h, envoie un template UTILITY pour rouvrir la fenetre 24h.
+  const adminTail = ADMIN_PHONE.replace(/\D/g, '').slice(-9);
+  const since = new Date(Date.now() - 20 * 3600 * 1000).toISOString();
+  let recent = 0;
+  try {
+    const { count } = await supa.from('whatsapp_inbound_messages')
+      .select('id', { count: 'exact', head: true })
+      .gte('received_at', since)
+      .ilike('from_phone', `%${adminTail}%`);
+    recent = count ?? 0;
+  } catch (e) {
+    console.error('keepalive check failed', e);
+  }
+  if (recent > 0) {
+    return { ok: true, skipped: true, reason: 'window_still_open' };
+  }
+  try {
+    const { data, error } = await supa.functions.invoke('send-whatsapp', {
+      body: {
+        recipient_phone: ADMIN_PHONE,
+        recipient_type: 'admin',
+        template_name: 'admin_window_keepalive',
+        template_language: 'fr',
+        // Fallback texte au cas ou le template n est pas approuve
+        fallback_text: 'Yobbante . Systeme actif. Envoyez MENU pour les commandes.',
+        message: 'Yobbante . Systeme actif. Envoyez MENU pour les commandes.',
+        trigger_type: 'admin_window_keepalive',
+      },
+    });
+    if (error) console.error('keepalive send error', error);
+    return { ok: !error, data };
+  } catch (e) {
+    console.error('keepalive invoke failed', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -232,6 +271,15 @@ Deno.serve(async (req) => {
       kind = url.searchParams.get('kind') ?? 'morning';
     }
   } catch {}
+
+  // Keepalive : ne genere pas de message lisible, juste un template UTILITY.
+  if (kind === 'keepalive') {
+    const r = await sendKeepaliveTemplate(supa);
+    return new Response(JSON.stringify({ ok: r.ok, kind, ...r }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   let message = '';
   try {
@@ -256,3 +304,4 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
+
