@@ -61,7 +61,11 @@ Deno.serve(async (req) => {
         const value = change?.value ?? {};
         const metadata = value?.metadata ?? {};
         const displayPhone: string = metadata?.display_phone_number ?? '';
-        const isGp = displayPhone.includes('122');
+        // GP bot tourne sur le nouveau numero +221 78 926 97 56 (ancien 122 supprime).
+        const gpNumber = Deno.env.get('WHATSAPP_GP_BOT_NUMBER') ?? '221789269756';
+        const gpDigits = gpNumber.replace(/\D/g, '').slice(-9);
+        const displayDigits = displayPhone.replace(/\D/g, '');
+        const isGp = displayDigits.endsWith(gpDigits) || displayPhone.includes('122') || displayPhone.includes('926');
         const channel: 'client' | 'gp' = isGp ? 'gp' : 'client';
 
         // ---- Statuses (delivery updates) ----

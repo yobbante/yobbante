@@ -80,9 +80,12 @@ function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromN
     return { phoneId: clientPhoneId, fromNumber: '+221786078080' };
   }
   if (recipientType === 'gp') {
+    // Nouveau numero GP bot : +221 78 926 97 56 (ancien 122 supprime)
     return {
-      phoneId: Deno.env.get('WHATSAPP_PHONE_ID_GP') ?? Deno.env.get('WHATSAPP_PHONE_ID'),
-      fromNumber: '+221781221891',
+      phoneId: Deno.env.get('WHATSAPP_GP_BOT_PHONE_ID')
+        ?? Deno.env.get('WHATSAPP_PHONE_ID_GP')
+        ?? Deno.env.get('WHATSAPP_PHONE_ID'),
+      fromNumber: '+' + (Deno.env.get('WHATSAPP_GP_BOT_NUMBER') ?? '221789269756'),
     };
   }
   return { phoneId: clientPhoneId, fromNumber: '+221786078080' };
