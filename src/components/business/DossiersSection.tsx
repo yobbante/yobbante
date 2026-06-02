@@ -168,7 +168,7 @@ function DossierDetail({ dossier }: { dossier: BusinessDossier }) {
 
       <Card className="p-4 space-y-2 text-sm">
         <Row label="Produit" value={dossier.product_description} />
-        <Row label="Route" value={`${dossier.origin_country} → ${dossier.destination_country}`} />
+        <Row label="Route" value={`${dossier.origin_city || dossier.origin_country} → ${dossier.destination_city || dossier.destination_country}`} />
         <Row label="Incoterm" value={dossier.incoterm ?? '—'} />
         {dossier.hs_code && <Row label="Code HS" value={dossier.hs_code} />}
         {dossier.quantity && <Row label="Quantité" value={`${dossier.quantity} ${dossier.unit ?? ''}`} />}
