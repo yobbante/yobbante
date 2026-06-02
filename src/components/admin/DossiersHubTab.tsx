@@ -48,12 +48,14 @@ export function DossiersHubTab() {
             <TabsTrigger value="demandes">Demandes entrantes</TabsTrigger>
             <TabsTrigger value="reception">Réception</TabsTrigger>
             <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
+            <TabsTrigger value="audit">Audit & Test</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
           <TabsContent value="demandes"  className="mt-4"><InboxTab /></TabsContent>
           <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
+          <TabsContent value="audit"     className="mt-4"><ClientAuditPanel /></TabsContent>
         </Tabs>
       </div>
 
