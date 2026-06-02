@@ -22,6 +22,35 @@ const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4h (NLP refonte)
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const NLP_MODEL = 'google/gemini-2.5-flash';
 
+// --- Weight validation rules ---
+const MAX_WEIGHT_KG = 500;
+const MIN_WEIGHT_KG = 0.1;
+const HEAVY_WEIGHT_THRESHOLD_KG = 30;
+
+type WeightCheck =
+  | { ok: true; weight: number; heavy: boolean }
+  | { ok: false; error: string };
+
+function validateWeight(raw: string): WeightCheck {
+  const w = parseFloat((raw || '').replace(',', '.').replace(/[^\d.,]/g, ''));
+  if (!w || isNaN(w) || w <= 0) {
+    return { ok: false, error: `Poids invalide. Indiquez en kg (ex: 5)` };
+  }
+  if (w < MIN_WEIGHT_KG) {
+    return { ok: false, error: `Poids minimum ${MIN_WEIGHT_KG}kg.\nQuel est le poids de votre colis ?` };
+  }
+  if (w > MAX_WEIGHT_KG) {
+    return {
+      ok: false,
+      error:
+        `Ce poids semble incorrect.\n` +
+        `Le maximum accepte est ${MAX_WEIGHT_KG}kg.\n` +
+        `Quel est le poids reel de votre colis ?`,
+    };
+  }
+  return { ok: true, weight: w, heavy: w > HEAVY_WEIGHT_THRESHOLD_KG };
+}
+
 type Intent =
   | 'DEPARTS'
   | 'SUIVI'
