@@ -230,7 +230,85 @@ async function classifyMessage(msg: string): Promise<NlpResult | null> {
   } catch (e) {
     console.error('NLP parse err', e instanceof Error ? e.message : String(e));
     return null;
+}
+
+// --- FAQ deterministe (avant NLP, reponses directes) ---
+const FAQ_RESPONSES: Array<{ patterns: RegExp[]; reply: string }> = [
+  {
+    patterns: [/\bpaiement\b/, /\bpayer\b/, /\bcomment\s+payer\b/, /\bmode\s+de\s+paiement\b/, /\bpayment\b/],
+    reply:
+      `Modes de paiement Yobbante :\n` +
+      `- Wave\n` +
+      `- Orange Money\n` +
+      `- Especes a la collecte`,
+  },
+  {
+    patterns: [/\bdelai\b/, /\bcombien\s+de\s+temps\b/, /\bdelivery\s+time\b/, /\bquand\s+arrive\b/, /\bca\s+prend\b/],
+    reply:
+      `Delais moyens depuis Dakar :\n` +
+      `- Paris / France : 3-5 jours\n` +
+      `- USA / New York : 5-8 jours\n` +
+      `- Dubai : 4-6 jours\n` +
+      `- Abidjan : 2-3 jours`,
+  },
+  {
+    patterns: [/\bdedouan/, /\bdouane\b/, /\bcustom/, /\bfrais\s+de\s+douane\b/],
+    reply: `Le dedouanement est inclus dans le prix affiche. Aucun frais supplementaire a la livraison.`,
+  },
+  {
+    patterns: [/\blivraison\s+(a\s+)?domicile\b/, /\blivrer\s+chez\s+moi\b/, /\bhome\s+delivery\b/],
+    reply:
+      `Livraison a domicile disponible uniquement a Dakar.\n` +
+      `Hors Dakar : retrait au point relais le plus proche.`,
+  },
+  {
+    patterns: [/\bmedicament/, /\bordonnance\b/, /\bmedicine\b/, /\bpharmac/],
+    reply: `Medicaments acceptes uniquement avec ordonnance valide.`,
+  },
+  {
+    patterns: [/\btelephone\b/, /\bphones?\b/, /\bsmartphone\b/, /\biphone\b/],
+    reply: `Telephones acceptes uniquement avec facture d achat originale.`,
+  },
+  {
+    patterns: [/\bc\s*est\s+quoi\s+un\s+gp\b/, /\bqu\s*est\s*ce\s+qu\s*un\s+gp\b/, /\bdefinition\s+gp\b/, /\bwhat\s+is\s+a\s+gp\b/],
+    reply:
+      `Un GP (Gros Porteur) est un voyageur partenaire Yobbante.\n` +
+      `Il transporte vos colis dans ses bagages lors de ses voyages.\n` +
+      `Plus economique et plus rapide qu un transporteur classique.`,
+  },
+  {
+    patterns: [/\bqui\s+etes\s+vous\b/, /\bpresentation\b/, /\byobbante\s+c\s*est\s+quoi\b/, /\bwhat\s+is\s+yobbante\b/, /\babout\s+yobbante\b/],
+    reply:
+      `Yobbante connecte vos colis aux voyageurs (GP) depuis Dakar.\n` +
+      `Envois rapides, prix transparents, suivi en temps reel.\n` +
+      `Vers Paris, New York, Dubai, Abidjan et plus.`,
+  },
+];
+
+function detectFaq(raw: string): string | null {
+  const n = norm(raw);
+  if (!n) return null;
+  for (const f of FAQ_RESPONSES) {
+    if (f.patterns.some((p) => p.test(n))) return f.reply;
   }
+  return null;
+}
+
+// --- Wolof / mixed detection (basique) ---
+function detectWolof(raw: string): boolean {
+  const n = norm(raw);
+  if (!n) return false;
+  return /\b(nanga\s*def|naka(?:la|nga)?|jamm|deuk|ndaal|baxna|mbaa|waaw|deedeet|jerejef|wala|sama|sa\s+yoon|am\s+na|amul)\b/.test(n);
+}
+
+// --- Plainte / complaint detection deterministe ---
+function detectComplaint(raw: string): boolean {
+  const n = norm(raw);
+  if (!n) return false;
+  return /\b(inadmissible|scandale|honte|voleur|arnaque|j\s*en\s*ai\s+marre|c\s*est\s+pas\s+normal|jamais\s+recu|3\s+semaines|trois\s+semaines|remboursement|reclamation|plainte|porter\s+plainte|fraude|escroc)\b/.test(n)
+    || /\b(unacceptable|outrageous|refund|scam|fraud|complaint|never\s+received|missing)\b/.test(n);
+}
+
 }
 
 // Normalise un nom de ville pour comparaison
