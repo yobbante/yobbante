@@ -1333,17 +1333,27 @@ Deno.serve(async (req) => {
     }
     else if (intent === 'exp_weight' && msg) {
       const id = nMsg;
-      let kg: number | null = null;
       const picked = EXP_WEIGHT_OPTIONS.find((w) => w.id === id);
-      if (picked) kg = picked.kg;
-      else {
-        const n = parseFloat(nMsg.replace(',', '.'));
-        if (n && n > 0) kg = n;
-      }
-      if (!kg) {
-        reply = withBack(`Poids invalide. Choisissez dans la liste ou tapez un nombre (ex: 5)`);
+      if (picked) {
+        await askExpeditionType(supa, phone, { ...data, weight: picked.kg });
       } else {
-        await askExpeditionType(supa, phone, { ...data, weight: kg });
+        const v = validateWeight(nMsg);
+        if (!v.ok) {
+          reply = withBack(v.error);
+        } else if (v.heavy && !data.weight_confirmed) {
+          await saveSession(supa, phone, 'exp_weight_confirm', { ...data, pending_weight: v.weight });
+          reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
+        } else {
+          await askExpeditionType(supa, phone, { ...data, weight: v.weight });
+        }
+      }
+    }
+    else if (intent === 'exp_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        await askExpeditionType(supa, phone, { ...data, weight: Number(data.pending_weight) });
+      } else {
+        await saveSession(supa, phone, 'exp_weight', { dest_city: data.dest_city, dest_country: data.dest_country });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     }
     else if (intent === 'exp_type' && msg) {
