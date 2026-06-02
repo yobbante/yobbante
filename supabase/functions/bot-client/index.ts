@@ -1236,10 +1236,28 @@ Deno.serve(async (req) => {
       reply = await handleModifierClient(supa, phone);
     }
     // PRIORITY 3: explicit RESERVER command
-    else if (/^reserver\s/.test(nMsg)) {
+    else if (/^reserver(\s|$)/.test(nMsg)) {
       const p = parseReserver(msg);
       if (!p) {
-        reply = withFullMenu(`Format: RESERVER {ref} {poids}kg\nEx: RESERVER 5508 3kg`);
+        // Aucune ref fournie : afficher la liste des departs actifs, NE PAS lancer le flow expedition.
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: deps } = await supa
+          .from('public_active_departures')
+          .select('short_ref,transporteur_ref,departure_date,origin_city,destination_city,available_capacity_kg')
+          .gte('departure_date', today)
+          .order('departure_date', { ascending: true })
+          .limit(8);
+        let depList = '';
+        for (const d of (deps ?? [])) {
+          const ref = d.short_ref || d.transporteur_ref || '----';
+          depList += `* ${fmtDate(d.departure_date)} #${ref} - ${d.origin_city || '?'} -> ${d.destination_city || '?'} (${d.available_capacity_kg ?? 0}kg dispo)\n`;
+        }
+        if (!depList) depList = '(aucun depart actif pour le moment)';
+        reply = withFullMenu(
+          `Pour reserver un depart, indiquez la reference.\n` +
+          `Ex : RESERVER 5421 3kg\n\n` +
+          `Departs disponibles :\n${depList}`,
+        );
       } else {
         const r = await handleReserver(supa, phone, input.from_name ?? null, p.ref, p.weight);
         reply = r.startsWith('Super') ? r : withFullMenu(r);
