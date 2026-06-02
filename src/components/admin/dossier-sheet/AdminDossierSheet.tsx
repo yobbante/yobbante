@@ -36,6 +36,7 @@ import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assi
 import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
+import { clarityEvent } from '@/lib/clarity';
 
 import { format } from 'date-fns';
 
