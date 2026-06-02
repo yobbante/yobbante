@@ -49,7 +49,7 @@ export async function assignTransporteurAndNotify({
     supabase
       .from('dossiers')
       .select(
-        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, estimated_weight, pickup_date, contact_phone, buyer_name',
+        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, pickup_date, contact_phone, buyer_name',
       )
       .eq('id', dossierId)
       .maybeSingle(),
