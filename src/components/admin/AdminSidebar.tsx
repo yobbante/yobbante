@@ -165,6 +165,36 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
           </div>
         );
       })}
+
+      <div className="mt-auto pt-3">
+        <button
+          onClick={() => navigate('/admin/guide')}
+          aria-current={isGuide ? 'page' : undefined}
+          className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+          style={{
+            borderRadius: isGuide ? 0 : 8,
+            borderLeft: isGuide ? '2px solid #F5C518' : '2px solid transparent',
+            background: isGuide ? 'hsl(var(--secondary))' : 'transparent',
+            color: isGuide ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+            fontWeight: isGuide ? 500 : undefined,
+          }}
+          onMouseEnter={e => {
+            if (!isGuide) {
+              e.currentTarget.style.background = 'hsl(var(--secondary))';
+              e.currentTarget.style.color = 'hsl(var(--foreground))';
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isGuide) {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+            }
+          }}
+        >
+          <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: '#F5C518' }} />
+          <span className="flex-1 truncate">Guide opérateur</span>
+        </button>
+      </div>
     </nav>
   );
 }
