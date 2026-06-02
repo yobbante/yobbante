@@ -1062,14 +1062,63 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     return 'Repondez OUI pour valider ou NON pour annuler.';
   }
 
-  // ----- Commandes directes (avant wizard)
-  // INFO {tracking}  ou tracking seul
+  // ===== V2 commands: STATUS / DEPARTS / DOSSIERS / PAIEMENTS
+  if (upper === 'STATUS') return await cmdStatus();
+  if (upper === 'DEPARTS') return await cmdDeparts();
+  if (upper === 'DOSSIERS') return await cmdDossiers();
+  if (upper === 'PAIEMENTS' || upper === 'PAIEMENT') return await cmdPaiements();
+
+  // DOSSIER {tracking} (alias of INFO)
+  if (/^dossier\s+/i.test(text)) {
+    const t = parseTracking(text);
+    if (!t) return 'Format: DOSSIER YOB-XXXXXX';
+    return await cmdInfo(t);
+  }
+
+  // ----- Shortcuts: R/T/L/C YOB-XXXXXX
+  const sc = text.match(/^([RTLC])\s+([A-Z0-9-]+)$/i);
+  if (sc) {
+    const t = parseTracking(sc[2]);
+    if (!t) return `Format: ${sc[1].toUpperCase()} YOB-XXXXXX`;
+    const k = sc[1].toUpperCase();
+    if (k === 'R') return await cmdRelance(t);
+    if (k === 'T') return await cmdTransit(t);
+    if (k === 'L') return await cmdLivre(t);
+    if (k === 'C') return await cmdCollecte(t);
+  }
+
+  // RELANCE / TRANSIT / LIVRE / COLLECTE / PAYE
+  if (/^relance\s+/i.test(text)) {
+    const t = parseTracking(text); if (!t) return 'Format: RELANCE YOB-XXXXXX';
+    return await cmdRelance(t);
+  }
+  if (/^transit\s+/i.test(text)) {
+    const t = parseTracking(text); if (!t) return 'Format: TRANSIT YOB-XXXXXX';
+    return await cmdTransit(t);
+  }
+  if (/^(livre|livree|delivered)\s+/i.test(text)) {
+    const t = parseTracking(text); if (!t) return 'Format: LIVRE YOB-XXXXXX';
+    return await cmdLivre(t);
+  }
+  if (/^(collecte|collected|collecter)\s+/i.test(text)) {
+    const t = parseTracking(text); if (!t) return 'Format: COLLECTE YOB-XXXXXX';
+    return await cmdCollecte(t);
+  }
+  if (/^paye\s+/i.test(text)) {
+    const t = parseTracking(text); if (!t) return 'Format: PAYE YOB-XXXXXX';
+    return await cmdPaye(t);
+  }
+  if (/^valide\s+/i.test(text)) {
+    const arg = text.replace(/^valide\s+/i, '').trim();
+    return await cmdValideDepart(arg);
+  }
+
+  // INFO {tracking} ou tracking seul
   if (upper.startsWith('INFO')) {
     const t = parseTracking(text) ?? parseTracking(session?.pending_data?.last_tracking ?? '');
     if (!t) return 'Format: INFO YOB-XXXXXX';
     return await cmdInfo(t);
   }
-  // Tracking seul = INFO
   const trackingAlone = parseTracking(text);
   if (trackingAlone && text.replace(/\s+/g, '').length <= 16) {
     return await cmdInfo(trackingAlone);
@@ -1085,29 +1134,37 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (upper === 'STATS') return await cmdStats();
   if (upper === 'URGENTS' || text === '3') return await cmdUrgents(phone);
 
-  // DEPART {ref}
+  // DEPART {ref}  (singular = fiche)
   if (/^depart\s+\S+/i.test(text)) {
     const ref = text.replace(/^depart\s+/i, '').trim();
     return await cmdDepart(ref);
   }
 
-  // ASSIGN {tracking} {gp_ref}
-  if (/^assign\s+/i.test(text)) {
+  // ASSIGN / ASSIGNE / REASSIGNE {tracking} {gp_ref}
+  if (/^(assign|assigne|reassigne)\s+/i.test(text)) {
     const parts = text.split(/\s+/);
     const t = parseTracking(parts[1] ?? '');
     const g = parseGpRef(parts[2] ?? '');
-    if (!t || !g) return 'Format: ASSIGN YOB-XXXXXX GP0001';
+    if (!t || !g) return 'Format: ASSIGNE YOB-XXXXXX GP0001';
     return await cmdAssign(t, g);
   }
 
-  // MSG {phone} {texte}
+  // MSG {tracking|phone} {texte}
   if (/^msg\s+/i.test(text)) {
+    const rest = text.replace(/^msg\s+/i, '');
+    const tTok = rest.split(/\s+/, 1)[0] ?? '';
+    const t = parseTracking(tTok);
+    if (t) {
+      const msg = rest.slice(tTok.length).trim();
+      if (!msg) return 'Format: MSG YOB-XXXXXX votre message';
+      return await cmdMsgDossier(t, msg);
+    }
     const m = text.match(/^msg\s+(\+?\d[\d\s-]{5,})\s+([\s\S]+)$/i);
-    if (!m) return 'Format: MSG 221776916125 votre message';
+    if (!m) return 'Format: MSG YOB-XXXXXX message  ou  MSG 221XXXXXXXXX message';
     return await cmdMsg(m[1].trim(), m[2].trim());
   }
 
-  // PAYER {tracking} {methode}
+  // PAYER {tracking} {methode} (paiement du GP)
   if (/^payer\s+/i.test(text)) {
     const parts = text.split(/\s+/);
     const t = parseTracking(parts[1] ?? '');
@@ -1117,6 +1174,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     if (r.data) await saveSession(phone, 'confirm_payer', null, r.data);
     return r.reply;
   }
+
 
   // ----- Wizard new_dossier
   if (!session?.pending_intent) {
