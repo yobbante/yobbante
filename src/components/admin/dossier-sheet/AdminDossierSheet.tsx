@@ -448,19 +448,21 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     // Senegal default if no country code (local 9-digit numbers starting with 7)
     if (digits.length === 9 && digits.startsWith('7')) digits = '221' + digits;
     if (digits.length < 8) return null;
-    const prenom = (d.sender_name || d.recipient_name || '')
-      .toString().trim().split(/\s+/)[0] || 'Bonjour';
-    const ref = d.reference || '';
+    const prenom = (d.sender_name || d.recipient_name || 'Client')
+      .toString().trim().split(/\s+/)[0];
+    const ref = d.tracking_id || d.reference || '';
+    const route = `${d.origin_city || '-'} -> ${d.destination_city || '-'}`;
     const txt = [
       `Bonjour ${prenom},`,
       ``,
-      `Petit rappel : merci de confirmer le départ pour votre dossier ${ref}.`,
-      dep?.departure_date ? `Date prévue : ${fmt(dep.departure_date)}` : null,
+      `Petit rappel : merci de confirmer le depart pour votre dossier ${ref}.`,
+      `Route : ${route}`,
+      dep?.departure_date ? `Date prevue : ${fmt(dep.departure_date)}` : null,
       ``,
-      `Confirmez ou demandez un autre départ ici :`,
+      `Confirmez ou demandez un autre depart ici :`,
       `https://yobbante.com/app/dossier/${d.id}`,
       ``,
-      `— Équipe Yobbanté`,
+      `-- Equipe Yobbante`,
     ].filter(Boolean).join('\n');
     return `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
   };
