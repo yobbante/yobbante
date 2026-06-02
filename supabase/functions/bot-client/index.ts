@@ -312,7 +312,7 @@ function detectComplaint(raw: string): boolean {
     || /\b(unacceptable|outrageous|refund|scam|fraud|complaint|never\s+received|missing)\b/.test(n);
 }
 
-}
+
 
 // Normalise un nom de ville pour comparaison
 function cityMatch(a?: string | null, b?: string | null): boolean {
