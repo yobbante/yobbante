@@ -138,7 +138,7 @@ ou tapez directement votre commande.
 Ex: DEP Paris 28/05 25kg
 Ex: TARIF Paris 6500
 
-Si vous voulez nous ecrire : +221781221891`;
+Si vous voulez nous ecrire : +221789269756`;
 
 
 const FALLBACK_TEXT = `Je n'ai pas compris.
@@ -160,7 +160,7 @@ Si vous etes transporteur et souhaitez rejoindre notre reseau :
 👉 yobbante.com/rejoindre-konnekt
 
 Si vous etes deja partenaire et avez un probleme d'acces, contactez-nous :
-+221781221891
++221789269756
 
 Merci !`;
 
