@@ -418,6 +418,38 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     ? { text: 'Confirmé & synchronisé', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
     : { text: 'En attente confirmation client', cls: 'bg-[#F5C518]/20 text-[#F5C518] border-[#F5C518]/30' };
 
+  // Fallback "Renvoyer via mon tel" — only useful while client hasn't decided.
+  const RESEND_AFTER_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const lastTouchRaw =
+    (dossier as any).gp_last_action_at ?? (dossier as any).updated_at ?? null;
+  const lastTouchMs = lastTouchRaw ? new Date(lastTouchRaw).getTime() : 0;
+  const showFallback =
+    !confirmed && !cancelled && !!departureId &&
+    lastTouchMs > 0 && Date.now() - lastTouchMs >= RESEND_AFTER_MS;
+
+  const buildFallbackHref = (): string | null => {
+    const phoneRaw =
+      (dossier as any).contact_phone ?? (dossier as any).sender_phone ?? null;
+    if (!phoneRaw) return null;
+    const digits = String(phoneRaw).replace(/\D/g, '');
+    if (digits.length < 6) return null;
+    const prenom = ((dossier as any).sender_name || (dossier as any).recipient_name || '')
+      .toString().trim().split(/\s+/)[0] || 'Bonjour';
+    const ref = (dossier as any).reference || '';
+    const txt = [
+      `Bonjour ${prenom},`,
+      ``,
+      `Petit rappel : merci de confirmer le départ pour votre dossier ${ref}.`,
+      dep?.departure_date ? `Date prévue : ${fmt(dep.departure_date)}` : null,
+      ``,
+      `Confirmez ou demandez un autre départ ici :`,
+      `https://yobbante.com/app/dossier/${(dossier as any).id}`,
+      ``,
+      `— Équipe Yobbanté`,
+    ].filter(Boolean).join('\n');
+    return `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
+  };
+
   return (
     <div className={`rounded-xl border p-3 flex items-start gap-3 ${tone}`}>
       <Truck className="h-5 w-5 mt-0.5 shrink-0 text-foreground" />
@@ -439,6 +471,31 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
           {dep?.origin_city ?? '?'} → {dep?.destination_city ?? '?'} ·{' '}
           <span className="text-foreground font-medium">{fmt(dep?.departure_date)}</span>
         </div>
+        {showFallback && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                const href = buildFallbackHref();
+                if (!href) {
+                  toast.error('Numéro client introuvable');
+                  return;
+                }
+                clarityEvent('wa_fallback_sent', {
+                  dossier_id: (dossier as any).id,
+                  source: 'departure_panel',
+                });
+                window.open(href, '_blank', 'noopener,noreferrer');
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
+            >
+              <Send className="h-3 w-3" /> Renvoyer via mon tel
+            </button>
+            <div className="text-[10px] text-muted-foreground mt-1">
+              Client sans réponse depuis &gt; 2h — relancez depuis votre téléphone.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
