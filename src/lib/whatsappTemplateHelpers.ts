@@ -11,6 +11,8 @@ export interface AutoFillDossier {
   status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
   estimated_weight: number | null;
   estimated_delivery_date: string | null;
   buyer_name: string | null;
