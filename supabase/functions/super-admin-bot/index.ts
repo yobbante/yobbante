@@ -1025,6 +1025,9 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   const text = (raw || '').trim();
   const lower = text.toLowerCase();
   const upper = text.toUpperCase();
+  const norm = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const isStatusWord = ['status', 'statut', 'statuts'].includes(norm);
+
 
   if (['menu', 'aide', 'help', 'bonjour', 'salut', 'start'].includes(lower)) {
     await clearSession(phone); return MENU;
