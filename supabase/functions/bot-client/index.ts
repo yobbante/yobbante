@@ -1089,19 +1089,44 @@ async function logDossierEvent(supa: any, dossierId: string, eventType: string, 
 }
 
 async function handleOui(supa: any, phone: string, fromName: string | null): Promise<string> {
-  const d = await findPendingDossier(supa, phone);
-  if (!d) {
-    return withShortMenu(`Merci ! Aucune action en attente trouvee sur votre dossier.`);
+  // 1) Contexte session : last_action stocke dans pending_data
+  try {
+    const { session } = await getSession(supa, phone);
+    const pd = (session?.pending_data ?? {}) as Record<string, any>;
+    const lastAction = pd?.last_action ?? null;
+    const lastData = (pd?.last_data ?? {}) as Record<string, any>;
+
+    if (lastAction === 'devis_shown' && lastData?.dest) {
+      // Le client vient de voir un devis et tape OUI : on lance le flow expedition pre-rempli
+      const dest = resolveDestination(lastData.dest) ?? { city: lastData.dest, country: COUNTRY_BY_CITY[norm(lastData.dest)] || null };
+      const weight = Number(lastData.weight) || 0;
+      if (weight > 0) {
+        await askExpeditionType(supa, phone, { dest_city: dest.city, dest_country: dest.country, weight });
+      } else {
+        await askExpeditionWeight(supa, phone, { dest_city: dest.city, dest_country: dest.country });
+      }
+      return '';
+    }
+  } catch (e) {
+    console.error('BOT_CLIENT handleOui ctx err', e instanceof Error ? e.message : String(e));
   }
-  const ref = d.tracking_id || d.reference;
-  await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
-  await sendWa(
-    supa,
-    ADMIN_PHONE,
-    `Client ${fromName ?? phone} a confirme (OUI) sur ${ref}\nStatut actuel : ${STATUS_FR[d.status] || d.status}`,
-    'admin_notification',
-  );
-  return withShortMenu(`Merci ! Votre confirmation pour ${ref} est enregistree.\nUn agent prend le relais.`);
+
+  // 2) Dossier en attente -> confirmation
+  const d = await findPendingDossier(supa, phone);
+  if (d) {
+    const ref = d.tracking_id || d.reference;
+    await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
+    await sendWa(
+      supa,
+      ADMIN_PHONE,
+      `Client ${fromName ?? phone} a confirme (OUI) sur ${ref}\nStatut actuel : ${STATUS_FR[d.status] || d.status}`,
+      'admin_notification',
+    );
+    return withShortMenu(`Merci ! Votre confirmation pour ${ref} est enregistree.\nUn agent prend le relais.`);
+  }
+
+  // 3) Aucun contexte -> afficher le menu (ne plus dire "Aucune action")
+  return MAIN_MENU;
 }
 
 async function handleNon(supa: any, phone: string, fromName: string | null): Promise<string> {
