@@ -133,7 +133,10 @@ export function AssignDepartureDialog({
           duration: 12000,
           action: {
             label: 'Envoyer via mon tel',
-            onClick: () => window.open(fb.waHref, '_blank', 'noopener,noreferrer'),
+            onClick: () => {
+              clarityEvent('wa_fallback_sent', { dossier_id: dossierId, source: 'assign_dialog' });
+              window.open(fb.waHref, '_blank', 'noopener,noreferrer');
+            },
           },
         });
       } else {
