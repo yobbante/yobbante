@@ -1064,7 +1064,7 @@ export function MessagesTab() {
                       <Textarea
                         value={gpText}
                         onChange={(e) => onGpTyping(e.target.value)}
-                        placeholder="Tapez votre message au GP (envoye depuis le 122)..."
+                        placeholder="Tapez votre message au GP (envoye depuis le 926)..."
                         rows={3}
                         className="text-xs resize-none"
                       />
