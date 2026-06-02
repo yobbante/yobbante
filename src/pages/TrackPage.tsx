@@ -7,6 +7,7 @@ import { PublicFooter } from '@/components/PublicFooter';
 import { EmptyState } from '@/components/EmptyState';
 import { useSeo } from '@/hooks/useSeo';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
+import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
@@ -152,6 +153,7 @@ export default function TrackPage() {
           />
         ) : data ? (
           <>
+            <PublicDepartureConfirm tracking={data.tracking_number} />
             <div
               className="rounded-[12px] p-5 mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start sm:justify-between"
               style={{ background: 'hsl(var(--secondary))' }}

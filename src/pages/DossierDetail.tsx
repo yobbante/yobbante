@@ -16,6 +16,7 @@ import { DossierDocuments } from '@/components/DossierDocuments';
 import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
 import { DernierKmPanel } from '@/components/dossier/DernierKmPanel';
 import { ClientDepartureDecision } from '@/components/dossier/ClientDepartureDecision';
+import { ClientDossierActions } from '@/components/dossier/ClientDossierActions';
 import {
   type Dossier,
   type Package,
@@ -234,6 +235,18 @@ export default function DossierDetail() {
           note={(dossier as any).client_departure_note}
           dossierStatus={(dossier as any).status}
         />
+
+        {/* Actions client (modifier collecte, annuler) */}
+        {!isStaff && (
+          <ClientDossierActions
+            dossierId={(dossier as any).id}
+            status={(dossier as any).status}
+            assignedDepartureId={(dossier as any).assigned_departure_id}
+            decision={(dossier as any).client_departure_decision}
+            pickupDate={(dossier as any).pickup_date}
+            senderAddress={(dossier as any).sender_address}
+          />
+        )}
 
         {/* Invoice */}
         <InvoiceSection dossier={dossier as any} isStaff={isStaff} />
