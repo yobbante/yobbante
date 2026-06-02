@@ -1051,6 +1051,7 @@ export type Database = {
           weigh_location: string | null
           weighed_at: string | null
           weighed_by: string | null
+          weight_alert_sent_at: string | null
           yobbante_gross_margin: number | null
           yobbante_margin: number | null
           yobbante_margin_pct: number
@@ -1189,6 +1190,7 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          weight_alert_sent_at?: string | null
           yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
           yobbante_margin_pct?: number
@@ -1327,6 +1329,7 @@ export type Database = {
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
+          weight_alert_sent_at?: string | null
           yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
           yobbante_margin_pct?: number
