@@ -111,14 +111,118 @@ function cityMatch(a?: string | null, b?: string | null): boolean {
 }
 
 const DESTINATIONS_LIST = [
-  { id: 'dest_paris', title: 'Paris / France', city: 'Paris' },
-  { id: 'dest_nyc', title: 'New York / USA', city: 'New York' },
-  { id: 'dest_dubai', title: 'Dubai / Emirats', city: 'Dubai' },
-  { id: 'dest_abidjan', title: 'Abidjan / Cote d Ivoire', city: 'Abidjan' },
-  { id: 'dest_montreal', title: 'Montreal / Canada', city: 'Montreal' },
-  { id: 'dest_bordeaux', title: 'Bordeaux / France', city: 'Bordeaux' },
-  { id: 'dest_other', title: 'Autre (taper le nom)', city: '' },
+  { id: 'dest_paris', title: 'Paris / France', city: 'Paris', country: 'FR' },
+  { id: 'dest_nyc', title: 'New York / USA', city: 'New York', country: 'US' },
+  { id: 'dest_dubai', title: 'Dubai / Emirats', city: 'Dubai', country: 'AE' },
+  { id: 'dest_abidjan', title: 'Abidjan / Cote d Ivoire', city: 'Abidjan', country: 'CI' },
+  { id: 'dest_montreal', title: 'Montreal / Canada', city: 'Montreal', country: 'CA' },
+  { id: 'dest_bordeaux', title: 'Bordeaux / France', city: 'Bordeaux', country: 'FR' },
+  { id: 'dest_other', title: 'Autre (taper le nom)', city: '', country: '' },
 ];
+
+// Guided EXPEDITION (3 etapes a boutons)
+const EXP_WEIGHT_OPTIONS = [
+  { id: 'expw_1', title: 'Moins de 1 kg', kg: 1 },
+  { id: 'expw_5', title: '1 a 5 kg', kg: 5 },
+  { id: 'expw_10', title: '5 a 10 kg', kg: 10 },
+  { id: 'expw_20', title: '10 a 20 kg', kg: 20 },
+  { id: 'expw_more', title: 'Plus de 20 kg', kg: 25 },
+];
+
+const EXP_TYPE_OPTIONS = [
+  { id: 'expt_docs', title: 'Documents', code: 'documents' },
+  { id: 'expt_vet', title: 'Vetements', code: 'vetements' },
+  { id: 'expt_elec', title: 'Electronique', code: 'electronique' },
+  { id: 'expt_alim', title: 'Alimentaire', code: 'alimentaire' },
+  { id: 'expt_autre', title: 'Autre', code: 'autre' },
+];
+
+const COUNTRY_BY_CITY: Record<string, string> = {
+  paris: 'FR', bordeaux: 'FR', marseille: 'FR', lyon: 'FR', toulouse: 'FR', nice: 'FR',
+  'new york': 'US', newyork: 'US', miami: 'US', washington: 'US', boston: 'US',
+  dubai: 'AE', 'abu dhabi': 'AE',
+  abidjan: 'CI',
+  montreal: 'CA', toronto: 'CA',
+  londres: 'GB', london: 'GB',
+  madrid: 'ES', barcelone: 'ES', barcelona: 'ES',
+  rome: 'IT', milan: 'IT',
+  bruxelles: 'BE', brussels: 'BE',
+  geneve: 'CH', zurich: 'CH',
+};
+
+function buildExpedierLink(destCity: string, destCountry: string | null, weightKg: number, typeCode: string): string {
+  const country = destCountry || COUNTRY_BY_CITY[norm(destCity)] || 'FR';
+  const params = new URLSearchParams({
+    origin: 'SN',
+    origin_city: 'Dakar',
+    destination: country,
+    destination_city: destCity,
+    weight: String(weightKg),
+    type: typeCode,
+    transport: 'AIR',
+    source: 'wa-bot',
+  });
+  return `https://yobbante.com/expedier?${params.toString()}`;
+}
+
+async function askExpeditionDestination(supa: any, phone: string) {
+  await saveSession(supa, phone, 'exp_destination', {});
+  await sendWaList(
+    phone,
+    'Vers quelle destination expedier votre colis ?',
+    'Choisir destination',
+    [{
+      title: 'Destinations',
+      rows: DESTINATIONS_LIST.map((d) => ({ id: `expdest_${d.id.replace('dest_', '')}`, title: d.title })),
+    }],
+    'Tapez le nom de la ville de destination (ex: Paris)',
+    'bot_client_exp_destination',
+  );
+}
+
+async function askExpeditionWeight(supa: any, phone: string, data: Record<string, any>) {
+  await saveSession(supa, phone, 'exp_weight', data);
+  await sendWaList(
+    phone,
+    `Vers ${data.dest_city || data.dest}. Quel est le poids estime ?`,
+    'Choisir poids',
+    [{
+      title: 'Poids',
+      rows: EXP_WEIGHT_OPTIONS.map((w) => ({ id: w.id, title: w.title })),
+    }],
+    'Tapez le poids en kg (ex: 5)',
+    'bot_client_exp_weight',
+  );
+}
+
+async function askExpeditionType(supa: any, phone: string, data: Record<string, any>) {
+  await saveSession(supa, phone, 'exp_type', data);
+  await sendWaList(
+    phone,
+    'Quel type de contenu ?',
+    'Choisir type',
+    [{
+      title: 'Type de contenu',
+      rows: EXP_TYPE_OPTIONS.map((t) => ({ id: t.id, title: t.title })),
+    }],
+    'Tapez : documents, vetements, electronique, alimentaire ou autre',
+    'bot_client_exp_type',
+  );
+}
+
+async function finalizeExpedition(supa: any, phone: string, data: Record<string, any>): Promise<string> {
+  const link = buildExpedierLink(
+    data.dest_city || data.dest || 'Paris',
+    data.dest_country || null,
+    Number(data.weight) || 5,
+    data.type_code || 'autre',
+  );
+  await saveSession(supa, phone, null, {});
+  return withShortMenu(
+    `Parfait !\n\nVotre expedition :\n* Destination : ${data.dest_city || data.dest}\n* Poids : ~${data.weight} kg\n* Contenu : ${data.type_label || data.type_code}\n\nFinalisez en 1 minute (formulaire pre-rempli) :\n${link}`,
+  );
+}
+
 
 async function handleSmartDepartures(
   supa: any,
@@ -626,8 +730,8 @@ async function handleMenuChoice(
     return '';
   }
   if (choice === '3') {
-    await saveSession(supa, phone, 'ship_origin', {});
-    return withBack(`D ou part votre colis ?`);
+    await askExpeditionDestination(supa, phone);
+    return '';
   }
   if (choice === '4') {
     await saveSession(supa, phone, 'quote_origin', {});
@@ -990,6 +1094,54 @@ Deno.serve(async (req) => {
         if (r) reply = withShortMenu(r);
       }
     }
+    // ---- Guided EXPEDITION flow (destination -> poids -> type -> lien pre-rempli) ----
+    else if (intent === 'exp_destination' && msg) {
+      const id = nMsg;
+      let city: string | null = null;
+      let country: string | null = null;
+      // match "expdest_paris" -> dest_paris
+      const matchId = id.startsWith('expdest_') ? `dest_${id.replace('expdest_', '')}` : id;
+      const picked = DESTINATIONS_LIST.find((d) => d.id === matchId);
+      if (picked && picked.city) { city = picked.city; country = picked.country; }
+      else if (matchId === 'dest_other' || id === 'expdest_other') {
+        await saveSession(supa, phone, 'exp_destination', {});
+        reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
+      } else {
+        city = msg;
+        country = COUNTRY_BY_CITY[norm(msg)] || null;
+      }
+      if (city) {
+        await askExpeditionWeight(supa, phone, { dest_city: city, dest_country: country });
+      }
+    }
+    else if (intent === 'exp_weight' && msg) {
+      const id = nMsg;
+      let kg: number | null = null;
+      const picked = EXP_WEIGHT_OPTIONS.find((w) => w.id === id);
+      if (picked) kg = picked.kg;
+      else {
+        const n = parseFloat(nMsg.replace(',', '.'));
+        if (n && n > 0) kg = n;
+      }
+      if (!kg) {
+        reply = withBack(`Poids invalide. Choisissez dans la liste ou tapez un nombre (ex: 5)`);
+      } else {
+        await askExpeditionType(supa, phone, { ...data, weight: kg });
+      }
+    }
+    else if (intent === 'exp_type' && msg) {
+      const id = nMsg;
+      let typeCode: string | null = null;
+      let typeLabel: string | null = null;
+      const picked = EXP_TYPE_OPTIONS.find((t) => t.id === id);
+      if (picked) { typeCode = picked.code; typeLabel = picked.title; }
+      else {
+        const byText = EXP_TYPE_OPTIONS.find((t) => norm(t.title).includes(id) || id.includes(t.code));
+        if (byText) { typeCode = byText.code; typeLabel = byText.title; }
+        else { typeCode = 'autre'; typeLabel = msg; }
+      }
+      reply = await finalizeExpedition(supa, phone, { ...data, type_code: typeCode, type_label: typeLabel });
+    }
     // ---- Direct tracking number outside flow ----
     else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       const r = await handleTrackingLookup(supa, msg);
@@ -1016,12 +1168,12 @@ Deno.serve(async (req) => {
         } else if (nlp.intent === 'AGENT') {
           reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
         } else if (nlp.intent === 'EXPEDITION') {
-          // Si destination connue → pré-remplir
+          // Flow guide : destination -> poids -> type -> lien pre-rempli
           if (nlp.entities.destination) {
-            await saveSession(supa, phone, 'ship_dest', { origin: nlp.entities.origin ?? 'Dakar', dest: nlp.entities.destination });
-            reply = withBack(`${greet}Pour expedier vers ${nlp.entities.destination}, quel est le poids estime (kg) ?`);
+            const country = COUNTRY_BY_CITY[norm(nlp.entities.destination)] || null;
+            await askExpeditionWeight(supa, phone, { dest_city: nlp.entities.destination, dest_country: country });
           } else {
-            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '3', msg);
+            await askExpeditionDestination(supa, phone);
           }
         } else if (nlp.intent === 'DEVIS') {
           if (nlp.entities.destination && nlp.entities.weight) {

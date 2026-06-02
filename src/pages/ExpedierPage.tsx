@@ -19,6 +19,39 @@ export default function ExpedierPage() {
 
   useEffect(() => { setMode(urlMode ?? 'envoyer'); }, [urlMode]);
 
+  // Hydrate sessionStorage preset from URL params so deep-links from WhatsApp
+  // (ex: /expedier?destination=FR&destination_city=Paris&weight=5&type=docs)
+  // pre-fill SendFlow on mount.
+  useEffect(() => {
+    if ((urlMode ?? 'envoyer') !== 'envoyer') return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const dest = sp.get('destination') || sp.get('country');
+      const destCity = sp.get('destination_city') || sp.get('dest_city') || sp.get('dest');
+      const origin = sp.get('origin') || (dest || destCity ? 'SN' : null);
+      const originCity = sp.get('origin_city') || (origin === 'SN' ? 'Dakar' : undefined);
+      const weight = sp.get('weight');
+      const transport = (sp.get('transport') || 'AIR').toUpperCase();
+      const contentType = sp.get('type') || sp.get('content_type');
+      if (!dest && !destCity && !weight && !contentType) return;
+      const existing = (() => {
+        try { return JSON.parse(sessionStorage.getItem('send-flow:preset') || 'null') || {}; } catch { return {}; }
+      })();
+      const preset = {
+        ...existing,
+        ...(origin ? { origin } : {}),
+        ...(originCity ? { origin_city: originCity } : {}),
+        ...(dest ? { destination: dest } : {}),
+        ...(destCity ? { destination_city: destCity } : {}),
+        ...(weight ? { weight: Number(weight) || undefined } : {}),
+        ...(['AIR', 'SEA', 'ROAD'].includes(transport) ? { transport: transport as 'AIR' | 'SEA' | 'ROAD' } : {}),
+        ...(contentType ? { content_type: contentType } : {}),
+        source: sp.get('source') || 'whatsapp-bot',
+      };
+      sessionStorage.setItem('send-flow:preset', JSON.stringify(preset));
+    } catch {}
+  }, [urlMode]);
+
   useSeo(
     mode === 'recevoir'
       ? {
