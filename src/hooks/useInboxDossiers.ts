@@ -8,6 +8,8 @@ export type InboxDossier = {
   product_description: string;
   origin_country: string;
   destination_country: string;
+  origin_city: string | null;
+  destination_city: string | null;
   contact_phone: string | null;
   contact_email: string | null;
   estimated_cost: number | null;
