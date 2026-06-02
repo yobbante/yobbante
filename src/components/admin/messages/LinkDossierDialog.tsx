@@ -28,7 +28,7 @@ interface Props {
   onPick: (d: LinkableDossier) => void;
 }
 
-const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, buyer_name, assigned_transporteur_ref';
+const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref';
 const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
 export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, onPick }: Props) {
