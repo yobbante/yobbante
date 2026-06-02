@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 
 interface Props {
   dossierId: string;
+  trackingId?: string | null;
   status: string | null | undefined;
   assignedDepartureId: string | null | undefined;
   decision: string | null | undefined;
@@ -31,7 +32,7 @@ interface Props {
 const EDITABLE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'SOURCING', 'PROCURED'];
 
 export function ClientDossierActions({
-  dossierId, status, assignedDepartureId, decision, pickupDate, senderAddress,
+  dossierId, trackingId, status, assignedDepartureId, decision, pickupDate, senderAddress,
 }: Props) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<null | 'date' | 'address' | 'cancel'>(null);
