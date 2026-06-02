@@ -3012,6 +3012,39 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_departures: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          destination: string
+          id: string
+          notified_at: string | null
+          origin: string
+          phone: string
+          source: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          destination: string
+          id?: string
+          notified_at?: string | null
+          origin?: string
+          phone: string
+          source?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          destination?: string
+          id?: string
+          notified_at?: string | null
+          origin?: string
+          phone?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       weight_logs: {
         Row: {
           dossier_id: string

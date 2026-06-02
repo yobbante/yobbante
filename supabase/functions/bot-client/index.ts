@@ -18,7 +18,268 @@ interface BotInput {
 
 const ADMIN_PHONE = '+221784604003';
 const BOT_PHONE_DISPLAY = '+221786078080';
-const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1h
+const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4h (NLP refonte)
+const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const NLP_MODEL = 'google/gemini-2.5-flash';
+
+type Intent =
+  | 'DEPARTS'
+  | 'SUIVI'
+  | 'EXPEDITION'
+  | 'DEVIS'
+  | 'AGENT'
+  | 'CONFIRMATION'
+  | 'ANNULATION'
+  | 'UNKNOWN';
+
+interface NlpEntities {
+  origin: string | null;
+  destination: string | null;
+  tracking_id: string | null;
+  weight: number | null;
+  date: string | null;
+  response: 'OUI' | 'NON' | null;
+}
+
+interface NlpResult {
+  intent: Intent;
+  entities: NlpEntities;
+  confidence: number;
+}
+
+const NLP_SYSTEM = `Tu es le bot WhatsApp de Yobbante, service logistique Dakar vers le monde.
+Analyse le message du client et retourne UNIQUEMENT un JSON valide :
+{"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number}
+Exemples:
+- "Dakar Paris" -> DEPARTS, origin Dakar, destination Paris, conf 0.95
+- "je veux envoyer un colis a Paris" -> EXPEDITION, destination Paris
+- "YOB-9KPR4A" ou "YOB9KPR4A" -> SUIVI, tracking_id YOB-9KPR4A
+- "mon colis" / "ou est mon colis" -> SUIVI
+- "oui","ok","yes","ouii","d accord" -> CONFIRMATION, response OUI
+- "non","nop","pas ok","refuse" -> ANNULATION, response NON
+- "parler a quelquun","agent","humain","conseiller" -> AGENT
+- "combien ca coute pour Paris 5kg" -> DEVIS, destination Paris, weight 5
+- "prochains departs" / "departs disponibles" -> DEPARTS
+- "annule mon dossier" -> ANNULATION
+Reponds STRICTEMENT en JSON, rien d autre.`;
+
+async function classifyMessage(msg: string): Promise<NlpResult | null> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey || !msg.trim()) return null;
+  try {
+    const resp = await fetch(LOVABLE_AI_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: NLP_MODEL,
+        messages: [
+          { role: 'system', content: NLP_SYSTEM },
+          { role: 'user', content: msg.slice(0, 500) },
+        ],
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!resp.ok) {
+      console.error('NLP HTTP', resp.status);
+      return null;
+    }
+    const j = await resp.json();
+    const txt = j?.choices?.[0]?.message?.content ?? '';
+    const parsed = JSON.parse(txt);
+    return {
+      intent: (parsed.intent ?? 'UNKNOWN') as Intent,
+      entities: {
+        origin: parsed.entities?.origin ?? null,
+        destination: parsed.entities?.destination ?? null,
+        tracking_id: parsed.entities?.tracking_id ?? null,
+        weight: typeof parsed.entities?.weight === 'number' ? parsed.entities.weight : null,
+        date: parsed.entities?.date ?? null,
+        response: parsed.entities?.response ?? null,
+      },
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+    };
+  } catch (e) {
+    console.error('NLP parse err', e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
+// Normalise un nom de ville pour comparaison
+function cityMatch(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false;
+  return norm(a).includes(norm(b)) || norm(b).includes(norm(a));
+}
+
+const DESTINATIONS_LIST = [
+  { id: 'dest_paris', title: 'Paris / France', city: 'Paris' },
+  { id: 'dest_nyc', title: 'New York / USA', city: 'New York' },
+  { id: 'dest_dubai', title: 'Dubai / Emirats', city: 'Dubai' },
+  { id: 'dest_abidjan', title: 'Abidjan / Cote d Ivoire', city: 'Abidjan' },
+  { id: 'dest_montreal', title: 'Montreal / Canada', city: 'Montreal' },
+  { id: 'dest_bordeaux', title: 'Bordeaux / France', city: 'Bordeaux' },
+  { id: 'dest_other', title: 'Autre (taper le nom)', city: '' },
+];
+
+async function handleSmartDepartures(
+  supa: any,
+  phone: string,
+  origin: string | null,
+  destination: string | null,
+): Promise<string> {
+  // Pas de destination -> liste interactive
+  if (!destination) {
+    await saveSession(supa, phone, 'await_destination_departs', { origin: origin ?? 'Dakar' });
+    await sendWaList(
+      phone,
+      'Vers quelle destination ?',
+      'Choisir destination',
+      [{ title: 'Destinations populaires', rows: DESTINATIONS_LIST.map((d) => ({ id: d.id, title: d.title })) }],
+      'Repondez avec votre destination (ex: Paris)',
+      'bot_client_destinations',
+    );
+    return '';
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const horizon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const { data: deps } = await supa
+    .from('public_active_departures')
+    .select('short_ref,transporteur_ref,departure_date,origin_city,destination_city,available_capacity_kg')
+    .gte('departure_date', today)
+    .lte('departure_date', horizon)
+    .order('departure_date', { ascending: true })
+    .limit(20);
+
+  const filtered = (deps ?? []).filter((d: any) =>
+    cityMatch(d.destination_city, destination) &&
+    (!origin || cityMatch(d.origin_city, origin)),
+  );
+
+  const routeLabel = `${origin ?? 'Dakar'} -> ${destination}`;
+
+  if (filtered.length === 0) {
+    await saveSession(supa, phone, 'waitlist_confirm', { origin: origin ?? 'Dakar', destination });
+    await sendWaButtons(
+      phone,
+      `Pas de depart ${routeLabel} dans les 30 prochains jours.\nVoulez-vous qu on vous previenne des qu un depart est dispo ?`,
+      [
+        { id: 'waitlist_yes', label: 'Oui, me prevenir' },
+        { id: 'waitlist_no', label: 'Non merci' },
+      ],
+      `Pas de depart ${routeLabel}. Tapez OUI pour etre prevenu.`,
+      'bot_client_waitlist_offer',
+    );
+    return '';
+  }
+
+  await saveSession(supa, phone, null, {});
+  let txt = `Departs ${routeLabel} :\n\n`;
+  for (const d of filtered.slice(0, 5)) {
+    const ref = d.short_ref || d.transporteur_ref || '----';
+    txt += `* ${fmtDate(d.departure_date)} - ${d.available_capacity_kg ?? 0}kg dispo\n  Ref #${ref}\n`;
+  }
+  txt += `\nPour reserver :\nRESERVER {ref} {poids}kg\nEx: RESERVER ${filtered[0].short_ref || filtered[0].transporteur_ref || 'XXXX'} 3kg`;
+  return txt;
+}
+
+async function handleWaitlistOptIn(supa: any, phone: string, fromName: string | null, origin: string, destination: string) {
+  try {
+    await supa.from('waitlist_departures').insert({
+      phone,
+      origin,
+      destination,
+      client_name: fromName ?? null,
+      source: 'bot_client',
+    });
+    await sendWa(
+      supa,
+      ADMIN_PHONE,
+      `Waitlist depart : ${fromName ?? phone} (${phone}) veut etre prevenu pour ${origin} -> ${destination}`,
+      'admin_notification',
+    );
+  } catch (e) {
+    console.error('WAITLIST insert err', e instanceof Error ? e.message : String(e));
+  }
+  await saveSession(supa, phone, null, {});
+  return withShortMenu(`C est note ! Nous vous previendrons des qu un depart ${origin} -> ${destination} sera disponible.`);
+}
+
+async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: string | null): Promise<string> {
+  // 1. Si un tracking_id est fourni, l utiliser directement
+  if (trackingFromNlp) {
+    const r = await handleTrackingLookup(supa, trackingFromNlp);
+    await saveSession(supa, phone, null, {});
+    return withShortMenu(r);
+  }
+  // 2. Sinon chercher tous les dossiers liés au téléphone
+  const digits = phone.replace(/\D/g, '');
+  const variants = [phone, `+${digits}`, digits];
+  const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+  const { data: rows } = await supa
+    .from('dossiers')
+    .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+    .or(orExpr)
+    .order('updated_at', { ascending: false })
+    .limit(10);
+  const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
+
+  // Aucun dossier → demander tracking
+  if (items.length === 0) {
+    await saveSession(supa, phone, 'await_tracking', {});
+    return withBack(`Quel est votre numero de suivi ?\nIl commence par YOB-`);
+  }
+
+  // Un seul dossier → afficher directement
+  if (items.length === 1) {
+    const d = items[0];
+    const id = d.tracking_id || d.reference;
+    const label = STATUS_FR[d.status] || d.status;
+    const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
+    await saveSession(supa, phone, null, {});
+    return withShortMenu(`Votre colis ${id} :\nStatut : ${label}\nRoute : ${d.origin_country} -> ${d.destination_country}\nMise a jour : ${upd}\n\nSuivi complet :\nyobbante.com/suivre/${id}`);
+  }
+
+  // Plusieurs → liste interactive
+  const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
+  const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
+  const toRow = (r: any) => {
+    const id = (r.tracking_id || r.reference).toString();
+    const label = STATUS_FR[r.status] || r.status;
+    return { id, title: id.slice(0, 24), description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72) };
+  };
+  const sections: Array<{ title: string; rows: any[] }> = [];
+  if (active.length) sections.push({ title: 'En cours', rows: active.slice(0, 8).map(toRow) });
+  if (archived.length) sections.push({ title: 'Termines', rows: archived.slice(0, 10 - (sections[0]?.rows.length ?? 0)).map(toRow) });
+  await saveSession(supa, phone, null, {});
+  await sendWaList(
+    phone,
+    `Vos colis recents (${items.length}) :`,
+    'Choisir un colis',
+    sections,
+    `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${r.tracking_id || r.reference} (${STATUS_FR[r.status] || r.status})`).join('\n')}`,
+    'bot_client_my_packages',
+  );
+  return '';
+}
+
+async function getClientFirstName(supa: any, phone: string, fromName: string | null): Promise<string | null> {
+  if (fromName) return fromName.split(' ')[0];
+  try {
+    const digits = phone.replace(/\D/g, '');
+    const variants = [phone, `+${digits}`, digits];
+    const { data } = await supa
+      .from('dossiers')
+      .select('buyer_name')
+      .or(variants.map((v) => `contact_phone.eq.${v}`).join(','))
+      .not('buyer_name', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data?.buyer_name) return String(data.buyer_name).split(' ')[0];
+  } catch {}
+  return null;
+}
+
 
 function norm(t?: string | null): string {
   return (t ?? '')
@@ -78,7 +339,7 @@ const SESSION_EXPIRED = `Votre session a expire.
 const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
 const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
-const FALLBACK = `Je n ai pas compris.`;
+const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
 
 // Append short menu after info replies, full menu after errors/fallback
 function withShortMenu(reply: string): string {
@@ -701,6 +962,34 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = withShortMenu(r);
     }
+    // ---- Waitlist confirmation (after "pas de depart") ----
+    else if (intent === 'waitlist_confirm' && msg) {
+      const id = nMsg;
+      if (id === 'waitlist_yes' || /^(oui|ok|yes|d accord|daccord)\b/.test(id)) {
+        reply = await handleWaitlistOptIn(supa, phone, input.from_name ?? null, data.origin ?? 'Dakar', data.destination ?? '');
+      } else {
+        await saveSession(supa, phone, null, {});
+        reply = withShortMenu(`Tres bien, pas de probleme.`);
+      }
+    }
+    // ---- Destination choice for DEPARTS (list reply) ----
+    else if (intent === 'await_destination_departs' && msg) {
+      const id = nMsg;
+      const picked = DESTINATIONS_LIST.find((d) => d.id === id);
+      let dest: string | null = null;
+      if (picked && picked.city) dest = picked.city;
+      else if (id === 'dest_other') {
+        await saveSession(supa, phone, 'await_destination_departs', { ...data, awaiting_city: true });
+        reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
+      } else {
+        // Texte libre = ville
+        dest = msg;
+      }
+      if (dest) {
+        const r = await handleSmartDepartures(supa, phone, data.origin ?? 'Dakar', dest);
+        if (r) reply = withShortMenu(r);
+      }
+    }
     // ---- Direct tracking number outside flow ----
     else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       const r = await handleTrackingLookup(supa, msg);
@@ -708,9 +997,51 @@ Deno.serve(async (req) => {
     } else if (!nMsg) {
       reply = MAIN_MENU;
     } else {
-      // Unrecognized → full menu
-      reply = withFullMenu(FALLBACK);
+      // ---- NLP fallback : analyse intelligente du message ----
+      const nlp = await classifyMessage(msg);
+      if (nlp && nlp.confidence >= 0.5) {
+        const firstName = await getClientFirstName(supa, phone, input.from_name ?? null);
+        const greet = firstName ? `Salam ${firstName} ! ` : '';
+
+        if (nlp.intent === 'DEPARTS') {
+          const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', nlp.entities.destination);
+          if (r) reply = withShortMenu(greet ? `${greet}\n${r}` : r);
+        } else if (nlp.intent === 'SUIVI') {
+          const r = await handleSmartTracking(supa, phone, nlp.entities.tracking_id);
+          if (r) reply = r;
+        } else if (nlp.intent === 'CONFIRMATION') {
+          reply = await handleOui(supa, phone, input.from_name ?? null);
+        } else if (nlp.intent === 'ANNULATION') {
+          reply = await handleNon(supa, phone, input.from_name ?? null);
+        } else if (nlp.intent === 'AGENT') {
+          reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+        } else if (nlp.intent === 'EXPEDITION') {
+          // Si destination connue → pré-remplir
+          if (nlp.entities.destination) {
+            await saveSession(supa, phone, 'ship_dest', { origin: nlp.entities.origin ?? 'Dakar', dest: nlp.entities.destination });
+            reply = withBack(`${greet}Pour expedier vers ${nlp.entities.destination}, quel est le poids estime (kg) ?`);
+          } else {
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '3', msg);
+          }
+        } else if (nlp.intent === 'DEVIS') {
+          if (nlp.entities.destination && nlp.entities.weight) {
+            const r = await handleQuoteCalc(supa, nlp.entities.destination, nlp.entities.weight);
+            reply = withShortMenu(r);
+          } else if (nlp.entities.destination) {
+            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: nlp.entities.destination });
+            reply = withBack(`${greet}Pour un devis vers ${nlp.entities.destination}, quel poids (kg) ?`);
+          } else {
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
+          }
+        } else {
+          reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        }
+      } else {
+        // Confidence faible OU NLP indispo -> sortie positive, jamais d erreur
+        reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+      }
     }
+
 
     if (reply) {
       await sendWa(supa, phone, reply, 'bot_client_reply');
