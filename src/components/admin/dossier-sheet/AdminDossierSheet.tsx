@@ -301,7 +301,11 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
         </Select>
 
         {dossier.contact_phone && (() => {
-          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour, à propos de votre dossier ${dossier.reference}`)}`;
+          const prenom = (dossier.sender_name || dossier.recipient_name || 'Client').toString().trim().split(/\s+/)[0];
+          const ref = dossier.tracking_id || dossier.reference || '';
+          const route = `${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`;
+          const waText = `Bonjour ${prenom},\n\nA propos de votre dossier ${ref}.\nRoute : ${route}\n\n-- Equipe Yobbante`;
+          const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(waText)}`;
           return (
             <div className="inline-flex">
               <Button size="sm" variant="outline" className="h-8 text-xs rounded-r-none border-r-0" asChild>
@@ -313,9 +317,9 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
                 size="sm"
                 variant="outline"
                 className="h-8 px-2 rounded-l-none"
-                title="Copier le lien wa.me (envoyer depuis mon téléphone)"
+                title="Copier le lien wa.me (envoyer depuis mon telephone)"
                 onClick={() => {
-                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copié'));
+                  navigator.clipboard?.writeText(waHref).then(() => toast.success('Lien WhatsApp copie'));
                 }}
               >
                 <Copy className="w-3.5 h-3.5" />
