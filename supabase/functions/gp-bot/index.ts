@@ -300,6 +300,126 @@ Deno.serve(async (req) => {
     if (result) return result;
   }
 
+  // =================================================================
+  //  TEMPLATE BUTTON HANDLERS — mission_accepted / refused / departure_confirmed
+  //  Detecte le texte exact des boutons template (msg.button.text) OU
+  //  l'id/title d'un button_reply interactive transmis par le webhook.
+  // =================================================================
+  if (transporteur) {
+    const btnText = rawMsg.trim();
+    const isOuiAccept = /^OUI\s*-\s*Accepter$/i.test(btnText) || /^accept(er)?$/i.test(btnText);
+    const isNonRefuse = /^NON\s*-\s*Refuser$/i.test(btnText) || /^refus(er)?$/i.test(btnText);
+    const isOkPret = /^OK\s*-\s*Je\s*suis\s*pret/i.test(btnText) || /^pret$/i.test(btnText);
+
+    const gpName = (transporteur.prenom || transporteur.nom || transporteur.reference || 'GP').toString();
+
+    if (isOuiAccept || isNonRefuse) {
+      const { data: dossier } = await supa
+        .from('dossiers')
+        .select('id, tracking_id, reference, destination_city, destination_country, assigned_transporteur_ref, status, mission_accepted')
+        .eq('assigned_transporteur_ref', transporteur.reference)
+        .eq('status', 'ASSIGNED')
+        .is('mission_accepted', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!dossier) {
+        await reply(
+          `Aucune mission en attente de confirmation. Tapez MENU pour voir vos missions.`,
+          'mission_no_pending',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      const trk = dossier.tracking_id || dossier.reference;
+      const dest = dossier.destination_city || dossier.destination_country || 'destination';
+
+      if (isOuiAccept) {
+        await supa.from('dossiers').update({
+          mission_accepted: true,
+          mission_decided_at: new Date().toISOString(),
+        }).eq('id', dossier.id);
+
+        await notifyAdmin(
+          `GP ${gpName} a accepte ${trk} Dakar -> ${dest}\nAction : C ${trk}`,
+        );
+        await reply(
+          `Parfait ${gpName} !\nMission ${trk} confirmee.\nOn vous contacte sous 24h.`,
+          'mission_accepted',
+        );
+        await bumpGpActivity(dossier.id);
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // NON - Refuser
+      await supa.from('dossiers').update({
+        mission_accepted: false,
+        mission_decided_at: new Date().toISOString(),
+        assigned_transporteur_ref: null,
+        assigned_departure_id: null,
+        status: 'SUBMITTED',
+      }).eq('id', dossier.id);
+
+      await notifyAdmin(
+        `GP ${gpName} a refuse ${trk}\nREASSIGNE ${trk} [ref_gp]`,
+      );
+      await reply(
+        `Compris ${gpName}.\nMission annulee.\nEnvoyez AIDE si besoin.`,
+        'mission_refused',
+      );
+      await bumpGpActivity(dossier.id);
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    if (isOkPret) {
+      const nowIso = new Date().toISOString();
+      const in3d = new Date(Date.now() + 3 * 86400 * 1000).toISOString();
+      const { data: dep } = await supa
+        .from('manual_departures')
+        .select('id, short_ref, transporteur_ref, departure_date, destination_city, destination_country')
+        .eq('transporteur_ref', transporteur.reference)
+        .gte('departure_date', nowIso.slice(0, 10))
+        .lte('departure_date', in3d.slice(0, 10))
+        .order('departure_date', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!dep) {
+        await reply(
+          `Aucun depart prevu dans les 3 prochains jours. Envoyez DEPART pour declarer.`,
+          'departure_none',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      await supa.from('manual_departures').update({
+        departure_confirmed: true,
+        departure_confirmed_at: nowIso,
+      }).eq('id', dep.id);
+
+      const ref = dep.short_ref || dep.id.slice(0, 6);
+      const dateLbl = formatDateFr(dep.departure_date as unknown as string);
+
+      const { data: colis } = await supa
+        .from('dossiers')
+        .select('tracking_id, reference')
+        .eq('assigned_departure_id', dep.id)
+        .limit(20);
+      const listColis = (colis ?? []).map((c: any) => c.tracking_id || c.reference).filter(Boolean).join(', ') || 'aucun colis lie';
+
+      await notifyAdmin(`GP ${gpName} confirme depart #${ref} le ${dateLbl}`);
+      await reply(
+        `Parfait ! Bon voyage ${gpName}.\nVos colis : ${listColis}`,
+        'departure_confirmed',
+      );
+      await bumpGpActivity();
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+
+
   async function handleSuperAdmin(): Promise<Response | null> {
     const SA_MENU = `Mode Admin actif.
 
