@@ -73,7 +73,7 @@ export function OrdersTab() {
       transport: s.transport_type || '—',
       eta: s.eta,
       created_at: s.created_at,
-      label: `${s.origin_country} → ${s.destination_country}`,
+      label: `${(s as any).origin_city || s.origin_country} → ${(s as any).destination_city || s.destination_country}`,
     }));
     const merged = [...ship, ...pkg].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     if (!q) return merged;

@@ -28,7 +28,7 @@ interface Props {
   onPick: (d: LinkableDossier) => void;
 }
 
-const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, buyer_name, assigned_transporteur_ref';
+const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref';
 const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
 export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, onPick }: Props) {
@@ -136,7 +136,7 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
                       <Badge variant="outline" className="text-[9px]">{d.status}</Badge>
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {(d.origin_country || '—')} → {(d.destination_country || '—')}
+                      {((d as any).origin_city || d.origin_country || '—')} → {((d as any).destination_city || d.destination_country || '—')}
                       {d.buyer_name ? ` · ${d.buyer_name}` : ''}
                       {d.assigned_transporteur_ref ? ` · GP${d.assigned_transporteur_ref}` : ''}
                     </div>

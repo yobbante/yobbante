@@ -3702,11 +3702,13 @@ export type Database = {
           assigned_transporteur_ref: string
           cash_on_delivery: boolean
           created_at: string
+          destination_city: string
           destination_country: string
           estimated_cost: number
           estimated_delivery_date: string
           estimated_weight: number
           final_amount_xof: number
+          origin_city: string
           origin_country: string
           paid_at: string
           payment_status: string

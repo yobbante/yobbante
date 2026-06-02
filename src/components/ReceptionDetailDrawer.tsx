@@ -72,7 +72,7 @@ export function ReceptionDetailDrawer({ open, onOpenChange, dossier }: Reception
   };
 
   const share = async () => {
-    const text = `Suivi Yobbanté ${dossier.reference} — ${itemCount} commande(s) · ${parsed.hub ?? dossier.origin_country} → ${parsed.destination ?? destName}`;
+    const text = `Suivi Yobbanté ${dossier.reference} — ${itemCount} commande(s) · ${parsed.hub ?? (dossier as any).origin_city ?? dossier.origin_country} → ${parsed.destination ?? (dossier as any).destination_city ?? destName}`;
     if (navigator.share) {
       try { await navigator.share({ title: 'Suivi Yobbanté', text }); } catch {}
     } else {
@@ -136,7 +136,7 @@ export function ReceptionDetailDrawer({ open, onOpenChange, dossier }: Reception
                 <span>{destFlag}</span>
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                {parsed.hub ?? dossier.origin_country} → {parsed.destination ?? destName}
+                {parsed.hub ?? (dossier as any).origin_city ?? dossier.origin_country} → {parsed.destination ?? (dossier as any).destination_city ?? destName}
               </p>
             </div>
             <div className="bg-secondary rounded-xl p-3.5">

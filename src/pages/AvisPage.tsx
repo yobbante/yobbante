@@ -15,6 +15,8 @@ interface PublicDossier {
   payment_status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city: string | null;
+  destination_city: string | null;
   estimated_delivery_date: string | null;
   created_at: string;
 }
@@ -111,7 +113,7 @@ export default function AvisPage() {
             </p>
             <h2 className="mt-1 mb-1">Comment s’est passée votre livraison ?</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              {dossier.origin_country} → {dossier.destination_country}
+              {dossier.origin_city || dossier.origin_country} → {dossier.destination_city || dossier.destination_country}
               {dossier.estimated_delivery_date && ` · livré ${new Date(dossier.estimated_delivery_date).toLocaleDateString('fr-FR')}`}
             </p>
 

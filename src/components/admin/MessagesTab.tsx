@@ -35,7 +35,7 @@ interface LinkedDossier {
   final_amount_xof: number | null;
 }
 
-const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
+const DOSSIER_SELECT = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, assigned_transporteur_ref, estimated_delivery_date, buyer_name, contact_phone, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, recipient_address, final_amount_xof';
 
 interface GpTemplate {
   key: string;
@@ -812,7 +812,7 @@ export function MessagesTab() {
                         {linkedDossier.tracking_id || linkedDossier.reference}
                       </span>
                       <span className="text-muted-foreground hidden sm:inline truncate">
-                        · {linkedDossier.origin_country || '—'} → {linkedDossier.destination_country || '—'}
+                        · {(linkedDossier as any).origin_city || linkedDossier.origin_country || '—'} → {(linkedDossier as any).destination_city || linkedDossier.destination_country || '—'}
                       </span>
                       <Badge variant="outline" className="h-4 text-[9px] flex-shrink-0">{linkedDossier.status}</Badge>
                     </div>
@@ -858,7 +858,7 @@ export function MessagesTab() {
                         className="text-[11px] px-2.5 py-1.5 rounded-md border border-border hover:border-[#F5C518] hover:bg-muted/50 transition-colors text-left"
                       >
                         <span className="font-semibold text-foreground">{d.tracking_id || d.reference}</span>
-                        <span className="text-muted-foreground"> · {d.origin_country} → {d.destination_country}</span>
+                        <span className="text-muted-foreground"> · {(d as any).origin_city || d.origin_country} → {(d as any).destination_city || d.destination_country}</span>
                         <Badge variant="outline" className="ml-1 h-3.5 text-[9px]">{d.status}</Badge>
                       </button>
                     ))}

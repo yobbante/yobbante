@@ -49,7 +49,7 @@ export async function assignTransporteurAndNotify({
     supabase
       .from('dossiers')
       .select(
-        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, estimated_weight, pickup_date, contact_phone, buyer_name',
+        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, pickup_date, contact_phone, buyer_name',
       )
       .eq('id', dossierId)
       .maybeSingle(),
@@ -75,8 +75,8 @@ export async function assignTransporteurAndNotify({
       gp_prenom: g.prenom,
       tracking_id: d.tracking_id,
       reference: d.reference,
-      origin: d.origin_country,
-      destination: d.destination_country,
+      origin: d.origin_city || d.origin_country,
+      destination: d.destination_city || d.destination_country,
       client_name: d.sender_name || d.recipient_name || d.buyer_name,
       client_phone: clientPhoneForGp,
       weight: d.estimated_weight,
@@ -118,7 +118,7 @@ export async function assignTransporteurAndNotify({
       `Bonjour ${prenom},`,
       ``,
       `Votre dossier ${ref} a ete confie a notre transporteur ${gpFull}.`,
-      `Route : ${d.origin_country || '-'} -> ${d.destination_country || '-'}`,
+      `Route : ${d.origin_city || d.origin_country || '-'} -> ${d.destination_city || d.destination_country || '-'}`,
       g?.telephone_1 ? `Contact GP : ${g.telephone_1}` : null,
       ``,
       `Notre equipe passera collecter votre colis a votre adresse.`,
@@ -256,7 +256,7 @@ export async function assignDossierToDeparture(args: {
   const [{ data: dossier }, { data: dep }, { data: gp }, { data: peers }] = await Promise.all([
     supabase
       .from('dossiers')
-      .select('id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, estimated_weight, actual_weight_kg, pickup_date, contact_phone, buyer_name')
+      .select('id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, pickup_date, contact_phone, buyer_name')
       .eq('id', dossierId)
       .maybeSingle(),
     supabase

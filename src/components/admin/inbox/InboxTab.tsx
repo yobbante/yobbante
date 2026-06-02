@@ -32,7 +32,7 @@ function buildClientRecap(d: InboxDossier) {
     `Bonjour ${d.buyer_name || ''}, ici Yobbanté.\n\n` +
     `Suite à notre échange, voici le récap de votre demande :\n` +
     `${serviceLabel}\n` +
-    `${d.origin_country} -> ${d.destination_country}\n` +
+    `${d.origin_city || d.origin_country} -> ${d.destination_city || d.destination_country}\n` +
     (d.estimated_weight ? `${d.estimated_weight} kg\n` : '') +
     (d.estimated_cost ? `Estimation : ${Math.round(d.estimated_cost * 655.957)} XOF\n` : '') +
     `Numéro de suivi : ${d.reference}\n` +
@@ -173,7 +173,7 @@ export function InboxTab() {
                 {detail.source_reference && (
                   <div><span className="text-muted-foreground">Réf. canal :</span> {detail.source_reference}</div>
                 )}
-                <div><span className="text-muted-foreground">Route :</span> {detail.origin_country} → {detail.destination_country}</div>
+                <div><span className="text-muted-foreground">Route :</span> {detail.origin_city || detail.origin_country} → {detail.destination_city || detail.destination_country}</div>
                 {detail.estimated_weight && <div><span className="text-muted-foreground">Poids :</span> {detail.estimated_weight} kg</div>}
                 {detail.estimated_cost != null && <div><span className="text-muted-foreground">Estimation :</span> {Math.round(detail.estimated_cost)} €</div>}
                 <div><span className="text-muted-foreground">Description :</span><br />{detail.product_description}</div>

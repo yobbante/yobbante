@@ -47,9 +47,9 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
       </div>
 
       <div className="flex items-center gap-1 text-xs text-foreground/80">
-        <span className="font-medium">{dossier.origin_country}</span>
+        <span className="font-medium">{dossier.origin_city || dossier.origin_country}</span>
         <ArrowRight className="w-3 h-3 text-muted-foreground" />
-        <span className="font-medium">{dossier.destination_country}</span>
+        <span className="font-medium">{dossier.destination_city || dossier.destination_country}</span>
         {dossier.estimated_weight && <span className="text-muted-foreground">· {dossier.estimated_weight} kg</span>}
       </div>
 

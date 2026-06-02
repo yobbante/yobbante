@@ -11,6 +11,8 @@ export interface AutoFillDossier {
   status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city?: string | null;
+  destination_city?: string | null;
   estimated_weight: number | null;
   estimated_delivery_date: string | null;
   buyer_name: string | null;
@@ -47,7 +49,9 @@ export function buildAutoFill(d: AutoFillDossier | null): Record<string, string>
   if (!d) return {};
   const prenom = firstName(d.sender_name) || firstName(d.buyer_name) || firstName(d.recipient_name);
   const trackingId = d.tracking_id || d.reference || '';
-  const route = `${d.origin_country || ''} → ${d.destination_country || ''}`;
+  const originLabel = d.origin_city || d.origin_country || '';
+  const destLabel = d.destination_city || d.destination_country || '';
+  const route = `${originLabel} → ${destLabel}`;
   const weight = (d.actual_weight_kg ?? d.estimated_weight) ?? null;
   const amount = fmtAmount(d.final_amount_xof);
   const eta = fmtDate(d.estimated_delivery_date);
@@ -57,8 +61,8 @@ export function buildAutoFill(d: AutoFillDossier | null): Record<string, string>
     client_name: d.buyer_name || d.recipient_name || d.sender_name || '',
     tracking_id: trackingId,
     route,
-    origin: d.origin_country || '',
-    destination: d.destination_country || '',
+    origin: originLabel,
+    destination: destLabel,
     weight: weight != null ? `${weight}` : '',
     poids: weight != null ? `${weight}` : '',
     amount,

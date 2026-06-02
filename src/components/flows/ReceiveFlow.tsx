@@ -1311,7 +1311,7 @@ function OrdersOverview({
             id: d.id, source: 'dossier',
             reference: d.reference,
             title: d.product_description?.split('\n')[0]?.slice(0, 80) ?? 'Dossier',
-            subtitle: `${d.origin_country} → ${d.destination_country}`,
+            subtitle: `${(d as any).origin_city || d.origin_country} → ${(d as any).destination_city || d.destination_country}`,
             status: d.status, statusLabel: meta.label, statusTone: meta.tone,
             createdAt: d.created_at,
           });
@@ -1322,7 +1322,7 @@ function OrdersOverview({
             id: s.id, source: 'shipment',
             reference: s.tracking_number ?? s.id.slice(0, 8),
             title: `Envoi ${s.tracking_number ?? ''}`.trim(),
-            subtitle: `${s.origin_country} → ${s.destination_country}${s.weight_kg ? ` · ${s.weight_kg} kg` : ''}`,
+            subtitle: `${(s as any).origin_city || s.origin_country} → ${(s as any).destination_city || s.destination_country}${s.weight_kg ? ` · ${s.weight_kg} kg` : ''}`,
             status: s.status, statusLabel: meta.label, statusTone: meta.tone,
             createdAt: s.created_at,
           });

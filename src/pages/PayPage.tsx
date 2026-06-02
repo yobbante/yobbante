@@ -16,6 +16,8 @@ interface PublicDossier {
   payment_status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city: string | null;
+  destination_city: string | null;
   estimated_weight: number | null;
   estimated_cost: number | null;
   actual_weight_kg: number | null;
@@ -200,7 +202,7 @@ export default function PayPage() {
             <div className="rounded-[12px] p-4 mb-6 space-y-2" style={{ background: 'hsl(var(--secondary))' }}>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Trajet</span>
-                <span>{dossier.origin_country} → {dossier.destination_country}</span>
+                <span>{dossier.origin_city || dossier.origin_country} → {dossier.destination_city || dossier.destination_country}</span>
               </div>
               {dossier.actual_weight_kg && (
                 <div className="flex justify-between text-sm">
