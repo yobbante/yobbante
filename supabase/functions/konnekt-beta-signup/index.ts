@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const ADMIN_PHONE = '+221784604003';
-const KONNEKT_GP_PHONE = '+221781221891';
+const KONNEKT_GP_PHONE = '+221789269756';
 
 interface SignupBody {
   prenom?: string;
@@ -273,7 +273,7 @@ function renderKonnektEmail(prenom: string, telephone: string): string {
 
     <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:12px;padding:18px;margin:0 0 28px;">
       <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">En attendant, enregistrez notre numéro :</p>
-      <p style="margin:0;font-size:16px;font-weight:700;color:#1A1A2E;">+221 78 122 18 91</p>
+      <p style="margin:0;font-size:16px;font-weight:700;color:#1A1A2E;">+221 78 926 97 56</p>
       <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Nom : <strong>Konnekt GP</strong></p>
     </div>
 

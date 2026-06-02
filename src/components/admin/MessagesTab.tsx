@@ -637,7 +637,7 @@ export function MessagesTab() {
               </span>
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 122</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 926</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -1064,7 +1064,7 @@ export function MessagesTab() {
                       <Textarea
                         value={gpText}
                         onChange={(e) => onGpTyping(e.target.value)}
-                        placeholder="Tapez votre message au GP (envoye depuis le 122)..."
+                        placeholder="Tapez votre message au GP (envoye depuis le 926)..."
                         rows={3}
                         className="text-xs resize-none"
                       />
