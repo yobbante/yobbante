@@ -52,24 +52,25 @@ function validateWeight(raw: string): WeightCheck {
 }
 
 // --- Destinations Yobbante reconnues (free-text) ---
+// Aliases tolerent typos, accents, abreviations courantes.
 const VALID_DESTINATIONS: { city: string; aliases: string[]; country: string }[] = [
-  { city: 'Paris', aliases: ['paris', 'france'], country: 'FR' },
+  { city: 'Paris', aliases: ['paris', 'pari', 'france', 'fr'], country: 'FR' },
   { city: 'Lyon', aliases: ['lyon'], country: 'FR' },
-  { city: 'Marseille', aliases: ['marseille'], country: 'FR' },
-  { city: 'Bordeaux', aliases: ['bordeaux'], country: 'FR' },
+  { city: 'Marseille', aliases: ['marseille', 'marseill'], country: 'FR' },
+  { city: 'Bordeaux', aliases: ['bordeaux', 'bordeau'], country: 'FR' },
   { city: 'Toulouse', aliases: ['toulouse'], country: 'FR' },
   { city: 'Nice', aliases: ['nice'], country: 'FR' },
-  { city: 'New York', aliases: ['new york', 'newyork', 'nyc', 'usa', 'etats unis', 'etats-unis'], country: 'US' },
-  { city: 'Washington', aliases: ['washington', 'dc'], country: 'US' },
-  { city: 'Rhode Island', aliases: ['rhode island', 'providence'], country: 'US' },
+  { city: 'New York', aliases: ['new york', 'newyork', 'new-york', 'nyc', 'usa', 'us', 'etats unis', 'etats-unis', 'amerique', 'america'], country: 'US' },
+  { city: 'Washington', aliases: ['washington', 'washington dc', 'dc'], country: 'US' },
+  { city: 'Rhode Island', aliases: ['rhode island', 'rhodeisland', 'providence'], country: 'US' },
   { city: 'Miami', aliases: ['miami'], country: 'US' },
   { city: 'Boston', aliases: ['boston'], country: 'US' },
-  { city: 'Montreal', aliases: ['montreal', 'canada'], country: 'CA' },
+  { city: 'Montreal', aliases: ['montreal', 'montréal', 'canada', 'ca'], country: 'CA' },
   { city: 'Toronto', aliases: ['toronto'], country: 'CA' },
-  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'emirats', 'uae'], country: 'AE' },
-  { city: 'Abidjan', aliases: ['abidjan', 'cote d ivoire', 'cote divoire'], country: 'CI' },
-  { city: 'Douala', aliases: ['douala', 'cameroun'], country: 'CM' },
-  { city: 'Londres', aliases: ['londres', 'london'], country: 'GB' },
+  { city: 'Dubai', aliases: ['dubai', 'dubaii', 'dubaï', 'doubai', 'doubaï', 'emirats', 'emirates', 'uae', 'eau'], country: 'AE' },
+  { city: 'Abidjan', aliases: ['abidjan', 'abdijan', 'abijan', 'cote d ivoire', 'cote divoire', 'cote-divoire', 'ivory coast', 'ci'], country: 'CI' },
+  { city: 'Douala', aliases: ['douala', 'cameroun', 'cameroon'], country: 'CM' },
+  { city: 'Londres', aliases: ['londres', 'london', 'uk', 'angleterre'], country: 'GB' },
 ];
 
 function resolveDestination(input?: string | null): { city: string; country: string } | null {
@@ -127,6 +128,7 @@ type Intent =
   | 'EXPEDITION'
   | 'DEVIS'
   | 'AGENT'
+  | 'PLAINTE'
   | 'CONFIRMATION'
   | 'ANNULATION'
   | 'UNKNOWN';
@@ -140,18 +142,34 @@ interface NlpEntities {
   response: 'OUI' | 'NON' | null;
 }
 
+type Urgency = 'LOW' | 'MEDIUM' | 'HIGH';
+
 interface NlpResult {
   intent: Intent;
   entities: NlpEntities;
   confidence: number;
+  urgency: Urgency;
+  language: 'fr' | 'en' | 'wo' | 'mixed' | 'other';
 }
 
 const NLP_SYSTEM = `Tu es le bot WhatsApp de Yobbante, service logistique Dakar vers le monde.
 Analyse le message du client et retourne UNIQUEMENT un JSON valide :
-{"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number}
+{"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|PLAINTE|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number,"urgency":"LOW|MEDIUM|HIGH","language":"fr|en|wo|mixed|other"}
+
+REGLES STRICTES :
+1. Origine par defaut = Dakar si non specifie.
+2. Normaliser destinations vers les villes valides ci-dessous. Si non reconnue, destination=null.
+3. Poids accepte en chiffres OU en lettres (ex "cinq kg" = 5). Plage 0.1-500 kg.
+4. Si le message est en anglais, l intent reste normal mais la reponse sera en francais (ne change pas l intent).
+5. PLAINTE = client mecontent, en colere, parle de probleme grave, retard inacceptable, colis perdu/casse, remboursement, "scandale", "honte", "voleurs", "j en ai marre", "inadmissible". urgency=HIGH.
+6. "What can you do" / "que faites-vous" / questions generiques sur le service -> intent=UNKNOWN.
+7. Si la ville mentionnee n est pas dans la liste valide -> destination=null (ne JAMAIS inventer).
+8. urgency=HIGH si plainte, urgence, "tres urgent", "vite", "aujourd hui meme". MEDIUM si demande sensible. LOW sinon.
+9. language : detecter fr, en, wo (wolof : nanga def, jamm, naka, deuk, ndaal, baxna, mbaa), mixed, other.
+
 Exemples:
-- "Dakar Paris" -> DEPARTS, origin Dakar, destination Paris, conf 0.95
-- "je veux envoyer un colis a Paris" -> EXPEDITION, destination Paris
+- "Dakar Paris" -> DEPARTS, origin Dakar, destination Paris, conf 0.95, urgency LOW, language fr
+- "je veux envoyer un colis a Paris" -> EXPEDITION, destination Paris, urgency LOW
 - "YOB-9KPR4A" ou "YOB9KPR4A" -> SUIVI, tracking_id YOB-9KPR4A
 - "mon colis" / "ou est mon colis" -> SUIVI
 - "oui","ok","yes","ouii","d accord" -> CONFIRMATION, response OUI
@@ -160,13 +178,16 @@ Exemples:
 - "combien ca coute pour Paris 5kg" -> DEVIS, destination Paris, weight 5
 - "prochains departs" / "departs disponibles" -> DEPARTS
 - "annule mon dossier" -> ANNULATION
-- "I want to send a package" -> EXPEDITION
-- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5
-- "where is my package" -> SUIVI
-- "speak to an agent" / "human" -> AGENT
+- "ou est mon colis ca fait 3 semaines c est inadmissible" -> PLAINTE, urgency HIGH
+- "I want to send a package" -> EXPEDITION, language en
+- "how much for Paris 5kg" -> DEVIS, destination Paris, weight 5, language en
+- "where is my package" -> SUIVI, language en
+- "speak to an agent" / "human" -> AGENT, language en
 - "what can you do" / "hello" -> UNKNOWN (laisser destination null)
-REGLE STRICTE : ne JAMAIS mettre une question anglaise generique ("what","how","where") comme valeur de destination. Si le message est une question generale, intent=UNKNOWN, destination=null.
-Destinations valides connues : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres. Si la ville ne fait pas partie de cette liste, mettre destination=null.
+- "nanga def" -> UNKNOWN, language wo
+
+REGLE STRICTE : ne JAMAIS mettre une question generique ("what","how","where","que","comment") comme destination.
+Destinations valides : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres.
 Reponds STRICTEMENT en JSON, rien d autre.`;
 
 async function classifyMessage(msg: string): Promise<NlpResult | null> {
@@ -203,12 +224,95 @@ async function classifyMessage(msg: string): Promise<NlpResult | null> {
         response: parsed.entities?.response ?? null,
       },
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+      urgency: (parsed.urgency === 'HIGH' || parsed.urgency === 'MEDIUM' || parsed.urgency === 'LOW') ? parsed.urgency : 'LOW',
+      language: (['fr', 'en', 'wo', 'mixed', 'other'].includes(parsed.language)) ? parsed.language : 'fr',
     };
   } catch (e) {
     console.error('NLP parse err', e instanceof Error ? e.message : String(e));
     return null;
   }
 }
+
+
+
+// --- FAQ deterministe (avant NLP, reponses directes) ---
+const FAQ_RESPONSES: Array<{ patterns: RegExp[]; reply: string }> = [
+  {
+    patterns: [/\bpaiement\b/, /\bpayer\b/, /\bcomment\s+payer\b/, /\bmode\s+de\s+paiement\b/, /\bpayment\b/],
+    reply:
+      `Modes de paiement Yobbante :\n` +
+      `- Wave\n` +
+      `- Orange Money\n` +
+      `- Especes a la collecte`,
+  },
+  {
+    patterns: [/\bdelai\b/, /\bcombien\s+de\s+temps\b/, /\bdelivery\s+time\b/, /\bquand\s+arrive\b/, /\bca\s+prend\b/],
+    reply:
+      `Delais moyens depuis Dakar :\n` +
+      `- Paris / France : 3-5 jours\n` +
+      `- USA / New York : 5-8 jours\n` +
+      `- Dubai : 4-6 jours\n` +
+      `- Abidjan : 2-3 jours`,
+  },
+  {
+    patterns: [/\bdedouan/, /\bdouane\b/, /\bcustom/, /\bfrais\s+de\s+douane\b/],
+    reply: `Le dedouanement est inclus dans le prix affiche. Aucun frais supplementaire a la livraison.`,
+  },
+  {
+    patterns: [/\blivraison\s+(a\s+)?domicile\b/, /\blivrer\s+chez\s+moi\b/, /\bhome\s+delivery\b/],
+    reply:
+      `Livraison a domicile disponible uniquement a Dakar.\n` +
+      `Hors Dakar : retrait au point relais le plus proche.`,
+  },
+  {
+    patterns: [/\bmedicament/, /\bordonnance\b/, /\bmedicine\b/, /\bpharmac/],
+    reply: `Medicaments acceptes uniquement avec ordonnance valide.`,
+  },
+  {
+    patterns: [/\btelephone\b/, /\bphones?\b/, /\bsmartphone\b/, /\biphone\b/],
+    reply: `Telephones acceptes uniquement avec facture d achat originale.`,
+  },
+  {
+    patterns: [/\bc\s*est\s+quoi\s+un\s+gp\b/, /\bqu\s*est\s*ce\s+qu\s*un\s+gp\b/, /\bdefinition\s+gp\b/, /\bwhat\s+is\s+a\s+gp\b/],
+    reply:
+      `Un GP (Gros Porteur) est un voyageur partenaire Yobbante.\n` +
+      `Il transporte vos colis dans ses bagages lors de ses voyages.\n` +
+      `Plus economique et plus rapide qu un transporteur classique.`,
+  },
+  {
+    patterns: [/\bqui\s+etes\s+vous\b/, /\bpresentation\b/, /\byobbante\s+c\s*est\s+quoi\b/, /\bwhat\s+is\s+yobbante\b/, /\babout\s+yobbante\b/],
+    reply:
+      `Yobbante connecte vos colis aux voyageurs (GP) depuis Dakar.\n` +
+      `Envois rapides, prix transparents, suivi en temps reel.\n` +
+      `Vers Paris, New York, Dubai, Abidjan et plus.`,
+  },
+];
+
+function detectFaq(raw: string): string | null {
+  const n = norm(raw);
+  if (!n) return null;
+  for (const f of FAQ_RESPONSES) {
+    if (f.patterns.some((p) => p.test(n))) return f.reply;
+  }
+  return null;
+}
+
+// --- Wolof / mixed detection (basique) ---
+function detectWolof(raw: string): boolean {
+  const n = norm(raw);
+  if (!n) return false;
+  return /\b(nanga\s*def|naka(?:la|nga)?|jamm|deuk|ndaal|baxna|mbaa|waaw|deedeet|jerejef|wala|sama|sa\s+yoon|am\s+na|amul)\b/.test(n);
+}
+
+// --- Plainte / complaint detection deterministe ---
+function detectComplaint(raw: string): boolean {
+  const n = norm(raw);
+  if (!n) return false;
+  return /\b(inadmissible|scandale|honte|voleur|arnaque|j\s*en\s*ai\s+marre|c\s*est\s+pas\s+normal|jamais\s+recu|3\s+semaines|trois\s+semaines|remboursement|reclamation|plainte|porter\s+plainte|fraude|escroc)\b/.test(n)
+    || /\b(unacceptable|outrageous|refund|scam|fraud|complaint|never\s+received|missing)\b/.test(n);
+}
+
+
 
 // Normalise un nom de ville pour comparaison
 function cityMatch(a?: string | null, b?: string | null): boolean {
@@ -1552,6 +1656,23 @@ Deno.serve(async (req) => {
       reply = withShortMenu(r);
     } else if (!nMsg) {
       reply = MAIN_MENU;
+    } else if (detectFaq(msg)) {
+      // ---- FAQ deterministe : reponse directe, pas de NLP ----
+      const faqReply = detectFaq(msg)!;
+      await markLastAction(supa, phone, 'faq_shown', { topic: msg.slice(0, 60), retry_count: 0 });
+      reply = withShortMenu(faqReply);
+    } else if (detectComplaint(msg)) {
+      // ---- PLAINTE : agent immediat + alerte URGENT admin ----
+      try {
+        await sendWa(
+          supa,
+          ADMIN_PHONE,
+          `URGENT : ${phone}\n${(input.from_name ?? '').slice(0, 40)}\n${msg.slice(0, 300)}`,
+          'agent_handoff_urgent',
+        );
+      } catch (e) { console.error('BOT_CLIENT urgent admin notify err', e); }
+      await markLastAction(supa, phone, 'plainte', { urgency: 'HIGH', retry_count: 0, message: msg.slice(0, 200) });
+      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
     } else if (detectEnglishIntent(msg)) {
       // ---- English fast-path : repondre en francais, ne jamais traiter de l anglais comme destination ----
       const enIntent = detectEnglishIntent(msg);
@@ -1573,7 +1694,25 @@ Deno.serve(async (req) => {
     } else {
       // ---- NLP fallback : analyse intelligente du message ----
       const nlp = await classifyMessage(msg);
-      if (nlp && nlp.confidence >= 0.5) {
+
+      // ---- PLAINTE / HIGH urgency : agent immediat + URGENT admin ----
+      if (nlp && (nlp.intent === 'PLAINTE' || nlp.urgency === 'HIGH')) {
+        try {
+          await sendWa(
+            supa,
+            ADMIN_PHONE,
+            `URGENT : ${phone}\n${(input.from_name ?? '').slice(0, 40)}\n${msg.slice(0, 300)}`,
+            'agent_handoff_urgent',
+          );
+        } catch (e) { console.error('BOT_CLIENT urgent admin notify err', e); }
+        await markLastAction(supa, phone, 'plainte', {
+          urgency: 'HIGH',
+          retry_count: 0,
+          language: nlp.language,
+          message: msg.slice(0, 200),
+        });
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+      } else if (nlp && nlp.confidence >= 0.5) {
         const firstName = await getClientFirstName(supa, phone, input.from_name ?? null);
         const greet = firstName ? `Salam ${firstName} ! ` : '';
 
@@ -1609,7 +1748,7 @@ Deno.serve(async (req) => {
             reply = withFullMenu(INVALID_DESTINATION_MSG);
           } else if (dest && nlp.entities.weight) {
             const r = await handleQuoteCalc(supa, dest.city, nlp.entities.weight);
-            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight });
+            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight, retry_count: 0, language: nlp.language });
             reply = withShortMenu(r);
           } else if (dest) {
             await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: dest.city });
@@ -1618,11 +1757,41 @@ Deno.serve(async (req) => {
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
           }
         } else {
+          // Intent UNKNOWN avec haute confiance -> on accompagne sans bumper retry
           reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
         }
+
+        // Reset retry sur intent reconnu
+        if (nlp.intent !== 'UNKNOWN') {
+          try {
+            const { session: s2 } = await getSession(supa, phone);
+            const pd = (s2?.pending_data ?? {}) as Record<string, any>;
+            if (pd.retry_count) {
+              await markLastAction(supa, phone, pd.last_action ?? 'intent_ok', { ...(pd.last_data ?? {}), retry_count: 0, language: nlp.language });
+            }
+          } catch (_) { /* noop */ }
+        }
       } else {
-        // Confidence faible OU NLP indispo -> sortie positive, jamais d erreur
-        reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        // ---- Confidence faible / NLP indispo : bump retry_count, escalade agent apres 2 ----
+        try {
+          const { session: s3 } = await getSession(supa, phone);
+          const pd = (s3?.pending_data ?? {}) as Record<string, any>;
+          const newRetry = (Number(pd.retry_count) || 0) + 1;
+          const isWolof = detectWolof(msg);
+          await markLastAction(supa, phone, 'incomprehensible', {
+            retry_count: newRetry,
+            language: isWolof ? 'wo' : (nlp?.language ?? 'fr'),
+            last_msg: msg.slice(0, 120),
+          });
+          if (newRetry > 2) {
+            // Auto-escalade agent
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+          } else {
+            reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          }
+        } catch (_) {
+          reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        }
       }
     }
 
