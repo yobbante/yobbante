@@ -13,6 +13,8 @@ export interface BusinessDossier {
   product_description: string;
   origin_country: string;
   destination_country: string;
+  origin_city: string | null;
+  destination_city: string | null;
   incoterm: string | null;
   hs_code: string | null;
   currency: string | null;
