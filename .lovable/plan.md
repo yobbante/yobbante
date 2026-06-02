@@ -1,97 +1,55 @@
-# Système Départs GP Autonome
+## Audit du dashboard client /app
 
-Objectif : permettre aux GP de déclarer eux-mêmes leurs départs via une URL personnelle sans login, avec rappels WhatsApp automatiques et dashboard admin temps réel.
+### Déjà en place ✅
+- **Confirmer / Refuser le départ** : composant `ClientDepartureDecision` (avec realtime, RPC `client_decide_departure`, dialogs raison/date plus proche, notifications admin+GP via assignement). Carte affichée dès qu'un `assigned_departure_id` existe.
+- **Realtime sur la liste des dossiers** : `useDossiersRealtime` (toast statut + invalidate).
+- **Bouton "Payer maintenant"** : déjà présent sur `ClientDossierCard` (orange, conditionné `payment_status='pending'` + statut ≥ `PROCURED` = équivalent WEIGHED).
+- **Notifications admin** sur changement de décision client + WhatsApp client/GP.
 
-## 1. Base de données
+### À ajouter
 
-**Migration** (`supabase/migrations/`)
-- `transporteurs` : ajouter `depart_url TEXT` (auto-généré à partir de `reference`).
-- `manual_departures` : ajouter `created_via TEXT` (`gp_self`, `admin`, `whatsapp_import`), `gp_reference TEXT`, `notified_admin_at TIMESTAMPTZ`, `reminder_48h_sent_at TIMESTAMPTZ`.
-- Index sur `manual_departures(transporteur_id, departure_date)`.
+#### 1. Bouton "Modifier la date de collecte" (statut SUBMITTED ou IN_REVIEW, et `client_departure_decision !== 'confirmed'`)
+- DatePicker dans `DossierDetail.tsx`
+- Update `pickup_date` (table `dossiers`)
+- Insert `dossier_events` (`client_pickup_date_changed`) → trigger admin notif via `enqueue_admin_notification`
 
-**RPC `gp_publish_departure(p_ref, p_destination, p_date, p_kg, p_phone)`** SECURITY DEFINER, pas de login requis :
-- Résout le transporteur via `reference`.
-- INSERT dans `manual_departures` avec `created_via='gp_self'`.
-- Trigger `_wa_send_via_function` pour notifier admin (+221784604003) et confirmer au GP depuis 122.
-- Retourne `{ ok, departure_id, transporteur_name }`.
+#### 2. Bouton "Modifier l'adresse de collecte" (mêmes conditions)
+- Dialog avec Textarea
+- Update `sender_address`
+- Notification admin idem
 
-**Trigger `trg_manual_departure_gp_notify`** sur INSERT `manual_departures` : si `created_via='gp_self'` → enqueue admin notification + WhatsApp GP (déjà géré dans la RPC, donc le trigger n'est qu'un fallback).
+#### 3. Bouton "Annuler ma demande" (statut SUBMITTED uniquement)
+- Bouton rouge + modale de confirmation
+- Nouvelle RPC `client_cancel_dossier(p_dossier_id)` qui :
+  - Vérifie `auth.uid() = user_id`
+  - Vérifie `status = 'SUBMITTED'` et `assigned_departure_id IS NULL`
+  - Passe `status = 'CLOSED'`, set `cancelled_at`, `cancelled_by = 'client'`
+  - Insert `dossier_events` `client_cancelled`
+  - Notifie admin via `enqueue_admin_notification`
 
-**RPC `gp_get_context(p_ref)`** : retourne `{ prenom, telephone, destinations_servies }` pour pré-remplir la page publique.
+#### 4. RPC publique `confirm_departure_public` pour `/suivre`
+- `confirm_departure_public(p_tracking text, p_confirmed boolean, p_reason text)` SECURITY DEFINER
+- Trouve le dossier par `tracking_id`, exige `assigned_departure_id NOT NULL` et `client_departure_decision='pending'`
+- Réutilise la logique de `client_decide_departure` sans vérif auth.uid
+- Affichage : modifier `TrackPage` pour rendre `ClientDepartureDecision` en mode publique (prop `publicMode` + tracking)
 
-**Backfill** : `UPDATE transporteurs SET depart_url = 'https://yobbante.com/gp/depart/' || reference WHERE depart_url IS NULL`.
+#### 5. Badge admin temps réel
+- Dans `AdminDossierSheet.tsx` (onglet Transport / résumé départ) : 
+  - badge ambre **"EN ATTENTE CONFIRMATION CLIENT"** quand `assigned_departure_id != null` && `client_departure_decision='pending'`
+  - vert **"CONFIRMÉ PAR CLIENT ✓"** quand `confirmed`
+  - rouge **"REFUSÉ — À RÉASSIGNER"** quand `cancelled` ou `reschedule_requested`
+- Realtime déjà actif côté admin via le sheet → invalidations.
 
-## 2. Page publique GP (sans login)
+### Hors-scope (déjà OK ou peu prioritaire)
+- Toast "départ assigné" côté client : peut être ajouté en bonus dans `useDossiersRealtime` en détectant `assigned_departure_id` qui passe de null→non-null.
+- Lecture seule après IN_TRANSIT : déjà géré par le composant (TERMINAL list).
 
-`src/pages/gp/GpDepartPage.tsx` — route `/gp/depart/:ref`
-- Mobile-first, dark + #F5C518.
-- Appelle `gp_get_context(ref)` au mount pour récupérer prénom + téléphone.
-- 4 champs : destination (Select villes catalogue), date (shadcn DatePicker, min=aujourd'hui), kilos (Input number), contact WhatsApp (Input pré-rempli).
-- Bouton "Publier mon départ →" appelle `gp_publish_departure`.
-- Écran de succès avec ref départ + bouton "Déclarer un autre départ".
+### Fichiers modifiés
+- **Nouvelle migration** : RPC `client_cancel_dossier` + `confirm_departure_public` + colonnes `cancelled_at`, `cancelled_by`.
+- `src/pages/DossierDetail.tsx` : section "Gérer mon dossier" (3 boutons conditionnels).
+- `src/components/dossier/ClientDepartureDecision.tsx` : prop `publicMode` (utilise nouvelle RPC publique).
+- `src/pages/TrackPage.tsx` : rendre `ClientDepartureDecision` quand un départ est assigné.
+- `src/components/admin/dossier-sheet/AdminDossierSheet.tsx` : badge décision client.
+- `src/hooks/useDossiersRealtime.ts` : toast orange à l'assignation d'un départ.
 
-Route ajoutée dans `src/App.tsx` hors layout app (public).
-
-## 3. Edge functions
-
-**`supabase/functions/gp-departure-reminders/`** (déclenché par cron) :
-- Mode `weekly` (lundi 8h Dakar) : tous GP `is_active=true` sans départ dans 14 jours → WhatsApp depuis 122 (texte sans accents).
-- Mode `48h` (toutes les heures) : départs dont `departure_date` ∈ [now+47h, now+49h] et `reminder_48h_sent_at IS NULL` → WhatsApp + marquer `reminder_48h_sent_at`.
-- Mode `coverage_alert` (lundi 8h) : pour chaque destination active, si 0 départ dans 7 jours → admin notification.
-- Param `?mode=weekly|48h|coverage` ou auto selon heure.
-
-**`supabase/functions/parse-departure-message/`** : POST `{ text: "DEP Paris 15/06 25kg" }` → utilise Lovable AI (google/gemini-2.5-flash-lite) ou regex pour retourner `{ destination, date, kg }`.
-
-## 4. Cron jobs (via `supabase--insert`, pas migration)
-
-```sql
-select cron.schedule(
-  'gp-weekly-reminder',
-  '0 8 * * 1', -- lundi 8h UTC = 8h Dakar (Dakar = UTC+0)
-  $$ select net.http_post(url:='.../gp-departure-reminders?mode=weekly', ...); $$
-);
-select cron.schedule('gp-48h-reminder', '0 * * * *', $$...mode=48h...$$);
-select cron.schedule('gp-coverage-alert', '0 8 * * 1', $$...mode=coverage...$$);
-```
-
-## 5. UI admin
-
-**`src/pages/admin/DeparturesWeekPage.tsx`** — extension :
-- Bouton "Importer depuis WhatsApp" → ouvre `WhatsAppImportDepartureDialog` : textarea + appel `parse-departure-message` + formulaire pré-rempli (transporteur, destination, date, kg) → INSERT.
-- Section "Stock de départs" déjà présente : ajouter colonne capacité avec code couleur (vert >15kg, orange 5-15, rouge <5).
-- Realtime : abonnement `postgres_changes` sur `manual_departures`.
-
-**`src/pages/admin/RelaisPage.tsx` (ou page /admin/terrain équivalente)** : pour chaque transporteur, ajouter colonne "URL départ" avec :
-- Lien copiable (icône Copy + toast).
-- Bouton "Envoyer par WhatsApp" → `wa.me/{phone}?text=` avec message pré-rempli incluant l'URL.
-
-## Contraintes techniques
-
-- Page `/gp/depart/:ref` accessible sans auth (route publique, pas de guard).
-- RPC `gp_publish_departure` doit être SECURITY DEFINER + GRANT EXECUTE TO anon.
-- Tous textes WhatsApp sans accents (Salam, prevu, declarez, etc.).
-- Africa/Dakar = UTC+0, donc `0 8 * * 1` UTC fonctionne directement.
-- Realtime : `ALTER PUBLICATION supabase_realtime ADD TABLE public.manual_departures` (si pas déjà).
-- Aucune migration ne touche aux schémas réservés (auth, storage…).
-
-## Fichiers créés/modifiés
-
-**Créés**
-- `supabase/migrations/<timestamp>_gp_autonomous_departures.sql`
-- `supabase/functions/gp-departure-reminders/index.ts`
-- `supabase/functions/parse-departure-message/index.ts`
-- `src/pages/gp/GpDepartPage.tsx`
-- `src/components/admin/WhatsAppImportDepartureDialog.tsx`
-
-**Modifiés**
-- `src/App.tsx` (route `/gp/depart/:ref`)
-- `src/pages/admin/DeparturesWeekPage.tsx` (bouton import + realtime + couleurs capacité)
-- `src/pages/admin/RelaisPage.tsx` (ou équivalent terrain) — colonne URL + WhatsApp
-- `src/integrations/supabase/types.ts` (auto via migration)
-
-## Hors scope
-
-- Refonte du dashboard admin existant.
-- Notification SMS (uniquement WhatsApp).
-- Gestion multi-langues (FR uniquement).
-- Statistiques historiques GP.
+Prêt à implémenter sur validation.
