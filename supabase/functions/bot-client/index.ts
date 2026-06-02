@@ -22,6 +22,35 @@ const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4h (NLP refonte)
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const NLP_MODEL = 'google/gemini-2.5-flash';
 
+// --- Weight validation rules ---
+const MAX_WEIGHT_KG = 500;
+const MIN_WEIGHT_KG = 0.1;
+const HEAVY_WEIGHT_THRESHOLD_KG = 30;
+
+type WeightCheck =
+  | { ok: true; weight: number; heavy: boolean }
+  | { ok: false; error: string };
+
+function validateWeight(raw: string): WeightCheck {
+  const w = parseFloat((raw || '').replace(',', '.').replace(/[^\d.,]/g, ''));
+  if (!w || isNaN(w) || w <= 0) {
+    return { ok: false, error: `Poids invalide. Indiquez en kg (ex: 5)` };
+  }
+  if (w < MIN_WEIGHT_KG) {
+    return { ok: false, error: `Poids minimum ${MIN_WEIGHT_KG}kg.\nQuel est le poids de votre colis ?` };
+  }
+  if (w > MAX_WEIGHT_KG) {
+    return {
+      ok: false,
+      error:
+        `Ce poids semble incorrect.\n` +
+        `Le maximum accepte est ${MAX_WEIGHT_KG}kg.\n` +
+        `Quel est le poids reel de votre colis ?`,
+    };
+  }
+  return { ok: true, weight: w, heavy: w > HEAVY_WEIGHT_THRESHOLD_KG };
+}
+
 type Intent =
   | 'DEPARTS'
   | 'SUIVI'
@@ -887,15 +916,17 @@ async function handleMenuChoice(
     await saveSession(supa, phone, 'quote_origin', {});
     return withBack(`Origine ?`);
   }
-  // 5
+  // 5 — AGENT
   const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
   await saveSession(supa, phone, null, {}, pauseUntil);
-  await sendWa(
-    supa,
-    ADMIN_PHONE,
-    `Client ${fromName ?? phone} (${phone}) demande un agent.\nDernier message : "${lastMsg.slice(0, 200)}"`,
-    'agent_handoff',
-  );
+  const firstName = fromName ? fromName.split(' ')[0] : '';
+  const agentMsg =
+    `AGENT DEMANDE\n` +
+    `Client : ${phone}${firstName ? ` (${firstName})` : ''}\n` +
+    `Dernier message : ${lastMsg.slice(0, 200)}\n\n` +
+    `Action requise sous 2h.\n` +
+    `Repondre : MSG ${phone} [message]`;
+  await sendWa(supa, ADMIN_PHONE, agentMsg, 'agent_handoff');
   return withShortMenu(`Un agent vous contacte sous 2h.\nMerci de votre patience.`);
 }
 
@@ -1081,9 +1112,28 @@ Deno.serve(async (req) => {
       reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
     }
 
+    // PRIORITY 2a: closure words ("rien", "merci", "ok", "d accord")
+    // -> Une seule reponse polie, fin de session, PAS de menu.
+    // (uniquement si pas de flow en cours, pour ne pas casser une saisie attendue)
+    else if (!intent && /^(rien|merci|mercii+|ok|okay|d accord|daccord)\s*!?\s*$/.test(nMsg)) {
+      await saveSession(supa, phone, null, {});
+      await sendWa(supa, phone, `D accord ! N hesitez pas si vous avez besoin.`, 'bot_client_closure');
+      return new Response(JSON.stringify({ ok: true, closed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // PRIORITY 2b: OUI / NON → confirm or cancel pending dossier
     else if (/^(oui|ok|yes|y|confirme|confirmer|valide|valider|d accord|daccord)\b/.test(nMsg)) {
       reply = await handleOui(supa, phone, input.from_name ?? null);
+    }
+    else if (!intent && /^(non|no)\s*!?\s*$/.test(nMsg)) {
+      // "non" tout seul sans flow = fermeture polie, pas d annulation
+      await saveSession(supa, phone, null, {});
+      await sendWa(supa, phone, `D accord ! N hesitez pas si vous avez besoin.`, 'bot_client_closure');
+      return new Response(JSON.stringify({ ok: true, closed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     else if (/^(non|no|annul|annuler|refuse|refuser)\b/.test(nMsg)) {
       reply = await handleNon(supa, phone, input.from_name ?? null);
@@ -1153,14 +1203,25 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, 'quote_weight', data);
       reply = withBack(`Poids (kg) ?`);
     } else if (intent === 'quote_weight' && msg) {
-      const w = parseFloat(nMsg.replace(',', '.'));
-      if (!w || w <= 0) {
-        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
-
+      const v = validateWeight(nMsg);
+      if (!v.ok) {
+        reply = withBack(v.error);
+      } else if (v.heavy && !data.weight_confirmed) {
+        await saveSession(supa, phone, 'quote_weight_confirm', { ...data, pending_weight: v.weight });
+        reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
-        const r = await handleQuoteCalc(supa, data.dest, w);
+        const r = await handleQuoteCalc(supa, data.dest, v.weight);
         await saveSession(supa, phone, null, {});
         reply = withShortMenu(r);
+      }
+    } else if (intent === 'quote_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        const r = await handleQuoteCalc(supa, data.dest, Number(data.pending_weight));
+        await saveSession(supa, phone, null, {});
+        reply = withShortMenu(r);
+      } else {
+        await saveSession(supa, phone, 'quote_weight', { dest: data.dest, origin: data.origin });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     }
     // ---- Shipment flow ----
@@ -1173,13 +1234,26 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, 'ship_weight', data);
       reply = withBack(`Poids estime (kg) ?`);
     } else if (intent === 'ship_weight' && msg) {
-      const w = parseFloat(nMsg.replace(',', '.'));
-      if (!w || w <= 0) {
-        reply = withBack(`Poids invalide. Indiquez en kg (ex: 5)`);
+      const v = validateWeight(nMsg);
+      if (!v.ok) {
+        reply = withBack(v.error);
+      } else if (v.heavy && !data.weight_confirmed) {
+        await saveSession(supa, phone, 'ship_weight_confirm', { ...data, pending_weight: v.weight });
+        reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
       } else {
-        data.weight = w;
+        data.weight = v.weight;
         await saveSession(supa, phone, 'ship_name', data);
         reply = withBack(`Merci. Quel est votre nom complet ?`);
+      }
+    } else if (intent === 'ship_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        const d2 = { ...data, weight: Number(data.pending_weight) };
+        delete d2.pending_weight;
+        await saveSession(supa, phone, 'ship_name', d2);
+        reply = withBack(`Merci. Quel est votre nom complet ?`);
+      } else {
+        await saveSession(supa, phone, 'ship_weight', { origin: data.origin, dest: data.dest });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     } else if (intent === 'ship_name' && msg) {
       data.name = msg;
@@ -1278,17 +1352,27 @@ Deno.serve(async (req) => {
     }
     else if (intent === 'exp_weight' && msg) {
       const id = nMsg;
-      let kg: number | null = null;
       const picked = EXP_WEIGHT_OPTIONS.find((w) => w.id === id);
-      if (picked) kg = picked.kg;
-      else {
-        const n = parseFloat(nMsg.replace(',', '.'));
-        if (n && n > 0) kg = n;
-      }
-      if (!kg) {
-        reply = withBack(`Poids invalide. Choisissez dans la liste ou tapez un nombre (ex: 5)`);
+      if (picked) {
+        await askExpeditionType(supa, phone, { ...data, weight: picked.kg });
       } else {
-        await askExpeditionType(supa, phone, { ...data, weight: kg });
+        const v = validateWeight(nMsg);
+        if (!v.ok) {
+          reply = withBack(v.error);
+        } else if (v.heavy && !data.weight_confirmed) {
+          await saveSession(supa, phone, 'exp_weight_confirm', { ...data, pending_weight: v.weight });
+          reply = withBack(`Vous avez bien ${v.weight}kg ?\nC est un envoi volumineux.\nConfirmez : OUI ou NON`);
+        } else {
+          await askExpeditionType(supa, phone, { ...data, weight: v.weight });
+        }
+      }
+    }
+    else if (intent === 'exp_weight_confirm' && msg) {
+      if (/^(oui|ok|yes|y|confirme)/.test(nMsg)) {
+        await askExpeditionType(supa, phone, { ...data, weight: Number(data.pending_weight) });
+      } else {
+        await saveSession(supa, phone, 'exp_weight', { dest_city: data.dest_city, dest_country: data.dest_country });
+        reply = withBack(`Pas de souci. Quel est le poids reel en kg ?`);
       }
     }
     else if (intent === 'exp_type' && msg) {
