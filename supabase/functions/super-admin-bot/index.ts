@@ -1025,6 +1025,9 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   const text = (raw || '').trim();
   const lower = text.toLowerCase();
   const upper = text.toUpperCase();
+  const norm = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const isStatusWord = ['status', 'statut', 'statuts'].includes(norm);
+
 
   if (['menu', 'aide', 'help', 'bonjour', 'salut', 'start'].includes(lower)) {
     await clearSession(phone); return MENU;
@@ -1063,7 +1066,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   }
 
   // ===== V2 commands: STATUS / DEPARTS / DOSSIERS / PAIEMENTS
-  if (upper === 'STATUS') return await cmdStatus();
+  if (upper === 'STATUS' || isStatusWord) return await cmdStatus();
   if (upper === 'DEPARTS') return await cmdDeparts();
   if (upper === 'DOSSIERS') return await cmdDossiers();
   if (upper === 'PAIEMENTS' || upper === 'PAIEMENT') return await cmdPaiements();

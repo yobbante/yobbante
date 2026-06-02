@@ -70,17 +70,22 @@ function hasRealClientName(input?: string | null): boolean {
 }
 
 function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromNumber?: string } {
+  // 607 = numero client (et admin). Le 122 (GP) a ete supprime pour les notifs admin.
+  const clientPhoneId = Deno.env.get('WHATSAPP_CLIENT_PHONE_ID')
+    ?? Deno.env.get('WHATSAPP_PHONE_ID_CLIENTS')
+    ?? Deno.env.get('WHATSAPP_PHONE_ID');
+
+  if (recipientType === 'admin') {
+    // Admin : TOUJOURS depuis le 607, jamais de fallback GP.
+    return { phoneId: clientPhoneId, fromNumber: '+221786078080' };
+  }
   if (recipientType === 'gp') {
     return {
       phoneId: Deno.env.get('WHATSAPP_PHONE_ID_GP') ?? Deno.env.get('WHATSAPP_PHONE_ID'),
       fromNumber: '+221781221891',
     };
   }
-  // client + admin both sent from 607
-  return {
-    phoneId: Deno.env.get('WHATSAPP_PHONE_ID_CLIENTS') ?? Deno.env.get('WHATSAPP_PHONE_ID'),
-    fromNumber: '+221786078080',
-  };
+  return { phoneId: clientPhoneId, fromNumber: '+221786078080' };
 }
 
 Deno.serve(async (req) => {
