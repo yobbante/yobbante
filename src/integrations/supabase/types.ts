@@ -3810,6 +3810,16 @@ export type Database = {
       }
       mark_overdue_invoices: { Args: never; Returns: number }
       monitor_shipment_etas: { Args: never; Returns: number }
+      notify_admin_http: {
+        Args: {
+          p_dedup_key?: string
+          p_dossier_id?: string
+          p_message: string
+          p_notification_type: string
+          p_window_minutes?: number
+        }
+        Returns: undefined
+      }
       recompute_departure_reserved_capacity: {
         Args: { p_departure_id: string }
         Returns: undefined
