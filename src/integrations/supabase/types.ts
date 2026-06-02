@@ -1004,6 +1004,8 @@ export type Database = {
           last_payment_reminder_at: string | null
           livreur_collecte_id: string | null
           livreur_livraison_id: string | null
+          mission_accepted: boolean | null
+          mission_decided_at: string | null
           needs_sourcing: boolean
           notes: string | null
           origin_city: string | null
@@ -1143,6 +1145,8 @@ export type Database = {
           last_payment_reminder_at?: string | null
           livreur_collecte_id?: string | null
           livreur_livraison_id?: string | null
+          mission_accepted?: boolean | null
+          mission_decided_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_city?: string | null
@@ -1282,6 +1286,8 @@ export type Database = {
           last_payment_reminder_at?: string | null
           livreur_collecte_id?: string | null
           livreur_livraison_id?: string | null
+          mission_accepted?: boolean | null
+          mission_decided_at?: string | null
           needs_sourcing?: boolean
           notes?: string | null
           origin_city?: string | null
@@ -1868,6 +1874,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_via: string
+          departure_confirmed: boolean
+          departure_confirmed_at: string | null
           departure_date: string
           destination_city: string
           destination_country: string | null
@@ -1899,6 +1907,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_via?: string
+          departure_confirmed?: boolean
+          departure_confirmed_at?: string | null
           departure_date: string
           destination_city: string
           destination_country?: string | null
@@ -1930,6 +1940,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_via?: string
+          departure_confirmed?: boolean
+          departure_confirmed_at?: string | null
           departure_date?: string
           destination_city?: string
           destination_country?: string | null
