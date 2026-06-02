@@ -75,6 +75,10 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   isAdmin: boolean;
 }) {
   const [unread, setUnread] = useState(0);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isGuide = pathname.startsWith('/admin/guide');
+
 
   useEffect(() => {
     let mounted = true;
