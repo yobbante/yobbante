@@ -131,7 +131,7 @@ export function NewMessageDialog({ open, onOpenChange }: Props) {
               >
                 {dossiers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.tracking_id || d.reference} · {d.origin_country} → {d.destination_country} · {d.status}
+                    {d.tracking_id || d.reference} · {(d as any).origin_city || d.origin_country} → {(d as any).destination_city || d.destination_country} · {d.status}
                   </option>
                 ))}
               </select>
