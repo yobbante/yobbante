@@ -1168,12 +1168,12 @@ Deno.serve(async (req) => {
         } else if (nlp.intent === 'AGENT') {
           reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
         } else if (nlp.intent === 'EXPEDITION') {
-          // Si destination connue → pré-remplir
+          // Flow guide : destination -> poids -> type -> lien pre-rempli
           if (nlp.entities.destination) {
-            await saveSession(supa, phone, 'ship_dest', { origin: nlp.entities.origin ?? 'Dakar', dest: nlp.entities.destination });
-            reply = withBack(`${greet}Pour expedier vers ${nlp.entities.destination}, quel est le poids estime (kg) ?`);
+            const country = COUNTRY_BY_CITY[norm(nlp.entities.destination)] || null;
+            await askExpeditionWeight(supa, phone, { dest_city: nlp.entities.destination, dest_country: country });
           } else {
-            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '3', msg);
+            await askExpeditionDestination(supa, phone);
           }
         } else if (nlp.intent === 'DEVIS') {
           if (nlp.entities.destination && nlp.entities.weight) {
