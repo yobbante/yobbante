@@ -146,6 +146,49 @@ function fmtDate(iso: any): string {
   catch { return String(iso); }
 }
 
+const COUNTRY_FR: Record<string, string> = {
+  SN: 'Senegal', FR: 'France', BE: 'Belgique', CH: 'Suisse', CA: 'Canada',
+  US: 'Etats-Unis', GB: 'Royaume-Uni', UK: 'Royaume-Uni', ES: 'Espagne',
+  IT: 'Italie', DE: 'Allemagne', PT: 'Portugal', NL: 'Pays-Bas', MA: 'Maroc',
+  CI: 'Cote d Ivoire', ML: 'Mali', GN: 'Guinee', MR: 'Mauritanie', CN: 'Chine',
+  TR: 'Turquie', AE: 'Emirats', GM: 'Gambie', BJ: 'Benin', TG: 'Togo',
+};
+function countryFr(code?: string | null): string {
+  if (!code) return '';
+  const up = String(code).toUpperCase();
+  return COUNTRY_FR[up] ?? up;
+}
+function placeFr(city?: string | null, country?: string | null): string {
+  const c = (city ?? '').trim();
+  const co = countryFr(country);
+  if (c && co) return `${c}, ${co}`;
+  return c || co || '—';
+}
+
+const STATUS_FR: Record<string, string> = {
+  SUBMITTED: 'Soumis', IN_REVIEW: 'En analyse', AWAITING_CLIENT: 'En attente client',
+  CONFIRMED: 'Confirme', ASSIGNED: 'Assigne a un GP', COLLECTING: 'Collecte en cours',
+  COLLECTED: 'Collecte', WEIGHED: 'Pese - Paiement en attente', IN_TRANSIT: 'En transit',
+  ARRIVED_HUB: 'Arrive au hub', ARRIVED: 'Arrive', OUT_FOR_DELIVERY: 'En livraison',
+  DELIVERED: 'Livre', CANCELLED: 'Annule', CLOSED: 'Cloture',
+  DEPARTURE_CONFIRMED: 'Depart confirme', SOURCING: 'Sourcing', QUOTE_SENT: 'Devis envoye',
+  PURCHASED: 'Achete', PROCURED: 'Achete', CUSTOMS: 'En douane',
+};
+const PAY_FR: Record<string, string> = {
+  pending: 'En attente', paid: 'Paye', failed: 'Echec',
+  refunded: 'Rembourse', cancelled: 'Annule',
+};
+const DELIVERY_FR: Record<string, string> = {
+  pickup_gp: 'Collecte par le GP',
+  partner_pickup: 'Point relais partenaire',
+  home_delivery: 'Livraison domicile',
+  relay: 'Point relais partenaire',
+  pickup: 'Collecte sur place',
+};
+const statusFr = (s?: string | null) => (s ? STATUS_FR[s] ?? s : '—');
+const payFr = (s?: string | null) => (s ? PAY_FR[s] ?? s : '—');
+const deliveryFr = (s?: string | null) => (s ? DELIVERY_FR[s] ?? s : '—');
+
 function hoursAgo(iso: any): number {
   if (!iso) return 0;
   return Math.floor((Date.now() - new Date(iso).getTime()) / 3600_000);
