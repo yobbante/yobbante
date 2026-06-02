@@ -212,7 +212,106 @@ Deno.serve(async (req) => {
       lines.push('RELANCE [tracking] . ASSIGNE [tracking]');
 
       await sendAdmin(lines.join('\n'));
+    } else if (mode === 'intelligent_alerts') {
+      // PARTIE 5 — Immediate per-event alerts (anti-spam handled by admin-notify dedup 4h).
+      const now = Date.now();
+      const h12 = new Date(now - 12 * 3600 * 1000).toISOString();
+      const h48 = new Date(now - 48 * 3600 * 1000).toISOString();
+
+      async function pushAlert(notification_type: string, dedup_key: string, message: string, dossier_id?: string) {
+        try {
+          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+              notification_type, dedup_key, message,
+              dossier_id: dossier_id ?? null,
+              window_minutes: 240,
+            }),
+          });
+        } catch (e) { console.error('intelligent_alerts push error', e); }
+      }
+
+      // 1) Blocked dossiers — ASSIGNED >48h
+      const { data: stuck } = await supa.from('dossiers')
+        .select('id, tracking_id, reference, updated_at, assigned_transporteur_ref')
+        .eq('status', 'ASSIGNED').lt('updated_at', h48).limit(50);
+      for (const d of (stuck ?? []) as any[]) {
+        const hrs = Math.floor((now - new Date(d.updated_at).getTime()) / 3600000);
+        let gpName = '—', gpPhone = '—';
+        if (d.assigned_transporteur_ref) {
+          const { data: gp } = await supa.from('transporteurs')
+            .select('prenom, nom, telephone_1, whatsapp')
+            .eq('reference', d.assigned_transporteur_ref).maybeSingle();
+          if (gp) {
+            gpName = `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim() || d.assigned_transporteur_ref;
+            gpPhone = gp.telephone_1 || gp.whatsapp || '—';
+          }
+        }
+        const tid = d.tracking_id || d.reference;
+        const msg =
+          `DOSSIER BLOQUE\n${tid} en ASSIGNED depuis ${hrs}h\n` +
+          `GP : ${gpName} . ${gpPhone}\n\n` +
+          `Action : C ${tid} ou\nREASSIGNE ${tid} [ref_gp]`;
+        await pushAlert('stuck_assigned', `stuck_assigned:${d.id}`, msg, d.id);
+      }
+
+      // 2) Urgent payment — WEIGHED unpaid >12h
+      const { data: urgent } = await supa.from('dossiers')
+        .select('id, tracking_id, reference, sender_name, final_amount_xof, weighed_at')
+        .eq('status', 'WEIGHED').eq('payment_status', 'pending')
+        .lt('weighed_at', h12).limit(50);
+      for (const d of (urgent ?? []) as any[]) {
+        const hrs = Math.floor((now - new Date(d.weighed_at).getTime()) / 3600000);
+        const tid = d.tracking_id || d.reference;
+        const cli = String(d.sender_name || 'Client').split(/\s+/)[0];
+        const amt = Math.round(Number(d.final_amount_xof) || 0).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ');
+        const msg =
+          `RELANCE PAIEMENT\n${tid} . ${cli}\n` +
+          `Montant : ${amt} FCFA\nNon paye depuis ${hrs}h\n\n` +
+          `Action : R ${tid}`;
+        await pushAlert('urgent_payment', `urgent_payment:${d.id}`, msg, d.id);
+      }
+
+      // 3) Departure capacity — depart <48h with uncollected packages
+      const in48 = new Date(now + 48 * 3600 * 1000).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: deps } = await supa.from('manual_departures')
+        .select('id, short_ref, destination_city, destination_country, departure_date, transporteur_ref')
+        .gte('departure_date', today).lte('departure_date', in48)
+        .in('status', ['active', 'OPEN', 'open']).limit(20);
+      for (const dep of (deps ?? []) as any[]) {
+        const { data: pkgs } = await supa.from('dossiers')
+          .select('tracking_id, reference, status')
+          .eq('assigned_departure_id', dep.id)
+          .not('status', 'in', '(COLLECTED,IN_TRANSIT,ARRIVED_HUB,DELIVERED,CANCELLED)')
+          .limit(20);
+        if (!pkgs || pkgs.length === 0) continue;
+        let gpName = '—', gpPhone = '—';
+        if (dep.transporteur_ref) {
+          const { data: gp } = await supa.from('transporteurs')
+            .select('prenom, nom, telephone_1, whatsapp')
+            .eq('reference', dep.transporteur_ref).maybeSingle();
+          if (gp) {
+            gpName = `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim() || dep.transporteur_ref;
+            gpPhone = gp.telephone_1 || gp.whatsapp || '—';
+          }
+        }
+        const list = pkgs.map((p: any) => `- ${p.tracking_id || p.reference}`).join('\n');
+        const msg =
+          `DEPART DANS 48H . #${dep.short_ref || dep.id}\n` +
+          `${dep.destination_city || dep.destination_country} . ${dep.departure_date}\n` +
+          `Colis non collectes :\n${list}\n\n` +
+          `GP : ${gpName} . ${gpPhone}`;
+        await pushAlert('departure_capacity', `departure_capacity:${dep.id}:${dep.departure_date}`, msg);
+      }
     }
+
+
+
 
 
 
