@@ -339,7 +339,7 @@ const SESSION_EXPIRED = `Votre session a expire.
 const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
 const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
 
-const FALLBACK = `Je n ai pas compris.`;
+const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
 
 // Append short menu after info replies, full menu after errors/fallback
 function withShortMenu(reply: string): string {
