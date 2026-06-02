@@ -16,6 +16,8 @@ interface PublicDossier {
   payment_status: string;
   origin_country: string | null;
   destination_country: string | null;
+  origin_city: string | null;
+  destination_city: string | null;
   estimated_weight: number | null;
   estimated_cost: number | null;
   actual_weight_kg: number | null;
