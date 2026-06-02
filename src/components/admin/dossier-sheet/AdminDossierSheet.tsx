@@ -1198,23 +1198,52 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
         ) : visible.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-8">Aucun message pour le moment.</div>
         ) : (
-          visible.map(m => (
-            <div
-              key={m.id}
-              className={`rounded-lg p-3 text-sm max-w-[80%] ${
-                m.author_role === 'staff'
-                  ? 'ml-auto bg-primary/10 border border-primary/20'
-                  : 'bg-muted'
-              } ${m.internal_note ? 'border-amber-500/40 bg-amber-500/10' : ''}`}
-            >
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <span>{m.author_role === 'staff' ? 'Staff' : 'Client'}</span>
-                {m.internal_note && <Badge variant="outline" className="text-[9px] h-4">Interne</Badge>}
-                <span className="ml-auto">{format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+          visible.map(m => {
+            const isWaMirror =
+              (m.source && typeof m.source === 'string' && m.source.startsWith('wa_out')) ||
+              (m.body || '').startsWith('📲 WhatsApp → client');
+            const waText = isWaMirror
+              ? (m.body || '').replace(/^📲 WhatsApp → client\s*\n+/, '')
+              : m.body;
+            return (
+              <div
+                key={m.id}
+                className={`rounded-lg p-3 text-sm max-w-[80%] ${
+                  m.author_role === 'staff'
+                    ? 'ml-auto bg-primary/10 border border-primary/20'
+                    : 'bg-muted'
+                } ${m.internal_note ? 'border-amber-500/40 bg-amber-500/10' : ''} ${
+                  isWaMirror ? 'border-emerald-500/40 bg-emerald-500/5' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                  <span>{m.author_role === 'staff' ? 'Staff' : 'Client'}</span>
+                  {isWaMirror && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] h-4 border-emerald-500/40 text-emerald-500 bg-emerald-500/10"
+                    >
+                      📲 WhatsApp → client
+                    </Badge>
+                  )}
+                  {m.internal_note && <Badge variant="outline" className="text-[9px] h-4">Interne</Badge>}
+                  <span className="ml-auto">{format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+                </div>
+                <p className="whitespace-pre-wrap">{isWaMirror ? waText : m.body}</p>
+                {isWaMirror && (
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => copy(waText)}
+                      className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy className="h-3 w-3" /> Copier le message WA
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="whitespace-pre-wrap">{m.body}</p>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
