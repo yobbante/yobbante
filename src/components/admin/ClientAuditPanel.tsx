@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { RefreshCw, FlaskConical, ShieldAlert, CalendarClock, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw, FlaskConical, ShieldAlert, CalendarClock, CheckCircle2, XCircle, PlayCircle, Loader2, Hash } from 'lucide-react';
 
 // --- Types ------------------------------------------------------------------
 
