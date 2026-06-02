@@ -160,12 +160,18 @@ export async function assignTransporteurAndNotify({
  * - Décale la réservation entre l'ancien et le nouveau départ.
  * - Déclenche la notification WhatsApp GP enrichie (route, date, nb colis, total kg).
  */
+export interface ClientFallback {
+  phone: string;
+  message: string;
+  waHref: string;
+}
+
 export async function assignDossierToDeparture(args: {
   dossierId: string;
   departureId: string;
   transporteurRef: string;
   notify?: boolean;
-}): Promise<{ ok: boolean }> {
+}): Promise<{ ok: boolean; clientFallback?: ClientFallback }> {
   const { dossierId, departureId, transporteurRef, notify = true } = args;
 
   // 0) Snapshot AVANT mutation : pour notifier l'ancien GP / mentionner reschedule
