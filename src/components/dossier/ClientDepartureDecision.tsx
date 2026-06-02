@@ -18,6 +18,7 @@ import {
 import { Calendar, CheckCircle2, Clock, Loader2, Plane, ShieldAlert, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { clarityEvent } from '@/lib/clarity';
 
 type Decision = 'pending' | 'confirmed' | 'reschedule_requested' | 'cancelled';
 
@@ -70,6 +71,16 @@ export function ClientDepartureDecision({
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [dossierId, qc]);
+
+  // Track when the client lands on the confirmation card (from wa.me link)
+  useEffect(() => {
+    if (!assignedDepartureId) return;
+    if (decision && decision !== 'pending') return;
+    clarityEvent('client_departure_confirmation_opened', {
+      dossier_id: dossierId,
+      decision: decision ?? 'pending',
+    });
+  }, [assignedDepartureId, decision, dossierId]);
 
   const decide = useMutation({
     mutationFn: async (vars: { decision: 'confirmed' | 'reschedule_requested' | 'cancelled'; date?: string | null; note?: string | null }) => {

@@ -36,6 +36,7 @@ import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assi
 import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
+import { clarityEvent } from '@/lib/clarity';
 
 import { format } from 'date-fns';
 
@@ -418,6 +419,38 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     ? { text: 'Confirmé & synchronisé', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
     : { text: 'En attente confirmation client', cls: 'bg-[#F5C518]/20 text-[#F5C518] border-[#F5C518]/30' };
 
+  // Fallback "Renvoyer via mon tel" — only useful while client hasn't decided.
+  const RESEND_AFTER_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const lastTouchRaw =
+    (dossier as any).gp_last_action_at ?? (dossier as any).updated_at ?? null;
+  const lastTouchMs = lastTouchRaw ? new Date(lastTouchRaw).getTime() : 0;
+  const showFallback =
+    !confirmed && !cancelled && !!departureId &&
+    lastTouchMs > 0 && Date.now() - lastTouchMs >= RESEND_AFTER_MS;
+
+  const buildFallbackHref = (): string | null => {
+    const phoneRaw =
+      (dossier as any).contact_phone ?? (dossier as any).sender_phone ?? null;
+    if (!phoneRaw) return null;
+    const digits = String(phoneRaw).replace(/\D/g, '');
+    if (digits.length < 6) return null;
+    const prenom = ((dossier as any).sender_name || (dossier as any).recipient_name || '')
+      .toString().trim().split(/\s+/)[0] || 'Bonjour';
+    const ref = (dossier as any).reference || '';
+    const txt = [
+      `Bonjour ${prenom},`,
+      ``,
+      `Petit rappel : merci de confirmer le départ pour votre dossier ${ref}.`,
+      dep?.departure_date ? `Date prévue : ${fmt(dep.departure_date)}` : null,
+      ``,
+      `Confirmez ou demandez un autre départ ici :`,
+      `https://yobbante.com/app/dossier/${(dossier as any).id}`,
+      ``,
+      `— Équipe Yobbanté`,
+    ].filter(Boolean).join('\n');
+    return `https://wa.me/${digits}?text=${encodeURIComponent(txt)}`;
+  };
+
   return (
     <div className={`rounded-xl border p-3 flex items-start gap-3 ${tone}`}>
       <Truck className="h-5 w-5 mt-0.5 shrink-0 text-foreground" />
@@ -439,6 +472,31 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
           {dep?.origin_city ?? '?'} → {dep?.destination_city ?? '?'} ·{' '}
           <span className="text-foreground font-medium">{fmt(dep?.departure_date)}</span>
         </div>
+        {showFallback && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                const href = buildFallbackHref();
+                if (!href) {
+                  toast.error('Numéro client introuvable');
+                  return;
+                }
+                clarityEvent('wa_fallback_sent', {
+                  dossier_id: (dossier as any).id,
+                  source: 'departure_panel',
+                });
+                window.open(href, '_blank', 'noopener,noreferrer');
+              }}
+              className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
+            >
+              <Send className="h-3 w-3" /> Renvoyer via mon tel
+            </button>
+            <div className="text-[10px] text-muted-foreground mt-1">
+              Client sans réponse depuis &gt; 2h — relancez depuis votre téléphone.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1198,23 +1256,52 @@ function MessagesTab({ dossier, isStaff }: { dossier: DossierRow; isStaff: boole
         ) : visible.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-8">Aucun message pour le moment.</div>
         ) : (
-          visible.map(m => (
-            <div
-              key={m.id}
-              className={`rounded-lg p-3 text-sm max-w-[80%] ${
-                m.author_role === 'staff'
-                  ? 'ml-auto bg-primary/10 border border-primary/20'
-                  : 'bg-muted'
-              } ${m.internal_note ? 'border-amber-500/40 bg-amber-500/10' : ''}`}
-            >
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                <span>{m.author_role === 'staff' ? 'Staff' : 'Client'}</span>
-                {m.internal_note && <Badge variant="outline" className="text-[9px] h-4">Interne</Badge>}
-                <span className="ml-auto">{format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+          visible.map(m => {
+            const isWaMirror =
+              (m.source && typeof m.source === 'string' && m.source.startsWith('wa_out')) ||
+              (m.body || '').startsWith('📲 WhatsApp → client');
+            const waText = isWaMirror
+              ? (m.body || '').replace(/^📲 WhatsApp → client\s*\n+/, '')
+              : m.body;
+            return (
+              <div
+                key={m.id}
+                className={`rounded-lg p-3 text-sm max-w-[80%] ${
+                  m.author_role === 'staff'
+                    ? 'ml-auto bg-primary/10 border border-primary/20'
+                    : 'bg-muted'
+                } ${m.internal_note ? 'border-amber-500/40 bg-amber-500/10' : ''} ${
+                  isWaMirror ? 'border-emerald-500/40 bg-emerald-500/5' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                  <span>{m.author_role === 'staff' ? 'Staff' : 'Client'}</span>
+                  {isWaMirror && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] h-4 border-emerald-500/40 text-emerald-500 bg-emerald-500/10"
+                    >
+                      📲 WhatsApp → client
+                    </Badge>
+                  )}
+                  {m.internal_note && <Badge variant="outline" className="text-[9px] h-4">Interne</Badge>}
+                  <span className="ml-auto">{format(new Date(m.created_at), 'dd/MM HH:mm')}</span>
+                </div>
+                <p className="whitespace-pre-wrap">{isWaMirror ? waText : m.body}</p>
+                {isWaMirror && (
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => copy(waText)}
+                      className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy className="h-3 w-3" /> Copier le message WA
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="whitespace-pre-wrap">{m.body}</p>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

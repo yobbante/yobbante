@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { assignDossierToDeparture } from '@/lib/assignGpAndNotify';
+import { clarityEvent } from '@/lib/clarity';
 import { useNavigate } from 'react-router-dom';
 
 interface Props {
@@ -133,7 +134,10 @@ export function AssignDepartureDialog({
           duration: 12000,
           action: {
             label: 'Envoyer via mon tel',
-            onClick: () => window.open(fb.waHref, '_blank', 'noopener,noreferrer'),
+            onClick: () => {
+              clarityEvent('wa_fallback_sent', { dossier_id: dossierId, source: 'assign_dialog' });
+              window.open(fb.waHref, '_blank', 'noopener,noreferrer');
+            },
           },
         });
       } else {

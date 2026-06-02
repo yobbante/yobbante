@@ -1,13 +1,15 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DossierMessage {
   id: string;
   dossier_id: string;
-  author_id: string;
+  author_id: string | null;
   author_role: 'client' | 'staff';
   body: string;
   internal_note: boolean;
+  source: string | null;
   created_at: string;
 }
 
@@ -27,6 +29,20 @@ export function useDossierMessages(dossierId: string | undefined) {
       return (data || []) as DossierMessage[];
     },
   });
+
+  // Realtime — refresh on any insert in this dossier (including WhatsApp mirror)
+  useEffect(() => {
+    if (!dossierId) return;
+    const ch = supabase
+      .channel(`dossier-messages-${dossierId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'dossier_messages', filter: `dossier_id=eq.${dossierId}` },
+        () => qc.invalidateQueries({ queryKey: ['dossier-messages', dossierId] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [dossierId, qc]);
 
   const sendMessage = useMutation({
     mutationFn: async ({ body, asStaff, internal }: { body: string; asStaff: boolean; internal?: boolean }) => {
