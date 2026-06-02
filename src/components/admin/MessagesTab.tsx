@@ -812,7 +812,7 @@ export function MessagesTab() {
                         {linkedDossier.tracking_id || linkedDossier.reference}
                       </span>
                       <span className="text-muted-foreground hidden sm:inline truncate">
-                        · {linkedDossier.origin_country || '—'} → {linkedDossier.destination_country || '—'}
+                        · {(linkedDossier as any).origin_city || linkedDossier.origin_country || '—'} → {(linkedDossier as any).destination_city || linkedDossier.destination_country || '—'}
                       </span>
                       <Badge variant="outline" className="h-4 text-[9px] flex-shrink-0">{linkedDossier.status}</Badge>
                     </div>
