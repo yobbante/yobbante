@@ -81,7 +81,7 @@ export function ClientDossierActions({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
-      toast.success('Votre demande a été annulée');
+      toast.success(`Demande annulée — ${trackingId ?? ''}`.trim());
       setMode(null);
       setReason('');
     },
