@@ -1524,12 +1524,16 @@ Deno.serve(async (req) => {
             await askExpeditionDestination(supa, phone);
           }
         } else if (nlp.intent === 'DEVIS') {
-          if (nlp.entities.destination && nlp.entities.weight) {
-            const r = await handleQuoteCalc(supa, nlp.entities.destination, nlp.entities.weight);
+          const dest = resolveDestination(nlp.entities.destination);
+          if (nlp.entities.destination && !dest) {
+            reply = withFullMenu(INVALID_DESTINATION_MSG);
+          } else if (dest && nlp.entities.weight) {
+            const r = await handleQuoteCalc(supa, dest.city, nlp.entities.weight);
+            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight });
             reply = withShortMenu(r);
-          } else if (nlp.entities.destination) {
-            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: nlp.entities.destination });
-            reply = withBack(`${greet}Pour un devis vers ${nlp.entities.destination}, quel poids (kg) ?`);
+          } else if (dest) {
+            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: dest.city });
+            reply = withBack(`${greet}Pour un devis vers ${dest.city}, quel poids (kg) ?`);
           } else {
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
           }
