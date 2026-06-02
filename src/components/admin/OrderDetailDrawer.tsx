@@ -188,7 +188,7 @@ function ShipmentDetail({ ship, onUpdate, pending }: {
       <Header
         ref={ship.konnekt_id || ship.id.slice(0, 8)}
         status={ship.status}
-        secondary={`${ship.origin_country} → ${ship.destination_country}`}
+        secondary={`${ship.origin_city || ship.origin_country} → ${ship.destination_city || ship.destination_country}`}
       />
 
       {ship.pending_assignment && (
