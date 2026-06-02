@@ -136,7 +136,7 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
                       <Badge variant="outline" className="text-[9px]">{d.status}</Badge>
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {(d.origin_country || '—')} → {(d.destination_country || '—')}
+                      {((d as any).origin_city || d.origin_country || '—')} → {((d as any).destination_city || d.destination_country || '—')}
                       {d.buyer_name ? ` · ${d.buyer_name}` : ''}
                       {d.assigned_transporteur_ref ? ` · GP${d.assigned_transporteur_ref}` : ''}
                     </div>
