@@ -110,6 +110,7 @@ const DekkRoutes = () => (
     <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
     <Route path="/admin/relais" element={<RelaisPage />} />
     <Route path="/admin/parametres" element={<ParametresPage />} />
+    <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
