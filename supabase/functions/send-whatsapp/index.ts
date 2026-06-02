@@ -417,13 +417,21 @@ Voir → https://yobbante.com/admin`;
       messageBody &&
       messageBody.trim().length > 0
     ) {
-      await supa.from('dossier_messages').insert({
+      const sourceKey = wamid
+        ? `wa_out:${wamid}`
+        : `wa_out_local:${body.dossier_id}:${Date.now()}`;
+      // Idempotent insert — unique partial index on dossier_messages(source)
+      const { error: mirrorInsertErr } = await supa.from('dossier_messages').insert({
         dossier_id: body.dossier_id,
         author_id: null,
         author_role: 'staff',
         body: `📲 WhatsApp → client\n\n${messageBody}`,
         internal_note: false,
+        source: sourceKey,
       });
+      if (mirrorInsertErr && !/duplicate key|unique constraint/i.test(mirrorInsertErr.message)) {
+        console.error('WA_ERROR mirror_chat insert', mirrorInsertErr.message);
+      }
     }
   } catch (mirrorErr) {
     console.error('WA_ERROR mirror_chat', mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr));
