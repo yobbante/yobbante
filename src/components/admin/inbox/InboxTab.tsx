@@ -173,7 +173,7 @@ export function InboxTab() {
                 {detail.source_reference && (
                   <div><span className="text-muted-foreground">Réf. canal :</span> {detail.source_reference}</div>
                 )}
-                <div><span className="text-muted-foreground">Route :</span> {detail.origin_country} → {detail.destination_country}</div>
+                <div><span className="text-muted-foreground">Route :</span> {detail.origin_city || detail.origin_country} → {detail.destination_city || detail.destination_country}</div>
                 {detail.estimated_weight && <div><span className="text-muted-foreground">Poids :</span> {detail.estimated_weight} kg</div>}
                 {detail.estimated_cost != null && <div><span className="text-muted-foreground">Estimation :</span> {Math.round(detail.estimated_cost)} €</div>}
                 <div><span className="text-muted-foreground">Description :</span><br />{detail.product_description}</div>
