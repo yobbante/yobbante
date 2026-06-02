@@ -230,7 +230,10 @@ async function classifyMessage(msg: string): Promise<NlpResult | null> {
   } catch (e) {
     console.error('NLP parse err', e instanceof Error ? e.message : String(e));
     return null;
+  }
 }
+
+
 
 // --- FAQ deterministe (avant NLP, reponses directes) ---
 const FAQ_RESPONSES: Array<{ patterns: RegExp[]; reply: string }> = [
