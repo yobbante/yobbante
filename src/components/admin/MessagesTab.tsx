@@ -858,7 +858,7 @@ export function MessagesTab() {
                         className="text-[11px] px-2.5 py-1.5 rounded-md border border-border hover:border-[#F5C518] hover:bg-muted/50 transition-colors text-left"
                       >
                         <span className="font-semibold text-foreground">{d.tracking_id || d.reference}</span>
-                        <span className="text-muted-foreground"> · {d.origin_country} → {d.destination_country}</span>
+                        <span className="text-muted-foreground"> · {(d as any).origin_city || d.origin_country} → {(d as any).destination_city || d.destination_country}</span>
                         <Badge variant="outline" className="ml-1 h-3.5 text-[9px]">{d.status}</Badge>
                       </button>
                     ))}
