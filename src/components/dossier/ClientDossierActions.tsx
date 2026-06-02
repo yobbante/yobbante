@@ -90,8 +90,13 @@ export function ClientDossierActions({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+      <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2 flex-wrap">
         <Settings2 className="w-4 h-4 text-[#F5C518]" /> Gérer mon dossier
+        {trackingId && (
+          <span className="ml-auto font-mono text-[11px] px-2 py-0.5 rounded-full bg-[#F5C518]/10 text-[#F5C518] border border-[#F5C518]/30">
+            #{trackingId}
+          </span>
+        )}
       </h2>
 
       <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
