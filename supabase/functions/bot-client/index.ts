@@ -962,6 +962,34 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = withShortMenu(r);
     }
+    // ---- Waitlist confirmation (after "pas de depart") ----
+    else if (intent === 'waitlist_confirm' && msg) {
+      const id = nMsg;
+      if (id === 'waitlist_yes' || /^(oui|ok|yes|d accord|daccord)\b/.test(id)) {
+        reply = await handleWaitlistOptIn(supa, phone, input.from_name ?? null, data.origin ?? 'Dakar', data.destination ?? '');
+      } else {
+        await saveSession(supa, phone, null, {});
+        reply = withShortMenu(`Tres bien, pas de probleme.`);
+      }
+    }
+    // ---- Destination choice for DEPARTS (list reply) ----
+    else if (intent === 'await_destination_departs' && msg) {
+      const id = nMsg;
+      const picked = DESTINATIONS_LIST.find((d) => d.id === id);
+      let dest: string | null = null;
+      if (picked && picked.city) dest = picked.city;
+      else if (id === 'dest_other') {
+        await saveSession(supa, phone, 'await_destination_departs', { ...data, awaiting_city: true });
+        reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
+      } else {
+        // Texte libre = ville
+        dest = msg;
+      }
+      if (dest) {
+        const r = await handleSmartDepartures(supa, phone, data.origin ?? 'Dakar', dest);
+        if (r) reply = withShortMenu(r);
+      }
+    }
     // ---- Direct tracking number outside flow ----
     else if (/^yob[-\s]?[a-z0-9]{4,}/i.test(msg)) {
       const r = await handleTrackingLookup(supa, msg);
@@ -969,9 +997,51 @@ Deno.serve(async (req) => {
     } else if (!nMsg) {
       reply = MAIN_MENU;
     } else {
-      // Unrecognized → full menu
-      reply = withFullMenu(FALLBACK);
+      // ---- NLP fallback : analyse intelligente du message ----
+      const nlp = await classifyMessage(msg);
+      if (nlp && nlp.confidence >= 0.5) {
+        const firstName = await getClientFirstName(supa, phone, input.from_name ?? null);
+        const greet = firstName ? `Salam ${firstName} ! ` : '';
+
+        if (nlp.intent === 'DEPARTS') {
+          const r = await handleSmartDepartures(supa, phone, nlp.entities.origin ?? 'Dakar', nlp.entities.destination);
+          if (r) reply = withShortMenu(greet ? `${greet}\n${r}` : r);
+        } else if (nlp.intent === 'SUIVI') {
+          const r = await handleSmartTracking(supa, phone, nlp.entities.tracking_id);
+          if (r) reply = r;
+        } else if (nlp.intent === 'CONFIRMATION') {
+          reply = await handleOui(supa, phone, input.from_name ?? null);
+        } else if (nlp.intent === 'ANNULATION') {
+          reply = await handleNon(supa, phone, input.from_name ?? null);
+        } else if (nlp.intent === 'AGENT') {
+          reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+        } else if (nlp.intent === 'EXPEDITION') {
+          // Si destination connue → pré-remplir
+          if (nlp.entities.destination) {
+            await saveSession(supa, phone, 'ship_dest', { origin: nlp.entities.origin ?? 'Dakar', dest: nlp.entities.destination });
+            reply = withBack(`${greet}Pour expedier vers ${nlp.entities.destination}, quel est le poids estime (kg) ?`);
+          } else {
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '3', msg);
+          }
+        } else if (nlp.intent === 'DEVIS') {
+          if (nlp.entities.destination && nlp.entities.weight) {
+            const r = await handleQuoteCalc(supa, nlp.entities.destination, nlp.entities.weight);
+            reply = withShortMenu(r);
+          } else if (nlp.entities.destination) {
+            await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: nlp.entities.destination });
+            reply = withBack(`${greet}Pour un devis vers ${nlp.entities.destination}, quel poids (kg) ?`);
+          } else {
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
+          }
+        } else {
+          reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        }
+      } else {
+        // Confidence faible OU NLP indispo -> sortie positive, jamais d erreur
+        reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+      }
     }
+
 
     if (reply) {
       await sendWa(supa, phone, reply, 'bot_client_reply');
