@@ -124,21 +124,42 @@ Deno.serve(async (req) => {
     });
   }
 
-  const recipientType: RecipientType = body.recipient_type ?? 'client';
-  const { phoneId, fromNumber } = resolvePhoneId(recipientType);
-
-  if (!phoneId) {
-    console.error('WA_ERROR: missing phone id for', recipientType);
-    return new Response(JSON.stringify({ error: `Missing phone id for ${recipientType}` }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  let recipientType: RecipientType = body.recipient_type ?? 'client';
 
   const recipient = normalizePhone(body.recipient_phone || '');
   if (!recipient || recipient.length < 6) {
     return new Response(JSON.stringify({ error: 'recipient_phone is required' }), {
       status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // SAFETY: si un numero "client" appartient en fait a un GP (numero present dans les deux tables),
+  // forcer le routage GP → 926. Toute notif GP doit partir du 926, jamais du 607.
+  if (recipientType === 'client') {
+    try {
+      const tail = recipient.slice(-9);
+      const { data: gpHit } = await supa
+        .from('transporteurs')
+        .select('id')
+        .or(`telephone_1.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+        .eq('actif', true)
+        .limit(1)
+        .maybeSingle();
+      if (gpHit?.id) {
+        console.log('WA_ROUTE forcing gp for client-routed message to known GP', recipient.slice(-4));
+        recipientType = 'gp';
+      }
+    } catch (e) {
+      console.error('WA_ROUTE gp lookup failed', e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const { phoneId, fromNumber } = resolvePhoneId(recipientType);
+  if (!phoneId) {
+    console.error('WA_ERROR: missing phone id for', recipientType);
+    return new Response(JSON.stringify({ error: `Missing phone id for ${recipientType}` }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
