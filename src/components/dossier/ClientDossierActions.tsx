@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 
 interface Props {
   dossierId: string;
+  trackingId?: string | null;
   status: string | null | undefined;
   assignedDepartureId: string | null | undefined;
   decision: string | null | undefined;
@@ -31,7 +32,7 @@ interface Props {
 const EDITABLE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'SOURCING', 'PROCURED'];
 
 export function ClientDossierActions({
-  dossierId, status, assignedDepartureId, decision, pickupDate, senderAddress,
+  dossierId, trackingId, status, assignedDepartureId, decision, pickupDate, senderAddress,
 }: Props) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<null | 'date' | 'address' | 'cancel'>(null);
@@ -59,7 +60,7 @@ export function ClientDossierActions({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
-      toast.success('Modification envoyée à l\'équipe');
+      toast.success(`Modification envoyée — ${trackingId ?? ''}`.trim());
       setMode(null);
       setReason('');
     },
@@ -80,7 +81,7 @@ export function ClientDossierActions({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dossier', dossierId] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
-      toast.success('Votre demande a été annulée');
+      toast.success(`Demande annulée — ${trackingId ?? ''}`.trim());
       setMode(null);
       setReason('');
     },
@@ -89,8 +90,13 @@ export function ClientDossierActions({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
+      <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2 flex-wrap">
         <Settings2 className="w-4 h-4 text-[#F5C518]" /> Gérer mon dossier
+        {trackingId && (
+          <span className="ml-auto font-mono text-[11px] px-2 py-0.5 rounded-full bg-[#F5C518]/10 text-[#F5C518] border border-[#F5C518]/30">
+            #{trackingId}
+          </span>
+        )}
       </h2>
 
       <div className="bg-card border border-border rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
