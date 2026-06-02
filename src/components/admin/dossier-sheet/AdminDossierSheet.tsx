@@ -1659,13 +1659,25 @@ function ColisTab({ dossier }: { dossier: DossierRow }) {
         <KV label="Poids pesé" value={dossier.actual_weight_kg ? `${dossier.actual_weight_kg} kg` : '—'} />
       </div>
 
+      {!dossier.actual_weight_kg && (() => {
+        const collectedAt = (dossier as any).collected_at ? new Date((dossier as any).collected_at).getTime() : null;
+        const overdue = collectedAt && (Date.now() - collectedAt) > 4 * 3600_000 && dossier.status === 'COLLECTED';
+        if (!overdue) return null;
+        return (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/40 p-3 flex items-start gap-2 text-xs">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <span>Collecté depuis plus de 4h sans poids enregistré. Entre le poids manuellement ci-dessous pour calculer le prix et déclencher le paiement client.</span>
+          </div>
+        );
+      })()}
+
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={() => setAttachOpen(true)}>
           <PackageIcon className="w-3.5 h-3.5 mr-1" /> Attacher / détacher des colis
         </Button>
         <Button size="sm" onClick={() => setWeighOpen(true)}>
           <Scale className="w-3.5 h-3.5 mr-1" />
-          {dossier.actual_weight_kg ? 'Re-peser' : 'Peser le dossier'}
+          {dossier.actual_weight_kg ? 'Re-peser' : 'Entrer le poids manuellement'}
         </Button>
       </div>
 
