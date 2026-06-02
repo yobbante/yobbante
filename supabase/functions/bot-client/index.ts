@@ -730,8 +730,8 @@ async function handleMenuChoice(
     return '';
   }
   if (choice === '3') {
-    await saveSession(supa, phone, 'ship_origin', {});
-    return withBack(`D ou part votre colis ?`);
+    await askExpeditionDestination(supa, phone);
+    return '';
   }
   if (choice === '4') {
     await saveSession(supa, phone, 'quote_origin', {});
