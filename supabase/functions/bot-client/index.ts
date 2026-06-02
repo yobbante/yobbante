@@ -1694,7 +1694,25 @@ Deno.serve(async (req) => {
     } else {
       // ---- NLP fallback : analyse intelligente du message ----
       const nlp = await classifyMessage(msg);
-      if (nlp && nlp.confidence >= 0.5) {
+
+      // ---- PLAINTE / HIGH urgency : agent immediat + URGENT admin ----
+      if (nlp && (nlp.intent === 'PLAINTE' || nlp.urgency === 'HIGH')) {
+        try {
+          await sendWa(
+            supa,
+            ADMIN_PHONE,
+            `URGENT : ${phone}\n${(input.from_name ?? '').slice(0, 40)}\n${msg.slice(0, 300)}`,
+            'agent_handoff_urgent',
+          );
+        } catch (e) { console.error('BOT_CLIENT urgent admin notify err', e); }
+        await markLastAction(supa, phone, 'plainte', {
+          urgency: 'HIGH',
+          retry_count: 0,
+          language: nlp.language,
+          message: msg.slice(0, 200),
+        });
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+      } else if (nlp && nlp.confidence >= 0.5) {
         const firstName = await getClientFirstName(supa, phone, input.from_name ?? null);
         const greet = firstName ? `Salam ${firstName} ! ` : '';
 
@@ -1730,7 +1748,7 @@ Deno.serve(async (req) => {
             reply = withFullMenu(INVALID_DESTINATION_MSG);
           } else if (dest && nlp.entities.weight) {
             const r = await handleQuoteCalc(supa, dest.city, nlp.entities.weight);
-            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight });
+            await markLastAction(supa, phone, 'devis_shown', { dest: dest.city, weight: nlp.entities.weight, retry_count: 0, language: nlp.language });
             reply = withShortMenu(r);
           } else if (dest) {
             await saveSession(supa, phone, 'quote_weight', { origin: 'Dakar', dest: dest.city });
@@ -1739,11 +1757,41 @@ Deno.serve(async (req) => {
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '4', msg);
           }
         } else {
+          // Intent UNKNOWN avec haute confiance -> on accompagne sans bumper retry
           reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
         }
+
+        // Reset retry sur intent reconnu
+        if (nlp.intent !== 'UNKNOWN') {
+          try {
+            const { session: s2 } = await getSession(supa, phone);
+            const pd = (s2?.pending_data ?? {}) as Record<string, any>;
+            if (pd.retry_count) {
+              await markLastAction(supa, phone, pd.last_action ?? 'intent_ok', { ...(pd.last_data ?? {}), retry_count: 0, language: nlp.language });
+            }
+          } catch (_) { /* noop */ }
+        }
       } else {
-        // Confidence faible OU NLP indispo -> sortie positive, jamais d erreur
-        reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        // ---- Confidence faible / NLP indispo : bump retry_count, escalade agent apres 2 ----
+        try {
+          const { session: s3 } = await getSession(supa, phone);
+          const pd = (s3?.pending_data ?? {}) as Record<string, any>;
+          const newRetry = (Number(pd.retry_count) || 0) + 1;
+          const isWolof = detectWolof(msg);
+          await markLastAction(supa, phone, 'incomprehensible', {
+            retry_count: newRetry,
+            language: isWolof ? 'wo' : (nlp?.language ?? 'fr'),
+            last_msg: msg.slice(0, 120),
+          });
+          if (newRetry > 2) {
+            // Auto-escalade agent
+            reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
+          } else {
+            reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          }
+        } catch (_) {
+          reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+        }
       }
     }
 
