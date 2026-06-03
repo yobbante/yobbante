@@ -12,6 +12,7 @@ import { NewIntakeDialog } from './inbox/NewIntakeDialog';
 import { DossierSheetProvider } from './dossier-sheet/useDossierSheet';
 import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 import { ClientAuditPanel } from './ClientAuditPanel';
+import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
 const TABS = ['tous', 'demandes', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
@@ -21,6 +22,7 @@ export function DossiersHubTab() {
   const tabParam = sp.get('tab') as TabId | null;
   const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : 'tous';
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const { data: unassignedCount = 0 } = useInboxUnassignedCount();
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
@@ -45,7 +47,14 @@ export function DossiersHubTab() {
         <Tabs value={tab} onValueChange={onChange}>
           <TabsList>
             <TabsTrigger value="tous">Tous</TabsTrigger>
-            <TabsTrigger value="demandes">Demandes entrantes</TabsTrigger>
+            <TabsTrigger value="demandes" className="relative">
+              Demandes entrantes
+              {unassignedCount > 0 && (
+                <span className="ml-1.5 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 tabular-nums">
+                  {unassignedCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="reception">Réception</TabsTrigger>
             <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
             <TabsTrigger value="audit">Audit & Test</TabsTrigger>
