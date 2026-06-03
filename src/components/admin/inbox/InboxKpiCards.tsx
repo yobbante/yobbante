@@ -1,51 +1,35 @@
 import { Card } from '@/components/ui/card';
-import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
+import { Inbox, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import type { InboxStats } from '@/hooks/useInboxStats';
 
 export function InboxKpiCards({ stats }: { stats: InboxStats }) {
-  const kpis = [
-    { label: 'Cette semaine', main: stats.weekTotal, sub: 'nouveaux dossiers' },
-    { label: 'À traiter',     main: stats.todo,      sub: `${stats.todoNewThisWeek} cette semaine` },
-    { label: 'Attente client', main: stats.awaiting,  sub: `${stats.awaitingPending} en attente` },
-    { label: 'Confirmés',      main: stats.confirmed, sub: `${stats.confirmedThisWeek} cette semaine` },
+  const kpis: { label: string; main: number; sub: string; tone: string; Icon: any; pulse?: boolean }[] = [
+    { label: 'Nouveau', main: stats.weekTotal, sub: 'cette semaine', tone: 'blue', Icon: Inbox, pulse: stats.weekTotal > 0 },
+    { label: 'À traiter', main: stats.todo, sub: stats.todo > 0 ? 'à assigner' : 'tout est traité', tone: stats.todo > 0 ? 'orange' : 'muted', Icon: AlertCircle, pulse: stats.todo > 0 },
+    { label: 'Attente client', main: stats.awaiting, sub: 'paiement / confirmation', tone: stats.awaiting > 0 ? 'yellow' : 'muted', Icon: Clock },
+    { label: 'Confirmés', main: stats.confirmed, sub: `${stats.confirmedThisWeek} cette semaine`, tone: 'green', Icon: CheckCircle2 },
   ];
 
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {kpis.map(k => (
-          <Card key={k.label} className="p-3">
-            <div className="text-xs text-muted-foreground">{k.label}</div>
-            <div className="text-2xl font-semibold text-foreground mt-0.5">{k.main}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{k.sub}</div>
-          </Card>
-        ))}
-      </div>
+  const toneCls: Record<string, string> = {
+    blue:   'border-sky-500/30 bg-sky-500/5 text-sky-500',
+    orange: 'border-orange-500/30 bg-orange-500/5 text-orange-500',
+    yellow: 'border-amber-500/30 bg-amber-500/5 text-amber-500',
+    green:  'border-emerald-500/30 bg-emerald-500/5 text-emerald-500',
+    muted:  'border-border bg-muted/30 text-muted-foreground',
+  };
 
-      {stats.sourceDistribution.length > 0 && (
-        <Card className="p-3">
-          <div className="text-xs font-semibold text-foreground mb-2">Sources des dossiers · cette semaine</div>
-          <div className="space-y-1.5">
-            {stats.sourceDistribution.map(row => {
-              const meta = SOURCE_BY_ID[row.source as IntakeSource];
-              return (
-                <div key={row.source} className="flex items-center gap-2 text-xs">
-                  <span className="w-28 flex items-center gap-1 truncate">
-                    <span className="truncate">{meta?.label ?? row.source}</span>
-                  </span>
-                  <div className="flex-1 h-2 bg-muted rounded overflow-hidden">
-                    <div
-                      className="h-full rounded"
-                      style={{ width: `${row.pct}%`, background: meta?.color ?? 'hsl(var(--primary))' }}
-                    />
-                  </div>
-                  <span className="w-10 text-right tabular-nums text-muted-foreground">{row.pct}%</span>
-                </div>
-              );
-            })}
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      {kpis.map(k => (
+        <Card key={k.label} className={`p-3 border ${toneCls[k.tone]} relative overflow-hidden`}>
+          <div className="flex items-start justify-between">
+            <div className="text-xs font-medium">{k.label}</div>
+            <k.Icon className={`w-4 h-4 ${k.pulse ? 'animate-pulse' : ''}`} />
           </div>
+          <div className="text-2xl font-bold text-foreground mt-1 tabular-nums">{k.main}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">{k.sub}</div>
         </Card>
-      )}
+      ))}
     </div>
   );
 }

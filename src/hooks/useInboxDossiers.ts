@@ -34,6 +34,12 @@ export type InboxDossier = {
   recipient_name: string | null;
   recipient_phone: string | null;
   recipient_address: string | null;
+  payment_status: string | null;
+  assigned_departure_id: string | null;
+  collecte_creneau: string | null;
+  final_amount_xof: number | null;
+  konnekt_order_id: string | null;
+  app_source: string | null;
 };
 
 export function useInboxDossiers() {
@@ -45,7 +51,7 @@ export function useInboxDossiers() {
       const { data, error } = await supabase
         .from('dossiers')
         .select(
-          'id, reference, status, product_description, origin_country, destination_country, origin_city, destination_city, contact_phone, contact_email, estimated_cost, estimated_weight, needs_sourcing, source, source_reference, intake_method, intake_by, intake_notes, created_at, user_id, buyer_name, buyer_country, delivery_mode, relay_point_name, relay_point_address, delivery_carrier, delivery_cost_xof, delivery_notified_at, delivery_reminder_count, recipient_name, recipient_phone, recipient_address',
+          'id, reference, status, product_description, origin_country, destination_country, origin_city, destination_city, contact_phone, contact_email, estimated_cost, estimated_weight, needs_sourcing, source, source_reference, intake_method, intake_by, intake_notes, created_at, user_id, buyer_name, buyer_country, delivery_mode, relay_point_name, relay_point_address, delivery_carrier, delivery_cost_xof, delivery_notified_at, delivery_reminder_count, recipient_name, recipient_phone, recipient_address, payment_status, assigned_departure_id, collecte_creneau, final_amount_xof, konnekt_order_id, app_source',
         )
         .in('status', ['SUBMITTED', 'IN_REVIEW', 'AWAITING_CLIENT', 'CONFIRMED', 'ARRIVED_HUB', 'DELIVERED'])
         .order('created_at', { ascending: false })
