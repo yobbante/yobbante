@@ -3,38 +3,12 @@ import { Inbox, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import type { InboxStats } from '@/hooks/useInboxStats';
 
 export function InboxKpiCards({ stats }: { stats: InboxStats }) {
-  const kpis = [
-    {
-      label: 'Nouveau',
-      main: stats.weekTotal,
-      sub: 'cette semaine',
-      tone: 'blue',
-      Icon: Inbox,
-      pulse: stats.weekTotal > 0,
-    },
-    {
-      label: 'À traiter',
-      main: stats.todo,
-      sub: stats.todo > 0 ? 'à assigner' : 'tout est traité',
-      tone: stats.todo > 0 ? 'orange' : 'muted',
-      Icon: AlertCircle,
-      pulse: stats.todo > 0,
-    },
-    {
-      label: 'Attente client',
-      main: stats.awaiting,
-      sub: 'paiement / confirmation',
-      tone: stats.awaiting > 0 ? 'yellow' : 'muted',
-      Icon: Clock,
-    },
-    {
-      label: 'Confirmés',
-      main: stats.confirmed,
-      sub: `${stats.confirmedThisWeek} cette semaine`,
-      tone: 'green',
-      Icon: CheckCircle2,
-    },
-  ] as const;
+  const kpis: { label: string; main: number; sub: string; tone: string; Icon: any; pulse?: boolean }[] = [
+    { label: 'Nouveau', main: stats.weekTotal, sub: 'cette semaine', tone: 'blue', Icon: Inbox, pulse: stats.weekTotal > 0 },
+    { label: 'À traiter', main: stats.todo, sub: stats.todo > 0 ? 'à assigner' : 'tout est traité', tone: stats.todo > 0 ? 'orange' : 'muted', Icon: AlertCircle, pulse: stats.todo > 0 },
+    { label: 'Attente client', main: stats.awaiting, sub: 'paiement / confirmation', tone: stats.awaiting > 0 ? 'yellow' : 'muted', Icon: Clock },
+    { label: 'Confirmés', main: stats.confirmed, sub: `${stats.confirmedThisWeek} cette semaine`, tone: 'green', Icon: CheckCircle2 },
+  ];
 
   const toneCls: Record<string, string> = {
     blue:   'border-sky-500/30 bg-sky-500/5 text-sky-500',
