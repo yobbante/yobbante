@@ -44,7 +44,13 @@ function buildClientRecap(d: InboxDossier) {
 
 export function InboxTab() {
   const sheet = useDossierSheet();
-  const { data: dossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
+  const { data: allDossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
+  // "Demandes entrantes" = flow Expedier uniquement (envoi).
+  // Reception et Sourcing ont leurs propres onglets.
+  const dossiers = useMemo(
+    () => allDossiers.filter((d) => detectServiceKind(d) === 'envoi'),
+    [allDossiers],
+  );
   const stats = useInboxStats(dossiers);
   const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
   const [intakeOpen, setIntakeOpen] = useState(false);
