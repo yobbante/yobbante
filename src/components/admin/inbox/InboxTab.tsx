@@ -1,21 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, Loader2, Upload } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, Upload, LayoutGrid, List as ListIcon, Inbox as InboxIcon, Copy } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useInboxDossiers, type InboxDossier } from '@/hooks/useInboxDossiers';
 import { useInboxStats } from '@/hooks/useInboxStats';
 import { InboxCard } from './InboxCard';
-import { InboxFilters, type InboxFilterState } from './InboxFilters';
+import { InboxFilters, EMPTY_FILTERS, type InboxFilterState } from './InboxFilters';
+import { InboxListView } from './InboxListView';
 import { NewIntakeDialog } from './NewIntakeDialog';
 import { InboxKpiCards } from './InboxKpiCards';
 import { HistoryColumn } from './HistoryColumn';
 import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { applyInboxFilters } from '@/lib/inboxFilters';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { SendEditLinkDialog } from '../SendEditLinkDialog';
-import { DeliveryFinalePanel } from './DeliveryFinalePanel';
-import { Pencil } from 'lucide-react';
 import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
 
 const COLS = [
@@ -45,32 +43,19 @@ function buildClientRecap(d: InboxDossier) {
 export function InboxTab() {
   const sheet = useDossierSheet();
   const { data: allDossiers = [], isLoading, refetch, updateStatus } = useInboxDossiers();
-  // "Demandes entrantes" = flow Expedier uniquement (envoi).
-  // Reception et Sourcing ont leurs propres onglets.
+  // Flow expédition uniquement : sourcing & réception ont leurs propres onglets.
   const dossiers = useMemo(
     () => allDossiers.filter((d) => detectServiceKind(d) === 'envoi'),
     [allDossiers],
   );
   const stats = useInboxStats(dossiers);
-  const [filters, setFilters] = useState<InboxFilterState>({ search: '', sources: [], kinds: [] });
+  const [filters, setFilters] = useState<InboxFilterState>(EMPTY_FILTERS);
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const [detail, setDetail] = useState<InboxDossier | null>(null);
-  const [editLinkType, setEditLinkType] = useState<'dossier_client' | 'dossier_destinataire' | null>(null);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'history' ? 'history' : 'kanban';
+  const tab = searchParams.get('view') === 'history' ? 'history' : 'pipeline';
 
-  const filtered = useMemo(() => {
-    return dossiers.filter(d => {
-      if (filters.sources.length && !filters.sources.includes(d.source as any)) return false;
-      if (filters.kinds.length && !filters.kinds.includes(detectServiceKind(d))) return false;
-      if (filters.search.trim()) {
-        const q = filters.search.toLowerCase();
-        const hay = `${d.reference} ${d.buyer_name || ''} ${d.contact_phone || ''} ${d.contact_email || ''} ${d.product_description}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [dossiers, filters]);
+  const filtered = useMemo(() => applyInboxFilters(dossiers, filters), [dossiers, filters]);
 
   const byCol = useMemo(() => {
     const map: Record<string, InboxDossier[]> = { todo: [], awaiting: [], confirmed: [] };
@@ -95,46 +80,76 @@ export function InboxTab() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildClientRecap(d))}`, '_blank');
   };
 
+  const copyExpedierLink = async () => {
+    await navigator.clipboard.writeText('https://yobbante.com/expedier');
+    toast.success('Lien copié');
+  };
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Inbox</h1>
-          <p className="text-sm text-muted-foreground">Toutes les demandes — site, WhatsApp, appels, email…</p>
+          <h1 className="text-2xl font-semibold text-foreground">Demandes entrantes</h1>
+          <p className="text-sm text-muted-foreground">Flow expédition Yobbanté — Dakar vers le monde.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/admin/inbox/import"><Upload className="w-4 h-4 mr-1" /> Import Excel</Link>
+            <Link to="/admin/inbox/import"><Upload className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Import Excel</span></Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} aria-label="Rafraîchir">
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
           <Button size="sm" onClick={() => setIntakeOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Nouveau dossier
+            <Plus className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Nouveau dossier</span>
           </Button>
         </div>
       </div>
 
       <InboxKpiCards stats={stats} />
 
-      <Tabs value={tab} onValueChange={v => { const sp = new URLSearchParams(searchParams); if (v === 'history') sp.set('tab', 'history'); else sp.delete('tab'); setSearchParams(sp, { replace: true }); }}>
-        <TabsList>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="history">Historique</TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={v => { const sp = new URLSearchParams(searchParams); if (v === 'history') sp.set('view', 'history'); else sp.delete('view'); setSearchParams(sp, { replace: true }); }}>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <TabsList>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="history">Historique</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="kanban" className="space-y-4 mt-4">
+          {tab === 'pipeline' && (
+            <div className="inline-flex rounded-md border border-border p-0.5">
+              <Button
+                size="sm" variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                className="h-7 px-2" onClick={() => setViewMode('kanban')}
+                aria-label="Vue Kanban"
+              >
+                <LayoutGrid className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline text-xs">Kanban</span>
+              </Button>
+              <Button
+                size="sm" variant={viewMode === 'list' ? 'default' : 'ghost'}
+                className="h-7 px-2" onClick={() => setViewMode('list')}
+                aria-label="Vue Liste"
+              >
+                <ListIcon className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline text-xs">Liste</span>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <TabsContent value="pipeline" className="space-y-4 mt-4">
           <InboxFilters value={filters} onChange={setFilters} />
 
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : filtered.length === 0 ? (
+            <EmptyState onCopy={copyExpedierLink} onCreate={() => setIntakeOpen(true)} hasFilters={filters !== EMPTY_FILTERS && (filters.search.length > 0 || filters.sources.length + filters.statuses.length + filters.destinations.length + filters.carriers.length + filters.urgency.length > 0)} />
+          ) : viewMode === 'list' ? (
+            <InboxListView dossiers={filtered} onView={(d) => sheet.open(d.id)} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {COLS.map(col => (
                 <div key={col.id} className="space-y-2">
                   <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-                    <span className="text-xs text-muted-foreground">{byCol[col.id].length}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{byCol[col.id].length}</span>
                   </div>
                   <div className="space-y-2 min-h-[200px] p-2 rounded-lg bg-muted/30">
                     {byCol[col.id].length === 0 ? (
@@ -163,68 +178,31 @@ export function InboxTab() {
       </Tabs>
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
+    </div>
+  );
+}
 
-      <Sheet open={!!detail} onOpenChange={v => !v && setDetail(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-          {detail && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{detail.reference}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4 space-y-3 text-sm">
-                <div><span className="text-muted-foreground">Client :</span> {detail.buyer_name || '—'}</div>
-                <div><span className="text-muted-foreground">Téléphone :</span> {detail.contact_phone || '—'}</div>
-                <div><span className="text-muted-foreground">Email :</span> {detail.contact_email || '—'}</div>
-                <div><span className="text-muted-foreground">Canal :</span> {detail.source}</div>
-                {detail.source_reference && (
-                  <div><span className="text-muted-foreground">Réf. canal :</span> {detail.source_reference}</div>
-                )}
-                <div><span className="text-muted-foreground">Route :</span> {detail.origin_city || detail.origin_country} → {detail.destination_city || detail.destination_country}</div>
-                {detail.estimated_weight && <div><span className="text-muted-foreground">Poids :</span> {detail.estimated_weight} kg</div>}
-                {detail.estimated_cost != null && <div><span className="text-muted-foreground">Estimation :</span> {Math.round(detail.estimated_cost)} €</div>}
-                <div><span className="text-muted-foreground">Description :</span><br />{detail.product_description}</div>
-                {detail.intake_notes && (
-                  <div className="p-3 rounded bg-muted/50">
-                    <div className="text-xs font-semibold mb-1">Notes internes</div>
-                    {detail.intake_notes}
-                  </div>
-                )}
-                <div className="pt-2 flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => handleWhatsApp(detail)} disabled={!detail.contact_phone}>
-                    Récap WhatsApp client
-                  </Button>
-                  {detail.status !== 'CONFIRMED' && (
-                    <Button size="sm" variant="outline" onClick={() => { handleConfirm(detail); setDetail(null); }}>
-                      Marquer confirmé
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => setEditLinkType('dossier_client')} disabled={!detail.contact_phone}>
-                    <Pencil className="w-3 h-3 mr-1" /> Lien modif. expéditeur
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditLinkType('dossier_destinataire')} disabled={!detail.contact_phone}>
-                    <Pencil className="w-3 h-3 mr-1" /> Lien modif. destinataire
-                  </Button>
-                </div>
-
-                {(detail.status === 'ARRIVED_HUB' || detail.status === 'DELIVERED' || detail.delivery_mode) && (
-                  <DeliveryFinalePanel dossier={detail} onChanged={() => { refetch(); }} />
-                )}
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {detail && editLinkType && (
-        <SendEditLinkDialog
-          open={!!editLinkType}
-          onOpenChange={(v) => { if (!v) setEditLinkType(null); }}
-          entityType={editLinkType}
-          entityId={detail.id}
-          recipientPhone={detail.contact_phone}
-          recipientFirstName={(detail.buyer_name || '').split(' ')[0]}
-          trackingLabel={detail.reference}
-        />
+function EmptyState({ onCopy, onCreate, hasFilters }: { onCopy: () => void; onCreate: () => void; hasFilters: boolean }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-16 h-16 rounded-full bg-muted/40 flex items-center justify-center mb-4">
+        <InboxIcon className="w-8 h-8 text-muted-foreground" />
+      </div>
+      <h3 className="text-base font-medium text-foreground mb-1">
+        {hasFilters ? 'Aucun résultat' : 'Aucune demande en attente'}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-5">
+        {hasFilters ? 'Essayez d’élargir vos filtres.' : 'Partagez votre lien d’expédition ou créez un dossier.'}
+      </p>
+      {!hasFilters && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onCopy}>
+            <Copy className="w-4 h-4 mr-1" /> Copier le lien
+          </Button>
+          <Button size="sm" onClick={onCreate}>
+            <Plus className="w-4 h-4 mr-1" /> Créer un dossier
+          </Button>
+        </div>
       )}
     </div>
   );
