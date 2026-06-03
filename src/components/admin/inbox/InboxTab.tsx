@@ -5,9 +5,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useInboxDossiers, type InboxDossier } from '@/hooks/useInboxDossiers';
 import { useInboxStats } from '@/hooks/useInboxStats';
-import { InboxCard } from './InboxCard';
 import { InboxFilters, EMPTY_FILTERS, type InboxFilterState } from './InboxFilters';
 import { InboxListView } from './InboxListView';
+import { InboxKanban } from './InboxKanban';
 import { NewIntakeDialog } from './NewIntakeDialog';
 import { InboxKpiCards } from './InboxKpiCards';
 import { HistoryColumn } from './HistoryColumn';
@@ -15,12 +15,6 @@ import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { applyInboxFilters } from '@/lib/inboxFilters';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
-
-const COLS = [
-  { id: 'todo',      title: 'À traiter',         statuses: ['SUBMITTED', 'IN_REVIEW'] },
-  { id: 'awaiting',  title: 'En attente client', statuses: ['AWAITING_CLIENT'] },
-  { id: 'confirmed', title: 'Confirmés',          statuses: ['CONFIRMED'] },
-] as const;
 
 function buildClientRecap(d: InboxDossier) {
   const kind = detectServiceKind(d);
@@ -56,16 +50,6 @@ export function InboxTab() {
   const tab = searchParams.get('view') === 'history' ? 'history' : 'pipeline';
 
   const filtered = useMemo(() => applyInboxFilters(dossiers, filters), [dossiers, filters]);
-
-  const byCol = useMemo(() => {
-    const map: Record<string, InboxDossier[]> = { todo: [], awaiting: [], confirmed: [] };
-    for (const d of filtered) {
-      for (const c of COLS) {
-        if ((c.statuses as readonly string[]).includes(d.status)) { map[c.id].push(d); break; }
-      }
-    }
-    return map;
-  }, [filtered]);
 
   const handleConfirm = (d: InboxDossier) => {
     updateStatus.mutate({ id: d.id, status: 'CONFIRMED' }, {
@@ -144,31 +128,13 @@ export function InboxTab() {
           ) : viewMode === 'list' ? (
             <InboxListView dossiers={filtered} onView={(d) => sheet.open(d.id)} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {COLS.map(col => (
-                <div key={col.id} className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-                    <span className="text-xs text-muted-foreground tabular-nums">{byCol[col.id].length}</span>
-                  </div>
-                  <div className="space-y-2 min-h-[200px] p-2 rounded-lg bg-muted/30">
-                    {byCol[col.id].length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-8">Aucun dossier</p>
-                    ) : (
-                      byCol[col.id].map(d => (
-                        <InboxCard
-                          key={d.id}
-                          dossier={d}
-                          onView={(d) => sheet.open(d.id)}
-                          onConfirm={handleConfirm}
-                          onWhatsApp={handleWhatsApp}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <InboxKanban
+              dossiers={filtered}
+              onView={(d) => sheet.open(d.id)}
+              onConfirm={handleConfirm}
+              onWhatsApp={handleWhatsApp}
+              onStatusChange={(id, status) => updateStatus.mutate({ id, status })}
+            />
           )}
         </TabsContent>
 
