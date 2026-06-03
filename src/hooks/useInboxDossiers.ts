@@ -38,7 +38,6 @@ export type InboxDossier = {
   assigned_departure_id: string | null;
   collecte_creneau: string | null;
   final_amount_xof: number | null;
-  delivery_carrier: string | null;
   konnekt_order_id: string | null;
   app_source: string | null;
 };
