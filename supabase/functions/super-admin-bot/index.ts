@@ -1093,6 +1093,8 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   const norm = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const isStatusWord = ['status', 'statut', 'statuts'].includes(norm);
 
+  // Ping de test : permet de verifier le routing sans declencher le menu.
+  if (lower === 'ping') return 'pong ✓ Super admin OK';
 
   if (['menu', 'aide', 'help', 'bonjour', 'salut', 'start'].includes(lower)) {
     await clearSession(phone); return MENU;
