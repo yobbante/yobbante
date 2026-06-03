@@ -384,18 +384,9 @@ Ex : TARIF Paris 6500`,
         }
       }
 
-      // 48h : alerte admin
-      if (ageH >= 48 && !adminNoted) {
-        await sendWa({
-          recipient_phone: ADMIN_PHONE,
-          recipient_type: 'admin',
-          message: `⚠️ GP${gp.reference} (${gp.prenom ?? ''} ${gp.nom ?? ''}) inscrit depuis +48h sans aucun tarif renseigne.\nTel : ${gp.telephone_1 ?? gp.whatsapp ?? '—'}`,
-          trigger_type: 'admin_gp_no_tarifs_48h',
-        });
-        await supa.from('transporteurs').update({
-          notes: `${gp.notes ?? ''}\n[tarifs_alert_48h ${new Date().toISOString()}]`,
-        }).eq('id', gp.id);
-      }
+      // 48h : alerte admin DESACTIVEE (spam) - supprime sur demande super admin.
+      // Plus aucune notification individuelle GP n'est envoyee a +221784604003.
+
     }
   } catch (e) { console.error('RELANCE H', e); stats.errors++; }
 

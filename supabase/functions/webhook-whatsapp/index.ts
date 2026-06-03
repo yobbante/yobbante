@@ -91,6 +91,67 @@ Deno.serve(async (req) => {
           const fromPhone = normalizePhone(msg?.from);
           const fromName = contactByWaId[msg?.from]?.profile?.name ?? null;
           const wamid = msg?.id ?? null;
+          const phoneId = metadata?.phone_number_id ?? '';
+
+          // -------- ETAPE 1 : SUPER ADMIN CHECK (priorite absolue) --------
+          // Doit etre la TOUTE PREMIERE verification, avant insert / lookup /
+          // detection client / GP / bot-client / admin-notify.
+          const SUPER_ADMIN = (
+            Deno.env.get('SUPER_ADMIN_PHONE')
+            || Deno.env.get('ADMIN_WHATSAPP_NUMBER')
+            || '+221784604003'
+          ).replace(/\D/g, '').replace(/^0+/, '');
+          const cleanPhone = fromPhone.replace(/^0+/, '');
+          console.log('WEBHOOK RECEIVED:', fromPhone, phoneId, 'wamid=', wamid);
+
+          if (cleanPhone === SUPER_ADMIN || cleanPhone.endsWith('784604003')) {
+            // Extraire le corps du message AVANT de router
+            let saBody: string | null = null;
+            const t: string = msg?.type ?? 'text';
+            if (t === 'text') saBody = msg?.text?.body ?? null;
+            else if (t === 'button') saBody = msg?.button?.text ?? null;
+            else if (t === 'interactive') {
+              const btn = msg?.interactive?.button_reply;
+              const lst = msg?.interactive?.list_reply;
+              saBody = btn?.id ?? lst?.id ?? btn?.title ?? lst?.title ?? null;
+            } else {
+              saBody = `[${t}]`;
+            }
+            console.log('SUPER_ADMIN_ROUTE', fromPhone, '->', saBody);
+
+            // Anti-doublon wamid + trace inbound (best effort, non bloquant)
+            try {
+              await supa.from('whatsapp_inbound_messages').upsert(
+                {
+                  from_phone: fromPhone, from_name: fromName,
+                  to_number: displayPhone, message_body: saBody, message_type: t,
+                  channel: 'admin', wamid,
+                },
+                { onConflict: 'wamid', ignoreDuplicates: true },
+              );
+            } catch (_) { /* noop */ }
+
+            // Router vers super-admin-bot (et STOP, ne pas continuer)
+            try {
+              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/super-admin-bot`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({
+                  from_phone: fromPhone,
+                  from_name: fromName,
+                  message: saBody,
+                  channel: 'admin',
+                }),
+              });
+              if (!botRes.ok) console.error('WA_ERROR super-admin-bot', botRes.status, await botRes.text());
+            } catch (e) {
+              console.error('WA_ERROR super-admin-bot fetch', e);
+            }
+            continue; // STOP : pas de bot-client, pas de gp-bot, pas de MESSAGE CLIENT
+          }
 
           // ---- ANTI-DOUBLON : wamid deja traite recemment ? ----
           if (wamid) {
@@ -248,43 +309,10 @@ Deno.serve(async (req) => {
             console.error('WA_ERROR insert inbound', e);
           }
 
-          // ---- SUPER ADMIN (+221784604003) priorite absolue ----
-          // Ce numero n'est NI client NI GP. On le route directement vers
-          // super-admin-bot, peu importe le channel (607 ou 926), et on
-          // saute toute notification "MESSAGE CLIENT" / bot-client / gp-bot.
-          const SUPER_ADMIN_PHONE = (
-            Deno.env.get('SUPER_ADMIN_PHONE')
-            || Deno.env.get('ADMIN_WHATSAPP_NUMBER')
-            || '+221784604003'
-          ).replace(/\D/g, '');
-          const isSuperAdmin = !!SUPER_ADMIN_PHONE && (
-            fromPhone === SUPER_ADMIN_PHONE
-            || fromPhone.endsWith(SUPER_ADMIN_PHONE)
-            || SUPER_ADMIN_PHONE.endsWith(fromPhone)
-          );
+          // Note : le super admin a deja ete intercepte et route en ETAPE 1
+          // tout en haut de la boucle. Plus rien a faire ici pour ce cas.
 
-          if (isSuperAdmin) {
-            try {
-              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/super-admin-bot`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                },
-                body: JSON.stringify({
-                  inbound_id: insertedRow?.id,
-                  from_phone: fromPhone,
-                  from_name: fromName,
-                  message: body,
-                  channel,
-                }),
-              });
-              if (!botRes.ok) console.error('WA_ERROR super-admin-bot', await botRes.text());
-            } catch (e) {
-              console.error('WA_ERROR super-admin-bot fetch', e);
-            }
-            continue; // skip client/gp routing for super admin
-          }
+
 
           // Route to bot or notify admin
           if (channel === 'gp' && isLivreur) {
