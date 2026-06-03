@@ -128,31 +128,13 @@ export function InboxTab() {
           ) : viewMode === 'list' ? (
             <InboxListView dossiers={filtered} onView={(d) => sheet.open(d.id)} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {COLS.map(col => (
-                <div key={col.id} className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
-                    <span className="text-xs text-muted-foreground tabular-nums">{byCol[col.id].length}</span>
-                  </div>
-                  <div className="space-y-2 min-h-[200px] p-2 rounded-lg bg-muted/30">
-                    {byCol[col.id].length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-8">Aucun dossier</p>
-                    ) : (
-                      byCol[col.id].map(d => (
-                        <InboxCard
-                          key={d.id}
-                          dossier={d}
-                          onView={(d) => sheet.open(d.id)}
-                          onConfirm={handleConfirm}
-                          onWhatsApp={handleWhatsApp}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <InboxKanban
+              dossiers={filtered}
+              onView={(d) => sheet.open(d.id)}
+              onConfirm={handleConfirm}
+              onWhatsApp={handleWhatsApp}
+              onStatusChange={(id, status) => updateStatus.mutate({ id, status })}
+            />
           )}
         </TabsContent>
 
