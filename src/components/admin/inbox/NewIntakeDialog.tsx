@@ -748,6 +748,34 @@ Merci de votre confiance.`;
                     <Input type="number" value={data.declared_value} onChange={e => update({ declared_value: e.target.value })} /></div>
                   <div><Label className="text-xs">Date souhaitée</Label>
                     <Input type="date" value={data.desired_date} onChange={e => update({ desired_date: e.target.value })} /></div>
+
+                  <div className="col-span-2 grid grid-cols-2 gap-3">
+                    <Card className="p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Estimation auto</div>
+                      <div className="text-lg font-semibold mt-0.5">
+                        {estimatedPrice != null ? `${estimatedPrice} €` : '—'}
+                        {estimatedPrice != null && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (≈ {Math.round(estimatedPrice * 655.957).toLocaleString('fr-FR')} XOF)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Mise à jour automatique (poids + destination)
+                      </p>
+                    </Card>
+                    <Card className="p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Zone collecte</div>
+                      <div className="text-sm font-medium mt-0.5">
+                        {zoneCollecte ? zoneCollecte.message : 'Saisir la ville client'}
+                      </div>
+                      {zoneCollecte && zoneCollecte.surcharge > 0 && (
+                        <Badge variant="outline" className="mt-1 text-[11px]">
+                          + {zoneCollecte.surcharge.toLocaleString('fr-FR')} FCFA
+                        </Badge>
+                      )}
+                    </Card>
+                  </div>
                 </div>
               )}
 
