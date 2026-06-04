@@ -1315,11 +1315,11 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (upper.startsWith('INFO')) {
     const t = parseTracking(text) ?? parseTracking(session?.pending_data?.last_tracking ?? '');
     if (!t) return 'Format: INFO YOB-XXXXXX';
-    return await cmdInfo(t);
+    return await cmdInfo(t, phone);
   }
   const trackingAlone = parseTracking(text);
   if (trackingAlone && text.replace(/\s+/g, '').length <= 16) {
-    return await cmdInfo(trackingAlone);
+    return await cmdInfo(trackingAlone, phone);
   }
 
   // GP {ref|nom}
