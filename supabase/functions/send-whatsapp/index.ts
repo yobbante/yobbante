@@ -60,8 +60,11 @@ const TEMPLATE_FALLBACKS: Record<string, string> = {
   gp_mission_recap_j1_v2: 'gp_mission_recap_j1',
 };
 
+import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
+
 function normalizePhone(input: string): string {
-  return (input || '').toString().replace(/\D/g, '');
+  // Normalisation SN-aware puis chiffres seuls (format attendu par l'API Meta).
+  return normalizePhoneDigits(warnIfInvalidPhone(input, 'send-whatsapp.recipient'));
 }
 
 function hasRealClientName(input?: string | null): boolean {
