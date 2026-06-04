@@ -203,8 +203,14 @@ export function GpImportDialog({
         if (ref && !/^[0-9]{4}$/.test(ref)) warnings.push('Référence : format inhabituel (4 chiffres attendus)');
         if (!prenom) warnings.push('Prénom manquant — à compléter plus tard');
         if (!nom) warnings.push('Nom manquant — à compléter plus tard');
-        if (!tel1) errors.push('Téléphone 1 manquant (obligatoire)');
-        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel (importé tel quel)');
+        // Seule obligation : avoir au moins Téléphone 1 OU Référence
+        if (!tel1 && !ref) {
+          errors.push('Téléphone 1 ET Référence manquants (au moins un requis)');
+        } else if (!tel1) {
+          warnings.push('Téléphone 1 manquant — à compléter plus tard');
+        } else if (!isPhoneSn(tel1)) {
+          warnings.push('Téléphone : format inhabituel (importé tel quel)');
+        }
         if (tel2 && !isPhoneSn(tel2)) warnings.push('Téléphone 2 : format inhabituel');
         if (wha && !isPhoneSn(wha)) warnings.push('WhatsApp : format inhabituel');
         if (!adr1) warnings.push('Adresse manquante — à compléter plus tard');
@@ -257,8 +263,10 @@ export function GpImportDialog({
         const pk = phoneDigits(r.telephone_1).slice(-9);
         if (pk) {
           if (seenPhone.has(pk)) {
-            r.errors.push(`Téléphone dupliqué dans le fichier (ligne ${parsed[seenPhone.get(pk)!].excelRow})`);
-            r.status = 'error';
+            // Doublon intra-fichier : warning, on garde la 1re ligne, on signale les suivantes comme déjà vues
+            r.warnings.push(`Téléphone dupliqué dans le fichier (ligne ${parsed[seenPhone.get(pk)!].excelRow}) — ignoré`);
+            r.duplicate = true;
+            if (r.status !== 'error') r.status = 'warning';
           } else {
             seenPhone.set(pk, idx);
           }
@@ -299,21 +307,22 @@ export function GpImportDialog({
 
     for (let i = 0; i < importable.length; i++) {
       const r = importable[i];
-      const fullName = `${r.prenom} ${r.nom}`.trim();
+      const blank = (v: any) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+      const fullName = `${r.prenom ?? ''} ${r.nom ?? ''}`.trim();
       const fullPayload: Record<string, any> = {
-        reference: r.reference,
-        nom: fullName,
-        prenom: r.prenom,
-        telephone_1: r.telephone_1,
-        telephone_2: r.telephone_2,
-        whatsapp: r.whatsapp,
-        adresse_1: r.adresse_1,
-        adresse_2: r.adresse_2,
-        ville: r.ville,
-        zone: r.zone,
-        modes_transport: r.modes_transport,
-        destinations: r.destinations,
-        notes: r.notes,
+        reference: r.reference || null,
+        nom: blank(fullName) ? null : fullName,
+        prenom: blank(r.prenom) ? null : r.prenom,
+        telephone_1: blank(r.telephone_1) ? null : r.telephone_1,
+        telephone_2: blank(r.telephone_2) ? null : r.telephone_2,
+        whatsapp: blank(r.whatsapp) ? null : r.whatsapp,
+        adresse_1: blank(r.adresse_1) ? null : r.adresse_1,
+        adresse_2: blank(r.adresse_2) ? null : r.adresse_2,
+        ville: blank(r.ville) ? null : r.ville,
+        zone: blank(r.zone) ? null : r.zone,
+        modes_transport: r.modes_transport?.length ? r.modes_transport : null,
+        destinations: r.destinations?.length ? r.destinations : null,
+        notes: blank(r.notes) ? null : r.notes,
         actif: true,
       };
 
