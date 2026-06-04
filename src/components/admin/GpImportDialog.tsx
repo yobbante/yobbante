@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 type RowStatus = 'valid' | 'warning' | 'error';
 
 interface ParsedRow {
-  excelRow: number; // actual Excel row number for display
+  excelRow: number; // actual row number for display
   reference: string;
   prenom: string;
   nom: string;
@@ -29,6 +29,8 @@ interface ParsedRow {
   errors: string[];
   warnings: string[];
   duplicate?: boolean;
+  matchedById?: string; // id of an existing transporteur matched by ref or phone
+  matchedByPhone?: boolean;
 }
 
 const EXAMPLE_REFS = new Set(['2241', '1892', '3310']);
@@ -40,6 +42,16 @@ function normRef(v: any): string {
 function s(v: any): string {
   return v === null || v === undefined ? '' : String(v).trim();
 }
+function normHeader(v: any): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+function phoneDigits(v: string): string {
+  return (v || '').replace(/\D/g, '');
+}
 function isPhoneSn(v: string): boolean {
   if (!v) return false;
   const c = v.replace(/[\s.-]/g, '');
@@ -50,6 +62,26 @@ function splitList(v: any): string[] {
   if (!t) return [];
   return t.split(',').map(x => x.trim()).filter(Boolean);
 }
+
+// Map a normalized header to a canonical field id.
+function headerToField(h: string): string | null {
+  if (!h) return null;
+  if (h === 'reference' || h === 'ref') return 'reference';
+  if (h === 'prenom') return 'prenom';
+  if (h === 'nom') return 'nom';
+  if (h === 'telephone1' || h === 'tel1' || h === 'telephoneprincipal') return 'telephone_1';
+  if (h === 'telephone2' || h === 'tel2' || h === 'telephonesecondaire') return 'telephone_2';
+  if (h === 'whatsapp' || h === 'wa') return 'whatsapp';
+  if (h === 'adresse1' || h === 'adresseprincipale') return 'adresse_1';
+  if (h === 'adresse2' || h === 'adressesecondaire') return 'adresse_2';
+  if (h === 'ville') return 'ville';
+  if (h === 'zone' || h === 'quartier') return 'zone';
+  if (h.startsWith('modes') || h.startsWith('mode')) return 'modes_transport';
+  if (h.startsWith('destinations') || h.startsWith('destination')) return 'destinations';
+  if (h === 'notes' || h === 'note' || h === 'commentaires' || h === 'commentaire') return 'notes';
+  return null;
+}
+
 
 type Step = 'upload' | 'preview' | 'progress' | 'done';
 
