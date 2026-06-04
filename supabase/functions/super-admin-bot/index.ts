@@ -2,6 +2,7 @@
 // SUPER ADMIN BOT (+221784604003) — pouvoirs etendus depuis WhatsApp.
 // Commandes : INFO, GP, STATS, URGENTS, DEPART, ASSIGN, MSG, PAYER + wizard "1".
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
