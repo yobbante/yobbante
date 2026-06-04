@@ -415,14 +415,15 @@ export function TransporteursTab() {
     if (!q.trim()) return base;
     const s = q.trim().toLowerCase();
     return base.filter(t =>
-      t.reference.includes(s) ||
-      t.nom.toLowerCase().includes(s) ||
+      (t.reference ?? '').includes(s) ||
+      (t.nom ?? '').toLowerCase().includes(s) ||
       (t.prenom ?? '').toLowerCase().includes(s) ||
-      t.telephone_1.toLowerCase().includes(s) ||
+      (t.telephone_1 ?? '').toLowerCase().includes(s) ||
       (t.telephone_2 ?? '').toLowerCase().includes(s) ||
-      t.ville.toLowerCase().includes(s) ||
+      (t.ville ?? '').toLowerCase().includes(s) ||
       uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
     );
+
   }, [list.data, q, showInactive, onlyIncomplete]);
 
   const betaPending = useMemo(
