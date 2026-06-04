@@ -135,9 +135,10 @@ Deno.serve(async (req) => {
               );
             } catch (_) { /* noop */ }
 
-            // Router vers super-admin-bot (et STOP, ne pas continuer)
+            // Router : 926 (GP line) -> gp-bot (handleSuperAdmin), sinon super-admin-bot
             try {
-              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/super-admin-bot`, {
+              const targetFn = channel === 'gp' ? 'gp-bot' : 'super-admin-bot';
+              const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/${targetFn}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -147,12 +148,12 @@ Deno.serve(async (req) => {
                   from_phone: fromPhone,
                   from_name: fromName,
                   message: saBody,
-                  channel: 'admin',
+                  channel: channel === 'gp' ? 'gp' : 'admin',
                 }),
               });
-              if (!botRes.ok) console.error('WA_ERROR super-admin-bot', botRes.status, await botRes.text());
+              if (!botRes.ok) console.error(`WA_ERROR ${targetFn}`, botRes.status, await botRes.text());
             } catch (e) {
-              console.error('WA_ERROR super-admin-bot fetch', e);
+              console.error('WA_ERROR super-admin route', e);
             }
             continue; // STOP : pas de bot-client, pas de gp-bot, pas de MESSAGE CLIENT
           }

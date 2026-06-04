@@ -3046,6 +3046,9 @@ export type Database = {
           adresse_dakar_2: string | null
           adresses_remise: Json
           beta_invite_sent_at: string | null
+          beta_rejected_at: string | null
+          beta_rejected_reason: string | null
+          beta_validated_at: string | null
           bot_paused_until: string | null
           created_at: string
           creneau_dakar: string[] | null
@@ -3056,6 +3059,7 @@ export type Database = {
           email: string | null
           id: string
           invitation_bot_sent_at: string | null
+          is_beta_validated: boolean
           konnekt_registered: boolean
           konnekt_registered_at: string | null
           last_bot_activity_at: string | null
@@ -3085,6 +3089,9 @@ export type Database = {
           adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
+          beta_rejected_at?: string | null
+          beta_rejected_reason?: string | null
+          beta_validated_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
           creneau_dakar?: string[] | null
@@ -3095,6 +3102,7 @@ export type Database = {
           email?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
+          is_beta_validated?: boolean
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
           last_bot_activity_at?: string | null
@@ -3124,6 +3132,9 @@ export type Database = {
           adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
+          beta_rejected_at?: string | null
+          beta_rejected_reason?: string | null
+          beta_validated_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
           creneau_dakar?: string[] | null
@@ -3134,6 +3145,7 @@ export type Database = {
           email?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
+          is_beta_validated?: boolean
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
           last_bot_activity_at?: string | null
