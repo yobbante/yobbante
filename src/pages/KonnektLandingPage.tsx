@@ -119,6 +119,66 @@ export default function KonnektLandingPage() {
 
   const refLabel = useMemo(() => (hasRef ? `GP${refClean.toUpperCase().slice(0, 4)}` : ""), [hasRef, refClean]);
 
+  /* Pré-remplissage depuis transporteurs (Yobbanté) */
+  // Mappe les modes stockés en base vers les ids des boutons Konnekt.
+  const modeAliases: Record<string, string> = {
+    bagages: 'bagages_international', bagage: 'bagages_international',
+    bagages_international: 'bagages_international',
+    air: 'aerien', aerien: 'aerien', aérien: 'aerien', avion: 'aerien', plane: 'aerien',
+    road: 'routier', route: 'routier', routier: 'routier', truck: 'routier',
+    sea: 'maritime', sea_lcl: 'maritime', sea_fcl: 'maritime', maritime: 'maritime', boat: 'maritime',
+    express: 'express', coursier: 'express',
+    moto: 'moto', motorbike: 'moto', scooter: 'moto',
+    car: 'mobility', mobility: 'mobility', vtc: 'mobility',
+  };
+  useEffect(() => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 9 && !hasRef) return;
+    const key = digits.length >= 9 ? digits.slice(-9) : `ref:${refClean}`;
+    if (prefillTriedFor.current === key) return;
+    prefillTriedFor.current = key;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('konnekt-prefill', {
+          body: {
+            phone: digits.length >= 9 ? '+' + digits : null,
+            reference: hasRef ? refClean : null,
+          },
+        });
+        if (cancelled || error) return;
+        const res = data as { found?: boolean; data?: Record<string, any> };
+        if (!res?.found || !res.data) return;
+        const d = res.data;
+        // Pré-remplir UNIQUEMENT les champs encore vides pour ne pas écraser la saisie.
+        setFirst(prev => prev || d.prenom || '');
+        setLast(prev => prev || d.nom || '');
+        if (digits.length < 9 && d.telephone_1) {
+          setPhone('+' + d.telephone_1.replace(/\D/g, ''));
+        }
+        setWhatsapp(prev => prev || (d.whatsapp ? '+' + String(d.whatsapp).replace(/\D/g, '') : ''));
+        if (d.ville) setCity(prev => (prev && prev !== 'Dakar' ? prev : d.ville));
+        if (Array.isArray(d.destinations) && d.destinations.length) {
+          setCitiesServed(prev => prev || d.destinations.join(', '));
+        }
+        if (Array.isArray(d.modes_transport) && d.modes_transport.length) {
+          const mapped = Array.from(new Set(
+            d.modes_transport
+              .map((m: string) => modeAliases[String(m).toLowerCase()] || null)
+              .filter(Boolean) as string[]
+          ));
+          if (mapped.length) setModes(prev => (prev.length ? prev : mapped));
+        }
+        setPrefillNotice(`Bienvenue ${d.prenom || ''} ! Nous avons reconnu votre numéro — vos informations sont pré-remplies.`);
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone, hasRef, refClean]);
+
+
   /* Validation */
   const errors = useMemo<Errors>(() => {
     const e: Errors = {};
