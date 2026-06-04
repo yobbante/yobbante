@@ -108,7 +108,7 @@ export function GpImportDialog({
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<'skip' | 'update'>('update');
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [result, setResult] = useState<{ imported: number; updated: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; updated: number; skipped: number; errors: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -199,13 +199,13 @@ export function GpImportDialog({
         const errors: string[] = [];
         const warnings: string[] = [];
 
-        if (ref && !/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
-        if (!prenom) errors.push('Prénom manquant');
-        if (!nom) errors.push('Nom manquant');
-        if (!tel1) errors.push('Téléphone manquant');
-        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel');
-        if (!adr1) warnings.push('Adresse manquante');
-        if (!ville) warnings.push('Ville manquante');
+        if (ref && !/^[0-9]{4}$/.test(ref)) warnings.push('Référence : format inhabituel (4 chiffres attendus)');
+        if (!prenom) warnings.push('Prénom manquant — à compléter plus tard');
+        if (!nom) warnings.push('Nom manquant — à compléter plus tard');
+        if (!tel1) errors.push('Téléphone 1 manquant (obligatoire)');
+        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel (importé tel quel)');
+        if (!adr1) warnings.push('Adresse manquante — à compléter plus tard');
+        if (!ville) warnings.push('Ville manquante — à compléter plus tard');
 
         // Dedupe : reference OU téléphone_1
         const phoneKey = phoneDigits(tel1).slice(-9);
@@ -214,8 +214,8 @@ export function GpImportDialog({
           ? undefined
           : (phoneKey && existingByPhone?.get(phoneKey)) || undefined;
         const duplicate = matchedByRef || !!matchedById;
-        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante en base`);
-        else if (matchedById) warnings.push('Téléphone déjà existant en base (sera mis à jour)');
+        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante (mise à jour)`);
+        else if (matchedById) warnings.push('Téléphone déjà existant (mise à jour)');
         if (!wha && tel1) warnings.push('WhatsApp non renseigné (utilisera le téléphone principal)');
 
         let status: RowStatus = 'valid';
@@ -228,7 +228,7 @@ export function GpImportDialog({
           telephone_1: tel1, telephone_2: tel2 || null,
           whatsapp: wha || null,
           adresse_1: adr1, adresse_2: adr2 || null,
-          ville: ville || 'Dakar', zone: zone || null,
+          ville: ville || '', zone: zone || null,
           modes_transport: modes, destinations: dests,
           notes: notes || null,
           status, errors, warnings, duplicate,
@@ -289,12 +289,15 @@ export function GpImportDialog({
   const confirmImport = async () => {
     setStep('progress');
     setProgress({ current: 0, total: importable.length });
-    let imported = 0, updated = 0, errors = 0;
+    let imported = 0, updated = 0, skipped = 0, errors = 0;
+
+    // Count rows ignored because phone is empty (the only blocking field)
+    skipped = rows.filter(r => !r.telephone_1).length;
 
     for (let i = 0; i < importable.length; i++) {
       const r = importable[i];
       const fullName = `${r.prenom} ${r.nom}`.trim();
-      const payload = {
+      const fullPayload: Record<string, any> = {
         reference: r.reference,
         nom: fullName,
         prenom: r.prenom,
@@ -313,8 +316,15 @@ export function GpImportDialog({
 
       try {
         if (r.duplicate) {
-          // Update by id (matched-by-phone) when available, otherwise by reference
-          const query = supabase.from('transporteurs' as any).update(payload);
+          // UPDATE — only with non-empty fields, never overwrite existing data with blanks
+          const partial: Record<string, any> = { actif: true };
+          for (const [k, v] of Object.entries(fullPayload)) {
+            if (v === null || v === undefined) continue;
+            if (typeof v === 'string' && v.trim() === '') continue;
+            if (Array.isArray(v) && v.length === 0) continue;
+            partial[k] = v;
+          }
+          const query = supabase.from('transporteurs' as any).update(partial);
           const { error } = r.matchedById
             ? await query.eq('id', r.matchedById)
             : await query.eq('reference', r.reference);
@@ -323,7 +333,7 @@ export function GpImportDialog({
         } else {
           const { error } = await supabase
             .from('transporteurs' as any)
-            .insert({ ...payload, konnekt_registered: false });
+            .insert({ ...fullPayload, konnekt_registered: false });
           if (error) throw error;
           imported += 1;
         }
@@ -344,7 +354,7 @@ export function GpImportDialog({
       });
     } catch {}
 
-    setResult({ imported, updated, errors });
+    setResult({ imported, updated, skipped, errors });
     setStep('done');
     onAfterImport();
   };
@@ -422,6 +432,9 @@ export function GpImportDialog({
             >
               <Download className="w-3 h-3" /> Télécharger le template vide →
             </button>
+            <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+              ℹ️ Seul le téléphone est obligatoire. Les informations manquantes (nom, adresse, ville…) peuvent être complétées via le bot WhatsApp ou manuellement dans la fiche GP.
+            </p>
           </div>
         )}
 
@@ -512,7 +525,10 @@ export function GpImportDialog({
               <p className="text-[14px] font-semibold">Import terminé</p>
             </div>
             <p className="text-[13px] text-muted-foreground">
-              {result.imported} GP importés · {result.updated} mis à jour · {result.errors} erreurs
+              ✅ {result.imported} importés · 🔄 {result.updated} mis à jour · ⏭️ {result.skipped} ignorés (téléphone vide){result.errors > 0 ? ` · ❌ ${result.errors} erreurs` : ''}
+            </p>
+            <p className="text-[12px] text-muted-foreground italic">
+              Les informations manquantes peuvent être complétées via le bot WhatsApp ou manuellement dans la fiche GP.
             </p>
             <div className="border border-border rounded-lg p-4 space-y-3">
               <p className="text-[13px]">Souhaitez-vous envoyer les invitations Konnekt bêta maintenant ?</p>
