@@ -208,9 +208,9 @@ async function cmdInfo(tracking: string): Promise<string> {
   const { data: d } = await sb
     .from('dossiers')
     .select('*')
-    .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
+    .or(`tracking_id.eq.${trk},reference.eq.${trk}`)
     .maybeSingle();
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
 
   // GP
   let gpLine = 'Non assigne';
@@ -268,7 +268,7 @@ async function cmdInfo(tracking: string): Promise<string> {
   const trk = d.tracking_id ?? d.reference ?? tracking;
 
   return [
-    `DOSSIER ${tracking}`,
+    `DOSSIER ${trk}`,
     `Cree le ${fmtDate(d.created_at)} · Source : ${d.source ?? '—'}`,
     '',
     'CLIENT :',
@@ -301,8 +301,8 @@ async function cmdInfo(tracking: string): Promise<string> {
     `Paiement client : ${payFr(d.payment_status)}`,
     '',
     'Actions :',
-    `MSG ${tracking} · ASSIGNE ${tracking} GP`,
-    `TRANSIT ${tracking} · LIVRE ${tracking}`,
+    `MSG ${trk} · ASSIGNE ${trk} GP`,
+    `TRANSIT ${trk} · LIVRE ${trk}`,
   ].join('\n');
 }
 
@@ -591,8 +591,8 @@ async function cmdDepart(ref: string): Promise<string> {
 async function cmdAssign(tracking: string, gpRef: string): Promise<string> {
   const sb = supa();
   const { data: d } = await sb.from('dossiers').select('id, tracking_id, reference, sender_name, recipient_name, buyer_name, contact_phone, sender_phone, recipient_phone, sender_address, origin_country, destination_country, estimated_weight, pickup_date')
-    .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`).maybeSingle();
-  if (!d) return `Dossier ${tracking} introuvable.`;
+    .or(`tracking_id.eq.${trk},reference.eq.${trk}`).maybeSingle();
+  if (!d) return `Dossier ${trk} introuvable.`;
 
   const { data: gp } = await sb.from('transporteurs').select('id, reference, prenom, nom, telephone_1, whatsapp').eq('reference', gpRef).maybeSingle();
   if (!gp) return `GP ${gpRef} introuvable.`;
@@ -691,11 +691,11 @@ async function cmdPayerConfirm(tracking: string, method: string): Promise<{ repl
     return { reply: `Methode invalide. Utilisez WAVE, OM, CASH, VIREMENT.` };
   }
   const { data: d } = await sb.from('dossiers').select('id, tracking_id, reference, gp_amount, gp_paid, assigned_transporteur_ref')
-    .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`).maybeSingle();
-  if (!d) return { reply: `Dossier ${tracking} introuvable.` };
-  if (!d.gp_amount || Number(d.gp_amount) <= 0) return { reply: `Aucun tarif GP defini pour ${tracking}.` };
-  if (d.gp_paid) return { reply: `GP deja paye pour ${tracking}.` };
-  if (!d.assigned_transporteur_ref) return { reply: `Aucun GP assigne a ${tracking}.` };
+    .or(`tracking_id.eq.${trk},reference.eq.${trk}`).maybeSingle();
+  if (!d) return { reply: `Dossier ${trk} introuvable.` };
+  if (!d.gp_amount || Number(d.gp_amount) <= 0) return { reply: `Aucun tarif GP defini pour ${trk}.` };
+  if (d.gp_paid) return { reply: `GP deja paye pour ${trk}.` };
+  if (!d.assigned_transporteur_ref) return { reply: `Aucun GP assigne a ${trk}.` };
 
   const { data: gp } = await sb.from('transporteurs').select('prenom, nom').eq('reference', d.assigned_transporteur_ref).maybeSingle();
   const gpName = gp ? `${gp.prenom ?? ''} ${gp.nom ?? ''}`.trim() : d.assigned_transporteur_ref;
@@ -830,7 +830,7 @@ async function notifyClientFromBot(dossier: any, msg: string, trigger: string) {
 
 async function fetchDossier(tracking: string) {
   const { data } = await supa().from('dossiers').select('*')
-    .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`).maybeSingle();
+    .or(`tracking_id.eq.${trk},reference.eq.${trk}`).maybeSingle();
   return data;
 }
 
@@ -937,9 +937,9 @@ async function cmdPaiements(): Promise<string> {
 // ----- Action: free message to a dossier client from 607
 async function cmdMsgDossier(tracking: string, message: string): Promise<string> {
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   const ok = await notifyClientFromBot(d, message, 'super_admin_msg_to_client');
-  if (!ok) return `Aucun numero client pour ${tracking}.`;
+  if (!ok) return `Aucun numero client pour ${trk}.`;
   await logEvent(d.id, 'admin_message_to_client', { message });
   return `Message envoye a ${clientFirstName(d)} (${d.tracking_id ?? d.reference}).`;
 }
@@ -948,7 +948,7 @@ async function cmdMsgDossier(tracking: string, message: string): Promise<string>
 async function cmdPaye(tracking: string): Promise<string> {
   const sb = supa();
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   if (d.payment_status === 'paid') return `${d.tracking_id ?? tracking} deja marque comme paye.`;
   await sb.from('dossiers').update({
     payment_status: 'paid',
@@ -966,7 +966,7 @@ async function cmdPaye(tracking: string): Promise<string> {
 async function cmdTransit(tracking: string): Promise<string> {
   const sb = supa();
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   if (d.status === 'IN_TRANSIT') return `${d.tracking_id ?? tracking} deja en transit.`;
   if (d.payment_status !== 'paid' && !d.cash_on_delivery) {
     return `Impossible : paiement non recu pour ${d.tracking_id ?? tracking}.\nUtilisez PAYE ${d.tracking_id ?? tracking} si le client a paye.`;
@@ -988,7 +988,7 @@ async function cmdTransit(tracking: string): Promise<string> {
 async function cmdLivre(tracking: string): Promise<string> {
   const sb = supa();
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   if (d.status === 'DELIVERED') return `${d.tracking_id ?? tracking} deja livre.`;
   await sb.from('dossiers').update({
     status: 'DELIVERED',
@@ -1006,7 +1006,7 @@ async function cmdLivre(tracking: string): Promise<string> {
 async function cmdCollecte(tracking: string): Promise<string> {
   const sb = supa();
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   await sb.from('dossiers').update({
     status: 'COLLECTED',
     collected_at: new Date().toISOString(),
@@ -1022,13 +1022,13 @@ async function cmdCollecte(tracking: string): Promise<string> {
 // ----- Action: relance paiement
 async function cmdRelance(tracking: string): Promise<string> {
   const d = await fetchDossier(tracking);
-  if (!d) return `Dossier ${tracking} introuvable.`;
+  if (!d) return `Dossier ${trk} introuvable.`;
   const ref = d.tracking_id ?? d.reference;
   const amt = Number(d.final_amount_xof) || 0;
   const ok = await notifyClientFromBot(d,
     `Bonjour ${clientFirstName(d)},\n\nRappel amical : votre dossier ${ref} est en attente de paiement.\nMontant : ${fmtXof(amt)} FCFA\n\nReglez en ligne : yobbante.com/payer/${ref}\nOu repondez ici pour Wave / Orange Money.\n\n— Yobbante`,
     'client_payment_reminder_admin');
-  if (!ok) return `Aucun numero client pour ${tracking}.`;
+  if (!ok) return `Aucun numero client pour ${trk}.`;
   await logEvent(d.id, 'payment_reminder_by_super_admin', { amount: amt });
   return `Relance envoyee a ${clientFirstName(d)} pour ${ref} (${fmtXof(amt)} FCFA).`;
 }
