@@ -2854,6 +2854,39 @@ export type Database = {
           },
         ]
       }
+      super_admin_audit_log: {
+        Row: {
+          action: string
+          admin_phone: string
+          created_at: string
+          details: Json
+          gp_id: string | null
+          gp_reference: string | null
+          id: string
+          target_phone: string | null
+        }
+        Insert: {
+          action: string
+          admin_phone: string
+          created_at?: string
+          details?: Json
+          gp_id?: string | null
+          gp_reference?: string | null
+          id?: string
+          target_phone?: string | null
+        }
+        Update: {
+          action?: string
+          admin_phone?: string
+          created_at?: string
+          details?: Json
+          gp_id?: string | null
+          gp_reference?: string | null
+          id?: string
+          target_phone?: string | null
+        }
+        Relationships: []
+      }
       super_admin_sessions: {
         Row: {
           created_at: string

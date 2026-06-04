@@ -459,6 +459,41 @@ Tapez la commande, ou STOP pour quitter.`;
       }
     }
 
+    async function saButtons(text: string, buttons: Array<{ id: string; label: string }>, trigger = 'super_admin_buttons') {
+      try {
+        await sendWa({
+          recipient_phone: fromPhone,
+          recipient_type: 'admin',
+          interactive_type: 'button',
+          interactive_body: text,
+          buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: b.label.slice(0, 20) })),
+          fallback_text: text,
+          trigger_type: trigger,
+        });
+      } catch (e) { console.error('saButtons err', e); }
+    }
+
+    async function saAudit(action: string, opts?: { gp_reference?: string | null; gp_id?: string | null; target_phone?: string | null; details?: any }) {
+      try {
+        await supa.from('super_admin_audit_log').insert({
+          admin_phone: fromPhone,
+          action,
+          gp_reference: opts?.gp_reference ?? null,
+          gp_id: opts?.gp_id ?? null,
+          target_phone: opts?.target_phone ?? null,
+          details: opts?.details ?? {},
+        });
+      } catch (e) { console.error('saAudit err', e); }
+    }
+
+    // PING/PONG — test rapide du routing super admin (926)
+    if (/^ping$/i.test(msg)) {
+      await saReply('pong ✓ Super admin OK (926)');
+      await saAudit('PING');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+
     // Load existing super admin session
     const { data: saSession } = await supa
       .from('gp_bot_sessions')
@@ -517,7 +552,8 @@ Tapez la commande, ou STOP pour quitter.`;
     }
 
     // K / KONNEKT — dashboard
-    if (!saActive && /^(k|konnekt)$/i.test(msg)) {
+    // K / KONNEKT — dashboard (+ boutons)
+    if (!saActive && /^(k|konnekt|SA_K)$/i.test(msg)) {
       await saClear();
       const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
       const [{ count: total }, { count: valides }, { count: attente }, { count: departs }, { data: last }] = await Promise.all([
@@ -529,45 +565,70 @@ Tapez la commande, ou STOP pour quitter.`;
       ]);
       const lastName = last ? `${(last.prenom ?? '').trim()} ${(last.nom ?? '').trim()}`.trim() || `GP${last.reference}` : '—';
       const lastDate = last?.konnekt_registered_at ? fmtDateFr(last.konnekt_registered_at) : '—';
-      await saReply(`📊 Konnekt — Tableau de bord\n\nGPs inscrits : ${total ?? 0}\nBeta valides : ${valides ?? 0}\nEn attente : ${attente ?? 0}\nDeparts ce mois : ${departs ?? 0}\nDernier inscrit : ${lastName} · ${lastDate}\n\nCommandes : BETA · GPS · DEPARTS926 · VALIDE {ref} · SYNC {ref}`);
+      await saReply(`📊 Konnekt — Tableau de bord\n\nGPs inscrits : ${total ?? 0}\nBeta valides : ${valides ?? 0}\nEn attente : ${attente ?? 0}\nDeparts ce mois : ${departs ?? 0}\nDernier inscrit : ${lastName} · ${lastDate}`);
+      await saButtons('Navigation rapide :', [
+        { id: 'SA_BETA:1', label: `⏳ Beta (${attente ?? 0})` },
+        { id: 'SA_GPS', label: '🆕 Derniers GPs' },
+        { id: 'SA_DEPARTS', label: '🗓 Departs' },
+      ], 'sa_konnekt_buttons');
+      await saAudit('KONNEKT', { details: { total, valides, attente, departs } });
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // BETA — list GPs awaiting validation
-    if (!saActive && /^beta$/i.test(msg)) {
-      await saClear();
-      const { data: rows } = await supa
-        .from('transporteurs')
-        .select('reference, prenom, nom, telephone_1, konnekt_registered_at, created_at')
-        .eq('konnekt_registered', true)
-        .eq('is_beta_validated', false)
-        .is('beta_rejected_at', null)
-        .order('konnekt_registered_at', { ascending: false, nullsFirst: false })
-        .limit(10);
-      if (!rows || rows.length === 0) {
-        await saReply('Aucun GP en attente de validation beta. ✅');
+    // BETA [page] — list paginated GPs awaiting validation (10/page)
+    {
+      const mBeta = msg.match(/^beta(?:\s+(\d+))?$/i) || msg.match(/^SA_BETA(?::(\d+))?$/i);
+      if (!saActive && mBeta) {
+        await saClear();
+        const page = Math.max(1, parseInt(mBeta[1] || '1', 10) || 1);
+        const pageSize = 10;
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        const { data: rows, count } = await supa
+          .from('transporteurs')
+          .select('reference, prenom, nom, telephone_1, konnekt_registered_at, created_at', { count: 'exact' })
+          .eq('konnekt_registered', true)
+          .eq('is_beta_validated', false)
+          .is('beta_rejected_at', null)
+          .order('konnekt_registered_at', { ascending: false, nullsFirst: false })
+          .range(from, to);
+        const totalCount = count ?? 0;
+        const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+        if (!rows || rows.length === 0) {
+          await saReply(page === 1 ? 'Aucun GP en attente de validation beta. ✅' : `Aucun GP a la page ${page}.`);
+          await saAudit('BETA_LIST', { details: { page, totalCount } });
+          return new Response('ok', { headers: corsHeaders });
+        }
+        const lines = rows.map((r, i) => {
+          const nm = `${(r.prenom ?? '').trim()} ${(r.nom ?? '').trim()}`.trim() || `GP${r.reference}`;
+          const dt = fmtDateFr(r.konnekt_registered_at ?? r.created_at);
+          return `${from + i + 1}. ${nm} · GP${r.reference} · ${r.telephone_1 ?? '—'} · ${dt}`;
+        }).join('\n');
+        await saReply(`👥 GPs en attente beta — page ${page}/${totalPages} (total : ${totalCount}) :\n\n${lines}\n\nValider : VALIDE GP{ref} · Rejeter : REJETTE GP{ref}`);
+        // Boutons pagination + premier GP (validation rapide)
+        const firstRef = String(rows[0].reference ?? '').padStart(4, '0');
+        const btns: Array<{ id: string; label: string }> = [];
+        if (page > 1) btns.push({ id: `SA_BETA:${page - 1}`, label: '⬅ Precedent' });
+        if (page < totalPages) btns.push({ id: `SA_BETA:${page + 1}`, label: 'Suivant ➡' });
+        btns.push({ id: `SA_VALIDE:${firstRef}`, label: `✅ Valider #1` });
+        await saButtons(`Page ${page}/${totalPages}`, btns, 'sa_beta_pagination');
+        await saAudit('BETA_LIST', { details: { page, totalPages, totalCount, returned: rows.length } });
         return new Response('ok', { headers: corsHeaders });
       }
-      const lines = rows.map((r, i) => {
-        const nm = `${(r.prenom ?? '').trim()} ${(r.nom ?? '').trim()}`.trim() || `GP${r.reference}`;
-        const dt = fmtDateFr(r.konnekt_registered_at ?? r.created_at);
-        return `${i + 1}. ${nm} · GP${r.reference} · ${r.telephone_1 ?? '—'} · ${dt}`;
-      }).join('\n');
-      await saReply(`👥 GPs en attente beta (${rows.length}) :\n\n${lines}\n\nValider : VALIDE GP{ref}\nRejeter : REJETTE GP{ref}`);
-      return new Response('ok', { headers: corsHeaders });
     }
 
-    // VALIDE {ref}
+    // VALIDE {ref} (texte ou bouton SA_VALIDE:xxxx)
     {
-      const mV = msg.match(/^valide\s+(.+)$/i);
+      const mV = msg.match(/^valide\s+(.+)$/i) || msg.match(/^SA_VALIDE:(.+)$/i);
       if (!saActive && mV) {
         const ref = normRef(mV[1]);
         const { data: gp } = await supa.from('transporteurs')
           .select('id, reference, prenom, nom, telephone_1, is_beta_validated').eq('reference', ref).maybeSingle();
-        if (!gp) { await saReply(`GP ${ref} introuvable.`); return new Response('ok', { headers: corsHeaders }); }
+        if (!gp) { await saReply(`GP ${ref} introuvable.`); await saAudit('VALIDE_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }); return new Response('ok', { headers: corsHeaders }); }
         const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
         if (gp.is_beta_validated) {
           await saReply(`✅ ${nm} (GP${ref}) est deja valide.`);
+          await saAudit('VALIDE_NOOP', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 });
           return new Response('ok', { headers: corsHeaders });
         }
         await supa.from('transporteurs').update({
@@ -578,18 +639,23 @@ Tapez la commande, ou STOP pour quitter.`;
         }).eq('id', gp.id);
         await sendToGp(gp.telephone_1, `Felicitations ${gp.prenom ?? ''} ! 🎉\n\nVotre compte Konnekt GP est valide.\nVous pouvez maintenant declarer vos departs et accepter des missions.\n\nTapez AIDE pour voir vos commandes.\n\nReference : GP${gp.reference}`, gp.id);
         await saReply(`✅ GP ${nm} (GP${ref}) valide. Message envoye.`);
+        await saButtons('Continuer :', [
+          { id: 'SA_BETA:1', label: '⏳ Liste beta' },
+          { id: 'SA_K', label: '📊 Tableau bord' },
+        ], 'sa_after_valide');
+        await saAudit('VALIDE', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 });
         return new Response('ok', { headers: corsHeaders });
       }
     }
 
-    // REJETTE {ref}
+    // REJETTE {ref} (texte ou bouton SA_REJETTE:xxxx)
     {
-      const mR = msg.match(/^rejette\s+(.+)$/i);
+      const mR = msg.match(/^rejette\s+(.+)$/i) || msg.match(/^SA_REJETTE:(.+)$/i);
       if (!saActive && mR) {
         const ref = normRef(mR[1]);
         const { data: gp } = await supa.from('transporteurs')
           .select('id, reference, prenom, nom, telephone_1').eq('reference', ref).maybeSingle();
-        if (!gp) { await saReply(`GP ${ref} introuvable.`); return new Response('ok', { headers: corsHeaders }); }
+        if (!gp) { await saReply(`GP ${ref} introuvable.`); await saAudit('REJETTE_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }); return new Response('ok', { headers: corsHeaders }); }
         const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
         await supa.from('transporteurs').update({
           is_beta_validated: false,
@@ -598,12 +664,13 @@ Tapez la commande, ou STOP pour quitter.`;
         }).eq('id', gp.id);
         await sendToGp(gp.telephone_1, `Bonjour ${gp.prenom ?? ''},\n\nVotre demande d'acces beta Konnekt n'a pas pu etre validee pour le moment.\nNotre equipe vous recontactera prochainement.\n\nMerci de votre comprehension.\n— Yobbante`, gp.id);
         await saReply(`❌ GP ${nm} (GP${ref}) rejete. Message envoye.`);
+        await saAudit('REJETTE', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 });
         return new Response('ok', { headers: corsHeaders });
       }
     }
 
     // GPS — 10 latest Konnekt signups
-    if (!saActive && /^gps$/i.test(msg)) {
+    if (!saActive && /^(gps|SA_GPS)$/i.test(msg)) {
       await saClear();
       const { data: rows } = await supa
         .from('transporteurs')
@@ -613,6 +680,7 @@ Tapez la commande, ou STOP pour quitter.`;
         .limit(10);
       if (!rows || rows.length === 0) {
         await saReply('Aucun GP inscrit sur Konnekt.');
+        await saAudit('GPS_LIST', { details: { count: 0 } });
         return new Response('ok', { headers: corsHeaders });
       }
       const lines = rows.map((r, i) => {
@@ -621,11 +689,12 @@ Tapez la commande, ou STOP pour quitter.`;
         return `${i + 1}. ${st} ${nm} · GP${r.reference} · ${fmtDateFr(r.konnekt_registered_at)}`;
       }).join('\n');
       await saReply(`🆕 Derniers inscrits Konnekt :\n\n${lines}\n\n✅ valide · ⏳ attente · ❌ rejete`);
+      await saAudit('GPS_LIST', { details: { count: rows.length } });
       return new Response('ok', { headers: corsHeaders });
     }
 
     // DEPARTS926 — departures of the week
-    if (!saActive && /^departs?926$/i.test(msg)) {
+    if (!saActive && (/^departs?926$/i.test(msg) || /^SA_DEPARTS$/i.test(msg))) {
       await saClear();
       const now = new Date();
       const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
@@ -637,6 +706,7 @@ Tapez la commande, ou STOP pour quitter.`;
         .limit(20);
       if (!deps || deps.length === 0) {
         await saReply('Aucun depart cree cette semaine.');
+        await saAudit('DEPARTS_LIST', { details: { count: 0 } });
         return new Response('ok', { headers: corsHeaders });
       }
       const lines = deps.map((d: any) => {
@@ -647,18 +717,19 @@ Tapez la commande, ou STOP pour quitter.`;
         return `#${d.short_ref ?? '—'} · GP${d.transporteur_ref ?? '—'} · ${fmtDateFr(d.departure_date)} · → ${dest} · ${cap}`;
       }).join('\n');
       await saReply(`🗓 Departs semaine (${deps.length}) :\n\n${lines}`);
+      await saAudit('DEPARTS_LIST', { details: { count: deps.length } });
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // SYNC {ref}
+    // SYNC {ref} (texte ou bouton SA_SYNC:xxxx)
     {
-      const mS = msg.match(/^sync\s+(.+)$/i);
+      const mS = msg.match(/^sync\s+(.+)$/i) || msg.match(/^SA_SYNC:(.+)$/i);
       if (!saActive && mS) {
         const ref = normRef(mS[1]);
         const { data: gp } = await supa.from('transporteurs')
           .select('id, reference, prenom, nom, telephone_1, konnekt_registered, profile_complete, is_beta_validated')
           .eq('reference', ref).maybeSingle();
-        if (!gp) { await saReply(`GP ${ref} introuvable.`); return new Response('ok', { headers: corsHeaders }); }
+        if (!gp) { await saReply(`GP ${ref} introuvable.`); await saAudit('SYNC_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }); return new Response('ok', { headers: corsHeaders }); }
         await supa.from('transporteurs').update({
           konnekt_registered: true,
           konnekt_registered_at: new Date().toISOString(),
@@ -666,9 +737,12 @@ Tapez la commande, ou STOP pour quitter.`;
         }).eq('id', gp.id);
         const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
         await saReply(`✅ GP${ref} (${nm}) synchronise.\nProfil complet : ${gp.profile_complete ? 'oui' : 'non'}\nBeta valide : ${gp.is_beta_validated ? 'oui' : 'non'}`);
+        await saAudit('SYNC', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 });
         return new Response('ok', { headers: corsHeaders });
       }
     }
+
+
 
     // Top-level command dispatch
     if (!saActive && /^[1-6]$/.test(msg)) {
