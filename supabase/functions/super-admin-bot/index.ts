@@ -65,6 +65,30 @@ async function sendWaList(
   } catch (e) { console.error('SUPER_ADMIN_BOT send-list failed', e); }
 }
 
+/** Send up to 3 WhatsApp reply buttons (interactive_type: 'button'). */
+async function sendWaButtons(
+  phone: string,
+  bodyText: string,
+  buttons: Array<{ id: string; label: string }>,
+  trigger: string,
+) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        interactive_type: 'button',
+        interactive_body: bodyText,
+        buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: b.label.slice(0, 20) })),
+        fallback_text: bodyText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) { console.error('SUPER_ADMIN_BOT send-buttons failed', e); }
+}
+
 async function logEvent(dossierId: string | null, type: string, data: any) {
   if (!dossierId) return;
   try {
