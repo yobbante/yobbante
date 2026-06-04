@@ -1270,7 +1270,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (/^dossier\s+/i.test(text)) {
     const t = parseTracking(text);
     if (!t) return 'Format: DOSSIER YOB-XXXXXX';
-    return await cmdInfo(t);
+    return await cmdInfo(t, phone);
   }
 
   // ----- Shortcuts: R/T/L/C YOB-XXXXXX
