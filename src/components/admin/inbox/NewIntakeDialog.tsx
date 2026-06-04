@@ -329,7 +329,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     return true;
   }, [step, data]);
 
-  const calculatePrice = async () => {
+  const calculatePrice = useCallback(async () => {
     if (data.service_kind !== 'envoi') {
       setEstimatedPrice(null);
       return;
@@ -346,7 +346,20 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       p_destination_city: data.destination_city,
     });
     if (q && q[0]) setEstimatedPrice(Math.round(q[0].price_eur));
-  };
+  }, [data.service_kind, data.weight_kg, data.destination_city, data.transport_mode, data.origin_city]);
+
+  useEffect(() => {
+    if (data.service_kind !== 'envoi' || data.price_mode !== 'auto') return;
+    const t = setTimeout(() => { calculatePrice(); }, 500);
+    return () => clearTimeout(t);
+  }, [data.service_kind, data.price_mode, data.weight_kg, data.destination_city, data.transport_mode, data.origin_city, calculatePrice]);
+
+  const zoneCollecte = useMemo(() => {
+    if (data.service_kind !== 'envoi') return null;
+    const addr = data.client_city || data.origin_city;
+    if (!addr) return null;
+    return calculerFraisEnlevement(addr);
+  }, [data.service_kind, data.client_city, data.origin_city]);
 
   const handleSave = async (sendWhatsApp: boolean) => {
     setSaving(true);
