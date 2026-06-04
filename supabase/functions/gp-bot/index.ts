@@ -210,6 +210,11 @@ Deno.serve(async (req) => {
   }
 
   // ---------- Helpers ----------
+  // phone_id du 926 (bot GP) — toute reponse / notif du gp-bot doit partir du 926.
+  const GP_BOT_PHONE_ID = Deno.env.get('WHATSAPP_GP_BOT_PHONE_ID')
+    ?? Deno.env.get('WHATSAPP_PHONE_ID_GP')
+    ?? '';
+
   async function sendWa(payload: Record<string, unknown>) {
     try {
       await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
@@ -218,12 +223,13 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ phone_id: GP_BOT_PHONE_ID || undefined, ...payload }),
       });
     } catch (e) {
       console.error('WA_ERROR send', e);
     }
   }
+
 
   async function reply(text: string, intent?: string) {
     await sendWa({
