@@ -243,6 +243,48 @@ function DepartureStep({ data, update }: { data: IntakeData; update: (p: Partial
   );
 }
 
+type ClientMatch = {
+  name: string | null;
+  email: string | null;
+  dossier_count: number;
+  last_dossier_ref: string | null;
+};
+
+function useClientLookup(phone: string) {
+  const [match, setMatch] = useState<ClientMatch | null>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const digits = (phone || '').replace(/\D/g, '');
+    if (digits.length < 8) { setMatch(null); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const like = `%${digits.slice(-9)}%`;
+        const { data: rows } = await supabase
+          .from('dossiers')
+          .select('reference, buyer_name, contact_email, contact_phone, created_at')
+          .ilike('contact_phone', like)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (cancelled) return;
+        if (!rows || rows.length === 0) { setMatch(null); return; }
+        const last = rows[0] as any;
+        setMatch({
+          name: last.buyer_name ?? null,
+          email: last.contact_email ?? null,
+          dossier_count: rows.length,
+          last_dossier_ref: last.reference ?? null,
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [phone]);
+  return { match, loading };
+}
+
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -252,6 +294,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const qc = useQueryClient();
+  const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
 
   useEffect(() => {
     if (open && hasExisting && !resumePromptShown) {
