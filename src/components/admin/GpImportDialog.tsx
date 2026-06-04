@@ -239,14 +239,26 @@ export function GpImportDialog({
 
 
 
-      // detect intra-file duplicates
-      const seen = new Map<string, number>();
+      // detect intra-file duplicates by reference OR phone
+      const seenRef = new Map<string, number>();
+      const seenPhone = new Map<string, number>();
       parsed.forEach((r, idx) => {
-        if (seen.has(r.reference)) {
-          r.errors.push(`Référence dupliquée dans le fichier (ligne ${seen.get(r.reference)! + 7})`);
-          r.status = 'error';
-        } else {
-          seen.set(r.reference, idx);
+        if (r.reference) {
+          if (seenRef.has(r.reference)) {
+            r.errors.push(`Référence dupliquée dans le fichier (ligne ${parsed[seenRef.get(r.reference)!].excelRow})`);
+            r.status = 'error';
+          } else {
+            seenRef.set(r.reference, idx);
+          }
+        }
+        const pk = phoneDigits(r.telephone_1).slice(-9);
+        if (pk) {
+          if (seenPhone.has(pk)) {
+            r.errors.push(`Téléphone dupliqué dans le fichier (ligne ${parsed[seenPhone.get(pk)!].excelRow})`);
+            r.status = 'error';
+          } else {
+            seenPhone.set(pk, idx);
+          }
         }
       });
 
@@ -259,7 +271,8 @@ export function GpImportDialog({
     } catch (e: any) {
       toast.error(`Erreur de lecture : ${e?.message ?? 'fichier illisible'}`);
     }
-  }, [existingRefs]);
+  }, [existingRefs, existingByPhone]);
+
 
   const counts = useMemo(() => {
     const valid = rows.filter(r => r.status === 'valid').length;
