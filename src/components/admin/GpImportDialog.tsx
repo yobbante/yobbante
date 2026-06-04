@@ -401,7 +401,7 @@ export function GpImportDialog({
               <FileSpreadsheet className="mx-auto mb-3" size={32} color={filename ? '#22C55E' : '#AAAAAA'} />
               {!filename ? (
                 <>
-                  <p className="text-[14px]" style={{ color: '#AAAAAA' }}>Glissez votre fichier Excel ici</p>
+                  <p className="text-[14px]" style={{ color: '#AAAAAA' }}>Glissez votre fichier Excel ou CSV ici</p>
                   <p className="text-[12px] mt-1 font-mono" style={{ color: '#555555' }}>ou cliquez pour sélectionner</p>
                 </>
               ) : (
