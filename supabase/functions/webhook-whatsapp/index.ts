@@ -70,21 +70,18 @@ Deno.serve(async (req) => {
         const metadata = value?.metadata ?? {};
         const displayPhone: string = metadata?.display_phone_number ?? '';
         const incomingPhoneId: string = metadata?.phone_number_id ?? '';
-        // GP bot tourne sur le nouveau numero +221 78 926 97 56 (ancien 122 supprime).
-        const gpNumber = Deno.env.get('WHATSAPP_GP_BOT_NUMBER') ?? '221789269756';
-        const gpDigits = gpNumber.replace(/\D/g, '').slice(-9);
-        const displayDigits = displayPhone.replace(/\D/g, '');
+        // Routing STRICT : uniquement basé sur metadata.phone_number_id.
+        // Aucun fallback sur le display_phone_number ni sur des sous-chaines
+        // type "122" / "926" (qui matcheraient n'importe quel numero).
         const gpBotPhoneId = Deno.env.get('WHATSAPP_GP_BOT_PHONE_ID') ?? '';
         const gpAltPhoneId = Deno.env.get('WHATSAPP_PHONE_ID_GP') ?? '';
         console.log('[ROUTING] phoneId reçu:', incomingPhoneId);
         console.log('[ROUTING] gpBotPhoneId:', gpBotPhoneId);
         console.log('[ROUTING] gpAltPhoneId:', gpAltPhoneId);
         console.log('[ROUTING] display:', displayPhone);
-        console.log('[ROUTING] match phoneId:', incomingPhoneId && (incomingPhoneId === gpBotPhoneId || incomingPhoneId === gpAltPhoneId));
-        const isGp = (!!incomingPhoneId && (incomingPhoneId === gpBotPhoneId || incomingPhoneId === gpAltPhoneId))
-          || displayDigits.endsWith(gpDigits)
-          || displayPhone.includes('122')
-          || displayPhone.includes('926');
+        const isGp = !!incomingPhoneId
+          && (incomingPhoneId === gpBotPhoneId || (!!gpAltPhoneId && incomingPhoneId === gpAltPhoneId));
+        console.log('[ROUTING] match phoneId GP:', isGp);
         const channel: 'client' | 'gp' = isGp ? 'gp' : 'client';
         console.log('[ROUTING] -> channel:', channel);
 
