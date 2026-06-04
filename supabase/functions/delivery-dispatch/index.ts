@@ -95,7 +95,7 @@ Merci de retirer sous 48h.`;
   }
 
   if (mode === 'relay_point') {
-    // 1) Avertir le GP (bot 122)
+    // 1) Avertir le GP (bot 926)
     if (gpPhone) {
       const gpMsg = `Bonjour ${gpName.split(' ')[0] || ''}.
 

@@ -76,7 +76,7 @@ function hasRealClientName(input?: string | null): boolean {
 }
 
 function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromNumber?: string } {
-  // 607 = numero client (et admin). Le 122 (GP) a ete supprime pour les notifs admin.
+  // 607 = numero client (et admin). Le 926 (GP) est gere via WHATSAPP_GP_BOT_PHONE_ID pour les notifs admin.
   const clientPhoneId = Deno.env.get('WHATSAPP_CLIENT_PHONE_ID')
     ?? Deno.env.get('WHATSAPP_PHONE_ID_CLIENTS')
     ?? Deno.env.get('WHATSAPP_PHONE_ID');
@@ -86,7 +86,7 @@ function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromN
     return { phoneId: clientPhoneId, fromNumber: '+221786078080' };
   }
   if (recipientType === 'gp') {
-    // Nouveau numero GP bot : +221 78 926 97 56 (ancien 122 supprime)
+    // Numero GP bot : +221 78 926 97 56
     return {
       phoneId: Deno.env.get('WHATSAPP_GP_BOT_PHONE_ID')
         ?? Deno.env.get('WHATSAPP_PHONE_ID_GP')

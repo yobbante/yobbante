@@ -1005,7 +1005,7 @@ Voir : yobbante.com/admin`);
 
   if (!transporteur) {
     // -----------------------------------------------------------------
-    // ONBOARDING bot 122 — guidé, crée un transporteur partenaire
+    // ONBOARDING bot 926 — guidé, crée un transporteur partenaire
     // -----------------------------------------------------------------
     const { data: onbSession } = await supa
       .from('gp_bot_sessions')
@@ -1048,7 +1048,7 @@ Voir : yobbante.com/admin`);
         `Bienvenue sur Yobbante GP ! 👋\n\nPour vous inscrire en tant que transporteur partenaire, j'ai besoin de quelques infos.\n\nQuel est votre PRENOM ?`,
         'onb_start',
       );
-      await notifyAdmin(`Nouveau contact sur le 122 — onboarding lance :\n${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}`);
+      await notifyAdmin(`Nouveau contact sur le 926 (Konnekt GP) — onboarding lance :\n${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}`);
       return new Response('ok', { headers: corsHeaders });
     }
 
@@ -1174,7 +1174,7 @@ Voir : yobbante.com/admin`);
         rates_per_city: rates,
         actif: true,
         konnekt_registered: false,
-        notes: 'Inscrit via WhatsApp 122',
+        notes: 'Inscrit via WhatsApp 926',
         last_bot_activity_at: new Date().toISOString(),
       }).select('id, reference').single();
 

@@ -960,7 +960,7 @@ async function cmdMsg(phone: string, message: string): Promise<string> {
 
   if (gp) {
     await sendWa(phone, message, { recipient_type: 'gp', trigger: 'super_admin_manual_msg' });
-    return `Message envoye a ${(gp.prenom ?? '') + ' ' + (gp.nom ?? '')} depuis le numero GP (122).`;
+    return `Message envoye a ${(gp.prenom ?? '') + ' ' + (gp.nom ?? '')} depuis le numero GP (926).`;
   }
 
   // Client (par defaut)
