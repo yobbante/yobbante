@@ -179,6 +179,20 @@ export function TransporteursTab() {
     [list.data],
   );
 
+  const existingByPhone = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of list.data ?? []) {
+      const candidates = [t.telephone_1, (t as any).telephone_2, (t as any).whatsapp]
+        .filter(Boolean) as string[];
+      for (const p of candidates) {
+        const k = p.replace(/\D/g, '').slice(-9);
+        if (k && !m.has(k)) m.set(k, t.id);
+      }
+    }
+    return m;
+  }, [list.data]);
+
+
   const markInvited = async (gp: Transporteur) => {
     const now = new Date().toISOString();
     setSentMap(prev => ({ ...prev, [gp.id]: now }));
