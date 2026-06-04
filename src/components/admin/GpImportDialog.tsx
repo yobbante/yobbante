@@ -375,7 +375,7 @@ export function GpImportDialog({
           </DialogTitle>
           {step === 'upload' && (
             <DialogDescription>
-              Fichier Excel (.xlsx) au format template Yobbanté.
+              Fichier Excel (.xlsx) ou CSV (.csv) — colonnes : Référence, Prénom, Nom, Téléphone 1, Téléphone 2, WhatsApp, Adresse 1, Adresse 2, Ville, Zone, Modes, Destinations, Notes.
             </DialogDescription>
           )}
         </DialogHeader>
