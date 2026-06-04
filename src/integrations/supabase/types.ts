@@ -3073,7 +3073,7 @@ export type Database = {
       transporteurs: {
         Row: {
           actif: boolean
-          adresse_1: string
+          adresse_1: string | null
           adresse_2: string | null
           adresse_collecte_dakar: string | null
           adresse_dakar_2: string | null
@@ -3098,7 +3098,7 @@ export type Database = {
           last_bot_activity_at: string | null
           modes_transport: string[] | null
           navettes: Json
-          nom: string
+          nom: string | null
           notes: string | null
           photo_url: string | null
           prenom: string | null
@@ -3106,17 +3106,17 @@ export type Database = {
           rates_collected_at: string | null
           rates_per_city: Json
           rates_reminder_sent_at: string | null
-          reference: string
+          reference: string | null
           telephone_1: string
           telephone_2: string | null
           updated_at: string
-          ville: string
+          ville: string | null
           whatsapp: string | null
           zone: string | null
         }
         Insert: {
           actif?: boolean
-          adresse_1: string
+          adresse_1?: string | null
           adresse_2?: string | null
           adresse_collecte_dakar?: string | null
           adresse_dakar_2?: string | null
@@ -3141,7 +3141,7 @@ export type Database = {
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           navettes?: Json
-          nom: string
+          nom?: string | null
           notes?: string | null
           photo_url?: string | null
           prenom?: string | null
@@ -3149,17 +3149,17 @@ export type Database = {
           rates_collected_at?: string | null
           rates_per_city?: Json
           rates_reminder_sent_at?: string | null
-          reference: string
+          reference?: string | null
           telephone_1: string
           telephone_2?: string | null
           updated_at?: string
-          ville: string
+          ville?: string | null
           whatsapp?: string | null
           zone?: string | null
         }
         Update: {
           actif?: boolean
-          adresse_1?: string
+          adresse_1?: string | null
           adresse_2?: string | null
           adresse_collecte_dakar?: string | null
           adresse_dakar_2?: string | null
@@ -3184,7 +3184,7 @@ export type Database = {
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           navettes?: Json
-          nom?: string
+          nom?: string | null
           notes?: string | null
           photo_url?: string | null
           prenom?: string | null
@@ -3192,11 +3192,11 @@ export type Database = {
           rates_collected_at?: string | null
           rates_per_city?: Json
           rates_reminder_sent_at?: string | null
-          reference?: string
+          reference?: string | null
           telephone_1?: string
           telephone_2?: string | null
           updated_at?: string
-          ville?: string
+          ville?: string | null
           whatsapp?: string | null
           zone?: string | null
         }
