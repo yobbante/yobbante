@@ -1,8 +1,9 @@
-// webhook-whatsapp — receives Meta webhooks for BOTH numbers (607 + 122).
-// Routes:
-//   - 607 (clients) -> log inbound + notify admin
-//   - 926 (GP)      -> delegate to gp-bot
-//   - statuses      -> update whatsapp_outbound_messages
+// webhook-whatsapp — receives Meta webhooks for BOTH numbers (607 + 926).
+// Routes (strict, basé UNIQUEMENT sur metadata.phone_number_id) :
+//   1. Super admin (from.endsWith 784604003) -> super-admin-bot / gp-bot si canal GP
+//   2. phone_number_id === WHATSAPP_GP_BOT_PHONE_ID -> gp-bot
+//   3. sinon                                         -> flux client 607
+//   - statuses -> update whatsapp_outbound_messages
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
