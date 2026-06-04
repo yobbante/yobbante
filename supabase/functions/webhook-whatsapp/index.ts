@@ -136,8 +136,11 @@ Deno.serve(async (req) => {
             } catch (_) { /* noop */ }
 
             // Router : 926 (GP line) -> gp-bot (handleSuperAdmin), sinon super-admin-bot
+            const targetFn = channel === 'gp' ? 'gp-bot' : 'super-admin-bot';
+            console.log(`[SA_ROUTE] channel=${channel} -> ${targetFn} | display=${displayPhone} | body="${saBody}"`);
+            let dispatchOk = false;
+            let dispatchErr: string | null = null;
             try {
-              const targetFn = channel === 'gp' ? 'gp-bot' : 'super-admin-bot';
               const botRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/${targetFn}`, {
                 method: 'POST',
                 headers: {
@@ -151,9 +154,41 @@ Deno.serve(async (req) => {
                   channel: channel === 'gp' ? 'gp' : 'admin',
                 }),
               });
-              if (!botRes.ok) console.error(`WA_ERROR ${targetFn}`, botRes.status, await botRes.text());
+              const bodyTxt = await botRes.text().catch(() => '');
+              console.log(`[SA_ROUTE] ${targetFn} status=${botRes.status} body=${bodyTxt.slice(0, 300)}`);
+              dispatchOk = botRes.ok;
+              if (!botRes.ok) dispatchErr = `HTTP ${botRes.status} ${bodyTxt.slice(0, 200)}`;
             } catch (e) {
-              console.error('WA_ERROR super-admin route', e);
+              dispatchErr = e instanceof Error ? e.message : String(e);
+              console.error(`[SA_ROUTE] ${targetFn} FETCH FAIL`, dispatchErr);
+            }
+
+            // FALLBACK ping/pong : si le dispatch a echoue, repondre directement
+            // pour confirmer au super admin que le webhook fonctionne.
+            if (!dispatchOk) {
+              try {
+                const bodyLow = (saBody ?? '').trim().toLowerCase();
+                const pongMsg = bodyLow === 'ping'
+                  ? `pong ✓ Webhook OK (${channel === 'gp' ? '926' : '607'}) — dispatch ${targetFn} HS\nCause: ${dispatchErr ?? 'inconnue'}`
+                  : `⚠ Bot ${targetFn} indisponible (${channel === 'gp' ? '926' : '607'})\nMessage reçu: "${(saBody ?? '').slice(0, 80)}"\nCause: ${dispatchErr ?? 'inconnue'}\nEnvoyez "ping" pour retester.`;
+                await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                  },
+                  body: JSON.stringify({
+                    recipient_phone: fromPhone,
+                    recipient_type: 'admin',
+                    message: pongMsg,
+                    trigger_type: 'sa_dispatch_fallback',
+                    channel: channel === 'gp' ? 'gp' : 'client',
+                  }),
+                });
+                console.log(`[SA_ROUTE] fallback pong sent to ${fromPhone}`);
+              } catch (e) {
+                console.error('[SA_ROUTE] fallback send failed', e);
+              }
             }
             continue; // STOP : pas de bot-client, pas de gp-bot, pas de MESSAGE CLIENT
           }
