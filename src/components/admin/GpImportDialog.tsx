@@ -237,73 +237,7 @@ export function GpImportDialog({
         });
       }
 
-    setFilename(file.name);
-    setFilesize(file.size);
-    try {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array' });
-      const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base gp')) ?? wb.SheetNames[0];
-      const ws = wb.Sheets[sheetName];
-      const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
 
-      const parsed: ParsedRow[] = [];
-      let emptyStreak = 0;
-      // Start from row index 6 (Excel row 7)
-      for (let i = 6; i < matrix.length; i++) {
-        const row = matrix[i] ?? [];
-        const ref = normRef(row[0]);
-        if (!ref) {
-          emptyStreak += 1;
-          if (emptyStreak >= 3) break;
-          continue;
-        }
-        emptyStreak = 0;
-        if (EXAMPLE_REFS.has(ref) && i < 9) continue; // skip example rows in 7..9 area
-
-        const prenom = s(row[1]);
-        const nom = s(row[2]);
-        const tel1 = s(row[3]);
-        const tel2 = s(row[4]);
-        const wha  = s(row[5]);
-        const adr1 = s(row[6]);
-        const adr2 = s(row[7]);
-        const ville= s(row[8]);
-        const zone = s(row[9]);
-        const modes = splitList(row[10]);
-        const dests = splitList(row[11]);
-        const notes = s(row[12]);
-
-        const errors: string[] = [];
-        const warnings: string[] = [];
-
-        if (!/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
-        if (!prenom) errors.push('Prénom manquant');
-        if (!nom) errors.push('Nom manquant');
-        if (!tel1) errors.push('Téléphone manquant');
-        else if (!isPhoneSn(tel1)) errors.push('Téléphone invalide (format incorrect)');
-        if (!adr1) errors.push('Adresse manquante');
-        if (!ville) errors.push('Ville manquante');
-
-        const duplicate = existingRefs.has(ref);
-        if (duplicate) warnings.push(`Référence ${ref} déjà existante en base`);
-        if (!wha && tel1) warnings.push('WhatsApp non renseigné (utilisera le téléphone principal)');
-
-        let status: RowStatus = 'valid';
-        if (errors.length) status = 'error';
-        else if (warnings.length) status = 'warning';
-
-        parsed.push({
-          excelRow: i + 1,
-          reference: ref, prenom, nom,
-          telephone_1: tel1, telephone_2: tel2 || null,
-          whatsapp: wha || null,
-          adresse_1: adr1, adresse_2: adr2 || null,
-          ville, zone: zone || null,
-          modes_transport: modes, destinations: dests,
-          notes: notes || null,
-          status, errors, warnings, duplicate,
-        });
-      }
 
       // detect intra-file duplicates
       const seen = new Map<string, number>();
