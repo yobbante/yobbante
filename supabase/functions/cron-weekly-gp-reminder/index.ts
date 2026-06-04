@@ -1,6 +1,6 @@
 // cron-weekly-gp-reminder — Lundi 9h UTC
 // Pour chaque GP actif qui a deja ecrit au bot (channel=gp) et qui n'a creé
-// aucun depart dans les 5 derniers jours, envoie un rappel WhatsApp depuis 122.
+// aucun depart dans les 5 derniers jours, envoie un rappel WhatsApp depuis 926.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
