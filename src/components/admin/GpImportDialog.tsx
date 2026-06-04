@@ -199,13 +199,13 @@ export function GpImportDialog({
         const errors: string[] = [];
         const warnings: string[] = [];
 
-        if (ref && !/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
-        if (!prenom) errors.push('Prénom manquant');
-        if (!nom) errors.push('Nom manquant');
-        if (!tel1) errors.push('Téléphone manquant');
-        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel');
-        if (!adr1) warnings.push('Adresse manquante');
-        if (!ville) warnings.push('Ville manquante');
+        if (ref && !/^[0-9]{4}$/.test(ref)) warnings.push('Référence : format inhabituel (4 chiffres attendus)');
+        if (!prenom) warnings.push('Prénom manquant — à compléter plus tard');
+        if (!nom) warnings.push('Nom manquant — à compléter plus tard');
+        if (!tel1) errors.push('Téléphone 1 manquant (obligatoire)');
+        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel (importé tel quel)');
+        if (!adr1) warnings.push('Adresse manquante — à compléter plus tard');
+        if (!ville) warnings.push('Ville manquante — à compléter plus tard');
 
         // Dedupe : reference OU téléphone_1
         const phoneKey = phoneDigits(tel1).slice(-9);
@@ -214,8 +214,8 @@ export function GpImportDialog({
           ? undefined
           : (phoneKey && existingByPhone?.get(phoneKey)) || undefined;
         const duplicate = matchedByRef || !!matchedById;
-        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante en base`);
-        else if (matchedById) warnings.push('Téléphone déjà existant en base (sera mis à jour)');
+        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante (mise à jour)`);
+        else if (matchedById) warnings.push('Téléphone déjà existant (mise à jour)');
         if (!wha && tel1) warnings.push('WhatsApp non renseigné (utilisera le téléphone principal)');
 
         let status: RowStatus = 'valid';
@@ -228,7 +228,7 @@ export function GpImportDialog({
           telephone_1: tel1, telephone_2: tel2 || null,
           whatsapp: wha || null,
           adresse_1: adr1, adresse_2: adr2 || null,
-          ville: ville || 'Dakar', zone: zone || null,
+          ville: ville || '', zone: zone || null,
           modes_transport: modes, destinations: dests,
           notes: notes || null,
           status, errors, warnings, duplicate,
