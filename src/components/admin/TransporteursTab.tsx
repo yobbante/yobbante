@@ -893,6 +893,8 @@ export function TransporteursTab() {
         open={importOpen}
         onOpenChange={setImportOpen}
         existingRefs={existingRefs}
+        existingByPhone={existingByPhone}
+
         onAfterImport={() => list.refetch()}
         onTriggerBlast={() => setBlastOpen(true)}
       />
