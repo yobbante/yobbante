@@ -223,6 +223,54 @@ function daysAgo(iso: any): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
+/**
+ * Parse expéditeur / destinataire blocks out of the freeform `notes` field
+ * (created by the public SendFlow). The blocks look like:
+ *   — Expéditeur —
+ *   FULL NAME · +221 78 ... · email
+ *   adresse libre
+ *   — Destinataire —
+ *   FULL NAME · +33 ... · email
+ *   adresse libre
+ */
+function parseNotesContacts(notes?: string | null): {
+  sender_name?: string; sender_phone?: string; sender_email?: string; sender_address?: string;
+  recipient_name?: string; recipient_phone?: string; recipient_email?: string; recipient_address?: string;
+} {
+  const out: Record<string, string> = {};
+  if (!notes) return out;
+  const normHeader = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const lines = notes.split(/\r?\n/);
+  let current: 'sender' | 'recipient' | null = null;
+  let detailLine = 0;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const h = normHeader(line.replace(/[—–-]/g, '').trim());
+    if (h === 'expediteur' || h === 'expediteur :') { current = 'sender'; detailLine = 0; continue; }
+    if (h === 'destinataire' || h === 'destinataire :') { current = 'recipient'; detailLine = 0; continue; }
+    if (!current) continue;
+    // Stop on a new top-level section like "Profil:", "Type marchandise:" etc.
+    if (/^(profil|type marchandise|description|poids|valeur|transport|assurance|paiement|collecte|notes)\s*:/i.test(line)) {
+      current = null; continue;
+    }
+    detailLine += 1;
+    if (detailLine === 1) {
+      // "NAME · +PHONE · email"
+      const parts = line.split('·').map(s => s.trim()).filter(Boolean);
+      if (parts[0]) out[`${current}_name`] = parts[0];
+      for (const p of parts.slice(1)) {
+        if (/@/.test(p)) out[`${current}_email`] = p;
+        else if (/\d/.test(p)) out[`${current}_phone`] = p;
+      }
+    } else {
+      const prev = out[`${current}_address`];
+      out[`${current}_address`] = prev ? `${prev} ${line}` : line;
+    }
+  }
+  return out;
+}
+
 // =================================================================
 //  COMMAND: INFO {tracking}
 // =================================================================
