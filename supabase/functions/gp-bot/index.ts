@@ -459,6 +459,41 @@ Tapez la commande, ou STOP pour quitter.`;
       }
     }
 
+    async function saButtons(text: string, buttons: Array<{ id: string; label: string }>, trigger = 'super_admin_buttons') {
+      try {
+        await sendWa({
+          recipient_phone: fromPhone,
+          recipient_type: 'admin',
+          interactive_type: 'button',
+          interactive_body: text,
+          buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: b.label.slice(0, 20) })),
+          fallback_text: text,
+          trigger_type: trigger,
+        });
+      } catch (e) { console.error('saButtons err', e); }
+    }
+
+    async function saAudit(action: string, opts?: { gp_reference?: string | null; gp_id?: string | null; target_phone?: string | null; details?: any }) {
+      try {
+        await supa.from('super_admin_audit_log').insert({
+          admin_phone: fromPhone,
+          action,
+          gp_reference: opts?.gp_reference ?? null,
+          gp_id: opts?.gp_id ?? null,
+          target_phone: opts?.target_phone ?? null,
+          details: opts?.details ?? {},
+        });
+      } catch (e) { console.error('saAudit err', e); }
+    }
+
+    // PING/PONG — test rapide du routing super admin (926)
+    if (/^ping$/i.test(msg)) {
+      await saReply('pong ✓ Super admin OK (926)');
+      await saAudit('PING');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+
     // Load existing super admin session
     const { data: saSession } = await supa
       .from('gp_bot_sessions')
