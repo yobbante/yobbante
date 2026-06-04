@@ -16,6 +16,9 @@ import {
   type IntakeSource, type ServiceKind,
 } from '@/lib/intakeSources';
 import { useIntakeDraft } from '@/hooks/useIntakeDraft';
+import { calculerFraisEnlevement } from '@/lib/dakarZones';
+import { Badge } from '@/components/ui/badge';
+import { History, UserCheck } from 'lucide-react';
 
 interface Props {
   open: boolean;
