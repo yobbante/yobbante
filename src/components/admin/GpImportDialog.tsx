@@ -89,12 +89,15 @@ export function GpImportDialog({
   open,
   onOpenChange,
   existingRefs,
+  existingByPhone,
   onAfterImport,
   onTriggerBlast,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   existingRefs: Set<string>;
+  /** Optional map of normalized phone digits → existing transporteur id (for dedupe by phone). */
+  existingByPhone?: Map<string, string>;
   onAfterImport: () => void;
   onTriggerBlast: () => void;
 }) {
@@ -120,10 +123,120 @@ export function GpImportDialog({
   };
 
   const parseFile = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      toast.error('Format invalide — fichier .xlsx requis');
+    const lname = file.name.toLowerCase();
+    const isCsv = lname.endsWith('.csv');
+    const isXlsx = lname.endsWith('.xlsx');
+    if (!isCsv && !isXlsx) {
+      toast.error('Format invalide — fichier .csv ou .xlsx requis');
       return;
     }
+    setFilename(file.name);
+    setFilesize(file.size);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = isCsv
+        ? XLSX.read(new TextDecoder('utf-8').decode(new Uint8Array(buf)), { type: 'string' })
+        : XLSX.read(buf, { type: 'array' });
+      const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base gp')) ?? wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+
+      // Find the header row by scanning the first ~15 rows for one containing
+      // both a "reference" cell and a "prenom" cell (after normalization).
+      let headerRowIdx = -1;
+      let colMap: Record<string, number> = {};
+      const maxScan = Math.min(matrix.length, 15);
+      for (let i = 0; i < maxScan; i++) {
+        const row = matrix[i] ?? [];
+        const m: Record<string, number> = {};
+        for (let c = 0; c < row.length; c++) {
+          const f = headerToField(normHeader(row[c]));
+          if (f && !(f in m)) m[f] = c;
+        }
+        if ('reference' in m && 'prenom' in m && 'telephone_1' in m) {
+          headerRowIdx = i;
+          colMap = m;
+          break;
+        }
+      }
+      if (headerRowIdx === -1) {
+        toast.error('En-têtes introuvables. Colonnes attendues : Référence, Prénom, Nom, Téléphone 1…');
+        return;
+      }
+
+      const get = (row: any[], field: string) => {
+        const idx = colMap[field];
+        return idx == null ? '' : row[idx];
+      };
+
+      const parsed: ParsedRow[] = [];
+      let emptyStreak = 0;
+      for (let i = headerRowIdx + 1; i < matrix.length; i++) {
+        const row = matrix[i] ?? [];
+        const ref = normRef(get(row, 'reference'));
+        const tel1Raw = s(get(row, 'telephone_1'));
+        if (!ref && !tel1Raw) {
+          emptyStreak += 1;
+          if (emptyStreak >= 3) break;
+          continue;
+        }
+        emptyStreak = 0;
+        if (ref && EXAMPLE_REFS.has(ref) && i <= headerRowIdx + 3) continue;
+
+        const prenom = s(get(row, 'prenom'));
+        const nom = s(get(row, 'nom'));
+        const tel1 = tel1Raw;
+        const tel2 = s(get(row, 'telephone_2'));
+        const wha  = s(get(row, 'whatsapp'));
+        const adr1 = s(get(row, 'adresse_1'));
+        const adr2 = s(get(row, 'adresse_2'));
+        const ville= s(get(row, 'ville'));
+        const zone = s(get(row, 'zone'));
+        const modes = splitList(get(row, 'modes_transport'));
+        const dests = splitList(get(row, 'destinations'));
+        const notes = s(get(row, 'notes'));
+
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (ref && !/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
+        if (!prenom) errors.push('Prénom manquant');
+        if (!nom) errors.push('Nom manquant');
+        if (!tel1) errors.push('Téléphone manquant');
+        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel');
+        if (!adr1) warnings.push('Adresse manquante');
+        if (!ville) warnings.push('Ville manquante');
+
+        // Dedupe : reference OU téléphone_1
+        const phoneKey = phoneDigits(tel1).slice(-9);
+        const matchedByRef = !!ref && existingRefs.has(ref);
+        const matchedById = matchedByRef
+          ? undefined
+          : (phoneKey && existingByPhone?.get(phoneKey)) || undefined;
+        const duplicate = matchedByRef || !!matchedById;
+        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante en base`);
+        else if (matchedById) warnings.push('Téléphone déjà existant en base (sera mis à jour)');
+        if (!wha && tel1) warnings.push('WhatsApp non renseigné (utilisera le téléphone principal)');
+
+        let status: RowStatus = 'valid';
+        if (errors.length) status = 'error';
+        else if (warnings.length) status = 'warning';
+
+        parsed.push({
+          excelRow: i + 1,
+          reference: ref, prenom, nom,
+          telephone_1: tel1, telephone_2: tel2 || null,
+          whatsapp: wha || null,
+          adresse_1: adr1, adresse_2: adr2 || null,
+          ville: ville || 'Dakar', zone: zone || null,
+          modes_transport: modes, destinations: dests,
+          notes: notes || null,
+          status, errors, warnings, duplicate,
+          matchedById,
+          matchedByPhone: !!matchedById,
+        });
+      }
+
     setFilename(file.name);
     setFilesize(file.size);
     try {
