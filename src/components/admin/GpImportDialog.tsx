@@ -313,9 +313,11 @@ export function GpImportDialog({
 
       try {
         if (r.duplicate) {
-          const { error } = await supabase
-            .from('transporteurs' as any)
-            .update(payload).eq('reference', r.reference);
+          // Update by id (matched-by-phone) when available, otherwise by reference
+          const query = supabase.from('transporteurs' as any).update(payload);
+          const { error } = r.matchedById
+            ? await query.eq('id', r.matchedById)
+            : await query.eq('reference', r.reference);
           if (error) throw error;
           updated += 1;
         } else {
@@ -328,6 +330,7 @@ export function GpImportDialog({
       } catch (e) {
         errors += 1;
       }
+
       setProgress({ current: i + 1, total: importable.length });
     }
 
