@@ -265,7 +265,7 @@ async function cmdInfo(tracking: string): Promise<string> {
 
   const destLabel = placeFr(d.destination_city, d.destination_country);
   const originLabel = placeFr(d.origin_city, d.origin_country) || 'Dakar';
-  const tracking = d.tracking_id ?? d.reference;
+  const trk = d.tracking_id ?? d.reference ?? tracking;
 
   return [
     `DOSSIER ${tracking}`,
