@@ -101,6 +101,187 @@ async function logEvent(dossierId: string | null, type: string, data: any) {
   } catch (e) { console.error('log event err', e); }
 }
 
+async function auditSa(adminPhone: string, action: string, opts?: { gp_reference?: string | null; gp_id?: string | null; target_phone?: string | null; details?: any }) {
+  try {
+    await supa().from('super_admin_audit_log').insert({
+      admin_phone: adminPhone,
+      action,
+      gp_reference: opts?.gp_reference ?? null,
+      gp_id: opts?.gp_id ?? null,
+      target_phone: opts?.target_phone ?? null,
+      details: opts?.details ?? {},
+    });
+  } catch (e) { console.error('auditSa err', e); }
+}
+
+function normRefBeta(s: string): string {
+  return (s || '').trim().toUpperCase().replace(/^GP[-\s]?/, '').replace(/\D/g, '').padStart(4, '0').slice(0, 4);
+}
+function fmtDateFrShort(d: any): string {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return '—'; }
+}
+
+async function cmdKonnekt(adminPhone: string): Promise<string> {
+  const sb = supa();
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const [{ count: total }, { count: valides }, { count: attente }, { count: departs }, { data: last }] = await Promise.all([
+    sb.from('transporteurs').select('id', { count: 'exact', head: true }).eq('konnekt_registered', true),
+    sb.from('transporteurs').select('id', { count: 'exact', head: true }).eq('konnekt_registered', true).eq('is_beta_validated', true),
+    sb.from('transporteurs').select('id', { count: 'exact', head: true }).eq('konnekt_registered', true).eq('is_beta_validated', false).is('beta_rejected_at', null),
+    sb.from('manual_departures').select('id', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
+    sb.from('transporteurs').select('prenom, nom, reference, konnekt_registered_at').eq('konnekt_registered', true).order('konnekt_registered_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
+  ]);
+  const lastName = last ? `${(last.prenom ?? '').trim()} ${(last.nom ?? '').trim()}`.trim() || `GP${last.reference}` : '—';
+  const lastDate = last?.konnekt_registered_at ? fmtDateFrShort(last.konnekt_registered_at) : '—';
+  sendWaButtons(adminPhone, 'Navigation rapide :', [
+    { id: 'SA_BETA:1', label: `⏳ Beta (${attente ?? 0})` },
+    { id: 'SA_GPS', label: '🆕 Derniers GPs' },
+    { id: 'SA_DEPARTS', label: '🗓 Departs' },
+  ], 'sa_konnekt_buttons').catch(() => {});
+  auditSa(adminPhone, 'KONNEKT', { details: { total, valides, attente, departs } }).catch(() => {});
+  return `📊 Konnekt — Tableau de bord\n\nGPs inscrits : ${total ?? 0}\nBeta valides : ${valides ?? 0}\nEn attente : ${attente ?? 0}\nDeparts ce mois : ${departs ?? 0}\nDernier inscrit : ${lastName} · ${lastDate}`;
+}
+
+async function cmdBeta(adminPhone: string, page = 1): Promise<string> {
+  const sb = supa();
+  const pageSize = 10;
+  const p = Math.max(1, page);
+  const from = (p - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const { data: rows, count } = await sb
+    .from('transporteurs')
+    .select('reference, prenom, nom, telephone_1, konnekt_registered_at, created_at', { count: 'exact' })
+    .eq('konnekt_registered', true)
+    .eq('is_beta_validated', false)
+    .is('beta_rejected_at', null)
+    .order('konnekt_registered_at', { ascending: false, nullsFirst: false })
+    .range(from, to);
+  const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  auditSa(adminPhone, 'BETA_LIST', { details: { page: p, totalPages, totalCount } }).catch(() => {});
+  if (!rows || rows.length === 0) {
+    return p === 1 ? 'Aucun GP en attente de validation beta. ✅' : `Aucun GP a la page ${p}.`;
+  }
+  const lines = rows.map((r, i) => {
+    const nm = `${(r.prenom ?? '').trim()} ${(r.nom ?? '').trim()}`.trim() || `GP${r.reference}`;
+    const dt = fmtDateFrShort(r.konnekt_registered_at ?? r.created_at);
+    return `${from + i + 1}. ${nm} · GP${r.reference} · ${r.telephone_1 ?? '—'} · ${dt}`;
+  }).join('\n');
+  const firstRef = String(rows[0].reference ?? '').padStart(4, '0');
+  const btns: Array<{ id: string; label: string }> = [];
+  if (p > 1) btns.push({ id: `SA_BETA:${p - 1}`, label: '⬅ Precedent' });
+  if (p < totalPages) btns.push({ id: `SA_BETA:${p + 1}`, label: 'Suivant ➡' });
+  btns.push({ id: `SA_VALIDE:${firstRef}`, label: '✅ Valider #1' });
+  sendWaButtons(adminPhone, `Page ${p}/${totalPages}`, btns, 'sa_beta_pagination').catch(() => {});
+  return `👥 GPs en attente beta — page ${p}/${totalPages} (total : ${totalCount}) :\n\n${lines}\n\nValider : VALIDE GP{ref} · Rejeter : REJETTE GP{ref}`;
+}
+
+async function cmdValideBeta(adminPhone: string, refArg: string): Promise<string> {
+  const ref = normRefBeta(refArg);
+  const sb = supa();
+  const { data: gp } = await sb.from('transporteurs')
+    .select('id, reference, prenom, nom, telephone_1, is_beta_validated').eq('reference', ref).maybeSingle();
+  if (!gp) { auditSa(adminPhone, 'VALIDE_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }).catch(() => {}); return `GP ${ref} introuvable.`; }
+  const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
+  if (gp.is_beta_validated) {
+    auditSa(adminPhone, 'VALIDE_NOOP', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 }).catch(() => {});
+    return `✅ ${nm} (GP${ref}) est deja valide.`;
+  }
+  await sb.from('transporteurs').update({
+    is_beta_validated: true,
+    beta_validated_at: new Date().toISOString(),
+    beta_rejected_at: null,
+    beta_rejected_reason: null,
+  }).eq('id', gp.id);
+  if (gp.telephone_1) {
+    sendWa(gp.telephone_1, `Felicitations ${gp.prenom ?? ''} ! 🎉\n\nVotre compte Konnekt GP est valide.\nTapez AIDE sur le 926 pour voir vos commandes.\n\nReference : GP${gp.reference}`, { recipient_type: 'gp', trigger: 'beta_validated_admin' }).catch(() => {});
+  }
+  sendWaButtons(adminPhone, 'Continuer :', [
+    { id: 'SA_BETA:1', label: '⏳ Liste beta' },
+    { id: 'SA_K', label: '📊 Tableau bord' },
+  ], 'sa_after_valide').catch(() => {});
+  auditSa(adminPhone, 'VALIDE', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 }).catch(() => {});
+  return `✅ GP ${nm} (GP${ref}) valide. Message envoye.`;
+}
+
+async function cmdRejetteBeta(adminPhone: string, refArg: string): Promise<string> {
+  const ref = normRefBeta(refArg);
+  const sb = supa();
+  const { data: gp } = await sb.from('transporteurs')
+    .select('id, reference, prenom, nom, telephone_1').eq('reference', ref).maybeSingle();
+  if (!gp) { auditSa(adminPhone, 'REJETTE_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }).catch(() => {}); return `GP ${ref} introuvable.`; }
+  const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
+  await sb.from('transporteurs').update({
+    is_beta_validated: false,
+    beta_rejected_at: new Date().toISOString(),
+    beta_rejected_reason: 'Rejected by admin via WhatsApp',
+  }).eq('id', gp.id);
+  if (gp.telephone_1) {
+    sendWa(gp.telephone_1, `Bonjour ${gp.prenom ?? ''},\n\nVotre demande d'acces beta Konnekt n'a pas pu etre validee pour le moment.\nNotre equipe vous recontactera prochainement.\n\nMerci de votre comprehension.\n— Yobbante`, { recipient_type: 'gp', trigger: 'beta_rejected_admin' }).catch(() => {});
+  }
+  auditSa(adminPhone, 'REJETTE', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 }).catch(() => {});
+  return `❌ GP ${nm} (GP${ref}) rejete. Message envoye.`;
+}
+
+async function cmdSyncGp(adminPhone: string, refArg: string): Promise<string> {
+  const ref = normRefBeta(refArg);
+  const sb = supa();
+  const { data: gp } = await sb.from('transporteurs')
+    .select('id, reference, prenom, nom, telephone_1, konnekt_registered, profile_complete, is_beta_validated')
+    .eq('reference', ref).maybeSingle();
+  if (!gp) { auditSa(adminPhone, 'SYNC_FAIL', { gp_reference: ref, details: { reason: 'not_found' } }).catch(() => {}); return `GP ${ref} introuvable.`; }
+  await sb.from('transporteurs').update({
+    konnekt_registered: true,
+    konnekt_registered_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', gp.id);
+  const nm = `${(gp.prenom ?? '').trim()} ${(gp.nom ?? '').trim()}`.trim() || `GP${gp.reference}`;
+  auditSa(adminPhone, 'SYNC', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 }).catch(() => {});
+  return `✅ GP${ref} (${nm}) synchronise.\nProfil complet : ${gp.profile_complete ? 'oui' : 'non'}\nBeta valide : ${gp.is_beta_validated ? 'oui' : 'non'}`;
+}
+
+async function cmdGpsList(adminPhone: string): Promise<string> {
+  const sb = supa();
+  const { data: rows } = await sb
+    .from('transporteurs')
+    .select('reference, prenom, nom, is_beta_validated, beta_rejected_at, konnekt_registered_at')
+    .eq('konnekt_registered', true)
+    .order('konnekt_registered_at', { ascending: false, nullsFirst: false })
+    .limit(10);
+  auditSa(adminPhone, 'GPS_LIST', { details: { count: rows?.length ?? 0 } }).catch(() => {});
+  if (!rows || rows.length === 0) return 'Aucun GP inscrit sur Konnekt.';
+  const lines = rows.map((r, i) => {
+    const nm = `${(r.prenom ?? '').trim()} ${(r.nom ?? '').trim()}`.trim() || `GP${r.reference}`;
+    const st = r.is_beta_validated ? '✅' : (r.beta_rejected_at ? '❌' : '⏳');
+    return `${i + 1}. ${st} ${nm} · GP${r.reference} · ${fmtDateFrShort(r.konnekt_registered_at)}`;
+  }).join('\n');
+  return `🆕 Derniers inscrits Konnekt :\n\n${lines}\n\n✅ valide · ⏳ attente · ❌ rejete`;
+}
+
+async function cmdDepartsSemaine(adminPhone: string): Promise<string> {
+  const sb = supa();
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
+  const { data: deps } = await sb
+    .from('manual_departures')
+    .select('short_ref, transporteur_ref, departure_date, destination_city, destination_country, total_capacity_kg, available_capacity_kg, created_at')
+    .gte('created_at', weekStart.toISOString())
+    .order('departure_date', { ascending: true })
+    .limit(20);
+  auditSa(adminPhone, 'DEPARTS_LIST', { details: { count: deps?.length ?? 0 } }).catch(() => {});
+  if (!deps || deps.length === 0) return 'Aucun depart cree cette semaine.';
+  const lines = deps.map((d: any) => {
+    const cap = d.available_capacity_kg != null && d.total_capacity_kg != null
+      ? `${d.available_capacity_kg}/${d.total_capacity_kg}kg`
+      : '—';
+    const dest = d.destination_city || d.destination_country || '—';
+    return `#${d.short_ref ?? '—'} · GP${d.transporteur_ref ?? '—'} · ${fmtDateFrShort(d.departure_date)} · → ${dest} · ${cap}`;
+  }).join('\n');
+  return `🗓 Departs semaine (${deps.length}) :\n\n${lines}`;
+}
+
+
 // =================================================================
 //  MENU
 // =================================================================
