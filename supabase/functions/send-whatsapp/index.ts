@@ -37,6 +37,9 @@ interface SendPayload {
   dossier_id?: string;
   transporteur_id?: string;
   trigger_type?: string;
+  /** Override explicite du phone_number_id Meta utilise pour l'envoi. */
+  phone_id?: string;
+
   // legacy
   client_name?: string;
   service_type?: string;
@@ -158,7 +161,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { phoneId, fromNumber } = resolvePhoneId(recipientType);
+  const resolved = resolvePhoneId(recipientType);
+  // Si l'appelant fournit explicitement un phone_id, on l'utilise TEL QUEL
+  // (pas de fallback sur WHATSAPP_PHONE_ID). C'est indispensable pour que
+  // gp-bot puisse forcer une reponse depuis le 926 meme pour recipient_type=admin.
+  const phoneId = (body.phone_id && body.phone_id.trim()) || resolved.phoneId;
+  const fromNumber = (body.phone_id && body.phone_id.trim()) ? undefined : resolved.fromNumber;
   if (!phoneId) {
     console.error('WA_ERROR: missing phone id for', recipientType);
     return new Response(JSON.stringify({ error: `Missing phone id for ${recipientType}` }), {
@@ -166,6 +174,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+  console.log('WA_PHONE_ID', { recipientType, phoneId, override: !!body.phone_id });
+
 
   if (recipientType === 'admin' && !body.message && !hasRealClientName(body.client_name)) {
     console.log('WA_SKIP admin notification without real client name');
