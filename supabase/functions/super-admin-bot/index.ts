@@ -65,6 +65,30 @@ async function sendWaList(
   } catch (e) { console.error('SUPER_ADMIN_BOT send-list failed', e); }
 }
 
+/** Send up to 3 WhatsApp reply buttons (interactive_type: 'button'). */
+async function sendWaButtons(
+  phone: string,
+  bodyText: string,
+  buttons: Array<{ id: string; label: string }>,
+  trigger: string,
+) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        interactive_type: 'button',
+        interactive_body: bodyText,
+        buttons: buttons.slice(0, 3).map(b => ({ id: b.id, label: b.label.slice(0, 20) })),
+        fallback_text: bodyText,
+        trigger_type: trigger,
+      }),
+    });
+  } catch (e) { console.error('SUPER_ADMIN_BOT send-buttons failed', e); }
+}
+
 async function logEvent(dossierId: string | null, type: string, data: any) {
   if (!dossierId) return;
   try {
@@ -199,11 +223,59 @@ function daysAgo(iso: any): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
+/**
+ * Parse expéditeur / destinataire blocks out of the freeform `notes` field
+ * (created by the public SendFlow). The blocks look like:
+ *   — Expéditeur —
+ *   FULL NAME · +221 78 ... · email
+ *   adresse libre
+ *   — Destinataire —
+ *   FULL NAME · +33 ... · email
+ *   adresse libre
+ */
+function parseNotesContacts(notes?: string | null): {
+  sender_name?: string; sender_phone?: string; sender_email?: string; sender_address?: string;
+  recipient_name?: string; recipient_phone?: string; recipient_email?: string; recipient_address?: string;
+} {
+  const out: Record<string, string> = {};
+  if (!notes) return out;
+  const normHeader = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const lines = notes.split(/\r?\n/);
+  let current: 'sender' | 'recipient' | null = null;
+  let detailLine = 0;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const h = normHeader(line.replace(/[—–-]/g, '').trim());
+    if (h === 'expediteur' || h === 'expediteur :') { current = 'sender'; detailLine = 0; continue; }
+    if (h === 'destinataire' || h === 'destinataire :') { current = 'recipient'; detailLine = 0; continue; }
+    if (!current) continue;
+    // Stop on a new top-level section like "Profil:", "Type marchandise:" etc.
+    if (/^(profil|type marchandise|description|poids|valeur|transport|assurance|paiement|collecte|notes)\s*:/i.test(line)) {
+      current = null; continue;
+    }
+    detailLine += 1;
+    if (detailLine === 1) {
+      // "NAME · +PHONE · email"
+      const parts = line.split('·').map(s => s.trim()).filter(Boolean);
+      if (parts[0]) out[`${current}_name`] = parts[0];
+      for (const p of parts.slice(1)) {
+        if (/@/.test(p)) out[`${current}_email`] = p;
+        else if (/\d/.test(p)) out[`${current}_phone`] = p;
+      }
+    } else {
+      const prev = out[`${current}_address`];
+      out[`${current}_address`] = prev ? `${prev} ${line}` : line;
+    }
+  }
+  return out;
+}
+
 // =================================================================
 //  COMMAND: INFO {tracking}
 // =================================================================
 
-async function cmdInfo(tracking: string): Promise<string> {
+async function cmdInfo(tracking: string, phone?: string): Promise<string> {
   const sb = supa();
   const { data: d } = await sb
     .from('dossiers')
@@ -211,6 +283,15 @@ async function cmdInfo(tracking: string): Promise<string> {
     .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
     .maybeSingle();
   if (!d) return `Dossier ${tracking} introuvable.`;
+
+  // Fallback : extract contacts from freeform notes when DB columns are empty
+  const parsed = parseNotesContacts(d.notes);
+  const senderName = d.sender_name || d.buyer_name || parsed.sender_name || '—';
+  const senderPhone = d.sender_phone || d.contact_phone || d.buyer_contact || parsed.sender_phone || '—';
+  const senderAddress = d.sender_address || parsed.sender_address || '—';
+  const recipientName = d.recipient_name || parsed.recipient_name || '—';
+  const recipientPhone = d.recipient_phone || parsed.recipient_phone || '—';
+  const recipientAddress = d.recipient_address || parsed.recipient_address || '—';
 
   // GP
   let gpLine = 'Non assigne';
@@ -267,18 +348,18 @@ async function cmdInfo(tracking: string): Promise<string> {
   const originLabel = placeFr(d.origin_city, d.origin_country) || 'Dakar';
   // tracking est deja le param, pas besoin de redeclarer
 
-  return [
+  const text = [
     `DOSSIER ${tracking}`,
     `Cree le ${fmtDate(d.created_at)} · Source : ${d.source ?? '—'}`,
     '',
     'CLIENT :',
-    `${d.sender_name ?? d.buyer_name ?? '—'} · ${d.sender_phone ?? d.contact_phone ?? '—'}`,
-    `Collecte : ${d.sender_address ?? '—'}`,
+    `${senderName} · ${senderPhone}`,
+    `Collecte : ${senderAddress}`,
     `Zone : ${quartier}`,
     '',
     'DESTINATAIRE :',
-    `${d.recipient_name ?? '—'} · ${d.recipient_phone ?? '—'}`,
-    `${d.recipient_address ?? '—'}`,
+    `${recipientName} · ${recipientPhone}`,
+    `${recipientAddress}`,
     `${destLabel}`,
     '',
     'COLIS :',
@@ -304,6 +385,37 @@ async function cmdInfo(tracking: string): Promise<string> {
     `MSG ${tracking} · ASSIGNE ${tracking} GP`,
     `TRANSIT ${tracking} · LIVRE ${tracking}`,
   ].join('\n');
+
+  // Interactive reply buttons depending on current status (sent as a follow-up message)
+  if (phone) {
+    const status = String(d.status || '');
+    let buttons: Array<{ id: string; label: string }> | null = null;
+    if (status === 'ASSIGNED' || status === 'COLLECTING') {
+      buttons = [
+        { id: `SA_COLLECT:${tracking}`, label: '✅ Marquer collecté' },
+        { id: `SA_MSG:${tracking}`,     label: '💬 MSG client' },
+        { id: `SA_DETAILS:${tracking}`, label: '📋 Voir détails' },
+      ];
+    } else if (status === 'WEIGHED' || status === 'COLLECTED') {
+      buttons = [
+        { id: `SA_PAY:${tracking}`,     label: '💰 Demander paiement' },
+        { id: `SA_MSG:${tracking}`,     label: '💬 MSG client' },
+        { id: `SA_DETAILS:${tracking}`, label: '📋 Voir détails' },
+      ];
+    } else if (status === 'IN_TRANSIT' || status === 'DEPARTURE_CONFIRMED') {
+      buttons = [
+        { id: `SA_HUB:${tracking}`,       label: '✈️ Arrivé hub' },
+        { id: `SA_DELIVERED:${tracking}`, label: '📦 Marquer livré' },
+        { id: `SA_DETAILS:${tracking}`,   label: '📋 Voir détails' },
+      ];
+    }
+    if (buttons) {
+      // Best-effort, do not await blocking the main reply path
+      sendWaButtons(phone, `Action rapide — ${tracking}`, buttons, 'super_admin_dossier_actions').catch(() => {});
+    }
+  }
+
+  return text;
 }
 
 // =================================================================
@@ -1103,6 +1215,22 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     await clearSession(phone); return 'OK, session terminee. Tape MENU pour revenir.';
   }
 
+  // ----- Tap depuis un bouton interactif super-admin (id = SA_ACTION:TRACKING)
+  const btnMatch = text.match(/^SA_([A-Z_]+):([A-Z0-9-]+)$/);
+  if (btnMatch) {
+    const action = btnMatch[1];
+    const t = parseTracking(btnMatch[2]) ?? btnMatch[2];
+    if (action === 'COLLECT') return await cmdCollecte(t);
+    if (action === 'PAY')     return await cmdRelance(t);
+    if (action === 'HUB')     return await cmdTransit(t);
+    if (action === 'DELIVERED') return await cmdLivre(t);
+    if (action === 'DETAILS') return await cmdInfo(t, phone);
+    if (action === 'MSG') {
+      return `Pour envoyer un message au client du dossier ${t}, tapez :\n\nMSG ${t} votre message ici`;
+    }
+    return await cmdInfo(t, phone);
+  }
+
   // ----- Tap depuis une liste interactive (list_reply.id = tracking_id pur)
   // Court-circuite toute session pour renvoyer immediatement la fiche du dossier.
   const compact = text.replace(/\s+/g, '');
@@ -1115,7 +1243,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
         await clearSession(phone);
       }
     } catch (_) { /* noop */ }
-    return await cmdInfo(tapped);
+    return await cmdInfo(tapped, phone);
   }
 
   const session = await getSession(phone);
@@ -1142,7 +1270,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (/^dossier\s+/i.test(text)) {
     const t = parseTracking(text);
     if (!t) return 'Format: DOSSIER YOB-XXXXXX';
-    return await cmdInfo(t);
+    return await cmdInfo(t, phone);
   }
 
   // ----- Shortcuts: R/T/L/C YOB-XXXXXX
@@ -1187,11 +1315,11 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (upper.startsWith('INFO')) {
     const t = parseTracking(text) ?? parseTracking(session?.pending_data?.last_tracking ?? '');
     if (!t) return 'Format: INFO YOB-XXXXXX';
-    return await cmdInfo(t);
+    return await cmdInfo(t, phone);
   }
   const trackingAlone = parseTracking(text);
   if (trackingAlone && text.replace(/\s+/g, '').length <= 16) {
-    return await cmdInfo(trackingAlone);
+    return await cmdInfo(trackingAlone, phone);
   }
 
   // GP {ref|nom}
