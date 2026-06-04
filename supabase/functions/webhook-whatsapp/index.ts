@@ -105,7 +105,8 @@ Deno.serve(async (req) => {
             || '+221784604003'
           ).replace(/\D/g, '').replace(/^0+/, '');
           const cleanPhone = fromPhone.replace(/^0+/, '');
-          console.log('WEBHOOK RECEIVED:', fromPhone, phoneId, 'wamid=', wamid);
+          const __isAdmin = cleanPhone === SUPER_ADMIN || cleanPhone.endsWith('784604003');
+          console.log('[WH] From:', fromPhone, '| phoneId:', phoneId, '| isAdmin:', __isAdmin);
 
           if (cleanPhone === SUPER_ADMIN || cleanPhone.endsWith('784604003')) {
             // Extraire le corps du message AVANT de router
