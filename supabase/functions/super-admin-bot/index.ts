@@ -275,7 +275,7 @@ function parseNotesContacts(notes?: string | null): {
 //  COMMAND: INFO {tracking}
 // =================================================================
 
-async function cmdInfo(tracking: string): Promise<string> {
+async function cmdInfo(tracking: string, phone?: string): Promise<string> {
   const sb = supa();
   const { data: d } = await sb
     .from('dossiers')
@@ -283,6 +283,15 @@ async function cmdInfo(tracking: string): Promise<string> {
     .or(`tracking_id.eq.${tracking},reference.eq.${tracking}`)
     .maybeSingle();
   if (!d) return `Dossier ${tracking} introuvable.`;
+
+  // Fallback : extract contacts from freeform notes when DB columns are empty
+  const parsed = parseNotesContacts(d.notes);
+  const senderName = d.sender_name || d.buyer_name || parsed.sender_name || '—';
+  const senderPhone = d.sender_phone || d.contact_phone || d.buyer_contact || parsed.sender_phone || '—';
+  const senderAddress = d.sender_address || parsed.sender_address || '—';
+  const recipientName = d.recipient_name || parsed.recipient_name || '—';
+  const recipientPhone = d.recipient_phone || parsed.recipient_phone || '—';
+  const recipientAddress = d.recipient_address || parsed.recipient_address || '—';
 
   // GP
   let gpLine = 'Non assigne';
