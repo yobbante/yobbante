@@ -348,18 +348,18 @@ async function cmdInfo(tracking: string, phone?: string): Promise<string> {
   const originLabel = placeFr(d.origin_city, d.origin_country) || 'Dakar';
   // tracking est deja le param, pas besoin de redeclarer
 
-  return [
+  const text = [
     `DOSSIER ${tracking}`,
     `Cree le ${fmtDate(d.created_at)} · Source : ${d.source ?? '—'}`,
     '',
     'CLIENT :',
-    `${d.sender_name ?? d.buyer_name ?? '—'} · ${d.sender_phone ?? d.contact_phone ?? '—'}`,
-    `Collecte : ${d.sender_address ?? '—'}`,
+    `${senderName} · ${senderPhone}`,
+    `Collecte : ${senderAddress}`,
     `Zone : ${quartier}`,
     '',
     'DESTINATAIRE :',
-    `${d.recipient_name ?? '—'} · ${d.recipient_phone ?? '—'}`,
-    `${d.recipient_address ?? '—'}`,
+    `${recipientName} · ${recipientPhone}`,
+    `${recipientAddress}`,
     `${destLabel}`,
     '',
     'COLIS :',
@@ -385,6 +385,37 @@ async function cmdInfo(tracking: string, phone?: string): Promise<string> {
     `MSG ${tracking} · ASSIGNE ${tracking} GP`,
     `TRANSIT ${tracking} · LIVRE ${tracking}`,
   ].join('\n');
+
+  // Interactive reply buttons depending on current status (sent as a follow-up message)
+  if (phone) {
+    const status = String(d.status || '');
+    let buttons: Array<{ id: string; label: string }> | null = null;
+    if (status === 'ASSIGNED' || status === 'COLLECTING') {
+      buttons = [
+        { id: `SA_COLLECT:${tracking}`, label: '✅ Marquer collecté' },
+        { id: `SA_MSG:${tracking}`,     label: '💬 MSG client' },
+        { id: `SA_DETAILS:${tracking}`, label: '📋 Voir détails' },
+      ];
+    } else if (status === 'WEIGHED' || status === 'COLLECTED') {
+      buttons = [
+        { id: `SA_PAY:${tracking}`,     label: '💰 Demander paiement' },
+        { id: `SA_MSG:${tracking}`,     label: '💬 MSG client' },
+        { id: `SA_DETAILS:${tracking}`, label: '📋 Voir détails' },
+      ];
+    } else if (status === 'IN_TRANSIT' || status === 'DEPARTURE_CONFIRMED') {
+      buttons = [
+        { id: `SA_HUB:${tracking}`,       label: '✈️ Arrivé hub' },
+        { id: `SA_DELIVERED:${tracking}`, label: '📦 Marquer livré' },
+        { id: `SA_DETAILS:${tracking}`,   label: '📋 Voir détails' },
+      ];
+    }
+    if (buttons) {
+      // Best-effort, do not await blocking the main reply path
+      sendWaButtons(phone, `Action rapide — ${tracking}`, buttons, 'super_admin_dossier_actions').catch(() => {});
+    }
+  }
+
+  return text;
 }
 
 // =================================================================
