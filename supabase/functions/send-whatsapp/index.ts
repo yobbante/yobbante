@@ -37,6 +37,9 @@ interface SendPayload {
   dossier_id?: string;
   transporteur_id?: string;
   trigger_type?: string;
+  /** Override explicite du phone_number_id Meta utilise pour l'envoi. */
+  phone_id?: string;
+
   // legacy
   client_name?: string;
   service_type?: string;
