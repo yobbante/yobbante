@@ -254,8 +254,9 @@ export function GpImportDialog({
       parsed.forEach((r, idx) => {
         if (r.reference) {
           if (seenRef.has(r.reference)) {
-            r.errors.push(`Référence dupliquée dans le fichier (ligne ${parsed[seenRef.get(r.reference)!].excelRow})`);
-            r.status = 'error';
+            r.warnings.push(`Référence dupliquée dans le fichier (ligne ${parsed[seenRef.get(r.reference)!].excelRow}) — ignoré`);
+            r.duplicate = true;
+            if (r.status !== 'error') r.status = 'warning';
           } else {
             seenRef.set(r.reference, idx);
           }
