@@ -411,7 +411,7 @@ export function GpImportDialog({
                 </>
               )}
               <input
-                ref={fileRef} type="file" accept=".xlsx" className="hidden"
+                ref={fileRef} type="file" accept=".xlsx,.csv,text/csv" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) parseFile(f); }}
               />
             </div>
