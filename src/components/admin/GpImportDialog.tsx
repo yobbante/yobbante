@@ -522,7 +522,10 @@ export function GpImportDialog({
               <p className="text-[14px] font-semibold">Import terminé</p>
             </div>
             <p className="text-[13px] text-muted-foreground">
-              {result.imported} GP importés · {result.updated} mis à jour · {result.errors} erreurs
+              ✅ {result.imported} importés · 🔄 {result.updated} mis à jour · ⏭️ {result.skipped} ignorés (téléphone vide){result.errors > 0 ? ` · ❌ ${result.errors} erreurs` : ''}
+            </p>
+            <p className="text-[12px] text-muted-foreground italic">
+              Les informations manquantes peuvent être complétées via le bot WhatsApp ou manuellement dans la fiche GP.
             </p>
             <div className="border border-border rounded-lg p-4 space-y-3">
               <p className="text-[13px]">Souhaitez-vous envoyer les invitations Konnekt bêta maintenant ?</p>
