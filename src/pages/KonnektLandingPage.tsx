@@ -95,7 +95,10 @@ export default function KonnektLandingPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [done, setDone] = useState(false);
+  const [prefillNotice, setPrefillNotice] = useState<string | null>(null);
   const initialized = useRef(false);
+  const prefillTriedFor = useRef<string>("");
+
 
   /* Force light mode pendant qu'on est sur /konnekt */
   useEffect(() => {
