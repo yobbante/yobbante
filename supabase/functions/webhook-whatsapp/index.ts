@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  console.log('WA_WEBHOOK_IN', JSON.stringify(payload).slice(0, 500));
+  console.log('[WH] Request received:', req.method);
+  console.log('[WH] Body:', JSON.stringify(payload).slice(0, 800));
+  const __msgCount = (payload?.entry ?? []).reduce((s: number, e: any) => s + (e?.changes ?? []).reduce((ss: number, c: any) => ss + ((c?.value?.messages ?? []).length), 0), 0);
+  console.log('[WH] Messages count:', __msgCount);
 
   try {
     const entries = payload?.entry ?? [];
