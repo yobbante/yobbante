@@ -1435,6 +1435,7 @@ Voir : yobbante.com/admin`);
         const adminPhone = '+221784604003';
         await supa.functions.invoke('send-whatsapp', {
           body: {
+            phone_id: GP_BOT_PHONE_ID || undefined,
             recipient_phone: adminPhone,
             recipient_type: 'admin',
             message: `Tarif GP mis a jour\n${transporteur.prenom ?? ''} ${transporteur.nom ?? ''} (${transporteur.reference})\n${ville} : ${prix.toLocaleString('fr-FR')} FCFA/kg`,
@@ -1442,6 +1443,7 @@ Voir : yobbante.com/admin`);
             trigger_type: 'gp_rate_updated',
           },
         });
+
       } catch { /* best effort */ }
     }
     return new Response('ok', { headers: corsHeaders });
