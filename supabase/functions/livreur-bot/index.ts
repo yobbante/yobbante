@@ -1,4 +1,4 @@
-// livreur-bot — assistant WhatsApp pour les livreurs Dakar (122).
+// livreur-bot — assistant WhatsApp pour les livreurs Dakar (926).
 // Sans accents — caracteres simples uniquement.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Notif GP depuis 122
+    // Notif GP depuis 926
     if (d.assigned_transporteur_ref) {
       const { data: gp } = await supa
         .from('transporteurs')

@@ -1,9 +1,9 @@
 // gp-smart-invite — Envoie un message GP en respectant la fenetre 24h Meta.
 // Meta bloque les templates "hello_world" sur les numeros de production
 // (erreur #131058). On tente donc directement le texte libre :
-//   - si le GP a deja ecrit au 122 dans les 24h -> message envoye via API
+//   - si le GP a deja ecrit au 926 dans les 24h -> message envoye via API
 //   - sinon -> echec attendu, on bascule sur wa.me et on notifie l'admin
-//     en lui rappelant d'envoyer depuis le compte 122 (+221 78 926 97 56).
+//     en lui rappelant d'envoyer depuis le compte 926 (+221 78 926 97 56).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {

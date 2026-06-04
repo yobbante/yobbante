@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 3. WhatsApp GP (texte libre court — depuis le 122, via gp-smart-invite pour gerer la fenetre 24h)
+  // 3. WhatsApp GP (texte libre court — depuis le 926, via gp-smart-invite pour gerer la fenetre 24h)
   const gpMsg = [
     `Salam ${prenom} !`,
     ``,

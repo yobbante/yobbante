@@ -70,7 +70,7 @@ Deno.test({
     const { error: insErr } = await supa.from("whatsapp_inbound_messages").insert({
       from_phone: digits,
       from_name: "E2E Test",
-      to_number: "221781221891",
+      to_number: "221789269756",
       message_body: "AIDE",
       message_type: "text",
       channel: "gp",
