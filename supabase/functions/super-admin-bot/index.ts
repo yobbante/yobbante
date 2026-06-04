@@ -1631,7 +1631,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
-    const fromPhone = body.from_phone || '';
+    const fromPhone = normalizePhoneDigits(warnIfInvalidPhone(body.from_phone || '', 'super-admin-bot.from'));
 
     if (!isSuperAdminPhone(fromPhone)) {
       console.warn('SUPER_ADMIN_BOT rejected non-admin', fromPhone);
