@@ -1,6 +1,7 @@
 // gp-bot — assistant WhatsApp tolerant pour transporteurs Yobbanté (926).
 // Parser tolérant + conversation guidée + onboarding + alertes admin.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -185,7 +186,7 @@ Deno.serve(async (req) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  const fromPhone = input.from_phone;
+  const fromPhone = normalizePhoneDigits(warnIfInvalidPhone(input.from_phone, 'gp-bot.from'));
   const rawMsg = (input.message ?? '').trim();
   const msg = normalize(rawMsg);
 
