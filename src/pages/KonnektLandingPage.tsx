@@ -299,6 +299,14 @@ export default function KonnektLandingPage() {
                   </div>
                 )}
 
+                {prefillNotice && (
+                  <div className="flex items-start gap-3 mb-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <Check className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-emerald-900">{prefillNotice}</div>
+                  </div>
+                )}
+
+
                 {/* Nom */}
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Prénom" required error={showErr("first") ? errors.first : undefined}>
