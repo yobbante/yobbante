@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 type RowStatus = 'valid' | 'warning' | 'error';
 
 interface ParsedRow {
-  excelRow: number; // actual Excel row number for display
+  excelRow: number; // actual row number for display
   reference: string;
   prenom: string;
   nom: string;
@@ -29,6 +29,8 @@ interface ParsedRow {
   errors: string[];
   warnings: string[];
   duplicate?: boolean;
+  matchedById?: string; // id of an existing transporteur matched by ref or phone
+  matchedByPhone?: boolean;
 }
 
 const EXAMPLE_REFS = new Set(['2241', '1892', '3310']);
@@ -39,6 +41,16 @@ function normRef(v: any): string {
 }
 function s(v: any): string {
   return v === null || v === undefined ? '' : String(v).trim();
+}
+function normHeader(v: any): string {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+function phoneDigits(v: string): string {
+  return (v || '').replace(/\D/g, '');
 }
 function isPhoneSn(v: string): boolean {
   if (!v) return false;
@@ -51,18 +63,41 @@ function splitList(v: any): string[] {
   return t.split(',').map(x => x.trim()).filter(Boolean);
 }
 
+// Map a normalized header to a canonical field id.
+function headerToField(h: string): string | null {
+  if (!h) return null;
+  if (h === 'reference' || h === 'ref') return 'reference';
+  if (h === 'prenom') return 'prenom';
+  if (h === 'nom') return 'nom';
+  if (h === 'telephone1' || h === 'tel1' || h === 'telephoneprincipal') return 'telephone_1';
+  if (h === 'telephone2' || h === 'tel2' || h === 'telephonesecondaire') return 'telephone_2';
+  if (h === 'whatsapp' || h === 'wa') return 'whatsapp';
+  if (h === 'adresse1' || h === 'adresseprincipale') return 'adresse_1';
+  if (h === 'adresse2' || h === 'adressesecondaire') return 'adresse_2';
+  if (h === 'ville') return 'ville';
+  if (h === 'zone' || h === 'quartier') return 'zone';
+  if (h.startsWith('modes') || h.startsWith('mode')) return 'modes_transport';
+  if (h.startsWith('destinations') || h.startsWith('destination')) return 'destinations';
+  if (h === 'notes' || h === 'note' || h === 'commentaires' || h === 'commentaire') return 'notes';
+  return null;
+}
+
+
 type Step = 'upload' | 'preview' | 'progress' | 'done';
 
 export function GpImportDialog({
   open,
   onOpenChange,
   existingRefs,
+  existingByPhone,
   onAfterImport,
   onTriggerBlast,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   existingRefs: Set<string>;
+  /** Optional map of normalized phone digits → existing transporteur id (for dedupe by phone). */
+  existingByPhone?: Map<string, string>;
   onAfterImport: () => void;
   onTriggerBlast: () => void;
 }) {
@@ -88,59 +123,99 @@ export function GpImportDialog({
   };
 
   const parseFile = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      toast.error('Format invalide — fichier .xlsx requis');
+    const lname = file.name.toLowerCase();
+    const isCsv = lname.endsWith('.csv');
+    const isXlsx = lname.endsWith('.xlsx');
+    if (!isCsv && !isXlsx) {
+      toast.error('Format invalide — fichier .csv ou .xlsx requis');
       return;
     }
     setFilename(file.name);
     setFilesize(file.size);
     try {
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array' });
+      const wb = isCsv
+        ? XLSX.read(new TextDecoder('utf-8').decode(new Uint8Array(buf)), { type: 'string' })
+        : XLSX.read(buf, { type: 'array' });
       const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('base gp')) ?? wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const matrix: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
 
+      // Find the header row by scanning the first ~15 rows for one containing
+      // both a "reference" cell and a "prenom" cell (after normalization).
+      let headerRowIdx = -1;
+      let colMap: Record<string, number> = {};
+      const maxScan = Math.min(matrix.length, 15);
+      for (let i = 0; i < maxScan; i++) {
+        const row = matrix[i] ?? [];
+        const m: Record<string, number> = {};
+        for (let c = 0; c < row.length; c++) {
+          const f = headerToField(normHeader(row[c]));
+          if (f && !(f in m)) m[f] = c;
+        }
+        if ('reference' in m && 'prenom' in m && 'telephone_1' in m) {
+          headerRowIdx = i;
+          colMap = m;
+          break;
+        }
+      }
+      if (headerRowIdx === -1) {
+        toast.error('En-têtes introuvables. Colonnes attendues : Référence, Prénom, Nom, Téléphone 1…');
+        return;
+      }
+
+      const get = (row: any[], field: string) => {
+        const idx = colMap[field];
+        return idx == null ? '' : row[idx];
+      };
+
       const parsed: ParsedRow[] = [];
       let emptyStreak = 0;
-      // Start from row index 6 (Excel row 7)
-      for (let i = 6; i < matrix.length; i++) {
+      for (let i = headerRowIdx + 1; i < matrix.length; i++) {
         const row = matrix[i] ?? [];
-        const ref = normRef(row[0]);
-        if (!ref) {
+        const ref = normRef(get(row, 'reference'));
+        const tel1Raw = s(get(row, 'telephone_1'));
+        if (!ref && !tel1Raw) {
           emptyStreak += 1;
           if (emptyStreak >= 3) break;
           continue;
         }
         emptyStreak = 0;
-        if (EXAMPLE_REFS.has(ref) && i < 9) continue; // skip example rows in 7..9 area
+        if (ref && EXAMPLE_REFS.has(ref) && i <= headerRowIdx + 3) continue;
 
-        const prenom = s(row[1]);
-        const nom = s(row[2]);
-        const tel1 = s(row[3]);
-        const tel2 = s(row[4]);
-        const wha  = s(row[5]);
-        const adr1 = s(row[6]);
-        const adr2 = s(row[7]);
-        const ville= s(row[8]);
-        const zone = s(row[9]);
-        const modes = splitList(row[10]);
-        const dests = splitList(row[11]);
-        const notes = s(row[12]);
+        const prenom = s(get(row, 'prenom'));
+        const nom = s(get(row, 'nom'));
+        const tel1 = tel1Raw;
+        const tel2 = s(get(row, 'telephone_2'));
+        const wha  = s(get(row, 'whatsapp'));
+        const adr1 = s(get(row, 'adresse_1'));
+        const adr2 = s(get(row, 'adresse_2'));
+        const ville= s(get(row, 'ville'));
+        const zone = s(get(row, 'zone'));
+        const modes = splitList(get(row, 'modes_transport'));
+        const dests = splitList(get(row, 'destinations'));
+        const notes = s(get(row, 'notes'));
 
         const errors: string[] = [];
         const warnings: string[] = [];
 
-        if (!/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
+        if (ref && !/^[0-9]{4}$/.test(ref)) errors.push('Référence invalide (4 chiffres requis)');
         if (!prenom) errors.push('Prénom manquant');
         if (!nom) errors.push('Nom manquant');
         if (!tel1) errors.push('Téléphone manquant');
-        else if (!isPhoneSn(tel1)) errors.push('Téléphone invalide (format incorrect)');
-        if (!adr1) errors.push('Adresse manquante');
-        if (!ville) errors.push('Ville manquante');
+        else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel');
+        if (!adr1) warnings.push('Adresse manquante');
+        if (!ville) warnings.push('Ville manquante');
 
-        const duplicate = existingRefs.has(ref);
-        if (duplicate) warnings.push(`Référence ${ref} déjà existante en base`);
+        // Dedupe : reference OU téléphone_1
+        const phoneKey = phoneDigits(tel1).slice(-9);
+        const matchedByRef = !!ref && existingRefs.has(ref);
+        const matchedById = matchedByRef
+          ? undefined
+          : (phoneKey && existingByPhone?.get(phoneKey)) || undefined;
+        const duplicate = matchedByRef || !!matchedById;
+        if (matchedByRef) warnings.push(`Référence ${ref} déjà existante en base`);
+        else if (matchedById) warnings.push('Téléphone déjà existant en base (sera mis à jour)');
         if (!wha && tel1) warnings.push('WhatsApp non renseigné (utilisera le téléphone principal)');
 
         let status: RowStatus = 'valid';
@@ -153,21 +228,37 @@ export function GpImportDialog({
           telephone_1: tel1, telephone_2: tel2 || null,
           whatsapp: wha || null,
           adresse_1: adr1, adresse_2: adr2 || null,
-          ville, zone: zone || null,
+          ville: ville || 'Dakar', zone: zone || null,
           modes_transport: modes, destinations: dests,
           notes: notes || null,
           status, errors, warnings, duplicate,
+          matchedById,
+          matchedByPhone: !!matchedById,
         });
       }
 
-      // detect intra-file duplicates
-      const seen = new Map<string, number>();
+
+
+      // detect intra-file duplicates by reference OR phone
+      const seenRef = new Map<string, number>();
+      const seenPhone = new Map<string, number>();
       parsed.forEach((r, idx) => {
-        if (seen.has(r.reference)) {
-          r.errors.push(`Référence dupliquée dans le fichier (ligne ${seen.get(r.reference)! + 7})`);
-          r.status = 'error';
-        } else {
-          seen.set(r.reference, idx);
+        if (r.reference) {
+          if (seenRef.has(r.reference)) {
+            r.errors.push(`Référence dupliquée dans le fichier (ligne ${parsed[seenRef.get(r.reference)!].excelRow})`);
+            r.status = 'error';
+          } else {
+            seenRef.set(r.reference, idx);
+          }
+        }
+        const pk = phoneDigits(r.telephone_1).slice(-9);
+        if (pk) {
+          if (seenPhone.has(pk)) {
+            r.errors.push(`Téléphone dupliqué dans le fichier (ligne ${parsed[seenPhone.get(pk)!].excelRow})`);
+            r.status = 'error';
+          } else {
+            seenPhone.set(pk, idx);
+          }
         }
       });
 
@@ -180,7 +271,8 @@ export function GpImportDialog({
     } catch (e: any) {
       toast.error(`Erreur de lecture : ${e?.message ?? 'fichier illisible'}`);
     }
-  }, [existingRefs]);
+  }, [existingRefs, existingByPhone]);
+
 
   const counts = useMemo(() => {
     const valid = rows.filter(r => r.status === 'valid').length;
@@ -221,9 +313,11 @@ export function GpImportDialog({
 
       try {
         if (r.duplicate) {
-          const { error } = await supabase
-            .from('transporteurs' as any)
-            .update(payload).eq('reference', r.reference);
+          // Update by id (matched-by-phone) when available, otherwise by reference
+          const query = supabase.from('transporteurs' as any).update(payload);
+          const { error } = r.matchedById
+            ? await query.eq('id', r.matchedById)
+            : await query.eq('reference', r.reference);
           if (error) throw error;
           updated += 1;
         } else {
@@ -236,6 +330,7 @@ export function GpImportDialog({
       } catch (e) {
         errors += 1;
       }
+
       setProgress({ current: i + 1, total: importable.length });
     }
 
@@ -280,7 +375,7 @@ export function GpImportDialog({
           </DialogTitle>
           {step === 'upload' && (
             <DialogDescription>
-              Fichier Excel (.xlsx) au format template Yobbanté.
+              Fichier Excel (.xlsx) ou CSV (.csv) — colonnes : Référence, Prénom, Nom, Téléphone 1, Téléphone 2, WhatsApp, Adresse 1, Adresse 2, Ville, Zone, Modes, Destinations, Notes.
             </DialogDescription>
           )}
         </DialogHeader>
@@ -306,7 +401,7 @@ export function GpImportDialog({
               <FileSpreadsheet className="mx-auto mb-3" size={32} color={filename ? '#22C55E' : '#AAAAAA'} />
               {!filename ? (
                 <>
-                  <p className="text-[14px]" style={{ color: '#AAAAAA' }}>Glissez votre fichier Excel ici</p>
+                  <p className="text-[14px]" style={{ color: '#AAAAAA' }}>Glissez votre fichier Excel ou CSV ici</p>
                   <p className="text-[12px] mt-1 font-mono" style={{ color: '#555555' }}>ou cliquez pour sélectionner</p>
                 </>
               ) : (
@@ -316,7 +411,7 @@ export function GpImportDialog({
                 </>
               )}
               <input
-                ref={fileRef} type="file" accept=".xlsx" className="hidden"
+                ref={fileRef} type="file" accept=".xlsx,.csv,text/csv" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) parseFile(f); }}
               />
             </div>
