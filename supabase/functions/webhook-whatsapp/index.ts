@@ -513,6 +513,7 @@ Deno.serve(async (req) => {
               console.error('WA_ERROR bot-client fetch', e);
             }
         }
+        }
       }
     }
   } catch (e) {
