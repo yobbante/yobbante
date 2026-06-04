@@ -1215,6 +1215,22 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     await clearSession(phone); return 'OK, session terminee. Tape MENU pour revenir.';
   }
 
+  // ----- Tap depuis un bouton interactif super-admin (id = SA_ACTION:TRACKING)
+  const btnMatch = text.match(/^SA_([A-Z_]+):([A-Z0-9-]+)$/);
+  if (btnMatch) {
+    const action = btnMatch[1];
+    const t = parseTracking(btnMatch[2]) ?? btnMatch[2];
+    if (action === 'COLLECT') return await cmdCollecte(t);
+    if (action === 'PAY')     return await cmdRelance(t);
+    if (action === 'HUB')     return await cmdTransit(t);
+    if (action === 'DELIVERED') return await cmdLivre(t);
+    if (action === 'DETAILS') return await cmdInfo(t, phone);
+    if (action === 'MSG') {
+      return `Pour envoyer un message au client du dossier ${t}, tapez :\n\nMSG ${t} votre message ici`;
+    }
+    return await cmdInfo(t, phone);
+  }
+
   // ----- Tap depuis une liste interactive (list_reply.id = tracking_id pur)
   // Court-circuite toute session pour renvoyer immediatement la fiche du dossier.
   const compact = text.replace(/\s+/g, '');
@@ -1227,7 +1243,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
         await clearSession(phone);
       }
     } catch (_) { /* noop */ }
-    return await cmdInfo(tapped);
+    return await cmdInfo(tapped, phone);
   }
 
   const session = await getSession(phone);
