@@ -430,7 +430,16 @@ Deno.serve(async (req) => {
 5 - Changer statut
 6 - Contacter un GP
 
-Tapez le numero, ou STOP pour quitter.`;
+— ADMIN KONNEKT —
+K · Tableau de bord
+BETA · GPs en attente validation
+VALIDE {ref} · Valider GP beta
+REJETTE {ref} · Rejeter GP beta
+GPS · Derniers inscrits
+DEPARTS926 · Departs de la semaine
+SYNC {ref} · Synchroniser GP
+
+Tapez la commande, ou STOP pour quitter.`;
 
     async function saReply(text: string) {
       await sendWa({
