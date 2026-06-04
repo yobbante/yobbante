@@ -1387,7 +1387,10 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   const isStatusWord = ['status', 'statut', 'statuts'].includes(norm);
 
   // Ping de test : permet de verifier le routing sans declencher le menu.
-  if (lower === 'ping') return 'pong ✓ Super admin OK';
+  if (lower === 'ping') {
+    auditSa(phone, 'PING').catch(() => {});
+    return 'pong ✓ Super admin OK (607)';
+  }
 
   if (['menu', 'aide', 'help', 'bonjour', 'salut', 'start'].includes(lower)) {
     await clearSession(phone); return MENU;
@@ -1395,6 +1398,28 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
   if (['stop', 'annuler', 'cancel', 'sortir'].includes(lower)) {
     await clearSession(phone); return 'OK, session terminee. Tape MENU pour revenir.';
   }
+
+  // ----- KONNEKT / BETA / VALIDE / REJETTE / SYNC / GPS / DEPARTS926
+  // Acceptes en texte ou via boutons interactifs (id = SA_K, SA_BETA:n, ...)
+  if (/^(k|konnekt|SA_K)$/i.test(text)) return await cmdKonnekt(phone);
+  {
+    const mB = text.match(/^beta(?:\s+(\d+))?$/i) || text.match(/^SA_BETA(?::(\d+))?$/i);
+    if (mB) return await cmdBeta(phone, parseInt(mB[1] || '1', 10) || 1);
+  }
+  {
+    const mV = text.match(/^valide\s+(GP\s*\d+.*)$/i) || text.match(/^SA_VALIDE:(.+)$/i);
+    if (mV) return await cmdValideBeta(phone, mV[1]);
+  }
+  {
+    const mR = text.match(/^rejette\s+(.+)$/i) || text.match(/^SA_REJETTE:(.+)$/i);
+    if (mR) return await cmdRejetteBeta(phone, mR[1]);
+  }
+  {
+    const mS = text.match(/^sync\s+(.+)$/i) || text.match(/^SA_SYNC:(.+)$/i);
+    if (mS) return await cmdSyncGp(phone, mS[1]);
+  }
+  if (/^(gps|SA_GPS)$/i.test(text)) return await cmdGpsList(phone);
+  if (/^departs?926$/i.test(text) || /^SA_DEPARTS$/i.test(text)) return await cmdDepartsSemaine(phone);
 
   // ----- Tap depuis un bouton interactif super-admin (id = SA_ACTION:TRACKING)
   const btnMatch = text.match(/^SA_([A-Z_]+):([A-Z0-9-]+)$/);
@@ -1411,6 +1436,7 @@ async function handleMessage(phone: string, raw: string): Promise<string> {
     }
     return await cmdInfo(t, phone);
   }
+
 
   // ----- Tap depuis une liste interactive (list_reply.id = tracking_id pur)
   // Court-circuite toute session pour renvoyer immediatement la fiche du dossier.
