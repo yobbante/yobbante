@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  console.log('WA_WEBHOOK_IN', JSON.stringify(payload).slice(0, 500));
+  console.log('[WH] Request received:', req.method);
+  console.log('[WH] Body:', JSON.stringify(payload).slice(0, 800));
+  const __msgCount = (payload?.entry ?? []).reduce((s: number, e: any) => s + (e?.changes ?? []).reduce((ss: number, c: any) => ss + ((c?.value?.messages ?? []).length), 0), 0);
+  console.log('[WH] Messages count:', __msgCount);
 
   try {
     const entries = payload?.entry ?? [];
@@ -102,7 +105,8 @@ Deno.serve(async (req) => {
             || '+221784604003'
           ).replace(/\D/g, '').replace(/^0+/, '');
           const cleanPhone = fromPhone.replace(/^0+/, '');
-          console.log('WEBHOOK RECEIVED:', fromPhone, phoneId, 'wamid=', wamid);
+          const __isAdmin = cleanPhone === SUPER_ADMIN || cleanPhone.endsWith('784604003');
+          console.log('[WH] From:', fromPhone, '| phoneId:', phoneId, '| isAdmin:', __isAdmin);
 
           if (cleanPhone === SUPER_ADMIN || cleanPhone.endsWith('784604003')) {
             // Extraire le corps du message AVANT de router
