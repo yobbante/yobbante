@@ -203,9 +203,9 @@ export function GpImportDialog({
         if (ref && !/^[0-9]{4}$/.test(ref)) warnings.push('Référence : format inhabituel (4 chiffres attendus)');
         if (!prenom) warnings.push('Prénom manquant — à compléter plus tard');
         if (!nom) warnings.push('Nom manquant — à compléter plus tard');
-        // Seule obligation : avoir au moins Téléphone 1 OU Référence
+        // Aucun champ bloquant : tout est importé, même sans téléphone ni référence
         if (!tel1 && !ref) {
-          errors.push('Téléphone 1 ET Référence manquants (au moins un requis)');
+          warnings.push('Téléphone 1 ET Référence manquants — à compléter plus tard');
         } else if (!tel1) {
           warnings.push('Téléphone 1 manquant — à compléter plus tard');
         } else if (!isPhoneSn(tel1)) {
