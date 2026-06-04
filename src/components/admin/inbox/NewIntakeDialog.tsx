@@ -634,12 +634,12 @@ Merci de votre confiance.`;
               <h3 className="text-base font-semibold">Qui est le client ?</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Nom complet *</Label>
-                  <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
-                </div>
-                <div>
                   <Label className="text-xs">WhatsApp *</Label>
                   <Input value={data.client_phone} onChange={e => update({ client_phone: e.target.value })} placeholder="+221 …" />
+                </div>
+                <div>
+                  <Label className="text-xs">Nom complet *</Label>
+                  <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
                 </div>
                 <div>
                   <Label className="text-xs">Email</Label>
@@ -650,6 +650,40 @@ Merci de votre confiance.`;
                   <Input value={data.client_city} onChange={e => update({ client_city: e.target.value })} placeholder="Dakar" />
                 </div>
               </div>
+
+              {clientLookupLoading && (
+                <p className="text-[11px] text-muted-foreground">Recherche client…</p>
+              )}
+              {clientMatch && (
+                <Card className="p-3 border-primary/40 bg-primary/5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                    <div>
+                      <div className="font-medium">Client connu — {clientMatch.name || 'sans nom'}</div>
+                      <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                        <History className="w-3 h-3" />
+                        {clientMatch.dossier_count} dossier{clientMatch.dossier_count > 1 ? 's' : ''}
+                        {clientMatch.last_dossier_ref && ` · dernier ${clientMatch.last_dossier_ref}`}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => update({
+                      client_name: data.client_name || clientMatch.name || '',
+                      client_email: data.client_email || clientMatch.email || '',
+                    })}
+                  >
+                    Pré-remplir
+                  </Button>
+                </Card>
+              )}
+              {data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
+                <Badge variant="secondary" className="text-[11px]">Nouveau client</Badge>
+              )}
+
               <RadioGroup
                 value={data.client_type}
                 onValueChange={(v: any) => update({ client_type: v })}
