@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { normalizePhone, isValidPhone } from '@/lib/phone';
 
 type RowStatus = 'valid' | 'warning' | 'error';
 
@@ -53,9 +54,8 @@ function phoneDigits(v: string): string {
   return (v || '').replace(/\D/g, '');
 }
 function isPhoneSn(v: string): boolean {
-  if (!v) return false;
-  const c = v.replace(/[\s.-]/g, '');
-  return /^\+221[0-9]{9}$/.test(c) || /^00221[0-9]{9}$/.test(c) || /^7[05-8][0-9]{7}$/.test(c);
+  // Validation post-normalisation : on accepte tout numéro valide E.164 (>=10 digits).
+  return isValidPhone(v);
 }
 function splitList(v: any): string[] {
   const t = s(v);
@@ -185,9 +185,10 @@ export function GpImportDialog({
 
         const prenom = s(get(row, 'prenom'));
         const nom = s(get(row, 'nom'));
-        const tel1 = tel1Raw;
-        const tel2 = s(get(row, 'telephone_2'));
-        const wha  = s(get(row, 'whatsapp'));
+        // NORMALISATION téléphones : appliquée AVANT validation et insertion
+        const tel1 = normalizePhone(tel1Raw);
+        const tel2 = normalizePhone(s(get(row, 'telephone_2')));
+        const wha  = normalizePhone(s(get(row, 'whatsapp')));
         const adr1 = s(get(row, 'adresse_1'));
         const adr2 = s(get(row, 'adresse_2'));
         const ville= s(get(row, 'ville'));
@@ -204,6 +205,8 @@ export function GpImportDialog({
         if (!nom) warnings.push('Nom manquant — à compléter plus tard');
         if (!tel1) errors.push('Téléphone 1 manquant (obligatoire)');
         else if (!isPhoneSn(tel1)) warnings.push('Téléphone : format inhabituel (importé tel quel)');
+        if (tel2 && !isPhoneSn(tel2)) warnings.push('Téléphone 2 : format inhabituel');
+        if (wha && !isPhoneSn(wha)) warnings.push('WhatsApp : format inhabituel');
         if (!adr1) warnings.push('Adresse manquante — à compléter plus tard');
         if (!ville) warnings.push('Ville manquante — à compléter plus tard');
 

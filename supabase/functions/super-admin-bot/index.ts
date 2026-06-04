@@ -2,6 +2,7 @@
 // SUPER ADMIN BOT (+221784604003) — pouvoirs etendus depuis WhatsApp.
 // Commandes : INFO, GP, STATS, URGENTS, DEPART, ASSIGN, MSG, PAYER + wizard "1".
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1630,7 +1631,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
-    const fromPhone = body.from_phone || '';
+    const fromPhone = normalizePhoneDigits(warnIfInvalidPhone(body.from_phone || '', 'super-admin-bot.from'));
 
     if (!isSuperAdminPhone(fromPhone)) {
       console.warn('SUPER_ADMIN_BOT rejected non-admin', fromPhone);

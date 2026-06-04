@@ -11,8 +11,12 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
+
 function normalizePhone(input?: string | null): string {
-  return (input || '').toString().replace(/\D/g, '');
+  // Normalisation SN-aware (00221 / 221 / 7X local / 3X local), retour digits-only
+  // pour conserver la compat des clés de session existantes.
+  return normalizePhoneDigits(warnIfInvalidPhone(input, 'webhook.from'));
 }
 
 Deno.serve(async (req) => {
