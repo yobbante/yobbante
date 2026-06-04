@@ -108,7 +108,7 @@ export function GpImportDialog({
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [duplicateMode, setDuplicateMode] = useState<'skip' | 'update'>('update');
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [result, setResult] = useState<{ imported: number; updated: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; updated: number; skipped: number; errors: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
