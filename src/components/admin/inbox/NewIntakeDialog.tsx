@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ import {
   type IntakeSource, type ServiceKind,
 } from '@/lib/intakeSources';
 import { useIntakeDraft } from '@/hooks/useIntakeDraft';
+import { calculerFraisEnlevement } from '@/lib/dakarZones';
+import { Badge } from '@/components/ui/badge';
+import { History, UserCheck } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -240,6 +243,48 @@ function DepartureStep({ data, update }: { data: IntakeData; update: (p: Partial
   );
 }
 
+type ClientMatch = {
+  name: string | null;
+  email: string | null;
+  dossier_count: number;
+  last_dossier_ref: string | null;
+};
+
+function useClientLookup(phone: string) {
+  const [match, setMatch] = useState<ClientMatch | null>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const digits = (phone || '').replace(/\D/g, '');
+    if (digits.length < 8) { setMatch(null); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const like = `%${digits.slice(-9)}%`;
+        const { data: rows } = await supabase
+          .from('dossiers')
+          .select('reference, buyer_name, contact_email, contact_phone, created_at')
+          .ilike('contact_phone', like)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (cancelled) return;
+        if (!rows || rows.length === 0) { setMatch(null); return; }
+        const last = rows[0] as any;
+        setMatch({
+          name: last.buyer_name ?? null,
+          email: last.contact_email ?? null,
+          dossier_count: rows.length,
+          last_dossier_ref: last.reference ?? null,
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [phone]);
+  return { match, loading };
+}
+
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -249,6 +294,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const qc = useQueryClient();
+  const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
 
   useEffect(() => {
     if (open && hasExisting && !resumePromptShown) {
@@ -283,7 +329,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     return true;
   }, [step, data]);
 
-  const calculatePrice = async () => {
+  const calculatePrice = useCallback(async () => {
     if (data.service_kind !== 'envoi') {
       setEstimatedPrice(null);
       return;
@@ -300,7 +346,20 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       p_destination_city: data.destination_city,
     });
     if (q && q[0]) setEstimatedPrice(Math.round(q[0].price_eur));
-  };
+  }, [data.service_kind, data.weight_kg, data.destination_city, data.transport_mode, data.origin_city]);
+
+  useEffect(() => {
+    if (data.service_kind !== 'envoi' || data.price_mode !== 'auto') return;
+    const t = setTimeout(() => { calculatePrice(); }, 500);
+    return () => clearTimeout(t);
+  }, [data.service_kind, data.price_mode, data.weight_kg, data.destination_city, data.transport_mode, data.origin_city, calculatePrice]);
+
+  const zoneCollecte = useMemo(() => {
+    if (data.service_kind !== 'envoi') return null;
+    const addr = data.client_city || data.origin_city;
+    if (!addr) return null;
+    return calculerFraisEnlevement(addr);
+  }, [data.service_kind, data.client_city, data.origin_city]);
 
   const handleSave = async (sendWhatsApp: boolean) => {
     setSaving(true);
@@ -575,12 +634,12 @@ Merci de votre confiance.`;
               <h3 className="text-base font-semibold">Qui est le client ?</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Nom complet *</Label>
-                  <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
-                </div>
-                <div>
                   <Label className="text-xs">WhatsApp *</Label>
                   <Input value={data.client_phone} onChange={e => update({ client_phone: e.target.value })} placeholder="+221 …" />
+                </div>
+                <div>
+                  <Label className="text-xs">Nom complet *</Label>
+                  <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
                 </div>
                 <div>
                   <Label className="text-xs">Email</Label>
@@ -591,6 +650,40 @@ Merci de votre confiance.`;
                   <Input value={data.client_city} onChange={e => update({ client_city: e.target.value })} placeholder="Dakar" />
                 </div>
               </div>
+
+              {clientLookupLoading && (
+                <p className="text-[11px] text-muted-foreground">Recherche client…</p>
+              )}
+              {clientMatch && (
+                <Card className="p-3 border-primary/40 bg-primary/5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                    <div>
+                      <div className="font-medium">Client connu — {clientMatch.name || 'sans nom'}</div>
+                      <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                        <History className="w-3 h-3" />
+                        {clientMatch.dossier_count} dossier{clientMatch.dossier_count > 1 ? 's' : ''}
+                        {clientMatch.last_dossier_ref && ` · dernier ${clientMatch.last_dossier_ref}`}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => update({
+                      client_name: data.client_name || clientMatch.name || '',
+                      client_email: data.client_email || clientMatch.email || '',
+                    })}
+                  >
+                    Pré-remplir
+                  </Button>
+                </Card>
+              )}
+              {data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
+                <Badge variant="secondary" className="text-[11px]">Nouveau client</Badge>
+              )}
+
               <RadioGroup
                 value={data.client_type}
                 onValueChange={(v: any) => update({ client_type: v })}
@@ -655,6 +748,34 @@ Merci de votre confiance.`;
                     <Input type="number" value={data.declared_value} onChange={e => update({ declared_value: e.target.value })} /></div>
                   <div><Label className="text-xs">Date souhaitée</Label>
                     <Input type="date" value={data.desired_date} onChange={e => update({ desired_date: e.target.value })} /></div>
+
+                  <div className="col-span-2 grid grid-cols-2 gap-3">
+                    <Card className="p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Estimation auto</div>
+                      <div className="text-lg font-semibold mt-0.5">
+                        {estimatedPrice != null ? `${estimatedPrice} €` : '—'}
+                        {estimatedPrice != null && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (≈ {Math.round(estimatedPrice * 655.957).toLocaleString('fr-FR')} XOF)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Mise à jour automatique (poids + destination)
+                      </p>
+                    </Card>
+                    <Card className="p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Zone collecte</div>
+                      <div className="text-sm font-medium mt-0.5">
+                        {zoneCollecte ? zoneCollecte.message : 'Saisir la ville client'}
+                      </div>
+                      {zoneCollecte && zoneCollecte.surcharge > 0 && (
+                        <Badge variant="outline" className="mt-1 text-[11px]">
+                          + {zoneCollecte.surcharge.toLocaleString('fr-FR')} FCFA
+                        </Badge>
+                      )}
+                    </Card>
+                  </div>
                 </div>
               )}
 

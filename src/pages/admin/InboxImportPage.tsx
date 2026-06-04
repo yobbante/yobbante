@@ -172,6 +172,25 @@ export default function InboxImportPage() {
     }
   };
 
+  const downloadTemplate = () => {
+    const headers = [
+      'Référence', 'Nom du client', 'Téléphone', 'Email',
+      'Type', 'Origine', 'Destination', 'Poids (kg)',
+      'Montant', 'Devise', 'Date', 'Statut',
+      'Description', 'Notes', 'Canal',
+    ];
+    const example = [
+      'YBT-2024-001', 'Awa Diop', '+221771234567', 'awa@example.com',
+      'envoi', 'Paris', 'Dakar', '5',
+      '45000', 'XOF', '2024-06-01', 'livré',
+      'Vêtements', 'Livré au quartier Mermoz', 'whatsapp',
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dossiers');
+    XLSX.writeFile(wb, 'yobbante-template-import.xlsx');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-5">
@@ -179,12 +198,15 @@ export default function InboxImportPage() {
           <Link to="/admin/inbox" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> Retour à l'Inbox
           </Link>
+          <Button variant="outline" size="sm" onClick={downloadTemplate}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> Télécharger le template
+          </Button>
         </div>
 
         <div>
           <h1 className="text-2xl font-semibold">📚 Import historique Excel</h1>
           <p className="text-sm text-muted-foreground">
-            Importez votre fichier .xlsx ou .csv contenant les commandes historiques.
+            Importez votre fichier .xlsx ou .csv. Téléchargez le template pour voir les colonnes attendues.
           </p>
         </div>
 
