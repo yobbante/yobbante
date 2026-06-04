@@ -289,12 +289,15 @@ export function GpImportDialog({
   const confirmImport = async () => {
     setStep('progress');
     setProgress({ current: 0, total: importable.length });
-    let imported = 0, updated = 0, errors = 0;
+    let imported = 0, updated = 0, skipped = 0, errors = 0;
+
+    // Count rows ignored because phone is empty (the only blocking field)
+    skipped = rows.filter(r => !r.telephone_1).length;
 
     for (let i = 0; i < importable.length; i++) {
       const r = importable[i];
       const fullName = `${r.prenom} ${r.nom}`.trim();
-      const payload = {
+      const fullPayload: Record<string, any> = {
         reference: r.reference,
         nom: fullName,
         prenom: r.prenom,
@@ -313,8 +316,15 @@ export function GpImportDialog({
 
       try {
         if (r.duplicate) {
-          // Update by id (matched-by-phone) when available, otherwise by reference
-          const query = supabase.from('transporteurs' as any).update(payload);
+          // UPDATE — only with non-empty fields, never overwrite existing data with blanks
+          const partial: Record<string, any> = { actif: true };
+          for (const [k, v] of Object.entries(fullPayload)) {
+            if (v === null || v === undefined) continue;
+            if (typeof v === 'string' && v.trim() === '') continue;
+            if (Array.isArray(v) && v.length === 0) continue;
+            partial[k] = v;
+          }
+          const query = supabase.from('transporteurs' as any).update(partial);
           const { error } = r.matchedById
             ? await query.eq('id', r.matchedById)
             : await query.eq('reference', r.reference);
@@ -323,7 +333,7 @@ export function GpImportDialog({
         } else {
           const { error } = await supabase
             .from('transporteurs' as any)
-            .insert({ ...payload, konnekt_registered: false });
+            .insert({ ...fullPayload, konnekt_registered: false });
           if (error) throw error;
           imported += 1;
         }
@@ -344,7 +354,7 @@ export function GpImportDialog({
       });
     } catch {}
 
-    setResult({ imported, updated, errors });
+    setResult({ imported, updated, skipped, errors });
     setStep('done');
     onAfterImport();
   };
