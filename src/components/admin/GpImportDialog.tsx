@@ -432,6 +432,9 @@ export function GpImportDialog({
             >
               <Download className="w-3 h-3" /> Télécharger le template vide →
             </button>
+            <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+              ℹ️ Seul le téléphone est obligatoire. Les informations manquantes (nom, adresse, ville…) peuvent être complétées via le bot WhatsApp ou manuellement dans la fiche GP.
+            </p>
           </div>
         )}
 
