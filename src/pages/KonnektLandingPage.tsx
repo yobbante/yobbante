@@ -17,6 +17,7 @@ import {
   MapPin, Calendar, Scale, Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatStatusLabel, formatDateFR } from "@/lib/statusLabels";
 
 /* ───────── Data ───────── */
 
