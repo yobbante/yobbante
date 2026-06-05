@@ -690,13 +690,13 @@ export function TransporteursTab() {
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const link = buildBotWaUrl(t);
+                        const link = buildKonnektInviteWaUrl(t);
                         try {
                           await navigator.clipboard.writeText(link);
-                          toast.success(`Lien wa.me copié — à envoyer depuis le 122 (${YOBBANTE_GP_WHATSAPP_DISPLAY})`);
+                          toast.success('Lien WhatsApp d\'invitation GP copié');
                         } catch { toast.error('Copie impossible'); }
                       }}>
-                        <Copy className="w-4 h-4 mr-2" /> Copier le lien wa.me (depuis 122)
+                        <Copy className="w-4 h-4 mr-2" /> Copier le lien WhatsApp d'invitation GP
                       </DropdownMenuItem>
                       <DropdownMenuItem disabled={testingId === t.id} onClick={() => sendTestWhatsApp(t)}>
                         <Activity className="w-4 h-4 mr-2" /> {testingId === t.id ? 'Test en cours…' : "Tester l'envoi WhatsApp"}
