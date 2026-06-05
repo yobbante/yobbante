@@ -186,6 +186,35 @@ export default function KonnektLandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone, hasRef, refClean]);
 
+  /* Missions Yobbanté (visible uniquement si is_beta_validated) */
+  useEffect(() => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 9 && !hasRef) return;
+    const key = digits.length >= 9 ? `m:${digits.slice(-9)}` : `m:ref:${refClean}`;
+    if (missionsTriedFor.current === key) return;
+    missionsTriedFor.current = key;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('konnekt-missions', {
+          body: {
+            phone: digits.length >= 9 ? '+' + digits : null,
+            reference: hasRef ? refClean : null,
+          },
+        });
+        if (cancelled || error) return;
+        const res = data as { beta_validated?: boolean; missions?: any[]; gp?: { prenom?: string; nom?: string } };
+        if (!res?.beta_validated) { setMissions([]); setMissionsLoaded(false); return; }
+        setMissions(Array.isArray(res.missions) ? res.missions : []);
+        setMissionsGpName([res.gp?.prenom, res.gp?.nom].filter(Boolean).join(' ').trim());
+        setMissionsLoaded(true);
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [phone, hasRef, refClean]);
+
+
+
 
   /* Validation */
   const errors = useMemo<Errors>(() => {
