@@ -60,9 +60,11 @@ Vous recevrez vos premieres missions directement sur WhatsApp.
 Si vous voulez nous ecrire, envoyez votre message sur WhatsApp au ${YOBBANTE_GP_WHATSAPP_DISPLAY}.`;
 }
 
-function buildBotWaUrl(gp: Transporteur) {
+function buildKonnektInviteWaUrl(gp: Transporteur) {
   const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  return `https://wa.me/${phone}?text=${encodeURIComponent(buildBotInviteMessage(gp))}`;
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  const message = `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre le réseau Konnekt. Cliquez ici pour vous inscrire et recevoir vos missions : https://usekonnekt.com/rejoindre-gp`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 
@@ -688,13 +690,13 @@ export function TransporteursTab() {
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const link = buildBotWaUrl(t);
+                        const link = buildKonnektInviteWaUrl(t);
                         try {
                           await navigator.clipboard.writeText(link);
-                          toast.success(`Lien wa.me copié — à envoyer depuis le 122 (${YOBBANTE_GP_WHATSAPP_DISPLAY})`);
+                          toast.success('Lien WhatsApp d\'invitation GP copié');
                         } catch { toast.error('Copie impossible'); }
                       }}>
-                        <Copy className="w-4 h-4 mr-2" /> Copier le lien wa.me (depuis 122)
+                        <Copy className="w-4 h-4 mr-2" /> Copier le lien WhatsApp d'invitation GP
                       </DropdownMenuItem>
                       <DropdownMenuItem disabled={testingId === t.id} onClick={() => sendTestWhatsApp(t)}>
                         <Activity className="w-4 h-4 mr-2" /> {testingId === t.id ? 'Test en cours…' : "Tester l'envoi WhatsApp"}
