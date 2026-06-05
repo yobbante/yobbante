@@ -310,8 +310,84 @@ export default function KonnektLandingPage() {
         <div className="max-w-xl mx-auto">
           {!done ? (
             <>
+              {missionsLoaded && (
+                <section className="mb-8 bg-white border border-[#F5C518]/40 rounded-2xl p-5 md:p-6 shadow-sm">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h2 className="text-lg font-bold tracking-tight text-slate-900">
+                        Mes missions Yobbanté
+                      </h2>
+                      {missionsGpName && (
+                        <p className="text-xs text-slate-500 mt-0.5">Bonjour {missionsGpName}</p>
+                      )}
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-full px-2.5 py-1">
+                      <ShieldCheck className="w-3 h-3" /> Partenaire actif
+                    </span>
+                  </div>
+
+                  {missions.length === 0 ? (
+                    <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-4 py-5 text-center">
+                      Aucune mission pour le moment.<br />
+                      <span className="text-slate-500">Restez connecté sur WhatsApp.</span>
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {missions.map((m) => {
+                        const dest = [m.destination_city, m.destination_country].filter(Boolean).join(', ');
+                        const weight = m.weight_kg != null ? `${Number(m.weight_kg)} kg` : '—';
+                        const date = m.departure_date ? formatDateFR(m.departure_date) : '—';
+                        const supportMsg = encodeURIComponent(
+                          `Bonjour Yobbanté, j'ai besoin d'aide sur la mission ${m.tracking_id || ''}`.trim(),
+                        );
+                        return (
+                          <li key={m.id} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/40">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <Package className="w-4 h-4 text-[#8a6b00]" />
+                                  <span className="font-semibold text-sm text-slate-900 tabular-nums">
+                                    {m.tracking_id || '—'}
+                                  </span>
+                                </div>
+                                <div className="mt-1 text-[11px] uppercase tracking-wider font-medium text-emerald-700">
+                                  {formatStatusLabel(m.status)}
+                                </div>
+                              </div>
+                              <a
+                                href={`https://wa.me/221786078080?text=${supportMsg}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-[#25D366] text-white px-3 py-1.5 rounded-lg hover:opacity-90 shrink-0"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" /> Support
+                              </a>
+                            </div>
+                            <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-600">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{dest || '—'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Scale className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{weight}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{date}</span>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              )}
+
               {/* HERO */}
               <section className="text-center mb-8">
+
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">
                   Recevez vos missions{" "}
                   <span className="text-[#0A0E1A] bg-[#F5C518] px-2 rounded">Yobbanté</span> ici.
