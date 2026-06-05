@@ -96,8 +96,16 @@ export default function KonnektLandingPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [done, setDone] = useState(false);
   const [prefillNotice, setPrefillNotice] = useState<string | null>(null);
+  const [missions, setMissions] = useState<Array<{
+    id: string; tracking_id: string | null; status: string;
+    destination_country: string | null; destination_city: string | null;
+    weight_kg: number | null; departure_date: string | null;
+  }>>([]);
+  const [missionsGpName, setMissionsGpName] = useState<string>("");
+  const [missionsLoaded, setMissionsLoaded] = useState(false);
   const initialized = useRef(false);
   const prefillTriedFor = useRef<string>("");
+  const missionsTriedFor = useRef<string>("");
 
 
   /* Force light mode pendant qu'on est sur /konnekt */
