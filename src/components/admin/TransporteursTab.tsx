@@ -60,9 +60,11 @@ Vous recevrez vos premieres missions directement sur WhatsApp.
 Si vous voulez nous ecrire, envoyez votre message sur WhatsApp au ${YOBBANTE_GP_WHATSAPP_DISPLAY}.`;
 }
 
-function buildBotWaUrl(gp: Transporteur) {
+function buildKonnektInviteWaUrl(gp: Transporteur) {
   const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  return `https://wa.me/${phone}?text=${encodeURIComponent(buildBotInviteMessage(gp))}`;
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  const message = `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre le réseau Konnekt. Cliquez ici pour vous inscrire et recevoir vos missions : https://usekonnekt.com/rejoindre-gp`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 
