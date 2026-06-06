@@ -2223,6 +2223,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             origin_country: originCity.country, origin_city: originCity.city,
             destination_country: destCity.country, destination_city: destCity.city,
             weight_kg: weight, transport_mode: transportMode, priority,
+            sender_name: senderName || null,
+            sender_phone: senderPhone || null,
+            sender_address: pickupAddress || null,
+            recipient_name: recipientName || null,
+            recipient_phone: recipientPhone || null,
+            recipient_address: deliveryAddress || null,
+            description: description || null,
+            declared_value: declaredLocal || null,
+            declared_currency: originProfile?.currencySymbol || null,
+            parcel_count: parcelCount,
+            goods_type: goodsType || null,
+            insurance,
+            pickup_date: pickupDate || null,
+            pickup_slot: pickupSlot || null,
           }}
           defaultName={senderName || recipientName}
           defaultPhone={senderPhone || recipientPhone}
