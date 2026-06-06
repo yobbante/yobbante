@@ -27,6 +27,61 @@ const MAX_WEIGHT_KG = 500;
 const MIN_WEIGHT_KG = 0.1;
 const HEAVY_WEIGHT_THRESHOLD_KG = 30;
 
+// --- Phone normalization helpers ---
+function normalizePhoneE164(input: string | null | undefined): string {
+  if (!input) return '';
+  let v = String(input).replace(/[\s().\-_]/g, '');
+  if (!v) return '';
+  if (v.startsWith('+')) return v;
+  if (v.startsWith('00221')) return '+' + v.slice(2);
+  if (v.startsWith('00') && v.length > 5) return '+' + v.slice(2);
+  if (v.startsWith('221') && v.length >= 11) return '+' + v;
+  const digits = v.replace(/\D/g, '');
+  if (digits.length === 9 && (digits.startsWith('7') || digits.startsWith('3'))) {
+    return '+221' + digits;
+  }
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return '+221' + digits.slice(1);
+  }
+  return digits ? '+' + digits : v;
+}
+
+function phoneSearchVariants(input: string): string[] {
+  const e164 = normalizePhoneE164(input);
+  const digits = e164.replace(/\D/g, '');
+  const set = new Set<string>();
+  if (input) set.add(input.trim());
+  if (e164) set.add(e164);
+  if (digits) set.add(digits);
+  // local SN (9 chiffres)
+  if (digits.startsWith('221') && digits.length >= 12) {
+    set.add(digits.slice(3));
+    set.add('0' + digits.slice(3));
+  }
+  return Array.from(set).filter(Boolean);
+}
+
+// --- Country code → city label (Yobbanté routes via Dakar hub) ---
+const COUNTRY_CITY_FALLBACK: Record<string, string> = {
+  SN: 'Dakar', FR: 'France', CN: 'Chine', US: 'USA', CA: 'Canada',
+  AE: 'Dubai', DE: 'Allemagne', BE: 'Belgique', ES: 'Espagne',
+  IT: 'Italie', CH: 'Suisse', MA: 'Maroc', CI: 'Abidjan',
+  ML: 'Bamako', CM: 'Cameroun', GA: 'Libreville', GN: 'Conakry',
+  CG: 'Brazzaville', CD: 'Kinshasa', TD: "N'Djamena", GQ: 'Malabo',
+  TR: 'Istanbul', LB: 'Beyrouth',
+};
+
+function placeFr(city?: string | null, country?: string | null): string {
+  const c = (city ?? '').trim();
+  if (c) return c;
+  const cc = (country ?? '').toUpperCase();
+  return COUNTRY_CITY_FALLBACK[cc] || cc || '?';
+}
+
+function routeFr(d: { origin_city?: string | null; destination_city?: string | null; origin_country?: string | null; destination_country?: string | null }): string {
+  return `${placeFr(d.origin_city, d.origin_country)} -> ${placeFr(d.destination_city, d.destination_country)}`;
+}
+
 type WeightCheck =
   | { ok: true; weight: number; heavy: boolean }
   | { ok: false; error: string };
@@ -525,13 +580,14 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     await saveSession(supa, phone, null, {});
     return withShortMenu(r);
   }
-  // 2. Sinon chercher tous les dossiers liés au téléphone
-  const digits = phone.replace(/\D/g, '');
-  const variants = [phone, `+${digits}`, digits];
-  const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+  // 2. Sinon chercher tous les dossiers liés au téléphone (normalisation FR/SN)
+  const variants = phoneSearchVariants(phone);
+  const orExpr = variants
+    .flatMap((v) => [`contact_phone.eq.${v}`, `sender_phone.eq.${v}`, `recipient_phone.eq.${v}`])
+    .join(',');
   const { data: rows } = await supa
     .from('dossiers')
-    .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+    .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
     .or(orExpr)
     .order('updated_at', { ascending: false })
     .limit(10);
@@ -540,7 +596,9 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   // Aucun dossier → demander tracking
   if (items.length === 0) {
     await saveSession(supa, phone, 'await_tracking', {});
-    return withBack(`Quel est votre numero de suivi ?\nIl commence par YOB-`);
+    return withBack(
+      `Aucune expedition trouvee pour ce numero.\nAvez-vous utilise un autre numero pour votre commande ?\n\nVous pouvez aussi entrer votre reference directement (format YOB-XXXXXX).`,
+    );
   }
 
   // Un seul dossier → afficher directement
@@ -550,7 +608,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     const label = STATUS_FR[d.status] || d.status;
     const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
     await saveSession(supa, phone, null, {});
-    return withShortMenu(`Votre colis ${id} :\nStatut : ${label}\nRoute : ${d.origin_country} -> ${d.destination_country}\nMise a jour : ${upd}\n\nSuivi complet :\nyobbante.com/suivre/${id}`);
+    return withShortMenu(`Votre colis ${id} :\nStatut : ${label}\nRoute : ${routeFr(d)}\nMise a jour : ${upd}\n\nSuivi complet :\nyobbante.com/suivre/${id}`);
   }
 
   // Plusieurs → liste interactive
@@ -559,7 +617,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   const toRow = (r: any) => {
     const id = (r.tracking_id || r.reference).toString();
     const label = STATUS_FR[r.status] || r.status;
-    return { id, title: id.slice(0, 24), description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72) };
+    return { id, title: id.slice(0, 24), description: `${label} - ${routeFr(r)}`.slice(0, 72) };
   };
   const sections: Array<{ title: string; rows: any[] }> = [];
   if (active.length) sections.push({ title: 'En cours', rows: active.slice(0, 8).map(toRow) });
@@ -1017,7 +1075,7 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
   const trk = trackingInput.toUpperCase().replace(/\s/g, '');
   const { data: d } = await supa
     .from('dossiers')
-    .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+    .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
     .or(`tracking_id.eq.${trk},reference.eq.${trk}`)
     .limit(1)
     .maybeSingle();
@@ -1025,7 +1083,7 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
   const id = d.tracking_id || d.reference;
   const label = STATUS_FR[d.status] || d.status;
   const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
-  return `Votre colis ${id} :\nStatut : ${label}\nRoute : ${d.origin_country} -> ${d.destination_country}\nDerniere mise a jour : ${upd}\n\nPour plus de details :\nyobbante.com/suivre/${id}`;
+  return `Votre colis ${id} :\nStatut : ${label}\nRoute : ${routeFr(d)}\nDerniere mise a jour : ${upd}\n\nPour plus de details :\nyobbante.com/suivre/${id}`;
 }
 
 async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise<string> {
@@ -1073,19 +1131,22 @@ async function handleMenuChoice(
     return withShortMenu(r);
   }
   if (choice === '2') {
-    const digits = phone.replace(/\D/g, '');
-    const variants = [phone, `+${digits}`, digits];
-    const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+    const variants = phoneSearchVariants(phone);
+    const orExpr = variants
+      .flatMap((v) => [`contact_phone.eq.${v}`, `sender_phone.eq.${v}`, `recipient_phone.eq.${v}`])
+      .join(',');
     const { data: rows } = await supa
       .from('dossiers')
-      .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+      .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
       .or(orExpr)
       .order('updated_at', { ascending: false })
       .limit(10);
     const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
     if (items.length === 0) {
       await saveSession(supa, phone, 'await_tracking', {});
-      return withBack(`Aucun colis trouve pour votre numero.\nEntrez un numero de suivi.\n(Format : YOB-XXXXXX)`);
+      return withBack(
+        `Aucune expedition trouvee pour ce numero.\nAvez-vous utilise un autre numero pour votre commande ?\n\nVous pouvez aussi entrer votre reference directement (format YOB-XXXXXX).`,
+      );
     }
     const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
     const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
@@ -1095,7 +1156,7 @@ async function handleMenuChoice(
       return {
         id,
         title: id.slice(0, 24),
-        description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72),
+        description: `${label} - ${routeFr(r)}`.slice(0, 72),
       };
     };
     const sections: Array<{ title: string; rows: any[] }> = [];
