@@ -325,6 +325,47 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     if (d.senderPhone) setSenderPhone(d.senderPhone);
   });
 
+  // ── Resume snapshot (full state stored before /auth round-trip).
+  // Unlike the regular draft, this includes cities + direction so the user
+  // lands on the exact same quote without re-picking anything.
+  const RESUME_KEY = 'send-flow:resume';
+  // Restore once on mount when ?resume=1 is present in the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('resume') !== '1') return;
+    try {
+      const raw = sessionStorage.getItem(RESUME_KEY);
+      if (raw) {
+        const r = JSON.parse(raw);
+        if (r.direction) setDirection(r.direction);
+        if (r.originCountry) setOriginCountry(r.originCountry);
+        if (r.originCityId) setOriginCity(r.originCityId);
+        if (r.destCityId) setDestCity(r.destCityId);
+      }
+    } catch {}
+    // Scroll to the sticky CTA so the user just confirms — they don't
+    // need to scroll up and re-check anything.
+    const t = window.setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 600);
+    // Strip ?resume=1 so a manual reload doesn't keep re-triggering.
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('resume');
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scroll to top whenever the confirmation screen appears, so users see
+  // the « Commande confirmée ! » banner first.
+  useEffect(() => {
+    if (!confirmed) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [confirmed]);
+
+
   // Dakar est toujours une extrémité grâce au verrou de direction.
   const dakarRouteOk = true;
 
@@ -614,10 +655,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         // (pas de redirection silencieuse vers /auth).
         saveDraft(DRAFT_KEY, draftSnapshot);
         if (preset) { try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {} }
+        // Snapshot complet (cities + direction) pour retrouver le devis
+        // pré-rempli après le round-trip Google/Apple → /auth → /expedier?resume=1.
+        try {
+          sessionStorage.setItem(RESUME_KEY, JSON.stringify({
+            direction, originCountry, originCityId, destCityId,
+          }));
+        } catch {}
         setSubmitting(false);
         setAuthModalOpen(true);
         return;
       }
+
 
       const dossier = await createDossier.mutateAsync({
         product_description: `Expédition ${description} — ${originCity.city} → ${destCity.city}`,
@@ -716,6 +765,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
+      try { sessionStorage.removeItem(RESUME_KEY); } catch {}
       toast.success(`Commande créée — ${trackingId}`);
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
