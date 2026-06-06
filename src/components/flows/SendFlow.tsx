@@ -1357,7 +1357,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
 
 
-            <StepContinueBar enabled={recipientOk} onContinue={() => advanceFromStep(2)} />
+            <StepSupportLink />
           </div>
         )}
       </FlowSection>
@@ -1467,7 +1467,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
-          <StepContinueBar enabled={packageOk} onContinue={() => advanceFromStep(3)} />
+          <StepSupportLink />
         </div>
         )}
       </FlowSection>
@@ -1551,7 +1551,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 )}
               </div>
 
-              <StepContinueBar enabled={goodsOk} onContinue={() => advanceFromStep(4)} />
+              <StepSupportLink />
             </>
           )}
         </FlowSection>
@@ -1826,7 +1826,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
                   <NextDepartureNotice date={next_departure_date} trailing="Suivi inclus" />
-                  <StepContinueBar enabled={true} onContinue={() => advanceFromStep(5)} />
+                  <StepSupportLink />
                 </>
               )}
             </div>
@@ -1944,7 +1944,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </div>
             );
           })()}
-          <StepContinueBar enabled={true} onContinue={() => advanceFromStep(6)} />
+          <StepSupportLink />
         </FlowSection>
         )
       )}
