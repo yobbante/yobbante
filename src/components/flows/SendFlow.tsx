@@ -655,10 +655,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         // (pas de redirection silencieuse vers /auth).
         saveDraft(DRAFT_KEY, draftSnapshot);
         if (preset) { try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {} }
+        // Snapshot complet (cities + direction) pour retrouver le devis
+        // pré-rempli après le round-trip Google/Apple → /auth → /expedier?resume=1.
+        try {
+          sessionStorage.setItem(RESUME_KEY, JSON.stringify({
+            direction, originCountry, originCityId, destCityId,
+          }));
+        } catch {}
         setSubmitting(false);
         setAuthModalOpen(true);
         return;
       }
+
 
       const dossier = await createDossier.mutateAsync({
         product_description: `Expédition ${description} — ${originCity.city} → ${destCity.city}`,
