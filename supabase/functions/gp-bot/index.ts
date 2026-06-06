@@ -251,6 +251,67 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Menu principal GP en liste interactive (6 options). Le webhook renvoie
+  // l'id de la row au gp-bot ("1".."6") qui les route via MENU_MAP.
+  // Fallback texte automatique cote send-whatsapp si hors fenetre 24h.
+  async function sendMainMenu(prefix?: string, intent = 'menu_main') {
+    const body = (prefix ? `${prefix}\n\n` : '') + 'Choisissez une action :';
+    await sendWa({
+      recipient_phone: fromPhone,
+      recipient_type: 'gp',
+      interactive_type: 'list',
+      interactive_body: body,
+      list_button_label: 'Voir les options',
+      sections: [{
+        title: 'Mes actions',
+        rows: [
+          { id: '1', title: 'Depart',       description: 'Enregistrer un depart' },
+          { id: '2', title: 'Collecte',     description: 'Confirmer une collecte' },
+          { id: '3', title: 'Poids',        description: 'Enregistrer le poids' },
+          { id: '4', title: 'Livraison',    description: 'Confirmer une livraison' },
+          { id: '5', title: 'Mes missions', description: 'Voir mes missions actives' },
+          { id: '6', title: 'Mes departs',  description: 'Voir mes prochains departs' },
+        ],
+      }],
+      fallback_text: (prefix ? `${prefix}\n\n` : '') + HELP_TEXT,
+      transporteur_id: transporteur?.id,
+      trigger_type: intent,
+    });
+    if (input.inbound_id) {
+      try {
+        await supa
+          .from('whatsapp_inbound_messages')
+          .update({ bot_intent: intent, bot_response: '[interactive_menu]', replied_at: new Date().toISOString() })
+          .eq('id', input.inbound_id);
+      } catch (_) { /* noop */ }
+    }
+  }
+
+  // Confirmation OUI / NON via boutons interactifs.
+  async function sendConfirmButtons(text: string, intent: string, opts?: { yesId?: string; noId?: string; yesLabel?: string; noLabel?: string }) {
+    await sendWa({
+      recipient_phone: fromPhone,
+      recipient_type: 'gp',
+      interactive_type: 'button',
+      interactive_body: text,
+      buttons: [
+        { id: opts?.yesId ?? 'oui', label: opts?.yesLabel ?? '✅ Confirmer' },
+        { id: opts?.noId  ?? 'non', label: opts?.noLabel  ?? '❌ Annuler' },
+      ],
+      fallback_text: `${text}\n\nRepondez OUI ou NON.`,
+      transporteur_id: transporteur?.id,
+      trigger_type: intent,
+    });
+    if (input.inbound_id) {
+      try {
+        await supa
+          .from('whatsapp_inbound_messages')
+          .update({ bot_intent: intent, bot_response: '[interactive_confirm]', replied_at: new Date().toISOString() })
+          .eq('id', input.inbound_id);
+      } catch (_) { /* noop */ }
+    }
+  }
+
   async function notifyAdmin(text: string) {
     const adminPhone = Deno.env.get('ADMIN_WHATSAPP_NUMBER');
     if (!adminPhone) return;
@@ -1267,11 +1328,8 @@ Voir : yobbante.com/admin`);
 
   if (isAide || (isStart && !sessionActive)) {
     await clearSession();
-    if (isStart && !isAide) {
-      await reply(`Bonjour ${prenom} !\n\n${HELP_TEXT}`, 'start');
-    } else {
-      await reply(HELP_TEXT, 'help');
-    }
+    const prefix = isStart && !isAide ? `Bonjour ${prenom} !` : undefined;
+    await sendMainMenu(prefix, isStart && !isAide ? 'start' : 'help');
     return new Response('ok', { headers: corsHeaders });
   }
 
@@ -1730,11 +1788,18 @@ Recuperez-le sous 5 jours.`,
   if (hasAddrKeyword && rawMsg.length >= 8) {
     const addrCandidate = rawMsg.trim().slice(0, 200);
     if (foreignCity) {
-      await saveSession('confirm_address', { address: addrCandidate, kind: 'remise', city: foreignCity.replace(/\b\w/g, (c) => c.toUpperCase()) });
-      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de remise a ${foreignCity.replace(/\b\w/g, (c) => c.toUpperCase())} ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_remise');
+      const city = foreignCity.replace(/\b\w/g, (c) => c.toUpperCase());
+      await saveSession('confirm_address', { address: addrCandidate, kind: 'remise', city });
+      await sendConfirmButtons(
+        `J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de remise a ${city} ?`,
+        'address_detected_remise',
+      );
     } else {
       await saveSession('confirm_address', { address: addrCandidate, kind: 'collecte', city: 'Dakar' });
-      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de collecte a Dakar ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_collecte');
+      await sendConfirmButtons(
+        `J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de collecte a Dakar ?`,
+        'address_detected_collecte',
+      );
     }
     return new Response('ok', { headers: corsHeaders });
   }
@@ -1743,7 +1808,7 @@ Recuperez-le sous 5 jours.`,
   await notifyAdmin(`Commande non comprise de ${prenom} (Ref ${transporteur.reference}) :
 "${rawMsg.slice(0, 150)}"
 A traiter manuellement.`);
-  await reply(FALLBACK_TEXT, 'unknown');
+  await sendMainMenu(FALLBACK_TEXT, 'unknown');
   return new Response('ok', { headers: corsHeaders });
 
   // =================================================================
