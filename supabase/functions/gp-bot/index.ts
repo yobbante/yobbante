@@ -1788,11 +1788,18 @@ Recuperez-le sous 5 jours.`,
   if (hasAddrKeyword && rawMsg.length >= 8) {
     const addrCandidate = rawMsg.trim().slice(0, 200);
     if (foreignCity) {
-      await saveSession('confirm_address', { address: addrCandidate, kind: 'remise', city: foreignCity.replace(/\b\w/g, (c) => c.toUpperCase()) });
-      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de remise a ${foreignCity.replace(/\b\w/g, (c) => c.toUpperCase())} ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_remise');
+      const city = foreignCity.replace(/\b\w/g, (c) => c.toUpperCase());
+      await saveSession('confirm_address', { address: addrCandidate, kind: 'remise', city });
+      await sendConfirmButtons(
+        `J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de remise a ${city} ?`,
+        'address_detected_remise',
+      );
     } else {
       await saveSession('confirm_address', { address: addrCandidate, kind: 'collecte', city: 'Dakar' });
-      await reply(`J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de collecte a Dakar ?\nRepondez OUI pour sauvegarder, NON pour annuler.`, 'address_detected_collecte');
+      await sendConfirmButtons(
+        `J'ai note cette adresse :\n"${addrCandidate}"\nC'est votre adresse de collecte a Dakar ?`,
+        'address_detected_collecte',
+      );
     }
     return new Response('ok', { headers: corsHeaders });
   }
@@ -1801,7 +1808,7 @@ Recuperez-le sous 5 jours.`,
   await notifyAdmin(`Commande non comprise de ${prenom} (Ref ${transporteur.reference}) :
 "${rawMsg.slice(0, 150)}"
 A traiter manuellement.`);
-  await reply(FALLBACK_TEXT, 'unknown');
+  await sendMainMenu(FALLBACK_TEXT, 'unknown');
   return new Response('ok', { headers: corsHeaders });
 
   // =================================================================
