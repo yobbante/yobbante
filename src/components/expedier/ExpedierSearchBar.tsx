@@ -187,6 +187,35 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
     onApply?.();
   }
 
+  // Live sync: whenever the user changes origin/destination/transport/weight
+  // in the sticky search bar (mode envoyer), patch the preset & notify
+  // SendFlow immediately — so the recap + price update without waiting for
+  // an explicit "Continuer" click on the bar.
+  const liveSyncMounted = useRef(false);
+  useEffect(() => {
+    if (mode !== 'envoyer') return;
+    if (!liveSyncMounted.current) { liveSyncMounted.current = true; return; }
+    const o = resolveCityToCountry(origin, customCities);
+    const d = resolveCityToCountry(destination, customCities);
+    if (!o && !d) return;
+    try {
+      const raw = sessionStorage.getItem(SEND_PRESET_KEY);
+      const prev = raw ? JSON.parse(raw) : {};
+      const next = {
+        ...prev,
+        ...(o ? { origin: o.country, origin_city: o.city } : {}),
+        ...(d ? { destination: d.country, destination_city: d.city } : {}),
+        transport,
+        ...(weight ? { weight: Number(weight) || undefined } : {}),
+        source: prev?.source ?? 'expedier-bar',
+      };
+      sessionStorage.setItem(SEND_PRESET_KEY, JSON.stringify(next));
+      window.dispatchEvent(new Event('send-preset-updated'));
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin, destination, transport, weight, mode]);
+
+
   const canSubmitSend = !!origin && !!destination && !!weight;
   const canSubmitRecv = !!merchant && !!merchantCountry;
   const canSubmitSrc  = productQuery.trim().length >= 2;
