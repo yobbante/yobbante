@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
 import { IntentSearchBar, type IntentKey } from '@/components/IntentSearchBar';
 import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
+import yobbanteLogoAsset from '@/assets/yobbante-logo-mark.png.asset.json';
 
 interface PublicNavProps {
   /** Hide the inline action chips when the page already exposes them prominently. */
@@ -74,11 +75,16 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         <Link
           to={user ? '/app' : '/'}
           aria-label="Yobbanté — Accueil"
-          className="text-foreground"
-          style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}
+          className="inline-flex items-center"
         >
-          YOBBANTÉ
+          <img
+            src={yobbanteLogoAsset.url}
+            alt="Yobbanté"
+            style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
+          />
         </Link>
+
+
 
 
         {/* Center links — desktop */}
@@ -174,7 +180,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               }}
             >
               <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                <span style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}>YOBBANTÉ</span>
+                <img src={yobbanteLogoAsset.url} alt="Yobbanté" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
                 <button
                   aria-label="Fermer le menu"
                   onClick={() => setOpen(false)}
