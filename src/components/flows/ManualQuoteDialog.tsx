@@ -122,7 +122,7 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
 
       const { data: dossier, error } = await supabase
         .from('dossiers')
-        .insert(insertPayload)
+        .insert(insertPayload as any)
         .select('id,reference,tracking_id')
         .single();
 
