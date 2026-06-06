@@ -2515,22 +2515,17 @@ function LockedStep({ step, total, title }: { step: number; total: number; title
   );
 }
 
-function StepContinueBar({ enabled, onContinue }: { enabled: boolean; onContinue: () => void }) {
+function StepSupportLink() {
   return (
-    <div className="mt-5 flex items-center justify-end">
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={!enabled}
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
-          enabled
-            ? 'bg-foreground text-background hover:opacity-90'
-            : 'bg-secondary text-muted-foreground cursor-not-allowed',
-        )}
+    <div className="mt-5 flex items-center justify-center">
+      <a
+        href="https://wa.me/221786078080?text=Bonjour%20Yobbant%C3%A9%2C%20j%27ai%20besoin%20d%27aide%20pour%20ma%20commande%20en%20cours"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
       >
-        Continuer <ArrowRight className="w-3.5 h-3.5" />
-      </button>
+        Besoin d'aide ? → Contacter le support
+      </a>
     </div>
   );
 }
