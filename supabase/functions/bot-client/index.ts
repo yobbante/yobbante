@@ -1803,10 +1803,10 @@ Deno.serve(async (req) => {
             // Auto-escalade agent
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
           } else {
-            reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+            reply = withFullMenu(FALLBACK);
           }
         } catch (_) {
-          reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          reply = withFullMenu(FALLBACK);
         }
       }
     }
