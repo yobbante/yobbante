@@ -2269,7 +2269,11 @@ function PriorityCarousel({
   onSelect: (p: 'normal' | 'express') => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const [activeIdx, setActiveIdx] = useState<number>(priority === 'express' ? 1 : 0);
+  // activeIdx is derived from priority — single source of truth lives in the parent.
+  const activeIdx = priority === 'express' ? 1 : 0;
+  // Guard to ignore scroll events triggered by our own programmatic scrollTo.
+  const programmaticScrollRef = useRef(false);
+  const programmaticTimerRef = useRef<number | null>(null);
 
   const cards = [
     {
@@ -2292,19 +2296,32 @@ function PriorityCarousel({
     },
   ];
 
-  // Sync scroll position when priority changes externally
+  // Sync scroll position when priority changes externally (e.g. user picked
+  // Express on the in-page card, then opens the sticky recap sheet).
   useEffect(() => {
-    const idx = priority === 'express' ? 1 : 0;
-    setActiveIdx(idx);
     const el = scrollerRef.current;
-    if (el) {
-      const child = el.children[idx] as HTMLElement | undefined;
-      if (child) el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
-    }
-  }, [priority]);
+    if (!el) return;
+    const child = el.children[activeIdx] as HTMLElement | undefined;
+    if (!child) return;
+    const targetLeft = child.offsetLeft - el.offsetLeft;
+    if (Math.abs(el.scrollLeft - targetLeft) < 4) return;
+    // Mute onScroll while the programmatic scroll animates — otherwise the
+    // intermediate positions get interpreted as the user choosing Standard
+    // and we silently reset the parent's priority back to 'normal'.
+    programmaticScrollRef.current = true;
+    if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
+    el.scrollTo({ left: targetLeft, behavior: 'smooth' });
+    programmaticTimerRef.current = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, 600);
+    return () => {
+      if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
+    };
+  }, [activeIdx]);
 
-  // Detect active card from scroll position
+  // Detect active card from scroll position (user drag only).
   const onScroll = () => {
+    if (programmaticScrollRef.current) return;
     const el = scrollerRef.current;
     if (!el) return;
     const center = el.scrollLeft + el.clientWidth / 2;
@@ -2315,11 +2332,8 @@ function PriorityCarousel({
       const dist = Math.abs(childCenter - center);
       if (dist < bestDist) { bestDist = dist; best = i; }
     });
-    if (best !== activeIdx) {
-      setActiveIdx(best);
-      const newPriority = best === 1 ? 'express' : 'normal';
-      if (newPriority !== priority) onSelect(newPriority);
-    }
+    const newPriority = best === 1 ? 'express' : 'normal';
+    if (newPriority !== priority) onSelect(newPriority);
   };
 
   return (
