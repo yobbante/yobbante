@@ -1,339 +1,904 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PublicNav } from '@/components/PublicNav';
-
-import { PublicFooter } from '@/components/PublicFooter';
-import { TransporteurSignupSection } from '@/components/TransporteurSignupSection';
+import { ArrowRight, Lock, MapPin, CreditCard, FileEdit, UserCheck, PackageCheck, Star } from 'lucide-react';
 import { HubsWorldMap, WORLD_HUBS, type HubId } from '@/components/HubsWorldMap';
 import { QuoteForm } from '@/components/quote/QuoteForm';
-import { TrustBar } from '@/components/quote/TrustBar';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
 import { useSeo } from '@/hooks/useSeo';
 import { useHasDossiers } from '@/hooks/useHasDossiers';
+import yobbanteLogoAsset from '@/assets/yobbante-logo-mark.png.asset.json';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.06, duration: 0.45 },
-  }),
-};
+const YELLOW = '#F5C518';
+const NAVY = '#0D1B2A';
+const DISPLAY_FONT =
+  '"Anton","Bebas Neue",-apple-system,BlinkMacSystemFont,sans-serif';
+const BODY_FONT = '"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
+
+const NAV_LINKS: { label: string; to: string }[] = [
+  { label: 'Expédier', to: '/expedier' },
+  { label: 'Tarifs', to: '/tarifs' },
+  { label: 'Suivre mon colis', to: '/track' },
+  { label: 'Boutique Dëkk', to: '/boutique' },
+];
+
+const DESTINATIONS: { flag: string; name: string; hub: HubId | null }[] = [
+  { flag: '🇫🇷', name: 'Paris', hub: 'paris' },
+  { flag: '🇺🇸', name: 'New York', hub: 'nyc' },
+  { flag: '🇨🇦', name: 'Montréal', hub: 'mtl' },
+  { flag: '🇦🇪', name: 'Dubai', hub: 'dxb' },
+  { flag: '🇨🇳', name: 'Shanghai', hub: 'shanghai' },
+  { flag: '🇨🇮', name: 'Abidjan', hub: 'abj' },
+];
 
 const STEPS = [
-  { n: '01', title: 'Créez votre dossier', desc: 'Décrivez votre envoi en 2 minutes. Prix instantané.' },
-  { n: '02', title: 'On prend en charge', desc: 'Collecte, transit, dédouanement — gérés par notre équipe et nos partenaires certifiés.' },
-  { n: '03', title: 'Vous recevez et suivez', desc: 'Notifications WhatsApp à chaque étape. Livraison à destination via nos partenaires ou point relais.' },
+  {
+    n: '01',
+    Icon: FileEdit,
+    title: 'Créez votre dossier',
+    body:
+      'En ligne en 3 minutes. Remplissez les infos de votre colis, choisissez votre destination.',
+  },
+  {
+    n: '02',
+    Icon: UserCheck,
+    title: 'Un transporteur collecte',
+    body:
+      'Un de nos partenaires vérifiés récupère votre colis à Dakar et le transporte dans sa soute.',
+  },
+  {
+    n: '03',
+    Icon: PackageCheck,
+    title: 'Livré à destination',
+    body:
+      'Votre destinataire reçoit le colis. Vous suivez chaque étape en temps réel sur WhatsApp.',
+  },
+];
+
+const TRUST = [
+  {
+    Icon: Lock,
+    title: 'Transporteurs vérifiés',
+    body: 'Chaque partenaire est validé avant sa première mission.',
+  },
+  {
+    Icon: MapPin,
+    title: 'Suivi en temps réel',
+    body: 'Notifications WhatsApp à chaque étape jusqu’à livraison.',
+  },
+  {
+    Icon: CreditCard,
+    title: 'Prix transparent',
+    body: 'Devis instantané. Aucun frais caché. Paiement Wave ou Orange Money.',
+  },
 ];
 
 const TESTIMONIALS = [
-  { quote: "J'ai reçu mon MacBook depuis la France en 5 jours. Tout était géré.", name: 'Amadou D.', sub: 'Dakar · Particulier' },
-  { quote: 'On importe du matériel chaque mois. Yobbanté nous a fait économiser 15 % sur nos coûts logistiques.', name: 'Mariama S.', sub: 'Dakar · Directrice achats' },
-  { quote: "Le sourcing IA m'a trouvé un fournisseur en 48 h. Impossible à faire seul.", name: 'Cheikh N.', sub: 'Thiès · Commerçant' },
+  {
+    quote:
+      "J'ai envoyé des médicaments à ma mère à Paris. Livré en 4 jours, suivi en temps réel. Je recommande.",
+    name: 'Aminata D., Dakar',
+  },
+  {
+    quote:
+      'Prix imbattable versus DHL. Et le suivi WhatsApp rassure vraiment.',
+    name: 'Moussa K., Dakar',
+  },
+  {
+    quote: "Simple, rapide, honnête. C'est tout ce qu'on demande.",
+    name: 'Fatou S., Dakar',
+  },
 ];
-
-const METRICS = [
-  { value: '+10 000', label: 'colis livrés' },
-  { value: '6', label: "pays d'origine" },
-  { value: '24h', label: 'réponse garantie' },
-  { value: '98 %', label: 'satisfaction client' },
-];
-
-const LANDING_HUB_KEY = 'yobbante.landing.preferredHub';
 
 export default function LandingPage() {
   useSeo({
     title: 'Yobbanté — Envoyer un colis de Dakar vers le monde',
-    description: 'Envoyez vos colis de Dakar vers Paris, New York, Dubai, Abidjan. Prix instantané, paiement Wave ou Orange Money. Collecte gratuite à Dakar.',
+    description:
+      'Yobbanté livre vos colis de Dakar vers Paris, New York, Dubai et plus. Prix instantané, paiement Wave ou Orange Money, suivi WhatsApp.',
     path: '/',
   });
+
   const navigate = useNavigate();
   const [selectedHub, setSelectedHub] = useState<HubId | null>(null);
 
   useEffect(() => {
-    document.title = "Yobbanté · Envoyez partout dans le monde, simplement.";
+    document.title = 'Yobbanté — Envoyez partout depuis Dakar.';
   }, []);
 
-  const handleHubPick = (id: HubId) => {
-    setSelectedHub(id);
-    try { localStorage.setItem(LANDING_HUB_KEY, id); } catch { /* */ }
+  const goExpedier = (destinationHub?: HubId | null) => {
+    if (destinationHub) {
+      try {
+        sessionStorage.setItem(
+          'yobbante.landing.preferredHub',
+          destinationHub,
+        );
+      } catch {
+        /* */
+      }
+    }
+    navigate('/expedier');
   };
-  const goReceiveWithHub = () => navigate('/expedier/recevoir');
-  const selectedHubMeta = selectedHub ? WORLD_HUBS.find(h => h.id === selectedHub) : null;
-
-  // ── Smart auto-swipe for the testimonials snap-scroller (mobile).
-  // Cycles every 5s, pauses on user touch/hover and when the section is off-screen
-  // or the tab is hidden. Falls back to no-op if reduced-motion is requested.
-  const testimonialsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = testimonialsRef.current;
-    if (!el) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-
-    let timer: number | undefined;
-    let paused = false;
-    let visible = false;
-
-    const tick = () => {
-      if (paused || !visible || document.hidden) return;
-      const max = el.scrollWidth - el.clientWidth;
-      if (max <= 0) return; // nothing to swipe (desktop grid)
-      const next = el.scrollLeft + el.clientWidth * 0.9;
-      el.scrollTo({ left: next > max - 8 ? 0 : next, behavior: 'smooth' });
-    };
-    const start = () => { window.clearInterval(timer); timer = window.setInterval(tick, 5000); };
-    const stop = () => { window.clearInterval(timer); timer = undefined; };
-
-    const io = new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting;
-      visible ? start() : stop();
-    }, { threshold: 0.4 });
-    io.observe(el);
-
-    const onEnter = () => { paused = true; };
-    const onLeave = () => { paused = false; };
-    el.addEventListener('pointerdown', onEnter);
-    el.addEventListener('pointerup', onLeave);
-    el.addEventListener('pointercancel', onLeave);
-    el.addEventListener('mouseenter', onEnter);
-    el.addEventListener('mouseleave', onLeave);
-    document.addEventListener('visibilitychange', tick);
-
-    return () => {
-      stop();
-      io.disconnect();
-      el.removeEventListener('pointerdown', onEnter);
-      el.removeEventListener('pointerup', onLeave);
-      el.removeEventListener('pointercancel', onLeave);
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-      document.removeEventListener('visibilitychange', tick);
-    };
-  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <PublicNav />
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: '#FFFFFF', color: NAVY, fontFamily: BODY_FONT }}
+    >
+      <LandingNav onExpedier={() => goExpedier()} />
       <ReturningClientBanner />
 
+      {/* ───── HERO ───── */}
+      <section
+        style={{
+          minHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '48px 20px',
+        }}
+      >
+        <div className="w-full max-w-[1180px] mx-auto flex flex-col items-center text-center">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 14px',
+              borderRadius: 999,
+              background: '#F4F4F5',
+              color: '#52525B',
+              fontSize: 13,
+              letterSpacing: '0.06em',
+              fontWeight: 500,
+            }}
+          >
+            ✈️ Depuis Dakar · Paris · New York · Dubai
+          </span>
 
-      {/* ───── HERO + QUOTE FORM ───── */}
-      <section className="px-4 sm:px-6 pt-6 pb-10 md:pt-16 md:pb-20">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-[1fr_580px] gap-6 md:gap-12 items-start">
-          <div className="order-1 md:order-1">
-            <p
-              className="text-[10px] sm:text-[11px] uppercase mb-2 sm:mb-3"
-              style={{ letterSpacing: '0.1em', color: 'hsl(var(--text-tertiary))' }}
-            >
-              Dakar · Paris · New York · Dubai · Abidjan
-            </p>
-            <h1 className="max-w-[420px] mb-3 text-[28px] leading-[1.1] sm:text-[34px] md:text-[44px]">
-              Envoyez partout dans le monde, simplement.
-            </h1>
-            <p
-              className="max-w-[380px] mb-5 sm:mb-7"
-              style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}
-            >
-              Prix instantané. Aucun appel. Dédouanement pris en charge. Paiement en ligne.
-            </p>
-            {/* Duplicate mobile CTAs removed — first set in IntentSearchBar (under nav) is canonical */}
+          <h1
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontWeight: 400,
+              fontSize: 'clamp(52px, 9vw, 96px)',
+              lineHeight: 0.95,
+              letterSpacing: '-0.01em',
+              margin: '28px 0 20px',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span style={{ display: 'block', color: NAVY }}>YOBBANTÉ.</span>
+            <span style={{ display: 'block', color: '#A1A1AA' }}>
+              Envoyez partout
+            </span>
+            <span style={{ display: 'block', color: YELLOW }}>
+              depuis Dakar.
+            </span>
+          </h1>
+
+          <p
+            style={{
+              maxWidth: 440,
+              fontSize: 18,
+              lineHeight: 1.55,
+              color: '#52525B',
+              margin: '0 0 36px',
+            }}
+          >
+            Vos colis voyagent avec des personnes de confiance. Prix
+            instantané. Pas d'appel.
+          </p>
+
+          {/* Search card (kept) */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 720,
+              background: '#FFFFFF',
+              borderRadius: 16,
+              padding: 'clamp(16px, 3vw, 24px)',
+              boxShadow:
+                '0 1px 2px rgba(13,27,42,0.04), 0 8px 32px rgba(13,27,42,0.08)',
+              border: '1px solid #F1F1F4',
+            }}
+          >
+            <QuoteForm />
           </div>
 
-          <div className="w-full order-2 md:order-2">
-            <QuoteForm />
-            <TrustBar />
+          <p
+            style={{
+              marginTop: 16,
+              fontSize: 12,
+              color: '#71717A',
+              letterSpacing: '0.02em',
+            }}
+          >
+            Prix instantané · Confirmation en 24h · Suivi en temps réel
+          </p>
+        </div>
+      </section>
+
+      {/* ───── WORLD MAP ───── */}
+      <section style={{ background: NAVY, padding: '80px 20px' }}>
+        <div className="max-w-[1180px] mx-auto">
+          <p
+            style={{
+              color: YELLOW,
+              fontSize: 12,
+              letterSpacing: '0.24em',
+              fontWeight: 600,
+              textAlign: 'center',
+              marginBottom: 16,
+            }}
+          >
+            NOS CORRIDORS
+          </p>
+          <h2
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontSize: 'clamp(40px, 6vw, 64px)',
+              lineHeight: 1,
+              color: '#FFFFFF',
+              textAlign: 'center',
+              letterSpacing: '-0.01em',
+              margin: 0,
+              textTransform: 'uppercase',
+            }}
+          >
+            36 destinations.
+          </h2>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.6)',
+              textAlign: 'center',
+              fontSize: 18,
+              marginTop: 12,
+            }}
+          >
+            De Dakar vers le monde entier.
+          </p>
+
+          <div style={{ marginTop: 48 }}>
+            <HubsWorldMap
+              value={selectedHub}
+              onChange={(id) => setSelectedHub(id)}
+              variant="dark"
+            />
+          </div>
+
+          <div
+            style={{
+              marginTop: 40,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 12,
+              justifyContent: 'center',
+            }}
+          >
+            {DESTINATIONS.map((d) => (
+              <button
+                key={d.name}
+                type="button"
+                onClick={() => goExpedier(d.hub)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 18px',
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#FFFFFF',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    'rgba(255,255,255,0.16)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    'rgba(255,255,255,0.08)';
+                }}
+              >
+                <span style={{ fontSize: 16 }}>{d.flag}</span> {d.name}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ───── HUB MAP ───── */}
-      <section style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-        <div className="max-w-6xl mx-auto px-6 py-14 md:py-20">
-          <div className="grid md:grid-cols-[1fr_1.4fr] gap-10 md:gap-14 items-center">
-            <div>
-              <p className="text-label mb-3">Réseau global</p>
-              <h2 className="text-[24px] md:text-[32px] leading-[1.15]">
-                Un réseau global,<br className="hidden sm:block" /> proche de vos achats.
-              </h2>
-              <p className="mt-4 max-w-md" style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>
-                Yobbanté s'appuie sur un réseau de hubs internationaux pour réceptionner,
-                consolider et expédier vos colis rapidement.
-              </p>
-              <ul className="mt-5 space-y-2.5">
-                {[
-                  'Adresses dédiées dans 6 pays',
-                  'Consolidation multi-colis automatique',
-                  "Départs réguliers vers l'Afrique de l'Ouest",
-                ].map(t => (
-                  <li key={t} className="flex items-start gap-2.5 text-[13px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: '#1D9E75' }} />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <HubsWorldMap value={selectedHub} onChange={handleHubPick} variant="light" />
-              <AnimatePresence>
-                {selectedHubMeta && (
-                  <motion.div
-                    key={selectedHubMeta.id}
-                    initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.2 }}
-                    className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-[12px] p-4"
-                    style={{ background: 'hsl(var(--secondary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0"
-                        style={{ background: 'hsl(var(--background-surface))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                        {selectedHubMeta.flag}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[14px] font-medium">Hub {selectedHubMeta.label} sélectionné</p>
-                        <p className="text-[12px] truncate" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                          <MapPin className="w-3 h-3 inline -mt-0.5 mr-1" />
-                          {selectedHubMeta.city} · {selectedHubMeta.tagline}
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={goReceiveWithHub} className="btn-cta shrink-0">
-                      Continuer <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+      {/* ───── DEPARTURES TICKER (existing) ───── */}
+      <section
+        style={{
+          background: YELLOW,
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ width: '100%' }}>
+          <LiveDeparturesTicker />
         </div>
       </section>
 
       {/* ───── COMMENT ÇA MARCHE ───── */}
-      <section style={{ background: 'hsl(var(--secondary))' }}>
-        <div className="max-w-2xl mx-auto px-6 py-14 md:py-20">
-          <p className="text-label text-center mb-2">Comment ça marche</p>
-          <h2 className="text-center text-[22px] md:text-[28px] mb-10">3 étapes. Pas une de plus.</h2>
-          <div>
-            {STEPS.map((s, i) => (
-              <div key={s.n}>
-                <motion.div
-                  variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                  className="flex gap-4"
+      <section style={{ background: '#FFFFFF', padding: '96px 20px' }}>
+        <div className="max-w-[1180px] mx-auto">
+          <p
+            style={{
+              fontSize: 12,
+              letterSpacing: '0.24em',
+              color: '#71717A',
+              fontWeight: 600,
+              textAlign: 'center',
+              marginBottom: 16,
+            }}
+          >
+            PROCESSUS
+          </p>
+          <h2
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontSize: 'clamp(40px, 6vw, 64px)',
+              lineHeight: 1,
+              color: NAVY,
+              textAlign: 'center',
+              margin: 0,
+              textTransform: 'uppercase',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Simple comme bonjour.
+          </h2>
+
+          <div
+            style={{
+              marginTop: 56,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))',
+              gap: 20,
+            }}
+          >
+            {STEPS.map(({ n, Icon, title, body }) => (
+              <article
+                key={n}
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #F1F1F4',
+                  borderRadius: 16,
+                  padding: 28,
+                  boxShadow:
+                    '0 1px 2px rgba(13,27,42,0.03), 0 6px 24px rgba(13,27,42,0.05)',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: DISPLAY_FONT,
+                    fontSize: 80,
+                    lineHeight: 1,
+                    color: '#E4E4E7',
+                    letterSpacing: '-0.02em',
+                  }}
                 >
-                  <div className="text-[22px] font-medium leading-none shrink-0 w-10"
-                    style={{ color: 'hsl(var(--text-tertiary))' }}>{s.n}</div>
-                  <div className="flex-1 pb-1">
-                    <div className="text-[15px] font-medium">{s.title}</div>
-                    <p className="mt-1" style={{ fontSize: 13, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>{s.desc}</p>
-                  </div>
-                </motion.div>
-                {i < STEPS.length - 1 && (
-                  <div className="ml-[20px] my-3" style={{ width: '1px', height: '20px', background: 'hsl(var(--color-border-tertiary))' }} />
-                )}
+                  {n}
+                </div>
+                <Icon
+                  size={28}
+                  strokeWidth={1.8}
+                  style={{ color: NAVY, marginTop: 8 }}
+                />
+                <h3
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: NAVY,
+                    marginTop: 16,
+                    marginBottom: 8,
+                  }}
+                >
+                  {title}
+                </h3>
+                <p style={{ color: '#52525B', fontSize: 15, lineHeight: 1.6 }}>
+                  {body}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───── CONFIANCE ───── */}
+      <section style={{ background: NAVY, padding: '96px 20px' }}>
+        <div className="max-w-[1180px] mx-auto">
+          <p
+            style={{
+              fontSize: 12,
+              letterSpacing: '0.24em',
+              color: YELLOW,
+              fontWeight: 600,
+              textAlign: 'center',
+              marginBottom: 16,
+            }}
+          >
+            CONFIANCE
+          </p>
+          <h2
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontSize: 'clamp(40px, 6vw, 72px)',
+              lineHeight: 1.05,
+              color: '#FFFFFF',
+              textAlign: 'center',
+              margin: 0,
+              letterSpacing: '-0.01em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Sécurité et transparence,
+            <br />
+            <span
+              style={{
+                fontStyle: 'italic',
+                color: 'rgba(255,255,255,0.6)',
+                fontFamily:
+                  '"Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                fontWeight: 300,
+                textTransform: 'none',
+                fontSize: 'clamp(28px, 4.5vw, 52px)',
+              }}
+            >
+              au cœur de Yobbanté.
+            </span>
+          </h2>
+
+          <div
+            style={{
+              marginTop: 64,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))',
+              gap: 32,
+            }}
+          >
+            {TRUST.map(({ Icon, title, body }) => (
+              <div key={title}>
+                <Icon
+                  size={28}
+                  strokeWidth={1.8}
+                  style={{ color: YELLOW }}
+                />
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    marginTop: 16,
+                    marginBottom: 8,
+                  }}
+                >
+                  {title}
+                </h3>
+                <p
+                  style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 15,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {body}
+                </p>
               </div>
             ))}
           </div>
-          <button onClick={() => navigate('/expedier')} className="btn-cta w-full mt-10">
-            Créer mon premier dossier →
-          </button>
         </div>
       </section>
-
-      {/* ───── TRANSPORTEUR SIGNUP ───── */}
-      <TransporteurSignupSection />
 
       {/* ───── TÉMOIGNAGES ───── */}
-      <section>
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 py-14 md:py-16">
-          <p className="text-label text-center mb-2">Ils nous font confiance</p>
-          <h2 className="text-center text-[22px] md:text-[28px] mb-6 md:mb-8">Ce que disent nos clients.</h2>
-          <div ref={testimonialsRef} className="-mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-5 scroll-smooth">
-            <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-3 min-w-max md:min-w-0 pb-2">
-              {TESTIMONIALS.map((t, i) => (
-                <motion.div
-                  key={i}
-                  variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                  className="surface-card snap-start flex flex-col w-[85vw] max-w-[320px] md:w-auto md:max-w-none md:min-w-0 p-5"
-                >
-                  <div className="text-[13px] tracking-wider" style={{ color: '#1D9E75' }}>★★★★★</div>
-                  <p className="mt-3 flex-1" style={{ fontSize: 15, lineHeight: 1.65, color: 'hsl(var(--foreground))' }}>
-                    "{t.quote}"
-                  </p>
-                  <div className="mt-5 pt-4" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                    <div className="text-[13px] font-medium">{t.name}</div>
-                    <div className="text-[12px] mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>{t.sub}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <section style={{ background: '#F8F8F8', padding: '96px 20px' }}>
+        <div className="max-w-[1180px] mx-auto">
+          <p
+            style={{
+              fontSize: 12,
+              letterSpacing: '0.24em',
+              color: '#71717A',
+              fontWeight: 600,
+              textAlign: 'center',
+              marginBottom: 16,
+            }}
+          >
+            TÉMOIGNAGES
+          </p>
+          <h2
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontSize: 'clamp(40px, 6vw, 64px)',
+              lineHeight: 1,
+              color: NAVY,
+              textAlign: 'center',
+              margin: 0,
+              letterSpacing: '-0.01em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Ce qu'ils en disent.
+          </h2>
 
-      {/* ───── STATS ───── */}
-      <section style={{ background: 'hsl(var(--secondary))', borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-        <div className="max-w-6xl mx-auto px-6 py-14 md:py-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-            {METRICS.map((m, i) => (
-              <motion.div key={m.label}
-                variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} custom={i}
-                className="text-center md:text-left"
+          <div
+            style={{
+              marginTop: 56,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))',
+              gap: 20,
+            }}
+          >
+            {TESTIMONIALS.map((t, i) => (
+              <article
+                key={i}
+                style={{
+                  background: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 28,
+                  boxShadow:
+                    '0 1px 2px rgba(13,27,42,0.03), 0 6px 24px rgba(13,27,42,0.05)',
+                }}
               >
-                <p className="text-price">{m.value}</p>
-                <p className="text-[12px] mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{m.label}</p>
-              </motion.div>
+                <div
+                  style={{ display: 'inline-flex', gap: 2, marginBottom: 16 }}
+                >
+                  {Array.from({ length: 5 }).map((_, s) => (
+                    <Star
+                      key={s}
+                      size={16}
+                      style={{ color: YELLOW, fill: YELLOW }}
+                    />
+                  ))}
+                </div>
+                <p
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 1.6,
+                    color: NAVY,
+                    minHeight: 96,
+                  }}
+                >
+                  "{t.quote}"
+                </p>
+                <p
+                  style={{
+                    marginTop: 24,
+                    fontSize: 13,
+                    color: '#71717A',
+                    fontWeight: 500,
+                  }}
+                >
+                  — {t.name}
+                </p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
       {/* ───── FINAL CTA ───── */}
-      <section>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 md:py-20 text-center">
-          <h2 className="text-[22px] sm:text-[24px] md:text-[32px] leading-tight">Prêt à simplifier votre prochain envoi&nbsp;?</h2>
-          <p className="mt-3 max-w-md mx-auto" style={{ fontSize: 14, lineHeight: 1.6, color: 'hsl(var(--muted-foreground))' }}>
-            Choisissez votre besoin, on s'occupe du reste.
+      <section
+        style={{
+          background: YELLOW,
+          padding: '80px 20px',
+          textAlign: 'center',
+        }}
+      >
+        <div className="max-w-[760px] mx-auto">
+          <h2
+            style={{
+              fontFamily: DISPLAY_FONT,
+              fontSize: 'clamp(40px, 6vw, 64px)',
+              lineHeight: 1.05,
+              color: NAVY,
+              margin: 0,
+              letterSpacing: '-0.01em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Prêt à envoyer votre premier colis ?
+          </h2>
+          <p
+            style={{
+              fontSize: 18,
+              color: NAVY,
+              opacity: 0.85,
+              marginTop: 16,
+              lineHeight: 1.55,
+            }}
+          >
+            Obtenez un prix en 30 secondes. Sans inscription. Sans appel.
           </p>
-          <div className="mt-6 sm:mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-xl mx-auto">
-            <button onClick={() => navigate('/expedier')} className="btn-cta w-full">Expédier un colis</button>
-            <button onClick={() => navigate('/sourcing')} className="btn-cta w-full"
-              style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-              Sourcing produit
-            </button>
-            <button onClick={() => navigate('/expedier/recevoir')} className="btn-cta w-full"
-              style={{ background: 'transparent', color: 'hsl(var(--foreground))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-              Réception
-            </button>
-          </div>
-          <p className="mt-6 text-[12px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Vous êtes une entreprise ?{' '}
-            <Link to="/business" className="font-medium underline">Découvrez Yobbanté Business →</Link>
+          <button
+            type="button"
+            onClick={() => goExpedier()}
+            style={{
+              marginTop: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '0 32px',
+              height: 56,
+              borderRadius: 999,
+              background: NAVY,
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: 16,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(13,27,42,0.25)',
+            }}
+          >
+            Expédier maintenant <ArrowRight size={18} />
+          </button>
+          <p
+            style={{
+              marginTop: 20,
+              fontSize: 13,
+              color: NAVY,
+              opacity: 0.7,
+            }}
+          >
+            Prix instantané · Suivi WhatsApp · Paiement Wave / Orange Money
           </p>
         </div>
       </section>
 
-      <PublicFooter />
+      <LandingFooter />
     </div>
   );
 }
 
+/* ───────────────────────────── NAV ───────────────────────────── */
+function LandingNav({ onExpedier }: { onExpedier: () => void }) {
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: '#FFFFFF',
+        borderBottom: '1px solid #F1F1F4',
+        height: 64,
+      }}
+    >
+      <div
+        className="max-w-[1180px] mx-auto"
+        style={{
+          height: '100%',
+          padding: '0 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <Link to="/" aria-label="Yobbanté — accueil" style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <img
+            src={yobbanteLogoAsset.url}
+            alt="Yobbanté"
+            style={{ height: 36, width: 'auto', background: 'transparent', display: 'block' }}
+          />
+        </Link>
+
+        <nav
+          className="hidden md:flex"
+          style={{ alignItems: 'center', gap: 28 }}
+        >
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: NAVY,
+                transition: 'opacity 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.opacity = '0.6';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
+              }}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link
+            to="/auth"
+            className="hidden sm:inline-flex"
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: NAVY,
+              padding: '8px 4px',
+            }}
+          >
+            Se connecter
+          </Link>
+          <button
+            type="button"
+            onClick={onExpedier}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '0 18px',
+              height: 42,
+              borderRadius: 999,
+              background: YELLOW,
+              color: NAVY,
+              fontWeight: 700,
+              fontSize: 14,
+              border: 'none',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Expédier maintenant <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── FOOTER ───────────────────────────── */
+function LandingFooter() {
+  const cols: { title: string; items: { label: string; to: string; external?: boolean }[] }[] = [
+    {
+      title: 'Services',
+      items: [
+        { label: 'Expédier un colis', to: '/expedier' },
+        { label: 'Tarifs', to: '/tarifs' },
+        { label: 'Suivre mon colis', to: '/track' },
+        { label: 'Boutique Dëkk', to: '/boutique' },
+      ],
+    },
+    {
+      title: 'Légal',
+      items: [
+        { label: 'Mentions légales', to: '/mentions-legales' },
+        { label: 'Confidentialité', to: '/confidentialite' },
+        { label: 'CGU · CGV', to: '/cgu' },
+        { label: 'Cookies', to: '/cookies' },
+      ],
+    },
+  ];
+
+  return (
+    <footer style={{ background: NAVY, color: '#FFFFFF', padding: '64px 20px 32px' }}>
+      <div className="max-w-[1180px] mx-auto">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 32,
+          }}
+        >
+          <div>
+            <img
+              src={yobbanteLogoAsset.url}
+              alt="Yobbanté"
+              style={{ height: 36, width: 'auto', display: 'block', marginBottom: 16 }}
+            />
+            <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.55, maxWidth: 220 }}>
+              La logistique humaine depuis Dakar.
+            </p>
+          </div>
+
+          {cols.map((c) => (
+            <div key={c.title}>
+              <h4
+                style={{
+                  fontSize: 12,
+                  letterSpacing: '0.18em',
+                  color: YELLOW,
+                  fontWeight: 600,
+                  marginBottom: 16,
+                }}
+              >
+                {c.title.toUpperCase()}
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {c.items.map((i) => (
+                  <li key={i.label}>
+                    <Link
+                      to={i.to}
+                      style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}
+                    >
+                      {i.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div>
+            <h4
+              style={{
+                fontSize: 12,
+                letterSpacing: '0.18em',
+                color: YELLOW,
+                fontWeight: 600,
+                marginBottom: 16,
+              }}
+            >
+              CONTACT
+            </h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <li>
+                <a
+                  href="https://wa.me/221786078080"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}
+                >
+                  WhatsApp : +221 78 607 80 80
+                </a>
+              </li>
+              <li>
+                <a
+                  href="mailto:contact@yobbante.com"
+                  style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}
+                >
+                  contact@yobbante.com
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 48,
+            paddingTop: 24,
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 13,
+          }}
+        >
+          © 2026 Yobbanté · Tous droits réservés
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ──────────────────────── Returning client ribbon ──────────────────────── */
 function ReturningClientBanner() {
   const navigate = useNavigate();
   const { hasDossiers } = useHasDossiers();
   if (!hasDossiers) return null;
   return (
-    <div className="sticky top-0 z-40">
-      <button
-        type="button"
-        onClick={() => navigate('/app')}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-medium transition-opacity hover:opacity-90"
-        style={{ background: '#F5C518', color: '#0A0A0A' }}
-      >
-        <span>Suivre mes commandes</span>
-        <ArrowRight className="w-3.5 h-3.5" />
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => navigate('/app')}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '10px 16px',
+        background: YELLOW,
+        color: NAVY,
+        fontWeight: 600,
+        fontSize: 13,
+        border: 'none',
+        cursor: 'pointer',
+      }}
+    >
+      Suivre mes commandes <ArrowRight size={14} />
+    </button>
   );
 }
-
