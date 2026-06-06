@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import type { TabId } from './BottomNav';
+import yobbanteLogoAsset from '@/assets/yobbante-logo-mark.png.asset.json';
 
 export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onChange: (tab: TabId) => void; onSignOut: () => void }) {
   const navigate = useNavigate();
@@ -19,9 +20,14 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
     <header className="hidden md:flex items-center justify-between px-8 py-3 border-b border-border bg-background/85 backdrop-blur-xl sticky top-0 z-40">
       <button
         onClick={() => onChange('home')}
-        className="text-lg font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
+        aria-label="Yobbanté — accueil"
+        className="inline-flex items-center hover:opacity-80 transition-opacity"
       >
-        YOBBANTÉ
+        <img
+          src={yobbanteLogoAsset.url}
+          alt="Yobbanté"
+          style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
+        />
       </button>
       <nav className="flex items-center gap-1">
         {links.map(link => {
