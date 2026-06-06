@@ -580,13 +580,14 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     await saveSession(supa, phone, null, {});
     return withShortMenu(r);
   }
-  // 2. Sinon chercher tous les dossiers liés au téléphone
-  const digits = phone.replace(/\D/g, '');
-  const variants = [phone, `+${digits}`, digits];
-  const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+  // 2. Sinon chercher tous les dossiers liés au téléphone (normalisation FR/SN)
+  const variants = phoneSearchVariants(phone);
+  const orExpr = variants
+    .flatMap((v) => [`contact_phone.eq.${v}`, `sender_phone.eq.${v}`, `recipient_phone.eq.${v}`])
+    .join(',');
   const { data: rows } = await supa
     .from('dossiers')
-    .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+    .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
     .or(orExpr)
     .order('updated_at', { ascending: false })
     .limit(10);
@@ -595,7 +596,9 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   // Aucun dossier → demander tracking
   if (items.length === 0) {
     await saveSession(supa, phone, 'await_tracking', {});
-    return withBack(`Quel est votre numero de suivi ?\nIl commence par YOB-`);
+    return withBack(
+      `Aucune expedition trouvee pour ce numero.\nAvez-vous utilise un autre numero pour votre commande ?\n\nVous pouvez aussi entrer votre reference directement (format YOB-XXXXXX).`,
+    );
   }
 
   // Un seul dossier → afficher directement
@@ -605,7 +608,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     const label = STATUS_FR[d.status] || d.status;
     const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
     await saveSession(supa, phone, null, {});
-    return withShortMenu(`Votre colis ${id} :\nStatut : ${label}\nRoute : ${d.origin_country} -> ${d.destination_country}\nMise a jour : ${upd}\n\nSuivi complet :\nyobbante.com/suivre/${id}`);
+    return withShortMenu(`Votre colis ${id} :\nStatut : ${label}\nRoute : ${routeFr(d)}\nMise a jour : ${upd}\n\nSuivi complet :\nyobbante.com/suivre/${id}`);
   }
 
   // Plusieurs → liste interactive
@@ -614,7 +617,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   const toRow = (r: any) => {
     const id = (r.tracking_id || r.reference).toString();
     const label = STATUS_FR[r.status] || r.status;
-    return { id, title: id.slice(0, 24), description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72) };
+    return { id, title: id.slice(0, 24), description: `${label} - ${routeFr(r)}`.slice(0, 72) };
   };
   const sections: Array<{ title: string; rows: any[] }> = [];
   if (active.length) sections.push({ title: 'En cours', rows: active.slice(0, 8).map(toRow) });
