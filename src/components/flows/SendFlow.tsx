@@ -611,8 +611,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     5: true, 6: true,
     7: !!senderName.trim() && !!senderPhone.trim(),
   };
-  function scrollToFirstError() {
-    const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
+  function scrollToFirstError(preferredSectionId?: string) {
+    const firstBadId = (preferredSectionId && (sectionErrors as Record<string, boolean>)[preferredSectionId])
+      ? preferredSectionId
+      : (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
     requestAnimationFrame(() => {
       const section = document.getElementById(firstBadId);
@@ -631,6 +633,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       }, 400);
     });
   }
+
 
   async function submit() {
     if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
