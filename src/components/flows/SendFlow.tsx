@@ -611,8 +611,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     5: true, 6: true,
     7: !!senderName.trim() && !!senderPhone.trim(),
   };
-  function scrollToFirstError() {
-    const firstBadId = (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
+  function scrollToFirstError(preferredSectionId?: string) {
+    const firstBadId = (preferredSectionId && (sectionErrors as Record<string, boolean>)[preferredSectionId])
+      ? preferredSectionId
+      : (Object.entries(sectionErrors).find(([, bad]) => bad)?.[0]) || null;
     if (!firstBadId) return;
     requestAnimationFrame(() => {
       const section = document.getElementById(firstBadId);
@@ -631,6 +633,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       }, 400);
     });
   }
+
 
   async function submit() {
     if (!routeOk || !collecteOk || !recipientOk || !packageOk || !goodsOk || !senderName.trim() || !senderPhone.trim()) {
@@ -2192,8 +2195,24 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         const smartCtaLabel = isLastStep
           ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
           : 'Continuer';
+        const STEP_SECTION_ID: Record<number, string> = {
+          1: 'section-collecte',
+          2: 'section-recipient',
+          3: 'section-package',
+          4: 'section-goods',
+          7: 'section-final',
+        };
         function handleSummaryAction() {
           if (!isLastStep) {
+            const valid = stepValidity[currentStep];
+            if (!valid) {
+              setSubmitAttempted(true);
+              scrollToFirstError(STEP_SECTION_ID[currentStep]);
+              setTimeout(() => {
+                toast.error('Étape incomplète', { description: 'Remplissez les champs surlignés en rouge.' });
+              }, 350);
+              return;
+            }
             advanceFromStep(currentStep);
           } else if (allReady) {
             submit();
@@ -2205,6 +2224,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             }, 350);
           }
         }
+
         return (
 
       <LiveSummaryBar
