@@ -22,12 +22,12 @@ const NAV_LINKS: { label: string; to: string }[] = [
 ];
 
 const DESTINATIONS: { flag: string; name: string; hub: HubId | null }[] = [
-  { flag: '🇫🇷', name: 'Paris', hub: 'paris' },
-  { flag: '🇺🇸', name: 'New York', hub: 'nyc' },
-  { flag: '🇨🇦', name: 'Montréal', hub: 'mtl' },
-  { flag: '🇦🇪', name: 'Dubai', hub: 'dxb' },
-  { flag: '🇨🇳', name: 'Shanghai', hub: 'shanghai' },
-  { flag: '🇨🇮', name: 'Abidjan', hub: 'abj' },
+  { flag: '🇫🇷', name: 'Paris', hub: 'FR' },
+  { flag: '🇺🇸', name: 'New York', hub: 'US' },
+  { flag: '🇨🇦', name: 'Montréal', hub: null },
+  { flag: '🇦🇪', name: 'Dubai', hub: 'AE' },
+  { flag: '🇨🇳', name: 'Shanghai', hub: 'CN' },
+  { flag: '🇨🇮', name: 'Abidjan', hub: null },
 ];
 
 const STEPS = [
