@@ -765,6 +765,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       });
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
+      try { sessionStorage.removeItem(RESUME_KEY); } catch {}
       toast.success(`Commande créée — ${trackingId}`);
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
