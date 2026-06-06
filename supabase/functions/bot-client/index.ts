@@ -629,7 +629,7 @@ const STATUS_FR: Record<string, string> = {
 const MAIN_MENU_TEXT = `Bonjour ! Je suis l assistant Yobbante. Comment puis-je vous aider ?`;
 const SHORT_MENU_TEXT = `Que souhaitez-vous faire ensuite ?`;
 const SESSION_EXPIRED_TEXT = `Votre session a expire.`;
-const FALLBACK = `Je veux m assurer de bien vous aider. Que cherchez-vous ?`;
+const FALLBACK = `Bonjour ! Je suis l'assistant Yobbante.\nComment puis-je vous aider ?\n\n1 - Creer une expedition\n2 - Suivre mon colis\n3 - Parler a un conseiller`;
 
 // Sentinels: stripped before envoi, declenchent l UI interactive correspondante.
 const UI_MENU = '[[UI_MENU]]';
@@ -1803,10 +1803,10 @@ Deno.serve(async (req) => {
             // Auto-escalade agent
             reply = await handleMenuChoice(supa, phone, input.from_name ?? null, '5', msg);
           } else {
-            reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+            reply = withFullMenu(FALLBACK);
           }
         } catch (_) {
-          reply = withFullMenu(`Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          reply = withFullMenu(FALLBACK);
         }
       }
     }
