@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 
-const HIDDEN_PREFIXES = ['/admin', '/app', '/auth', '/business'];
+const HIDDEN_PREFIXES = ['/admin', '/app', '/auth', '/business', '/expedier'];
 
 const WA_HREF =
   "https://wa.me/221786078080?text=Bonjour%20Yobbant%C3%A9%2C%20j%27ai%20besoin%20d%27aide%20pour%20mon%20exp%C3%A9dition";
