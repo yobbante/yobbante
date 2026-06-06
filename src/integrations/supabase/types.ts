@@ -1080,7 +1080,7 @@ export type Database = {
           tracking_id_format: string
           unit: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           weigh_location: string | null
           weighed_at: string | null
           weighed_by: string | null
@@ -1225,7 +1225,7 @@ export type Database = {
           tracking_id_format?: string
           unit?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
@@ -1370,7 +1370,7 @@ export type Database = {
           tracking_id_format?: string
           unit?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           weigh_location?: string | null
           weighed_at?: string | null
           weighed_by?: string | null
@@ -3951,6 +3951,7 @@ export type Database = {
         | "CANCELLED"
         | "ARCHIVED"
         | "DEPARTURE_CONFIRMED"
+        | "QUOTE_REQUESTED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -4155,6 +4156,7 @@ export const Constants = {
         "CANCELLED",
         "ARCHIVED",
         "DEPARTURE_CONFIRMED",
+        "QUOTE_REQUESTED",
       ],
       dossier_type: [
         "individual",
