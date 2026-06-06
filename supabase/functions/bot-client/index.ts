@@ -27,6 +27,61 @@ const MAX_WEIGHT_KG = 500;
 const MIN_WEIGHT_KG = 0.1;
 const HEAVY_WEIGHT_THRESHOLD_KG = 30;
 
+// --- Phone normalization helpers ---
+function normalizePhoneE164(input: string | null | undefined): string {
+  if (!input) return '';
+  let v = String(input).replace(/[\s().\-_]/g, '');
+  if (!v) return '';
+  if (v.startsWith('+')) return v;
+  if (v.startsWith('00221')) return '+' + v.slice(2);
+  if (v.startsWith('00') && v.length > 5) return '+' + v.slice(2);
+  if (v.startsWith('221') && v.length >= 11) return '+' + v;
+  const digits = v.replace(/\D/g, '');
+  if (digits.length === 9 && (digits.startsWith('7') || digits.startsWith('3'))) {
+    return '+221' + digits;
+  }
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return '+221' + digits.slice(1);
+  }
+  return digits ? '+' + digits : v;
+}
+
+function phoneSearchVariants(input: string): string[] {
+  const e164 = normalizePhoneE164(input);
+  const digits = e164.replace(/\D/g, '');
+  const set = new Set<string>();
+  if (input) set.add(input.trim());
+  if (e164) set.add(e164);
+  if (digits) set.add(digits);
+  // local SN (9 chiffres)
+  if (digits.startsWith('221') && digits.length >= 12) {
+    set.add(digits.slice(3));
+    set.add('0' + digits.slice(3));
+  }
+  return Array.from(set).filter(Boolean);
+}
+
+// --- Country code → city label (Yobbanté routes via Dakar hub) ---
+const COUNTRY_CITY_FALLBACK: Record<string, string> = {
+  SN: 'Dakar', FR: 'France', CN: 'Chine', US: 'USA', CA: 'Canada',
+  AE: 'Dubai', DE: 'Allemagne', BE: 'Belgique', ES: 'Espagne',
+  IT: 'Italie', CH: 'Suisse', MA: 'Maroc', CI: 'Abidjan',
+  ML: 'Bamako', CM: 'Cameroun', GA: 'Libreville', GN: 'Conakry',
+  CG: 'Brazzaville', CD: 'Kinshasa', TD: "N'Djamena", GQ: 'Malabo',
+  TR: 'Istanbul', LB: 'Beyrouth',
+};
+
+function placeFr(city?: string | null, country?: string | null): string {
+  const c = (city ?? '').trim();
+  if (c) return c;
+  const cc = (country ?? '').toUpperCase();
+  return COUNTRY_CITY_FALLBACK[cc] || cc || '?';
+}
+
+function routeFr(d: { origin_city?: string | null; destination_city?: string | null; origin_country?: string | null; destination_country?: string | null }): string {
+  return `${placeFr(d.origin_city, d.origin_country)} -> ${placeFr(d.destination_city, d.destination_country)}`;
+}
+
 type WeightCheck =
   | { ok: true; weight: number; heavy: boolean }
   | { ok: false; error: string };
