@@ -1131,19 +1131,22 @@ async function handleMenuChoice(
     return withShortMenu(r);
   }
   if (choice === '2') {
-    const digits = phone.replace(/\D/g, '');
-    const variants = [phone, `+${digits}`, digits];
-    const orExpr = variants.map((v) => `contact_phone.eq.${v},sender_phone.eq.${v}`).join(',');
+    const variants = phoneSearchVariants(phone);
+    const orExpr = variants
+      .flatMap((v) => [`contact_phone.eq.${v}`, `sender_phone.eq.${v}`, `recipient_phone.eq.${v}`])
+      .join(',');
     const { data: rows } = await supa
       .from('dossiers')
-      .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+      .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
       .or(orExpr)
       .order('updated_at', { ascending: false })
       .limit(10);
     const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
     if (items.length === 0) {
       await saveSession(supa, phone, 'await_tracking', {});
-      return withBack(`Aucun colis trouve pour votre numero.\nEntrez un numero de suivi.\n(Format : YOB-XXXXXX)`);
+      return withBack(
+        `Aucune expedition trouvee pour ce numero.\nAvez-vous utilise un autre numero pour votre commande ?\n\nVous pouvez aussi entrer votre reference directement (format YOB-XXXXXX).`,
+      );
     }
     const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
     const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
@@ -1153,7 +1156,7 @@ async function handleMenuChoice(
       return {
         id,
         title: id.slice(0, 24),
-        description: `${label} - ${r.origin_country}->${r.destination_country}`.slice(0, 72),
+        description: `${label} - ${routeFr(r)}`.slice(0, 72),
       };
     };
     const sections: Array<{ title: string; rows: any[] }> = [];
