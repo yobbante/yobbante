@@ -1075,7 +1075,7 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
   const trk = trackingInput.toUpperCase().replace(/\s/g, '');
   const { data: d } = await supa
     .from('dossiers')
-    .select('tracking_id,reference,status,origin_country,destination_country,updated_at')
+    .select('tracking_id,reference,status,origin_country,destination_country,origin_city,destination_city,updated_at')
     .or(`tracking_id.eq.${trk},reference.eq.${trk}`)
     .limit(1)
     .maybeSingle();
@@ -1083,7 +1083,7 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
   const id = d.tracking_id || d.reference;
   const label = STATUS_FR[d.status] || d.status;
   const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
-  return `Votre colis ${id} :\nStatut : ${label}\nRoute : ${d.origin_country} -> ${d.destination_country}\nDerniere mise a jour : ${upd}\n\nPour plus de details :\nyobbante.com/suivre/${id}`;
+  return `Votre colis ${id} :\nStatut : ${label}\nRoute : ${routeFr(d)}\nDerniere mise a jour : ${upd}\n\nPour plus de details :\nyobbante.com/suivre/${id}`;
 }
 
 async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise<string> {
