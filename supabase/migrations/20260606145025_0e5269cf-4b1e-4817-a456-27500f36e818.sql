@@ -1,0 +1,1 @@
+ALTER TYPE public.dossier_status ADD VALUE IF NOT EXISTS 'QUOTE_REQUESTED';
