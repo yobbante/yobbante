@@ -1328,11 +1328,8 @@ Voir : yobbante.com/admin`);
 
   if (isAide || (isStart && !sessionActive)) {
     await clearSession();
-    if (isStart && !isAide) {
-      await reply(`Bonjour ${prenom} !\n\n${HELP_TEXT}`, 'start');
-    } else {
-      await reply(HELP_TEXT, 'help');
-    }
+    const prefix = isStart && !isAide ? `Bonjour ${prenom} !` : undefined;
+    await sendMainMenu(prefix, isStart && !isAide ? 'start' : 'help');
     return new Response('ok', { headers: corsHeaders });
   }
 
