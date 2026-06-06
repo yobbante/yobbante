@@ -165,7 +165,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [recipientEmail, setRecipientEmail] = useState('');
   const [deliveryAddress, setDelivery]    = useState('');
   // Mode de reception finale
-  const [deliveryMode, setDeliveryMode]   = useState<'partner_pickup' | 'relay_point' | 'home_delivery'>('partner_pickup');
+  const [deliveryMode, setDeliveryMode]   = useState<'pickup_gp' | 'relay_point' | 'home_delivery'>('pickup_gp');
   const [relayPointId, setRelayPointId]   = useState<string>('');
   const [relayPointName, setRelayPointName] = useState('');
   const [relayPointAddress, setRelayPointAddress] = useState('');
@@ -281,10 +281,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return () => { cancelled = true; };
   }, [destIsDakar]);
 
-  // Si destination change et n'est plus Dakar, forcer partner_pickup
+  // Si destination change et n'est plus Dakar, forcer pickup_gp
   useEffect(() => {
-    if (!destIsDakar && deliveryMode !== 'partner_pickup') {
-      setDeliveryMode('partner_pickup');
+    if (!destIsDakar && deliveryMode !== 'pickup_gp') {
+      setDeliveryMode('pickup_gp');
       setRelayPointId('');
     }
   }, [destIsDakar, deliveryMode]);
@@ -1258,9 +1258,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
               {(() => {
                 const hasRelays = activeRelayPoints.length > 0;
-                const options: Array<{ id: 'partner_pickup' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
+                const options: Array<{ id: 'pickup_gp' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
                   {
-                    id: 'partner_pickup',
+                    id: 'pickup_gp',
                     label: 'Récupérer chez notre partenaire',
                     sub: 'Gratuit — adresse communiquée à l\'arrivée',
                   },
