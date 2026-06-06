@@ -1184,7 +1184,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               </div>
 
-              <StepContinueBar enabled={collecteOk} onContinue={() => advanceFromStep(1)} />
+              <StepSupportLink />
             </div>
           )
         ) : (
