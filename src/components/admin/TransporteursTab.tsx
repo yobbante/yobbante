@@ -60,11 +60,18 @@ Vous recevrez vos premieres missions directement sur WhatsApp.
 Si vous voulez nous ecrire, envoyez votre message sur WhatsApp au ${YOBBANTE_GP_WHATSAPP_DISPLAY}.`;
 }
 
+function buildKonnektOnboardingUrl(gp: Transporteur) {
+  return `https://usekonnekt.com/onboarding/${gpRef(gp.reference)}`;
+}
+
+function buildKonnektInviteMessage(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  return `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre Konnekt, votre espace dédié pour publier vos départs, recevoir plus de missions et suivre vos paiements — tout depuis votre téléphone.\n\nAccédez à votre espace personnalisé ici :\n${buildKonnektOnboardingUrl(gp)}`;
+}
+
 function buildKonnektInviteWaUrl(gp: Transporteur) {
   const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
-  const message = `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre le réseau Konnekt. Cliquez ici pour vous inscrire et recevoir vos missions : https://usekonnekt.com/rejoindre-gp`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildKonnektInviteMessage(gp))}`;
 }
 
 
