@@ -603,6 +603,43 @@ export function TransporteursTab() {
 
 
       {subTab === 'all' && (<>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 bg-card">
+        {([
+          { id: 'all', label: 'Tous', count: konnektCounts.total, color: 'foreground' },
+          { id: 'to_invite', label: 'À inviter', count: konnektCounts.none, color: 'orange' },
+          { id: 'invited', label: 'Invités', count: konnektCounts.invited, color: 'orange' },
+          { id: 'active', label: 'Actifs sur Konnekt', count: konnektCounts.active, color: 'green' },
+        ] as const).map(opt => {
+          const active = konnektFilter === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setKonnektFilter(opt.id as any)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                active ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border hover:bg-secondary'
+              }`}
+            >
+              {opt.label}
+              <span className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+                opt.color === 'green' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : opt.color === 'orange' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-secondary text-muted-foreground'
+              }`}>{opt.count}</span>
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <Button
+          size="sm"
+          disabled={toInviteList.length === 0}
+          onClick={() => setMassInviteOpen(true)}
+          style={{ background: '#F5C518', color: '#0a0a0a' }}
+          className="hover:opacity-90"
+        >
+          <Send className="w-3.5 h-3.5 mr-1.5" />
+          Inviter tous les non-invités ({toInviteList.length}) →
+        </Button>
+      </div>
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
