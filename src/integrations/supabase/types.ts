@@ -3094,8 +3094,10 @@ export type Database = {
           invitation_bot_sent_at: string | null
           is_beta_validated: boolean
           konnekt_invited_at: string | null
+          konnekt_link_opened_at: string | null
           konnekt_registered: boolean
           konnekt_registered_at: string | null
+          konnekt_user_id: string | null
           last_bot_activity_at: string | null
           modes_transport: string[] | null
           navettes: Json
@@ -3138,8 +3140,10 @@ export type Database = {
           invitation_bot_sent_at?: string | null
           is_beta_validated?: boolean
           konnekt_invited_at?: string | null
+          konnekt_link_opened_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          konnekt_user_id?: string | null
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           navettes?: Json
@@ -3182,8 +3186,10 @@ export type Database = {
           invitation_bot_sent_at?: string | null
           is_beta_validated?: boolean
           konnekt_invited_at?: string | null
+          konnekt_link_opened_at?: string | null
           konnekt_registered?: boolean
           konnekt_registered_at?: string | null
+          konnekt_user_id?: string | null
           last_bot_activity_at?: string | null
           modes_transport?: string[] | null
           navettes?: Json
