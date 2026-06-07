@@ -149,6 +149,7 @@ export function TransporteursTab() {
   const [blastOpen, setBlastOpen] = useState(false);
   const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
+  const [konnektInvitedMap, setKonnektInvitedMap] = useState<Record<string, string>>({});
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [failedMap, setFailedMap] = useState<Record<string, { kind: 'bot' | 'konnekt'; wa: string; name: string }>>({});
   const [importOpen, setImportOpen] = useState(false);
@@ -158,6 +159,8 @@ export function TransporteursTab() {
   const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [subTab, setSubTab] = useState<'all' | 'beta'>('all');
+  const [konnektFilter, setKonnektFilter] = useState<'all' | 'to_invite' | 'invited' | 'active'>('all');
+  const [massInviteOpen, setMassInviteOpen] = useState(false);
   const [validatingId, setValidatingId] = useState<string | null>(null);
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
