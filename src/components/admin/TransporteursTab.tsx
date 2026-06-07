@@ -44,7 +44,7 @@ const SUPER_ADMIN_PHONE = '+221784604003';
 
 /** Build the personalized bot-onboarding message (no accents for WhatsApp). */
 function buildBotInviteMessage(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
 Yobbante vous invite a rejoindre notre reseau de transporteurs.
@@ -65,7 +65,7 @@ function buildKonnektOnboardingUrl(gp: Transporteur) {
 }
 
 function buildKonnektInviteMessage(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || '');
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
   const greetingName = prenom || 'cher partenaire';
   return `Bonjour ${greetingName}, c'est Amath (Yobbanté). Je t'envoie ça parce qu'on a déjà travaillé ensemble — je voulais te partager quelque chose qu'on est en train de construire.\n\nKonnekt, c'est une app où tu publies tes propres départs, tu fixes ton prix, tes conditions. Tu gères tout toi-même. Pour le lancement on t'envoie aussi des missions Yobbanté directement.\n\nOn est en beta — les premiers à s'inscrire ont la priorité sur les missions. Deux minutes pour rejoindre :\nhttps://usekonnekt.com/rejoindre-gp`;
 }
@@ -99,7 +99,7 @@ function formatTransporteurName(prenomRaw?: string | null, nomRaw?: string | nul
 
 /** Build personalized Konnekt invite text per GP (no accents for WhatsApp). */
 function buildInviteMessage(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'cher partenaire');
   return `Salam ${prenom},
 
 Bienvenue sur Konnekt !
@@ -128,7 +128,7 @@ function buildWaUrl(gp: Transporteur) {
 }
 
 function buildDirectMessageToGpLine(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
   return gpWhatsappLink(`Salam, ici ${prenom}. Je vous ecris au sujet de mon compte GP.`);
 }
 
@@ -169,7 +169,7 @@ export function TransporteursTab() {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
     if (!phoneDigits) { toast.error('Numéro de téléphone manquant'); return; }
     const name = formatTransporteurName(gp.prenom, gp.nom);
-    const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+    const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
     const message = `Salam ${prenom}, test de delivrabilite Yobbante. Si vous voyez ce message, repondez OK au ${YOBBANTE_BOT_NUMBER}. Merci.`;
     setTestingId(gp.id);
     try {
@@ -267,7 +267,7 @@ export function TransporteursTab() {
       toast.info('Ce GP est déjà actif');
       return;
     }
-    const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'partenaire');
+    const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
     let reference = String(gp.reference || '').replace(/\D/g, '');
     if (!/^\d{4}$/.test(reference)) reference = nextAvailableRef();
 
