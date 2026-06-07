@@ -17,6 +17,9 @@ export interface Transporteur {
   actif: boolean;
   konnekt_registered?: boolean;
   konnekt_registered_at?: string | null;
+  konnekt_invited_at?: string | null;
+  konnekt_link_opened_at?: string | null;
+  konnekt_user_id?: string | null;
   beta_invite_sent_at?: string | null;
   invitation_bot_sent_at?: string | null;
   default_rate_per_kg?: number | null;
