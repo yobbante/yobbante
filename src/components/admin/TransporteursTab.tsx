@@ -666,7 +666,7 @@ export function TransporteursTab() {
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
-            const inviteAt = sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
+            const inviteAt = konnektInvitedMap[t.id] ?? (t as any).konnekt_invited_at ?? sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
             const botInviteAt = botSentMap[t.id] ?? t.invitation_bot_sent_at ?? null;
             const botActive = !!botActiveIds?.has(t.id);
             const cities = uniqueCitiesFromNavettes(t.navettes);
