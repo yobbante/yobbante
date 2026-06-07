@@ -751,7 +751,8 @@ export function TransporteursTab() {
                         const link = buildKonnektInviteWaUrl(t);
                         try {
                           await navigator.clipboard.writeText(link);
-                          toast.success('Lien WhatsApp d\'invitation GP copié');
+                          await markKonnektInvited(t);
+                          toast.success("Lien WhatsApp d'invitation GP copié — statut Konnekt : Invité");
                         } catch { toast.error('Copie impossible'); }
                       }}>
                         <Copy className="w-4 h-4 mr-2" /> Copier le lien WhatsApp d'invitation GP
