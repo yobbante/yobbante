@@ -898,7 +898,74 @@ export function TransporteursTab() {
         </div>
       )}
 
-
+      <Dialog open={massInviteOpen} onOpenChange={setMassInviteOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Inviter tous les GP non invités</DialogTitle>
+            <DialogDescription>
+              {toInviteList.length} GP à inviter. Copiez le lien personnalisé pour chacun et envoyez-le sur WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[55vh] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+            {toInviteList.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Tous les GP actifs ont déjà été invités 🎉
+              </div>
+            ) : toInviteList.map(g => {
+              const link = buildKonnektInviteWaUrl(g);
+              const onboarding = buildKonnektOnboardingUrl(g);
+              return (
+                <div key={g.id} className="flex items-center gap-3 p-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{formatTransporteurName(g.prenom, g.nom)} <span className="ml-1 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span></div>
+                    <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {onboarding}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(link);
+                        await markKonnektInvited(g);
+                        toast.success(`Lien copié pour ${g.prenom ?? g.nom}`);
+                      } catch { toast.error('Copie impossible'); }
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" /> Copier
+                  </Button>
+                  <Button
+                    size="sm"
+                    style={{ background: '#25D366', color: '#0a0a0a' }}
+                    onClick={async () => {
+                      window.open(link, '_blank', 'noopener,noreferrer');
+                      await markKonnektInvited(g);
+                    }}
+                  >
+                    <Send className="w-3.5 h-3.5 mr-1.5" /> Ouvrir
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                let ok = 0;
+                for (const g of toInviteList) {
+                  try { await markKonnektInvited(g); ok++; } catch { /* ignore */ }
+                }
+                toast.success(`${ok} GP marqués comme invités`);
+                setMassInviteOpen(false);
+              }}
+              disabled={toInviteList.length === 0}
+            >
+              Tout marquer comme invité
+            </Button>
+            <Button onClick={() => setMassInviteOpen(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       <EditDrawer
