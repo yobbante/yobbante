@@ -1392,6 +1392,49 @@ function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: 
 }
 
 
+function KonnektDrawerSection({ transporteur }: { transporteur: Transporteur }) {
+  const onboardingUrl = buildKonnektOnboardingUrl(transporteur);
+  const waUrl = buildKonnektInviteWaUrl(transporteur);
+  const invitedAt = (transporteur as any).konnekt_invited_at as string | null | undefined;
+  const registered = !!transporteur.konnekt_registered;
+  const status: 'active' | 'invited' | 'none' = registered ? 'active' : invitedAt ? 'invited' : 'none';
+  return (
+    <section className="space-y-3 rounded-lg border border-border p-4 bg-secondary/30">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold">Konnekt</h3>
+        {status === 'active' && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Actif ✅</span>
+        )}
+        {status === 'invited' && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"><span className="h-2 w-2 rounded-full bg-amber-500" /> Invité</span>
+        )}
+        {status === 'none' && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="h-2 w-2 rounded-full border border-muted-foreground/50" /> Non invité</span>
+        )}
+      </div>
+      {invitedAt && (
+        <div className="text-xs text-muted-foreground">Invité le {new Date(invitedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+      )}
+      <div className="text-xs">
+        <div className="text-muted-foreground mb-1">Lien onboarding</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <code className="text-[11px] px-2 py-1 rounded bg-background border border-border break-all">{onboardingUrl}</code>
+          <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(onboardingUrl); toast.success('Lien onboarding copié'); } catch { toast.error('Copie impossible'); } }}>
+            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copier
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => window.open(onboardingUrl, '_blank', 'noopener,noreferrer')}>
+            <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Ouvrir
+          </Button>
+          <Button size="sm" style={{ background: '#25D366', color: '#0a0a0a' }} onClick={() => window.open(waUrl, '_blank', 'noopener,noreferrer')}>
+            <Send className="w-3.5 h-3.5 mr-1.5" /> WhatsApp
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
 function EditDrawer({
   transporteur, onClose, onSave,
 }: {
