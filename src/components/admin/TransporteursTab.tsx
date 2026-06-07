@@ -434,10 +434,26 @@ export function TransporteursTab() {
   }, [depList.data]);
 
 
+  const getKonnektStatus = (t: Transporteur): 'active' | 'invited' | 'none' => {
+    if (t.konnekt_registered) return 'active';
+    const invited = konnektInvitedMap[t.id] ?? (t as any).konnekt_invited_at ?? null;
+    if (invited) return 'invited';
+    return 'none';
+  };
+
   const filtered = useMemo(() => {
     const all = list.data ?? [];
     let base = showInactive ? all : all.filter(t => t.actif);
     if (onlyIncomplete) base = base.filter(t => !t.profile_complete);
+    if (konnektFilter !== 'all') {
+      base = base.filter(t => {
+        const st = getKonnektStatus(t);
+        if (konnektFilter === 'to_invite') return st === 'none';
+        if (konnektFilter === 'invited') return st === 'invited';
+        if (konnektFilter === 'active') return st === 'active';
+        return true;
+      });
+    }
     if (!q.trim()) return base;
     const s = q.trim().toLowerCase();
     return base.filter(t =>
@@ -450,7 +466,25 @@ export function TransporteursTab() {
       uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
     );
 
-  }, [list.data, q, showInactive, onlyIncomplete]);
+  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap]);
+
+  const konnektCounts = useMemo(() => {
+    const base = (list.data ?? []).filter(t => showInactive ? true : t.actif);
+    let none = 0, invited = 0, active = 0;
+    for (const t of base) {
+      const st = getKonnektStatus(t);
+      if (st === 'active') active++;
+      else if (st === 'invited') invited++;
+      else none++;
+    }
+    return { total: base.length, none, invited, active };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, showInactive, konnektInvitedMap]);
+
+  const toInviteList = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && getKonnektStatus(t) === 'none'),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [list.data, konnektInvitedMap]);
 
   const betaPending = useMemo(
     () => (list.data ?? []).filter(t => !t.actif && t.konnekt_registered),
