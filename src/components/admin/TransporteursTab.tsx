@@ -233,6 +233,20 @@ export function TransporteursTab() {
     }
   };
 
+  const markKonnektInvited = async (gp: Transporteur) => {
+    const existing = (gp as any).konnekt_invited_at as string | null | undefined;
+    const now = new Date().toISOString();
+    setKonnektInvitedMap(prev => ({ ...prev, [gp.id]: existing ?? now }));
+    if (existing) return;
+    try {
+      await supabase
+        .from('transporteurs' as any)
+        .update({ konnekt_invited_at: now })
+        .eq('id', gp.id);
+      list.refetch();
+    } catch { /* non bloquant */ }
+  };
+
   /** Génère le prochain ref 4 chiffres en se basant sur la liste actuelle. */
   const nextAvailableRef = (): string => {
     const taken = new Set(
