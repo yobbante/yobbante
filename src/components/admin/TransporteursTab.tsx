@@ -1524,6 +1524,7 @@ function EditDrawer({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {transporteur?.id && <KonnektDrawerSection transporteur={transporteur} />}
           {/* === SECTION 1 : Identité === */}
           <section className="space-y-3">
             <h3 className="text-base font-semibold border-b border-border pb-2">1. Identité</h3>
