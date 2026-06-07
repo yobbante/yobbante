@@ -1355,9 +1355,10 @@ function BotBlastDialog({
 function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: string | null; registered: boolean; failed?: string | null; onRetry?: () => void }) {
   if (registered) {
     return (
-      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
-        ✓ Inscrit
-      </span>
+      <div className="inline-flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Actif ✅</span>
+      </div>
     );
   }
   if (failed) {
@@ -1374,13 +1375,22 @@ function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: 
   if (invitedAt) {
     return (
       <div className="leading-tight">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-amber-500">📤 Invité</div>
+        <div className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">Invité</span>
+        </div>
         <div className="text-[10px] text-muted-foreground mt-0.5">{formatShortDate(invitedAt)}</div>
       </div>
     );
   }
-  return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full border border-muted-foreground/50" />
+      <span className="text-[11px] text-muted-foreground">Non invité</span>
+    </div>
+  );
 }
+
 
 function EditDrawer({
   transporteur, onClose, onSave,
