@@ -3,8 +3,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { TransporteursTab } from './TransporteursTab';
 import { LivreursTab } from './LivreursTab';
 import { GpOperationsTab } from './GpOperationsTab';
+import { SuiviOnboardingTab } from './SuiviOnboardingTab';
 
-const TABS = ['gp', 'livreurs', 'operations'] as const;
+const TABS = ['gp', 'onboarding', 'livreurs', 'operations'] as const;
 type TabId = typeof TABS[number];
 
 export function TerrainHubTab() {
@@ -29,11 +30,13 @@ export function TerrainHubTab() {
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList>
           <TabsTrigger value="gp">Transporteurs GP</TabsTrigger>
+          <TabsTrigger value="onboarding">Suivi onboarding</TabsTrigger>
           <TabsTrigger value="livreurs">Livreurs Dakar</TabsTrigger>
           <TabsTrigger value="operations">Opérations du jour</TabsTrigger>
         </TabsList>
 
         <TabsContent value="gp"         className="mt-4"><TransporteursTab /></TabsContent>
+        <TabsContent value="onboarding" className="mt-4"><SuiviOnboardingTab /></TabsContent>
         <TabsContent value="livreurs"   className="mt-4"><LivreursTab /></TabsContent>
         <TabsContent value="operations" className="mt-4"><GpOperationsTab /></TabsContent>
       </Tabs>
