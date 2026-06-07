@@ -60,11 +60,18 @@ Vous recevrez vos premieres missions directement sur WhatsApp.
 Si vous voulez nous ecrire, envoyez votre message sur WhatsApp au ${YOBBANTE_GP_WHATSAPP_DISPLAY}.`;
 }
 
+function buildKonnektOnboardingUrl(gp: Transporteur) {
+  return `https://usekonnekt.com/onboarding/${gpRef(gp.reference)}`;
+}
+
+function buildKonnektInviteMessage(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
+  return `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre Konnekt, votre espace dédié pour publier vos départs, recevoir plus de missions et suivre vos paiements — tout depuis votre téléphone.\n\nAccédez à votre espace personnalisé ici :\n${buildKonnektOnboardingUrl(gp)}`;
+}
+
 function buildKonnektInviteWaUrl(gp: Transporteur) {
   const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  const prenom = (gp.prenom?.trim() || gp.nom.split(' ')[0] || 'cher partenaire');
-  const message = `Bonjour ${prenom} ! Yobbanté vous invite à rejoindre le réseau Konnekt. Cliquez ici pour vous inscrire et recevoir vos missions : https://usekonnekt.com/rejoindre-gp`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(buildKonnektInviteMessage(gp))}`;
 }
 
 
@@ -142,6 +149,7 @@ export function TransporteursTab() {
   const [blastOpen, setBlastOpen] = useState(false);
   const [botBlastOpen, setBotBlastOpen] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, string>>({});
+  const [konnektInvitedMap, setKonnektInvitedMap] = useState<Record<string, string>>({});
   const [botSentMap, setBotSentMap] = useState<Record<string, string>>({});
   const [failedMap, setFailedMap] = useState<Record<string, { kind: 'bot' | 'konnekt'; wa: string; name: string }>>({});
   const [importOpen, setImportOpen] = useState(false);
@@ -151,6 +159,8 @@ export function TransporteursTab() {
   const [historyGp, setHistoryGp] = useState<Transporteur | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [subTab, setSubTab] = useState<'all' | 'beta'>('all');
+  const [konnektFilter, setKonnektFilter] = useState<'all' | 'to_invite' | 'invited' | 'active'>('all');
+  const [massInviteOpen, setMassInviteOpen] = useState(false);
   const [validatingId, setValidatingId] = useState<string | null>(null);
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
@@ -221,6 +231,20 @@ export function TransporteursTab() {
     } catch (e) {
       // Non-bloquant
     }
+  };
+
+  const markKonnektInvited = async (gp: Transporteur) => {
+    const existing = (gp as any).konnekt_invited_at as string | null | undefined;
+    const now = new Date().toISOString();
+    setKonnektInvitedMap(prev => ({ ...prev, [gp.id]: existing ?? now }));
+    if (existing) return;
+    try {
+      await supabase
+        .from('transporteurs' as any)
+        .update({ konnekt_invited_at: now })
+        .eq('id', gp.id);
+      list.refetch();
+    } catch { /* non bloquant */ }
   };
 
   /** Génère le prochain ref 4 chiffres en se basant sur la liste actuelle. */
@@ -410,10 +434,26 @@ export function TransporteursTab() {
   }, [depList.data]);
 
 
+  const getKonnektStatus = (t: Transporteur): 'active' | 'invited' | 'none' => {
+    if (t.konnekt_registered) return 'active';
+    const invited = konnektInvitedMap[t.id] ?? (t as any).konnekt_invited_at ?? null;
+    if (invited) return 'invited';
+    return 'none';
+  };
+
   const filtered = useMemo(() => {
     const all = list.data ?? [];
     let base = showInactive ? all : all.filter(t => t.actif);
     if (onlyIncomplete) base = base.filter(t => !t.profile_complete);
+    if (konnektFilter !== 'all') {
+      base = base.filter(t => {
+        const st = getKonnektStatus(t);
+        if (konnektFilter === 'to_invite') return st === 'none';
+        if (konnektFilter === 'invited') return st === 'invited';
+        if (konnektFilter === 'active') return st === 'active';
+        return true;
+      });
+    }
     if (!q.trim()) return base;
     const s = q.trim().toLowerCase();
     return base.filter(t =>
@@ -426,7 +466,25 @@ export function TransporteursTab() {
       uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
     );
 
-  }, [list.data, q, showInactive, onlyIncomplete]);
+  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap]);
+
+  const konnektCounts = useMemo(() => {
+    const base = (list.data ?? []).filter(t => showInactive ? true : t.actif);
+    let none = 0, invited = 0, active = 0;
+    for (const t of base) {
+      const st = getKonnektStatus(t);
+      if (st === 'active') active++;
+      else if (st === 'invited') invited++;
+      else none++;
+    }
+    return { total: base.length, none, invited, active };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data, showInactive, konnektInvitedMap]);
+
+  const toInviteList = useMemo(
+    () => (list.data ?? []).filter(t => t.actif && getKonnektStatus(t) === 'none'),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [list.data, konnektInvitedMap]);
 
   const betaPending = useMemo(
     () => (list.data ?? []).filter(t => !t.actif && t.konnekt_registered),
@@ -545,6 +603,43 @@ export function TransporteursTab() {
 
 
       {subTab === 'all' && (<>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 bg-card">
+        {([
+          { id: 'all', label: 'Tous', count: konnektCounts.total, color: 'foreground' },
+          { id: 'to_invite', label: 'À inviter', count: konnektCounts.none, color: 'orange' },
+          { id: 'invited', label: 'Invités', count: konnektCounts.invited, color: 'orange' },
+          { id: 'active', label: 'Actifs sur Konnekt', count: konnektCounts.active, color: 'green' },
+        ] as const).map(opt => {
+          const active = konnektFilter === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setKonnektFilter(opt.id as any)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                active ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-foreground border-border hover:bg-secondary'
+              }`}
+            >
+              {opt.label}
+              <span className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+                opt.color === 'green' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : opt.color === 'orange' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-secondary text-muted-foreground'
+              }`}>{opt.count}</span>
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <Button
+          size="sm"
+          disabled={toInviteList.length === 0}
+          onClick={() => setMassInviteOpen(true)}
+          style={{ background: '#F5C518', color: '#0a0a0a' }}
+          className="hover:opacity-90"
+        >
+          <Send className="w-3.5 h-3.5 mr-1.5" />
+          Inviter tous les non-invités ({toInviteList.length}) →
+        </Button>
+      </div>
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -608,7 +703,7 @@ export function TransporteursTab() {
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
-            const inviteAt = sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
+            const inviteAt = konnektInvitedMap[t.id] ?? (t as any).konnekt_invited_at ?? sentMap[t.id] ?? t.beta_invite_sent_at ?? null;
             const botInviteAt = botSentMap[t.id] ?? t.invitation_bot_sent_at ?? null;
             const botActive = !!botActiveIds?.has(t.id);
             const cities = uniqueCitiesFromNavettes(t.navettes);
@@ -693,7 +788,8 @@ export function TransporteursTab() {
                         const link = buildKonnektInviteWaUrl(t);
                         try {
                           await navigator.clipboard.writeText(link);
-                          toast.success('Lien WhatsApp d\'invitation GP copié');
+                          await markKonnektInvited(t);
+                          toast.success("Lien WhatsApp d'invitation GP copié — statut Konnekt : Invité");
                         } catch { toast.error('Copie impossible'); }
                       }}>
                         <Copy className="w-4 h-4 mr-2" /> Copier le lien WhatsApp d'invitation GP
@@ -802,7 +898,74 @@ export function TransporteursTab() {
         </div>
       )}
 
-
+      <Dialog open={massInviteOpen} onOpenChange={setMassInviteOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Inviter tous les GP non invités</DialogTitle>
+            <DialogDescription>
+              {toInviteList.length} GP à inviter. Copiez le lien personnalisé pour chacun et envoyez-le sur WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[55vh] overflow-y-auto border border-border rounded-lg divide-y divide-border">
+            {toInviteList.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Tous les GP actifs ont déjà été invités 🎉
+              </div>
+            ) : toInviteList.map(g => {
+              const link = buildKonnektInviteWaUrl(g);
+              const onboarding = buildKonnektOnboardingUrl(g);
+              return (
+                <div key={g.id} className="flex items-center gap-3 p-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{formatTransporteurName(g.prenom, g.nom)} <span className="ml-1 font-mono text-[11px] text-muted-foreground">{gpRef(g.reference)}</span></div>
+                    <div className="text-[12px] text-muted-foreground truncate">{g.telephone_1} · {onboarding}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(link);
+                        await markKonnektInvited(g);
+                        toast.success(`Lien copié pour ${g.prenom ?? g.nom}`);
+                      } catch { toast.error('Copie impossible'); }
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" /> Copier
+                  </Button>
+                  <Button
+                    size="sm"
+                    style={{ background: '#25D366', color: '#0a0a0a' }}
+                    onClick={async () => {
+                      window.open(link, '_blank', 'noopener,noreferrer');
+                      await markKonnektInvited(g);
+                    }}
+                  >
+                    <Send className="w-3.5 h-3.5 mr-1.5" /> Ouvrir
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                let ok = 0;
+                for (const g of toInviteList) {
+                  try { await markKonnektInvited(g); ok++; } catch { /* ignore */ }
+                }
+                toast.success(`${ok} GP marqués comme invités`);
+                setMassInviteOpen(false);
+              }}
+              disabled={toInviteList.length === 0}
+            >
+              Tout marquer comme invité
+            </Button>
+            <Button onClick={() => setMassInviteOpen(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       <EditDrawer
@@ -1192,9 +1355,10 @@ function BotBlastDialog({
 function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: string | null; registered: boolean; failed?: string | null; onRetry?: () => void }) {
   if (registered) {
     return (
-      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-500">
-        ✓ Inscrit
-      </span>
+      <div className="inline-flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Actif ✅</span>
+      </div>
     );
   }
   if (failed) {
@@ -1211,13 +1375,65 @@ function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: 
   if (invitedAt) {
     return (
       <div className="leading-tight">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-amber-500">📤 Invité</div>
+        <div className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">Invité</span>
+        </div>
         <div className="text-[10px] text-muted-foreground mt-0.5">{formatShortDate(invitedAt)}</div>
       </div>
     );
   }
-  return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full border border-muted-foreground/50" />
+      <span className="text-[11px] text-muted-foreground">Non invité</span>
+    </div>
+  );
 }
+
+
+function KonnektDrawerSection({ transporteur }: { transporteur: Transporteur }) {
+  const onboardingUrl = buildKonnektOnboardingUrl(transporteur);
+  const waUrl = buildKonnektInviteWaUrl(transporteur);
+  const invitedAt = (transporteur as any).konnekt_invited_at as string | null | undefined;
+  const registered = !!transporteur.konnekt_registered;
+  const status: 'active' | 'invited' | 'none' = registered ? 'active' : invitedAt ? 'invited' : 'none';
+  return (
+    <section className="space-y-3 rounded-lg border border-border p-4 bg-secondary/30">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold">Konnekt</h3>
+        {status === 'active' && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Actif ✅</span>
+        )}
+        {status === 'invited' && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-400"><span className="h-2 w-2 rounded-full bg-amber-500" /> Invité</span>
+        )}
+        {status === 'none' && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="h-2 w-2 rounded-full border border-muted-foreground/50" /> Non invité</span>
+        )}
+      </div>
+      {invitedAt && (
+        <div className="text-xs text-muted-foreground">Invité le {new Date(invitedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+      )}
+      <div className="text-xs">
+        <div className="text-muted-foreground mb-1">Lien onboarding</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <code className="text-[11px] px-2 py-1 rounded bg-background border border-border break-all">{onboardingUrl}</code>
+          <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(onboardingUrl); toast.success('Lien onboarding copié'); } catch { toast.error('Copie impossible'); } }}>
+            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copier
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => window.open(onboardingUrl, '_blank', 'noopener,noreferrer')}>
+            <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Ouvrir
+          </Button>
+          <Button size="sm" style={{ background: '#25D366', color: '#0a0a0a' }} onClick={() => window.open(waUrl, '_blank', 'noopener,noreferrer')}>
+            <Send className="w-3.5 h-3.5 mr-1.5" /> WhatsApp
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 function EditDrawer({
   transporteur, onClose, onSave,
@@ -1351,6 +1567,7 @@ function EditDrawer({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {transporteur?.id && <KonnektDrawerSection transporteur={transporteur} />}
           {/* === SECTION 1 : Identité === */}
           <section className="space-y-3">
             <h3 className="text-base font-semibold border-b border-border pb-2">1. Identité</h3>
