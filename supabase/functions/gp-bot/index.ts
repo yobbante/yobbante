@@ -1945,14 +1945,29 @@ A traiter manuellement.`);
       }
     }
 
-    const collected = { city, date: dateIso, weight };
+    // Fallback to GP's primary navette city if none provided
+    if (!city && prior.default_city) {
+      city = String(prior.default_city);
+    }
+
+    const collected = { city, date: dateIso, weight, default_city: prior.default_city };
 
     // Demande progressive
     if (!city) {
+      const primaryCity = getPrimaryCity(transporteur);
+      if (primaryCity) {
+        await saveSession('dep', { ...collected, default_city: primaryCity });
+        await reply(
+          `Prochain depart pour ${primaryCity} ?\nRepondez : [date] [kg]\nEx : 15/07 25kg\n(ou tapez une autre ville si different)`,
+          'dep_ask_city_smart',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
       await saveSession('dep', collected);
       await reply(`Vers quelle ville partez-vous ?`, 'dep_ask_city');
       return new Response('ok', { headers: corsHeaders });
     }
+
     if (!dateIso) {
       await saveSession('dep', collected);
       await reply(`Quelle est la date de depart ? (ex: 28/05)`, 'dep_ask_date');
