@@ -130,12 +130,19 @@ Que voulez-vous faire ?
 6 - Mes prochains departs
 
 Autres commandes :
+• STATUT [YOB-XXXXX] — statut d'un colis
+• PAIEMENT — mes paiements
+• ANNULER #ref — annuler un depart
+• MODIFIER #ref [Xkg] — changer la capacite
+• PROBLEME [YOB-XXXXX] [texte] — signaler un litige
+• PHOTO (envoyer image + caption PHOTO YOB-XXXXX)
 • PROFIL — voir votre fiche
 • TARIFS — voir vos tarifs par ville
 • TARIF [ville] [prix] — modifier un tarif
 • MODIFIER TEL / ADRESSE / NAVETTE
-• PAUSE [N] — suspendre les notifs N jours (defaut 30)
+• PAUSE [N] — suspendre les notifs N jours
 • REPRENDRE — reactiver les notifs
+
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
