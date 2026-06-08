@@ -1386,16 +1386,29 @@ Voir : yobbante.com/admin`);
     .limit(1)
     .maybeSingle();
 
-  // Session vieille de plus de 30 min → expirée
-  const sessionActive = session
-    && session.pending_intent
-    && (Date.now() - new Date(session.updated_at).getTime()) < 30 * 60 * 1000;
+  // Session vieille de plus de 2h → expirée (annulation propre)
+  const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+  const sessionAgeMs = session ? Date.now() - new Date(session.updated_at).getTime() : 0;
+  const sessionExpired = !!(session && session.pending_intent && sessionAgeMs >= SESSION_TTL_MS);
+  const sessionActive = !!(session && session.pending_intent && sessionAgeMs < SESSION_TTL_MS);
 
   async function clearSession() {
     if (session?.id) {
       await supa.from('gp_bot_sessions').delete().eq('id', session.id);
     }
   }
+
+  // Notify expired session before continuing (only if the user looks like he's
+  // trying to continue a flow, not starting fresh with AIDE/MENU/greeting)
+  if (sessionExpired) {
+    await clearSession();
+    const looksFresh = msg === '' || /^(aide|help|menu|start|bonjour|hello|salam|salut|hi|hey|\?|0)\b/i.test(rawMsg);
+    if (!looksFresh) {
+      await reply(`Session expiree. Tapez AIDE pour recommencer.`, 'session_expired');
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
 
   async function saveSession(intent: string, data: Record<string, unknown>) {
     if (session?.id) {
