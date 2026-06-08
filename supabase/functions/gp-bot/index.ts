@@ -2493,13 +2493,22 @@ Repondez OUI pour valider et notifier le client, NON pour annuler.`, 'poids_conf
     if (error) {
       await reply(`Erreur : ${error.message}`, 'poids_error');
     } else {
-      await reply(`✅ Poids ${weight}kg enregistre pour ${dossier.tracking_id}.
+      if (!transporteur.tutorial_livre_sent) {
+        await reply(
+          `Parfait ! A la livraison tapez :\nLIVRE ${dossier.tracking_id}`,
+          'tutorial_livre',
+        );
+        await supa.from('transporteurs').update({ tutorial_livre_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Poids ${weight}kg enregistre pour ${dossier.tracking_id}.
 ${amountXof ? `Montant final : ${amountXof.toLocaleString('fr-FR')} XOF.` : `Montant final en cours de calcul.`}
 Client notifie pour paiement.`, 'poids_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a pese ${dossier.tracking_id} : ${weight}kg`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handleLivre(text: string, prior: Record<string, any>) {
     let tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
