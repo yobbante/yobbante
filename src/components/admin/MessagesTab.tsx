@@ -85,6 +85,16 @@ function gpTemplatesGeneric(): GpTemplate[] {
 
 type Channel = 'client' | 'gp';
 
+/** Numéros du super admin Yobbanté — exclus des conversations affichées. */
+const SUPER_ADMIN_PHONES = new Set(['221784604003']);
+const SUPER_ADMIN_NAMES = new Set(['ANB']);
+function isSuperAdmin(m: { from_phone?: string | null; from_name?: string | null }): boolean {
+  const p = (m.from_phone || '').replace(/\D/g, '');
+  if (SUPER_ADMIN_PHONES.has(p)) return true;
+  if (m.from_name && SUPER_ADMIN_NAMES.has(m.from_name.trim().toUpperCase())) return true;
+  return false;
+}
+
 interface InboundMsg {
   id: string;
   from_phone: string;
