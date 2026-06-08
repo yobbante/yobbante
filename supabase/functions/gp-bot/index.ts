@@ -438,16 +438,12 @@ Deno.serve(async (req) => {
         message:
           `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
           `Votre compte GP${ref} est bien active.\n\n` +
-          `Voici comment utiliser le bot :\n` +
-          `- DEP [ville] [date] [kg] → Declarer un depart\n` +
-          `  Ex : DEP Paris 15/07 25kg\n` +
-          `- COLLECTE [YOB-XXXXX] → Confirmer collecte colis\n` +
-          `- POIDS [YOB-XXXXX] [kg] → Enregistrer poids reel\n` +
-          `- LIVRE [YOB-XXXXX] → Marquer livre\n` +
-          `- MES MISSIONS → Voir vos missions actives\n` +
-          `- MES DEPARTS → Voir vos departs\n` +
-          `- AIDE → Revoir ce menu\n\n` +
-          `Tapez une commande pour commencer.`,
+          `Pour commencer, declarez vos prochains departs :\n` +
+          `DEP [ville] [date] [kg]\n` +
+          `Ex : DEP Paris 15/07 25kg\n\n` +
+          `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
+          `Tapez AIDE a tout moment pour revoir le menu.`,
+
         transporteur_id: gp.id,
         trigger_type: 'konnekt_onboarding_welcome',
       });
@@ -520,15 +516,28 @@ Deno.serve(async (req) => {
         }).eq('id', dossier.id);
 
         await notifyAdmin(
-          `GP ${gpName} a accepte ${trk} Dakar -> ${dest}\nAction : C ${trk}`,
+          `✅ GP ${gpName} a accepte ${trk} Dakar -> ${dest}`,
         );
-        await reply(
-          `Parfait ${gpName} !\nMission ${trk} confirmee.\nOn vous contacte sous 24h.`,
-          'mission_accepted',
-        );
+
+        // Progressive tutorial : 1er colis assigné → expliquer COLLECTE
+        if (!transporteur.tutorial_collecte_sent) {
+          await reply(
+            `📦 Votre premiere mission ! Pour confirmer la collecte tapez :\nCOLLECTE ${trk}`,
+            'tutorial_collecte',
+          );
+          await supa.from('transporteurs')
+            .update({ tutorial_collecte_sent: true })
+            .eq('id', transporteur.id);
+        } else {
+          await reply(
+            `✅ Mission ${trk} confirmee.\nA la collecte tapez : COLLECTE ${trk}`,
+            'mission_accepted',
+          );
+        }
         await bumpGpActivity(dossier.id);
         return new Response('ok', { headers: corsHeaders });
       }
+
 
       // NON - Refuser
       await supa.from('dossiers').update({
@@ -1631,8 +1640,44 @@ Voir : yobbante.com/admin`);
   }
 
   // =================================================================
+  //  FEEDBACK post-livraison : reponse 1/2/3 a la session 'feedback'
+  // =================================================================
+  if (sessionActive && session!.pending_intent === 'feedback') {
+    const data = (session!.pending_data ?? {}) as Record<string, any>;
+    const choice = msg.trim();
+    if (!/^[123]$/.test(choice)) {
+      await reply(`Repondez 1, 2 ou 3 :\n1 → Parfait\n2 → Probleme mineur\n3 → Probleme serieux`, 'feedback_retry');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const rating = parseInt(choice, 10);
+    if (data.dossier_id) {
+      await supa.from('dossiers').update({
+        feedback_rating: rating,
+        feedback_at: new Date().toISOString(),
+      }).eq('id', data.dossier_id);
+    }
+    await clearSession();
+    if (rating === 3) {
+      await sendWa({
+        recipient_phone: '+221784604003',
+        recipient_type: 'admin',
+        message: `⚠️ Probleme serieux signale par ${prenom} (GP${transporteur.reference})\nColis : ${data.tracking_id ?? '—'}\nMerci de prendre contact.`,
+        trigger_type: 'gp_feedback_serious',
+        dossier_id: data.dossier_id,
+      });
+      await reply(`Merci. Notre equipe vous contacte rapidement.`, 'feedback_serious');
+    } else if (rating === 2) {
+      await reply(`Merci pour votre retour. Nous prenons note.`, 'feedback_minor');
+    } else {
+      await reply(`🎉 Merci ! Au plaisir pour la prochaine mission.`, 'feedback_great');
+    }
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
   //  Menu numerote : 1..6 (ou "un", "deux", ...)
   // =================================================================
+
   const MENU_MAP: Record<string, string> = {
 
     '1': '1', 'un': '1', 'une': '1',
@@ -2376,13 +2421,22 @@ Repondez OUI pour valider ou NON pour annuler.`, 'collecte_confirm');
     if (error) {
       await reply(`Erreur : ${error.message}`, 'collecte_error');
     } else {
-      await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
+      if (!transporteur.tutorial_poids_sent) {
+        await reply(
+          `Super ! Pesez le colis et tapez :\nPOIDS ${dossier.tracking_id} [kg]`,
+          'tutorial_poids',
+        );
+        await supa.from('transporteurs').update({ tutorial_poids_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
 Pesez le colis et envoyez :
 POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la collecte de ${dossier.tracking_id} (${dossier.buyer_name ?? '—'})`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handlePoids(text: string, prior: Record<string, any>) {
     let tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
@@ -2471,13 +2525,22 @@ Repondez OUI pour valider et notifier le client, NON pour annuler.`, 'poids_conf
     if (error) {
       await reply(`Erreur : ${error.message}`, 'poids_error');
     } else {
-      await reply(`✅ Poids ${weight}kg enregistre pour ${dossier.tracking_id}.
+      if (!transporteur.tutorial_livre_sent) {
+        await reply(
+          `Parfait ! A la livraison tapez :\nLIVRE ${dossier.tracking_id}`,
+          'tutorial_livre',
+        );
+        await supa.from('transporteurs').update({ tutorial_livre_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Poids ${weight}kg enregistre pour ${dossier.tracking_id}.
 ${amountXof ? `Montant final : ${amountXof.toLocaleString('fr-FR')} XOF.` : `Montant final en cours de calcul.`}
 Client notifie pour paiement.`, 'poids_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a pese ${dossier.tracking_id} : ${weight}kg`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handleLivre(text: string, prior: Record<string, any>) {
     let tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
@@ -2536,11 +2599,20 @@ Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
     if (error) {
       await reply(`Erreur : ${error.message}`, 'livre_error');
     } else {
-      await reply(`✅ Livraison confirmee pour ${dossier.tracking_id}. Merci !`, 'livre_ok');
+      if (!transporteur.tutorial_paiement_sent) {
+        await reply(
+          `🎉 Premiere mission accomplie !\nPaiement sous 48h.\nTapez PAIEMENT pour voir vos gains.`,
+          'tutorial_paiement',
+        );
+        await supa.from('transporteurs').update({ tutorial_paiement_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Livraison confirmee pour ${dossier.tracking_id}. Merci !`, 'livre_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la livraison de ${dossier.tracking_id} a ${dossier.destination_city ?? dossier.destination_country ?? '—'}`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handleEnRoute(text: string, prior: Record<string, any>) {
     const tracking = (prior.tracking as string | undefined) ?? parseTracking(text);

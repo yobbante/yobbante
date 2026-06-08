@@ -80,6 +80,8 @@ export function buildGpAssignMessage(args: {
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
   departure_date?: string | Date | null;
+  /** Rémunération GP en FCFA, si calculable côté caller. */
+  remuneration_xof?: number | null;
   /** Fallback : notes brutes du dossier pour extraire un nom client. */
   notes?: string | null;
 }): string {
@@ -97,25 +99,28 @@ export function buildGpAssignMessage(args: {
     (fromNotes && fromNotes.length > 0 ? fromNotes : null) ||
     'Non renseigne';
 
+
+  const remunLine = args.remuneration_xof && args.remuneration_xof > 0
+    ? `Remuneration : ${args.remuneration_xof.toLocaleString('fr-FR')} FCFA`
+    : `Remuneration : a confirmer`;
+
+
   return [
-    `Salam ${firstName(args.gp_prenom)},`,
+    `📦 Nouvelle mission !`,
     ``,
-    `Nouveau colis assigne.`,
-    `Ref : ${ref}`,
-    `Route : ${args.origin || '-'} -> ${args.destination || '-'}`,
-    `Client : ${clientName}`,
+    `Colis : ${ref}`,
+    `Ville depart : ${args.origin || '-'}`,
+    `Poids estime : ${weight}`,
+    remunLine,
+    `Depart : ${date}`,
+    ``,
+    args.pickup_address ? `Adresse collecte : ${args.pickup_address}` : null,
     args.client_phone ? `Tel client : ${args.client_phone}` : null,
-    args.pickup_address ? `Adresse collecte client : ${args.pickup_address}` : null,
+    args.client_name ? `Client : ${clientName}` : null,
     ``,
-    `(Notre livreur deposera le colis`,
-    ` a votre adresse Dakar avant le depart.`,
-    ` Vous n'avez pas a collecter chez le client.)`,
-    ``,
-    `Poids : ${weight}`,
-    `Date depart : ${date}`,
-    ``,
-    `Confirmez reception : RECU ${ref}`,
-    `Tapez AIDE pour les commandes.`,
+    `Repondez OUI pour accepter`,
+    `NON pour refuser (1h sinon auto-refus)`,
   ].filter(Boolean).join('\n');
 }
+
 

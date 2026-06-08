@@ -64,3 +64,7 @@ verify_jwt = false
 [functions.gp-lookup]
 verify_jwt = false
 
+[functions.cron-mission-lifecycle]
+verify_jwt = false
+
+
