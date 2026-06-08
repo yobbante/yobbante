@@ -2008,9 +2008,35 @@ A traiter manuellement.`);
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Confirmation OUI/NON avant creation
-    if (!prior.awaiting_confirm) {
-      await saveSession('dep', { ...collected, awaiting_confirm: true });
+    // Date passée → proposer +7j (uniquement quand on vient de la parser)
+    if (dateIso && !prior.date_confirmed) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const d = new Date(dateIso); d.setHours(0, 0, 0, 0);
+      if (d.getTime() < today.getTime()) {
+        const sugg = new Date(d.getTime()); sugg.setDate(sugg.getDate() + 7);
+        const suggIso = sugg.toISOString().slice(0, 10);
+        await saveSession('dep', { ...collected, suggested_date: suggIso, awaiting_date_fix: true });
+        await reply(
+          `⚠️ Cette date est passee.\nVoulez-vous dire le ${formatDateFr(suggIso)} ? Repondez OUI ou donnez une autre date.`,
+          'dep_date_past',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+    }
+    if (prior.awaiting_date_fix) {
+      if (isYes(text) && prior.suggested_date) {
+        dateIso = String(prior.suggested_date);
+      }
+      // sinon on garde la nouvelle date qu'on vient de parser
+    }
+
+    // Skip OUI/NON si tous les params ont ete fournis d'un coup
+    const oneShot = !prior.awaiting_confirm
+      && !prior.awaiting_date_fix
+      && !prior.city && !prior.date && !prior.weight;
+
+    if (!oneShot && !prior.awaiting_confirm) {
+      await saveSession('dep', { ...collected, awaiting_confirm: true, date_confirmed: true });
       const dStr = formatDateFr(dateIso);
       await reply(`Confirmer ce depart ?
 Destination : ${city}
@@ -2020,15 +2046,16 @@ Capacite : ${Math.max(1, Math.round(weight))}kg
 Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
-    if (isNo(text)) {
+    if (prior.awaiting_confirm && isNo(text)) {
       await clearSession();
       await reply(`Annule. Tapez AIDE pour recommencer.`, 'dep_cancel');
       return new Response('ok', { headers: corsHeaders });
     }
-    if (!isYes(text)) {
+    if (prior.awaiting_confirm && !isYes(text)) {
       await reply(`Repondez OUI pour valider ce depart ou NON pour annuler.`, 'dep_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
+
 
     // OUI → on cree
     const capacity = Math.max(1, Math.round(weight));
