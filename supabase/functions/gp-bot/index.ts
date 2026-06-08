@@ -2062,11 +2062,13 @@ Recuperez-le sous 5 jours.`,
 
   // ---------- DEP : enregistrer un départ ----------
   if (hasDepKeyword || (!sessionActive && /\d{1,2}[\/.\-]\d{1,2}/.test(rawMsg) && /\d+\s*kg/i.test(rawMsg))) {
+    const gate = await gateValidated(); if (gate) return gate;
     return await handleDep(rawMsg, {});
   }
   if (sessionActive && session!.pending_intent === 'dep') {
     return await handleDep(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
   }
+
 
   // ---------- COLLECTE ----------
   if (hasCollectKeyword) {
