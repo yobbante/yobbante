@@ -520,15 +520,28 @@ Deno.serve(async (req) => {
         }).eq('id', dossier.id);
 
         await notifyAdmin(
-          `GP ${gpName} a accepte ${trk} Dakar -> ${dest}\nAction : C ${trk}`,
+          `✅ GP ${gpName} a accepte ${trk} Dakar -> ${dest}`,
         );
-        await reply(
-          `Parfait ${gpName} !\nMission ${trk} confirmee.\nOn vous contacte sous 24h.`,
-          'mission_accepted',
-        );
+
+        // Progressive tutorial : 1er colis assigné → expliquer COLLECTE
+        if (!transporteur.tutorial_collecte_sent) {
+          await reply(
+            `📦 Votre premiere mission ! Pour confirmer la collecte tapez :\nCOLLECTE ${trk}`,
+            'tutorial_collecte',
+          );
+          await supa.from('transporteurs')
+            .update({ tutorial_collecte_sent: true })
+            .eq('id', transporteur.id);
+        } else {
+          await reply(
+            `✅ Mission ${trk} confirmee.\nA la collecte tapez : COLLECTE ${trk}`,
+            'mission_accepted',
+          );
+        }
         await bumpGpActivity(dossier.id);
         return new Response('ok', { headers: corsHeaders });
       }
+
 
       // NON - Refuser
       await supa.from('dossiers').update({
