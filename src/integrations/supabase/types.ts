@@ -1000,6 +1000,9 @@ export type Database = {
           estimated_cost: number | null
           estimated_delivery_date: string | null
           estimated_weight: number | null
+          feedback_at: string | null
+          feedback_rating: number | null
+          feedback_sent_at: string | null
           final_amount_xof: number | null
           gp_amount: number | null
           gp_amount_set_at: string | null
@@ -1145,6 +1148,9 @@ export type Database = {
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          feedback_at?: string | null
+          feedback_rating?: number | null
+          feedback_sent_at?: string | null
           final_amount_xof?: number | null
           gp_amount?: number | null
           gp_amount_set_at?: string | null
@@ -1290,6 +1296,9 @@ export type Database = {
           estimated_cost?: number | null
           estimated_delivery_date?: string | null
           estimated_weight?: number | null
+          feedback_at?: string | null
+          feedback_rating?: number | null
+          feedback_sent_at?: string | null
           final_amount_xof?: number | null
           gp_amount?: number | null
           gp_amount_set_at?: string | null
@@ -3112,6 +3121,10 @@ export type Database = {
           reference: string | null
           telephone_1: string
           telephone_2: string | null
+          tutorial_collecte_sent: boolean
+          tutorial_livre_sent: boolean
+          tutorial_paiement_sent: boolean
+          tutorial_poids_sent: boolean
           updated_at: string
           ville: string | null
           whatsapp: string | null
@@ -3159,6 +3172,10 @@ export type Database = {
           reference?: string | null
           telephone_1: string
           telephone_2?: string | null
+          tutorial_collecte_sent?: boolean
+          tutorial_livre_sent?: boolean
+          tutorial_paiement_sent?: boolean
+          tutorial_poids_sent?: boolean
           updated_at?: string
           ville?: string | null
           whatsapp?: string | null
@@ -3206,6 +3223,10 @@ export type Database = {
           reference?: string | null
           telephone_1?: string
           telephone_2?: string | null
+          tutorial_collecte_sent?: boolean
+          tutorial_livre_sent?: boolean
+          tutorial_paiement_sent?: boolean
+          tutorial_poids_sent?: boolean
           updated_at?: string
           ville?: string | null
           whatsapp?: string | null

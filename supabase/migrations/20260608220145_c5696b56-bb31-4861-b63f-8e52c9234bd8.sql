@@ -1,0 +1,10 @@
+ALTER TABLE public.transporteurs
+  ADD COLUMN IF NOT EXISTS tutorial_collecte_sent BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS tutorial_poids_sent BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS tutorial_livre_sent BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS tutorial_paiement_sent BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.dossiers
+  ADD COLUMN IF NOT EXISTS feedback_sent_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS feedback_rating SMALLINT,
+  ADD COLUMN IF NOT EXISTS feedback_at TIMESTAMPTZ;
