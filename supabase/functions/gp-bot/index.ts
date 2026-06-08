@@ -369,6 +369,93 @@ Deno.serve(async (req) => {
   }
 
   // =================================================================
+  //  KONNEKT ONBOARDING — message d'activation envoye depuis usekonnekt.com
+  //  Detecte le message exact (ou variantes) :
+  //  "Bonjour Konnekt, je viens de m'inscrire comme GP. Je souhaite
+  //   activer mon compte et recevoir mes missions."
+  // =================================================================
+  {
+    const msgNoApos = msg.replace(/[''`]/g, "'");
+    const isKonnektOnboarding =
+      /je viens de m'?inscrire/.test(msgNoApos) && /konnekt/.test(msgNoApos);
+
+    if (isKonnektOnboarding) {
+      const tail = fromPhone.slice(-9);
+      const { data: gp } = await supa
+        .from('transporteurs')
+        .select('id, prenom, nom, reference, telephone_1, whatsapp')
+        .or(`telephone_1.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!gp) {
+        await reply(
+          `Bonjour ! Votre numero n'est pas encore enregistre. Inscrivez-vous sur usekonnekt.com`,
+          'konnekt_onboarding_unknown',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      const ref = String(gp.reference ?? '').padStart(4, '0');
+      const prenom = gp.prenom ?? '';
+      const phoneDisp = gp.telephone_1 ?? fromPhone;
+
+      try {
+        await supa
+          .from('transporteurs')
+          .update({ whatsapp_confirmed_at: new Date().toISOString() })
+          .eq('id', gp.id);
+      } catch (e) {
+        console.error('konnekt_onboarding update err', e);
+      }
+
+      await sendWa({
+        recipient_phone: fromPhone,
+        recipient_type: 'gp',
+        message:
+          `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
+          `Votre compte GP${ref} est bien active.\n\n` +
+          `Voici comment utiliser le bot :\n` +
+          `- DEP [ville] [date] [kg] → Declarer un depart\n` +
+          `  Ex : DEP Paris 15/07 25kg\n` +
+          `- COLLECTE [YOB-XXXXX] → Confirmer collecte colis\n` +
+          `- POIDS [YOB-XXXXX] [kg] → Enregistrer poids reel\n` +
+          `- LIVRE [YOB-XXXXX] → Marquer livre\n` +
+          `- MES MISSIONS → Voir vos missions actives\n` +
+          `- MES DEPARTS → Voir vos departs\n` +
+          `- AIDE → Revoir ce menu\n\n` +
+          `Tapez une commande pour commencer.`,
+        transporteur_id: gp.id,
+        trigger_type: 'konnekt_onboarding_welcome',
+      });
+
+      if (input.inbound_id) {
+        try {
+          await supa
+            .from('whatsapp_inbound_messages')
+            .update({
+              bot_intent: 'konnekt_onboarding_welcome',
+              bot_response: '[konnekt_welcome]',
+              replied_at: new Date().toISOString(),
+            })
+            .eq('id', input.inbound_id);
+        } catch (_) { /* noop */ }
+      }
+
+      await sendWa({
+        recipient_phone: '+221784604003',
+        recipient_type: 'admin',
+        message: `✅ GP active Konnekt\n${prenom} · GP${ref} · ${phoneDisp}`,
+        trigger_type: 'konnekt_gp_activated',
+      });
+
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+
+
+  // =================================================================
   //  TEMPLATE BUTTON HANDLERS — mission_accepted / refused / departure_confirmed
   //  Detecte le texte exact des boutons template (msg.button.text) OU
   //  l'id/title d'un button_reply interactive transmis par le webhook.
