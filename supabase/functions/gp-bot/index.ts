@@ -1644,8 +1644,44 @@ Voir : yobbante.com/admin`);
   }
 
   // =================================================================
+  //  FEEDBACK post-livraison : reponse 1/2/3 a la session 'feedback'
+  // =================================================================
+  if (sessionActive && session!.pending_intent === 'feedback') {
+    const data = (session!.pending_data ?? {}) as Record<string, any>;
+    const choice = msg.trim();
+    if (!/^[123]$/.test(choice)) {
+      await reply(`Repondez 1, 2 ou 3 :\n1 → Parfait\n2 → Probleme mineur\n3 → Probleme serieux`, 'feedback_retry');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const rating = parseInt(choice, 10);
+    if (data.dossier_id) {
+      await supa.from('dossiers').update({
+        feedback_rating: rating,
+        feedback_at: new Date().toISOString(),
+      }).eq('id', data.dossier_id);
+    }
+    await clearSession();
+    if (rating === 3) {
+      await sendWa({
+        recipient_phone: '+221784604003',
+        recipient_type: 'admin',
+        message: `⚠️ Probleme serieux signale par ${prenom} (GP${transporteur.reference})\nColis : ${data.tracking_id ?? '—'}\nMerci de prendre contact.`,
+        trigger_type: 'gp_feedback_serious',
+        dossier_id: data.dossier_id,
+      });
+      await reply(`Merci. Notre equipe vous contacte rapidement.`, 'feedback_serious');
+    } else if (rating === 2) {
+      await reply(`Merci pour votre retour. Nous prenons note.`, 'feedback_minor');
+    } else {
+      await reply(`🎉 Merci ! Au plaisir pour la prochaine mission.`, 'feedback_great');
+    }
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // =================================================================
   //  Menu numerote : 1..6 (ou "un", "deux", ...)
   // =================================================================
+
   const MENU_MAP: Record<string, string> = {
 
     '1': '1', 'un': '1', 'une': '1',
