@@ -97,25 +97,25 @@ export function buildGpAssignMessage(args: {
     (fromNotes && fromNotes.length > 0 ? fromNotes : null) ||
     'Non renseigne';
 
+  // Rémunération GP : on n'a pas l'info de tarif côté template — laisser "a confirmer".
+  const remunLine = `Remuneration : a confirmer`;
+
   return [
-    `Salam ${firstName(args.gp_prenom)},`,
+    `📦 Nouvelle mission !`,
     ``,
-    `Nouveau colis assigne.`,
-    `Ref : ${ref}`,
-    `Route : ${args.origin || '-'} -> ${args.destination || '-'}`,
-    `Client : ${clientName}`,
+    `Colis : ${ref}`,
+    `Ville depart : ${args.origin || '-'}`,
+    `Poids estime : ${weight}`,
+    remunLine,
+    `Depart : ${date}`,
+    ``,
+    args.pickup_address ? `Adresse collecte : ${args.pickup_address}` : null,
     args.client_phone ? `Tel client : ${args.client_phone}` : null,
-    args.pickup_address ? `Adresse collecte client : ${args.pickup_address}` : null,
+    args.client_name ? `Client : ${clientName}` : null,
     ``,
-    `(Notre livreur deposera le colis`,
-    ` a votre adresse Dakar avant le depart.`,
-    ` Vous n'avez pas a collecter chez le client.)`,
-    ``,
-    `Poids : ${weight}`,
-    `Date depart : ${date}`,
-    ``,
-    `Confirmez reception : RECU ${ref}`,
-    `Tapez AIDE pour les commandes.`,
+    `Repondez OUI pour accepter`,
+    `NON pour refuser (1h sinon auto-refus)`,
   ].filter(Boolean).join('\n');
 }
+
 
