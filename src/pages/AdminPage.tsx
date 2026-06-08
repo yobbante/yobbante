@@ -20,6 +20,7 @@ import { FinancesTab } from '@/components/admin/FinancesTab';
 import { RevenusTab } from '@/components/admin/RevenusTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
+import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
