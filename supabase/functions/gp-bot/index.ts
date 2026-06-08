@@ -2567,11 +2567,20 @@ Repondez OUI pour valider ou NON pour annuler.`, 'livre_confirm');
     if (error) {
       await reply(`Erreur : ${error.message}`, 'livre_error');
     } else {
-      await reply(`✅ Livraison confirmee pour ${dossier.tracking_id}. Merci !`, 'livre_ok');
+      if (!transporteur.tutorial_paiement_sent) {
+        await reply(
+          `🎉 Premiere mission accomplie !\nPaiement sous 48h.\nTapez PAIEMENT pour voir vos gains.`,
+          'tutorial_paiement',
+        );
+        await supa.from('transporteurs').update({ tutorial_paiement_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Livraison confirmee pour ${dossier.tracking_id}. Merci !`, 'livre_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la livraison de ${dossier.tracking_id} a ${dossier.destination_city ?? dossier.destination_country ?? '—'}`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handleEnRoute(text: string, prior: Record<string, any>) {
     const tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
