@@ -116,7 +116,7 @@ Etape 3 : Recevez vos missions
 Si vous voulez envoyer un message, ecrivez directement au +221 78 926 97 56
 
 Votre profil est deja cree. Activez votre compte ici :
-yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
+usekonnekt.com/onboarding/${gpRef(gp.reference)}
 
 usekonnekt.com`;
 }
