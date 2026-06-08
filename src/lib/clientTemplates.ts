@@ -80,6 +80,8 @@ export function buildGpAssignMessage(args: {
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
   departure_date?: string | Date | null;
+  /** Rémunération GP en FCFA, si calculable côté caller. */
+  remuneration_xof?: number | null;
   /** Fallback : notes brutes du dossier pour extraire un nom client. */
   notes?: string | null;
 }): string {
@@ -96,6 +98,7 @@ export function buildGpAssignMessage(args: {
     (args.client_name && args.client_name.trim()) ||
     (fromNotes && fromNotes.length > 0 ? fromNotes : null) ||
     'Non renseigne';
+
 
   // Rémunération GP : on n'a pas l'info de tarif côté template — laisser "a confirmer".
   const remunLine = `Remuneration : a confirmer`;
