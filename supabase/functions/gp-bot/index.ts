@@ -323,7 +323,20 @@ Deno.serve(async (req) => {
     });
   }
 
+  function getPrimaryCity(t: any): string | null {
+    const navettes = Array.isArray(t?.navettes) ? t.navettes : [];
+    for (const n of navettes) {
+      const villes = Array.isArray(n?.villes) ? n.villes : [];
+      for (const v of villes) {
+        const name = String(v?.ville ?? '').trim();
+        if (name && name.toLowerCase() !== 'dakar') return name;
+      }
+    }
+    return null;
+  }
+
   async function bumpGpActivity(dossierId?: string | null) {
+
     const now = new Date().toISOString();
     try {
       if (dossierId) {
@@ -1610,10 +1623,20 @@ Voir : yobbante.com/admin`);
     const choice = MENU_MAP[msg];
     await clearSession();
     if (choice === '1') {
-      await saveSession('dep', {});
-      await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      const primaryCity = getPrimaryCity(transporteur);
+      if (primaryCity) {
+        await saveSession('dep', { default_city: primaryCity });
+        await reply(
+          `Prochain depart pour ${primaryCity} ?\nRepondez : [date] [kg]\nEx : 15/07 25kg\n(ou tapez une autre ville si different)`,
+          'menu_dep_smart',
+        );
+      } else {
+        await saveSession('dep', {});
+        await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      }
       return new Response('ok', { headers: corsHeaders });
     }
+
     if (choice === '2') {
       await saveSession('collecte', {});
       await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_collecte');
@@ -1935,14 +1958,29 @@ A traiter manuellement.`);
       }
     }
 
-    const collected = { city, date: dateIso, weight };
+    // Fallback to GP's primary navette city if none provided
+    if (!city && prior.default_city) {
+      city = String(prior.default_city);
+    }
+
+    const collected = { city, date: dateIso, weight, default_city: prior.default_city };
 
     // Demande progressive
     if (!city) {
+      const primaryCity = getPrimaryCity(transporteur);
+      if (primaryCity) {
+        await saveSession('dep', { ...collected, default_city: primaryCity });
+        await reply(
+          `Prochain depart pour ${primaryCity} ?\nRepondez : [date] [kg]\nEx : 15/07 25kg\n(ou tapez une autre ville si different)`,
+          'dep_ask_city_smart',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
       await saveSession('dep', collected);
       await reply(`Vers quelle ville partez-vous ?`, 'dep_ask_city');
       return new Response('ok', { headers: corsHeaders });
     }
+
     if (!dateIso) {
       await saveSession('dep', collected);
       await reply(`Quelle est la date de depart ? (ex: 28/05)`, 'dep_ask_date');
