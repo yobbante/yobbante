@@ -3115,6 +3115,7 @@ export type Database = {
           updated_at: string
           ville: string | null
           whatsapp: string | null
+          whatsapp_confirmed_at: string | null
           zone: string | null
         }
         Insert: {
@@ -3161,6 +3162,7 @@ export type Database = {
           updated_at?: string
           ville?: string | null
           whatsapp?: string | null
+          whatsapp_confirmed_at?: string | null
           zone?: string | null
         }
         Update: {
@@ -3207,6 +3209,7 @@ export type Database = {
           updated_at?: string
           ville?: string | null
           whatsapp?: string | null
+          whatsapp_confirmed_at?: string | null
           zone?: string | null
         }
         Relationships: []
