@@ -514,7 +514,10 @@ Deno.serve(async (req) => {
                   from_name: fromName,
                   transporteur_id: transporteurId,
                   message: body,
+                  message_type: messageType,
+                  media_url: mediaUrl,
                 }),
+
               });
               if (!botRes.ok) console.error('WA_ERROR gp-bot', await botRes.text());
             } catch (e) {
