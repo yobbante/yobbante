@@ -65,9 +65,8 @@ function buildKonnektOnboardingUrl(gp: Transporteur) {
 }
 
 function buildKonnektInviteMessage(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
-  const greetingName = prenom || 'cher partenaire';
-  return `Bonjour ${greetingName}, c'est Amath (Yobbanté). Je t'envoie ça parce qu'on a déjà travaillé ensemble — je voulais te partager quelque chose qu'on est en train de construire.\n\nKonnekt, c'est une app où tu publies tes propres départs, tu fixes ton prix, tes conditions. Tu gères tout toi-même. Pour le lancement on t'envoie aussi des missions Yobbanté directement.\n\nOn est en beta — les premiers à s'inscrire ont la priorité sur les missions. Deux minutes pour rejoindre :\nhttps://usekonnekt.com/rejoindre-gp`;
+  const greetingName = gp.prenom?.trim() || gp.nom?.split(' ')[0] || '';
+  return `Bonjour ${greetingName}, c'est Amath (Yobbanté). Je t'envoie ça parce qu'on a déjà travaillé ensemble — je voulais te partager quelque chose qu'on est en train de construire.\n\nKonnekt, c'est une app où tu publies tes propres départs, tu fixes ton prix, tes conditions. Tu gères tout toi-même. Pour le lancement on t'envoie aussi des missions Yobbanté directement.\n\nOn est en beta — les premiers à s'inscrire ont la priorité sur les missions. Deux minutes pour rejoindre :\n${buildKonnektOnboardingUrl(gp)}`;
 }
 
 
