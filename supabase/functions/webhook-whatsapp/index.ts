@@ -414,7 +414,7 @@ Deno.serve(async (req) => {
                     const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
                     const ref = `GP${String(gp.reference ?? '').replace(/\D/g, '').padStart(4, '0')}`;
                     const onboardMsg =
-                      `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Yobbante GP (926). ` +
+                      `Salam ${prenom}, bienvenue ! Vous etes a present connecte au bot Konnekt (926). ` +
                       `Envoyez AIDE pour voir comment recevoir vos missions. Reference : ${ref}.`;
                     (async () => {
                       const SUPER_ADMIN_PHONE = '+221784604003';
