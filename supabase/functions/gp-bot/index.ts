@@ -1753,7 +1753,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   //  MODIFIER [TEL|ADRESSE|NAVETTE] : génère un lien public
   // =================================================================
-  if (/^modifier\b/.test(msg)) {
+  if (/^modifier\b/.test(msg) && !/^\s*modifier\s+#?[a-z0-9]+\s+\d+(?:[.,]\d+)?\s*kg\s*$/i.test(rawMsg)) {
     if (!transporteur) {
       await reply(`Numero inconnu. Ecrivez-nous au +221 78 926 97 56`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
