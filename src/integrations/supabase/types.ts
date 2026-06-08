@@ -963,6 +963,7 @@ export type Database = {
           client_departure_decision: string
           client_departure_note: string | null
           client_requested_pickup_date: string | null
+          collect_reminder_sent_at: string | null
           collecte_confirmee_at: string | null
           collecte_creneau: string | null
           collecte_photos: string[] | null
@@ -1088,6 +1089,7 @@ export type Database = {
           weighed_at: string | null
           weighed_by: string | null
           weight_alert_sent_at: string | null
+          weight_reminder_sent_at: string | null
           yobbante_gross_margin: number | null
           yobbante_margin: number | null
           yobbante_margin_pct: number
@@ -1111,6 +1113,7 @@ export type Database = {
           client_departure_decision?: string
           client_departure_note?: string | null
           client_requested_pickup_date?: string | null
+          collect_reminder_sent_at?: string | null
           collecte_confirmee_at?: string | null
           collecte_creneau?: string | null
           collecte_photos?: string[] | null
@@ -1236,6 +1239,7 @@ export type Database = {
           weighed_at?: string | null
           weighed_by?: string | null
           weight_alert_sent_at?: string | null
+          weight_reminder_sent_at?: string | null
           yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
           yobbante_margin_pct?: number
@@ -1259,6 +1263,7 @@ export type Database = {
           client_departure_decision?: string
           client_departure_note?: string | null
           client_requested_pickup_date?: string | null
+          collect_reminder_sent_at?: string | null
           collecte_confirmee_at?: string | null
           collecte_creneau?: string | null
           collecte_photos?: string[] | null
@@ -1384,6 +1389,7 @@ export type Database = {
           weighed_at?: string | null
           weighed_by?: string | null
           weight_alert_sent_at?: string | null
+          weight_reminder_sent_at?: string | null
           yobbante_gross_margin?: number | null
           yobbante_margin?: number | null
           yobbante_margin_pct?: number
@@ -1938,6 +1944,8 @@ export type Database = {
           publication_status: string
           published_at: string | null
           reminder_48h_sent_at: string | null
+          reminder_j0_sent_at: string | null
+          reminder_j3_sent_at: string | null
           reserved_capacity_kg: number
           short_ref: string | null
           source: string
@@ -1971,6 +1979,8 @@ export type Database = {
           publication_status?: string
           published_at?: string | null
           reminder_48h_sent_at?: string | null
+          reminder_j0_sent_at?: string | null
+          reminder_j3_sent_at?: string | null
           reserved_capacity_kg?: number
           short_ref?: string | null
           source?: string
@@ -2004,6 +2014,8 @@ export type Database = {
           publication_status?: string
           published_at?: string | null
           reminder_48h_sent_at?: string | null
+          reminder_j0_sent_at?: string | null
+          reminder_j3_sent_at?: string | null
           reserved_capacity_kg?: number
           short_ref?: string | null
           source?: string
