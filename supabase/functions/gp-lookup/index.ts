@@ -1,7 +1,19 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+const allowedOrigins = [
+  'https://usekonnekt.com',
+  'https://www.usekonnekt.com',
+  'https://def7c5d9-bcc1-4ef1-82ad-fc1e70593446.lovableproject.com',
+]
+
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin') || ''
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'content-type, x-konnekt-key',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
