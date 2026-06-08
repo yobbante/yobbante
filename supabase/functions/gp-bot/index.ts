@@ -323,7 +323,20 @@ Deno.serve(async (req) => {
     });
   }
 
+  function getPrimaryCity(t: any): string | null {
+    const navettes = Array.isArray(t?.navettes) ? t.navettes : [];
+    for (const n of navettes) {
+      const villes = Array.isArray(n?.villes) ? n.villes : [];
+      for (const v of villes) {
+        const name = String(v?.ville ?? '').trim();
+        if (name && name.toLowerCase() !== 'dakar') return name;
+      }
+    }
+    return null;
+  }
+
   async function bumpGpActivity(dossierId?: string | null) {
+
     const now = new Date().toISOString();
     try {
       if (dossierId) {
