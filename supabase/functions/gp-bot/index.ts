@@ -15,7 +15,10 @@ interface BotInput {
   from_name?: string | null;
   transporteur_id?: string | null;
   message?: string | null;
+  message_type?: string | null;
+  media_url?: string | null;
 }
+
 
 // =================================================================
 //  Utilitaires de normalisation
