@@ -41,10 +41,15 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } }
   )
 
+  // Normalize: DB stores references without the "GP" prefix (e.g. "9391")
+  const normalized = String(ref_gp).toUpperCase().startsWith('GP')
+    ? String(ref_gp).slice(2)
+    : String(ref_gp)
+
   const { data } = await supabase
     .from('transporteurs')
     .select('prenom, nom, telephone_1, telephone_2, reference')
-    .eq('reference', ref_gp)
+    .eq('reference', normalized)
     .maybeSingle()
 
   return new Response(JSON.stringify({ data }), {
