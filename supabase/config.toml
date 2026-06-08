@@ -61,3 +61,6 @@ verify_jwt = false
 [functions.konnekt-missions]
 verify_jwt = false
 
+[functions.gp-lookup]
+verify_jwt = false
+
