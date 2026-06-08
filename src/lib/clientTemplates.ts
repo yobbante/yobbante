@@ -100,8 +100,10 @@ export function buildGpAssignMessage(args: {
     'Non renseigne';
 
 
-  // Rémunération GP : on n'a pas l'info de tarif côté template — laisser "a confirmer".
-  const remunLine = `Remuneration : a confirmer`;
+  const remunLine = args.remuneration_xof && args.remuneration_xof > 0
+    ? `Remuneration : ${args.remuneration_xof.toLocaleString('fr-FR')} FCFA`
+    : `Remuneration : a confirmer`;
+
 
   return [
     `📦 Nouvelle mission !`,
