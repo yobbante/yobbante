@@ -438,16 +438,12 @@ Deno.serve(async (req) => {
         message:
           `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
           `Votre compte GP${ref} est bien active.\n\n` +
-          `Voici comment utiliser le bot :\n` +
-          `- DEP [ville] [date] [kg] → Declarer un depart\n` +
-          `  Ex : DEP Paris 15/07 25kg\n` +
-          `- COLLECTE [YOB-XXXXX] → Confirmer collecte colis\n` +
-          `- POIDS [YOB-XXXXX] [kg] → Enregistrer poids reel\n` +
-          `- LIVRE [YOB-XXXXX] → Marquer livre\n` +
-          `- MES MISSIONS → Voir vos missions actives\n` +
-          `- MES DEPARTS → Voir vos departs\n` +
-          `- AIDE → Revoir ce menu\n\n` +
-          `Tapez une commande pour commencer.`,
+          `Pour commencer, declarez vos prochains departs :\n` +
+          `DEP [ville] [date] [kg]\n` +
+          `Ex : DEP Paris 15/07 25kg\n\n` +
+          `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
+          `Tapez AIDE a tout moment pour revoir le menu.`,
+
         transporteur_id: gp.id,
         trigger_type: 'konnekt_onboarding_welcome',
       });
