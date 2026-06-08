@@ -49,7 +49,7 @@ export async function assignTransporteurAndNotify({
     supabase
       .from('dossiers')
       .select(
-        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, pickup_date, contact_phone, buyer_name',
+        'id, tracking_id, reference, sender_name, sender_phone, sender_address, recipient_name, recipient_phone, origin_country, destination_country, origin_city, destination_city, estimated_weight, pickup_date, contact_phone, buyer_name, gp_amount, gp_rate_per_kg',
       )
       .eq('id', dossierId)
       .maybeSingle(),
@@ -71,6 +71,13 @@ export async function assignTransporteurAndNotify({
   if (g?.telephone_1) {
     const clientPhoneForGp =
       d.contact_phone || d.sender_phone || d.recipient_phone || null;
+    // Rémunération GP : montant explicite si défini, sinon estimation tarif*poids
+    let remunerationXof: number | null = null;
+    if (typeof d.gp_amount === 'number' && d.gp_amount > 0) {
+      remunerationXof = Math.round(d.gp_amount);
+    } else if (typeof d.gp_rate_per_kg === 'number' && typeof d.estimated_weight === 'number') {
+      remunerationXof = Math.round(d.gp_rate_per_kg * d.estimated_weight);
+    }
     const gpMsg = buildGpAssignMessage({
       gp_prenom: g.prenom,
       tracking_id: d.tracking_id,
@@ -83,7 +90,9 @@ export async function assignTransporteurAndNotify({
       pickup_address: d.sender_address,
       pickup_date: d.pickup_date,
       departure_date: d.pickup_date,
+      remuneration_xof: remunerationXof,
     });
+
 
     const res = await sendGpMessage({
       phone: g.telephone_1,
