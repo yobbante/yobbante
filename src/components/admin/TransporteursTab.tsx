@@ -106,14 +106,14 @@ Bienvenue sur Konnekt !
 Konnekt est la plateforme des transporteurs partenaires Yobbante.
 
 Etape 1 : Enregistrez ce numero
-${YOBBANTE_BOT_NUMBER}
-Nom : Konnekt GP
++221789269756
+Nom : Konnekt
 
 Etape 2 : Envoyez le mot AIDE
 
 Etape 3 : Recevez vos missions
 
-Si vous voulez envoyer un message, ecrivez directement au ${YOBBANTE_GP_WHATSAPP_DISPLAY}
+Si vous voulez envoyer un message, ecrivez directement au +221 78 926 97 56
 
 Votre profil est deja cree. Activez votre compte ici :
 yobbante.com/rejoindre-konnekt?ref=${gpRef(gp.reference)}
