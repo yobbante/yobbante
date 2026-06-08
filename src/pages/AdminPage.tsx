@@ -20,6 +20,7 @@ import { FinancesTab } from '@/components/admin/FinancesTab';
 import { RevenusTab } from '@/components/admin/RevenusTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
+import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
 import { cn } from '@/lib/utils';
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
@@ -196,6 +197,7 @@ export default function AdminPage() {
           <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
           <div className="flex items-center gap-1">
             <AdminLiveBadge className="mr-1" />
+            <AdminNotificationBell />
             <button
               onClick={async () => { await supabase.auth.signOut(); navigate('/auth'); }}
               aria-label="Se déconnecter"
@@ -208,6 +210,12 @@ export default function AdminPage() {
             </button>
           </div>
         </header>
+
+        {/* Desktop topbar — notifications */}
+        <div className="hidden lg:flex sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border px-6 py-2 items-center justify-end gap-1">
+          <AdminNotificationBell />
+        </div>
+
 
         <main className={cn('flex-1 w-full flex flex-col min-h-0', section === 'messages' ? 'p-0 max-w-none' : 'px-4 md:px-8 py-6 md:py-8 max-w-6xl')}>
           {isUnknownSection ? (

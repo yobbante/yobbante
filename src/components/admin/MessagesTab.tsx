@@ -85,6 +85,16 @@ function gpTemplatesGeneric(): GpTemplate[] {
 
 type Channel = 'client' | 'gp';
 
+/** Numéros du super admin Yobbanté — exclus des conversations affichées. */
+const SUPER_ADMIN_PHONES = new Set(['221784604003']);
+const SUPER_ADMIN_NAMES = new Set(['ANB']);
+function isSuperAdmin(m: { from_phone?: string | null; from_name?: string | null }): boolean {
+  const p = (m.from_phone || '').replace(/\D/g, '');
+  if (SUPER_ADMIN_PHONES.has(p)) return true;
+  if (m.from_name && SUPER_ADMIN_NAMES.has(m.from_name.trim().toUpperCase())) return true;
+  return false;
+}
+
 interface InboundMsg {
   id: string;
   from_phone: string;
@@ -179,7 +189,7 @@ export function MessagesTab() {
       supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
     ]);
     if (!mountedRef.current) return;
-    setInbound((inData ?? []) as InboundMsg[]);
+    setInbound(((inData ?? []) as InboundMsg[]).filter((m) => !isSuperAdmin(m)));
     setOutbound((outData ?? []) as OutboundMsg[]);
     setLoading(false);
     if (!opts?.silent) setReloading(false);
@@ -194,6 +204,7 @@ export function MessagesTab() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const row = payload.new as InboundMsg;
+          if (isSuperAdmin(row)) return;
           setInbound((prev) => prev.some((m) => m.id === row.id) ? prev : [row, ...prev]);
           toast(`Nouveau message de ${row.from_name || row.from_phone}`, {
             description: (row.message_body || '').slice(0, 60),
