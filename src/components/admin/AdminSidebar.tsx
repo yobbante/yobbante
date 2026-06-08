@@ -86,7 +86,9 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
       const { count } = await supabase
         .from('whatsapp_inbound_messages')
         .select('id', { count: 'exact', head: true })
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .not('from_phone', 'eq', '221784604003')
+        .not('from_name', 'eq', 'ANB');
       if (mounted) setUnread(count ?? 0);
     }
     loadCount();
