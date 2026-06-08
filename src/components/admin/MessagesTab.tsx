@@ -204,6 +204,7 @@ export function MessagesTab() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const row = payload.new as InboundMsg;
+          if (isSuperAdmin(row)) return;
           setInbound((prev) => prev.some((m) => m.id === row.id) ? prev : [row, ...prev]);
           toast(`Nouveau message de ${row.from_name || row.from_phone}`, {
             description: (row.message_body || '').slice(0, 60),
