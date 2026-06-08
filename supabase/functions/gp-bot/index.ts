@@ -15,7 +15,10 @@ interface BotInput {
   from_name?: string | null;
   transporteur_id?: string | null;
   message?: string | null;
+  message_type?: string | null;
+  media_url?: string | null;
 }
+
 
 // =================================================================
 //  Utilitaires de normalisation
@@ -127,12 +130,19 @@ Que voulez-vous faire ?
 6 - Mes prochains departs
 
 Autres commandes :
+• STATUT [YOB-XXXXX] — statut d'un colis
+• PAIEMENT — mes paiements
+• ANNULER #ref — annuler un depart
+• MODIFIER #ref [Xkg] — changer la capacite
+• PROBLEME [YOB-XXXXX] [texte] — signaler un litige
+• PHOTO (envoyer image + caption PHOTO YOB-XXXXX)
 • PROFIL — voir votre fiche
 • TARIFS — voir vos tarifs par ville
 • TARIF [ville] [prix] — modifier un tarif
 • MODIFIER TEL / ADRESSE / NAVETTE
-• PAUSE [N] — suspendre les notifs N jours (defaut 30)
+• PAUSE [N] — suspendre les notifs N jours
 • REPRENDRE — reactiver les notifs
+
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
@@ -1383,16 +1393,29 @@ Voir : yobbante.com/admin`);
     .limit(1)
     .maybeSingle();
 
-  // Session vieille de plus de 30 min → expirée
-  const sessionActive = session
-    && session.pending_intent
-    && (Date.now() - new Date(session.updated_at).getTime()) < 30 * 60 * 1000;
+  // Session vieille de plus de 2h → expirée (annulation propre)
+  const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+  const sessionAgeMs = session ? Date.now() - new Date(session.updated_at).getTime() : 0;
+  const sessionExpired = !!(session && session.pending_intent && sessionAgeMs >= SESSION_TTL_MS);
+  const sessionActive = !!(session && session.pending_intent && sessionAgeMs < SESSION_TTL_MS);
 
   async function clearSession() {
     if (session?.id) {
       await supa.from('gp_bot_sessions').delete().eq('id', session.id);
     }
   }
+
+  // Notify expired session before continuing (only if the user looks like he's
+  // trying to continue a flow, not starting fresh with AIDE/MENU/greeting)
+  if (sessionExpired) {
+    await clearSession();
+    const looksFresh = msg === '' || /^(aide|help|menu|start|bonjour|hello|salam|salut|hi|hey|\?|0)\b/i.test(rawMsg);
+    if (!looksFresh) {
+      await reply(`Session expiree. Tapez AIDE pour recommencer.`, 'session_expired');
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
 
   async function saveSession(intent: string, data: Record<string, unknown>) {
     if (session?.id) {
@@ -1730,7 +1753,7 @@ Voir : yobbante.com/admin`);
   // =================================================================
   //  MODIFIER [TEL|ADRESSE|NAVETTE] : génère un lien public
   // =================================================================
-  if (/^modifier\b/.test(msg)) {
+  if (/^modifier\b/.test(msg) && !/^\s*modifier\s+#?[a-z0-9]+\s+\d+(?:[.,]\d+)?\s*kg\s*$/i.test(rawMsg)) {
     if (!transporteur) {
       await reply(`Numero inconnu. Ecrivez-nous au +221 78 926 97 56`, 'modifier_unknown');
       return new Response('ok', { headers: corsHeaders });
@@ -1776,7 +1799,226 @@ Voir : yobbante.com/admin`);
   const hasDeposeKeyword = /\b(depose|depot|deposer|relais)\b/.test(msg);
   const hasEnRouteKeyword = /\b(en\s*route|enroute|departe|je\s+pars|on\s+part)\b/.test(msg);
 
+  // =================================================================
+  //  NOUVELLES COMMANDES — STATUT / PAIEMENT / ANNULER / MODIFIER /
+  //  PROBLEME / PHOTO (image avec caption)
+  // =================================================================
+  const SUPER_ADMIN_NOTIFY = '+221784604003';
+  const isValidated = transporteur?.is_beta_validated !== false;
+
+  async function gateValidated(): Promise<Response | null> {
+    if (isValidated) return null;
+    await reply(`⚠️ Compte en attente de verification. Notre equipe vous contacte sous 24h.`, 'not_validated');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // ---------- PHOTO : image entrante avec caption "PHOTO YOB-XXXXX" ----------
+  if ((input.message_type === 'image' || input.message_type === 'document') && input.media_url) {
+    const tracking = parseTracking(rawMsg);
+    if (tracking) {
+      const { data: dossier } = await supa
+        .from('dossiers')
+        .select('id, tracking_id, collecte_photos, gp_id')
+        .eq('tracking_id', tracking)
+        .maybeSingle();
+      if (!dossier) {
+        await reply(`❌ Colis ${tracking} introuvable.`, 'photo_not_found');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const photos = Array.isArray(dossier.collecte_photos) ? [...dossier.collecte_photos] : [];
+      photos.push(input.media_url);
+      await supa.from('dossiers').update({ collecte_photos: photos }).eq('id', dossier.id);
+      await reply(`✅ Photo enregistree pour 📦 ${tracking}.`, 'photo_saved');
+      await notifyAdmin(`📸 Nouvelle photo de ${prenom} (Ref ${transporteur.reference}) sur ${tracking}`);
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- STATUT [YOB-XXXXX] ----------
+  {
+    const m = msg.match(/^statut\s+(.+)$/i) || msg.match(/^status\s+(.+)$/i);
+    if (m) {
+      const tracking = parseTracking(m[1]);
+      if (!tracking) {
+        await reply(`❌ Format invalide. Ex : STATUT YOB-K7M9P2`, 'statut_bad');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const { data: d } = await supa
+        .from('dossiers')
+        .select('tracking_id, status, updated_at, destination_city, destination_country')
+        .eq('tracking_id', tracking)
+        .maybeSingle();
+      if (!d) {
+        await reply(`❌ Colis ${tracking} introuvable.`, 'statut_not_found');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const upd = d.updated_at ? formatDateFr(d.updated_at) : '—';
+      await reply(
+        `📦 ${d.tracking_id}\nStatut : ${d.status ?? '—'}\nDestination : ${d.destination_city ?? d.destination_country ?? '—'}\nMaj : ${upd}`,
+        'statut',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- PAIEMENT ----------
+  if (/^(paiement|paiements|paie|payment|payments)$/i.test(msg)) {
+    const { data: rows } = await supa
+      .from('dossiers')
+      .select('tracking_id, gp_amount, gp_paid, gp_paid_at')
+      .eq('gp_id', transporteur.id)
+      .not('gp_amount', 'is', null)
+      .order('gp_paid_at', { ascending: false, nullsFirst: false })
+      .limit(20);
+    const list = rows ?? [];
+    if (list.length === 0) {
+      await reply(`💰 Aucun paiement enregistre.`, 'paiement_empty');
+      return new Response('ok', { headers: corsHeaders });
+    }
+    const fmtAmt = (n: any) => n != null ? `${Number(n).toLocaleString('fr-FR')} FCFA` : '—';
+    const paid = list.filter((r: any) => r.gp_paid);
+    const pend = list.filter((r: any) => !r.gp_paid);
+    const lines: string[] = [`💰 Paiements`];
+    if (pend.length) {
+      lines.push(`\nEn attente :`);
+      pend.slice(0, 5).forEach((r: any) => lines.push(`• ${r.tracking_id} · ${fmtAmt(r.gp_amount)}`));
+    }
+    if (paid.length) {
+      lines.push(`\nRecus :`);
+      paid.slice(0, 5).forEach((r: any) => lines.push(`✅ ${r.tracking_id} · ${fmtAmt(r.gp_amount)} · ${formatDateFr(r.gp_paid_at)}`));
+    }
+    await reply(lines.join('\n'), 'paiement');
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  // ---------- PROBLEME [YOB-XXXXX] [description] ----------
+  {
+    const m = rawMsg.match(/^\s*(?:probleme|problème|issue|litige)\s+(YOB[-\s]?[A-Za-z0-9]+)\s+(.{3,500})$/i);
+    if (m) {
+      const tracking = parseTracking(m[1]);
+      const desc = m[2].trim();
+      if (!tracking) {
+        await reply(`❌ Format invalide. Ex : PROBLEME YOB-K7M9P2 colis abime`, 'probleme_bad');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const { data: d } = await supa
+        .from('dossiers')
+        .select('id, tracking_id, admin_notes')
+        .eq('tracking_id', tracking)
+        .maybeSingle();
+      if (!d) {
+        await reply(`❌ Colis ${tracking} introuvable.`, 'probleme_not_found');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const tag = `[LITIGE ${new Date().toISOString()}] GP${transporteur.reference}: ${desc}`;
+      const newNotes = d.admin_notes ? `${d.admin_notes}\n${tag}` : tag;
+      await supa.from('dossiers').update({ admin_notes: newNotes }).eq('id', d.id);
+      await sendWa({
+        recipient_phone: SUPER_ADMIN_NOTIFY,
+        recipient_type: 'admin',
+        message: `⚠️ LITIGE signale\n${prenom} (GP${transporteur.reference}) sur 📦 ${tracking}\n"${desc.slice(0, 200)}"`,
+        trigger_type: 'gp_probleme_signale',
+        dossier_id: d.id,
+      });
+      await reply(`✅ Probleme signale sur 📦 ${tracking}.\nNotre equipe revient vers vous rapidement.`, 'probleme_ok');
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- ANNULER [#ref-depart] ----------
+  {
+    const m = msg.match(/^annuler\s+#?([a-z0-9]+)$/i) || msg.match(/^cancel\s+#?([a-z0-9]+)$/i);
+    if (m && m[1] !== 'depart' && m[1] !== 'mission') {
+      const gate = await gateValidated(); if (gate) return gate;
+      const ref = m[1].replace(/^#/, '');
+      const { data: dep } = await supa
+        .from('manual_departures')
+        .select('id, short_ref, destination, departure_date, status, transporteur_ref')
+        .ilike('short_ref', ref)
+        .maybeSingle();
+      if (!dep || String(dep.transporteur_ref) !== String(transporteur.reference)) {
+        await reply(`❌ Depart #${ref} introuvable ou pas a vous.`, 'annuler_not_found');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (dep.status === 'cancelled') {
+        await reply(`Depart #${dep.short_ref} deja annule.`, 'annuler_already');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      await saveSession('annuler_dep', { dep_id: dep.id, short_ref: dep.short_ref });
+      await reply(
+        `✈️ Annuler ce depart ?\n#${dep.short_ref} · ${dep.destination} · ${formatDateFr(dep.departure_date)}\nRepondez OUI pour confirmer ou NON.`,
+        'annuler_confirm',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (sessionActive && session!.pending_intent === 'annuler_dep') {
+      const data = (session!.pending_data ?? {}) as Record<string, any>;
+      if (isNo(rawMsg)) {
+        await clearSession();
+        await reply(`Annulation abandonnee.`, 'annuler_abort');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      if (!isYes(rawMsg)) {
+        await reply(`Repondez OUI pour confirmer l'annulation ou NON.`, 'annuler_retry');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const { count: assigned } = await supa
+        .from('dossiers')
+        .select('id', { count: 'exact', head: true })
+        .eq('gp_id', transporteur.id)
+        .eq('assigned_transporteur_ref', String(transporteur.reference))
+        .in('status', ['ASSIGNED', 'COLLECTING', 'COLLECTED', 'WEIGHED', 'DEPARTURE_CONFIRMED']);
+      await supa.from('manual_departures').update({ status: 'cancelled' }).eq('id', data.dep_id);
+      await clearSession();
+      await reply(`✅ Depart #${data.short_ref} annule.`, 'annuler_ok');
+      if ((assigned ?? 0) > 0) {
+        await sendWa({
+          recipient_phone: SUPER_ADMIN_NOTIFY, recipient_type: 'admin',
+          message: `⚠️ GP${transporteur.reference} a annule depart #${data.short_ref} avec ${assigned} colis assigne(s).`,
+          trigger_type: 'gp_depart_cancel_with_dossiers',
+        });
+      } else {
+        await notifyAdmin(`Depart #${data.short_ref} annule par ${prenom} (GP${transporteur.reference}).`);
+      }
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- MODIFIER [#ref] [Xkg] ----------
+  {
+    const m = rawMsg.match(/^\s*modifier\s+#?([a-z0-9]+)\s+(\d+(?:[.,]\d+)?)\s*kg\s*$/i);
+    if (m) {
+      const gate = await gateValidated(); if (gate) return gate;
+      const ref = m[1].replace(/^#/, '');
+      const newCap = Math.max(1, Math.round(parseFloat(m[2].replace(',', '.'))));
+      const { data: dep } = await supa
+        .from('manual_departures')
+        .select('id, short_ref, total_capacity_kg, available_capacity_kg, transporteur_ref')
+        .ilike('short_ref', ref)
+        .maybeSingle();
+      if (!dep || String(dep.transporteur_ref) !== String(transporteur.reference)) {
+        await reply(`❌ Depart #${ref} introuvable ou pas a vous.`, 'modifier_not_found');
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const used = (dep.total_capacity_kg ?? 0) - (dep.available_capacity_kg ?? 0);
+      if (newCap < used) {
+        await reply(
+          `⚠️ Vous avez deja ${used}kg reserves sur ce depart.\nCapacite minimum : ${used}kg.`,
+          'modifier_too_low',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+      const newAvail = newCap - used;
+      await supa.from('manual_departures').update({
+        total_capacity_kg: newCap, available_capacity_kg: newAvail,
+      }).eq('id', dep.id);
+      await reply(`✅ Depart #${dep.short_ref} mis a jour.\nCapacite : ${newCap}kg (restant ${newAvail}kg).`, 'modifier_ok');
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
   // ---------- DEPOSE (point relais) ----------
+
   if (hasDeposeKeyword) {
     const tracking = parseTracking(rawMsg);
     if (!tracking) {
@@ -1827,11 +2069,13 @@ Recuperez-le sous 5 jours.`,
 
   // ---------- DEP : enregistrer un départ ----------
   if (hasDepKeyword || (!sessionActive && /\d{1,2}[\/.\-]\d{1,2}/.test(rawMsg) && /\d+\s*kg/i.test(rawMsg))) {
+    const gate = await gateValidated(); if (gate) return gate;
     return await handleDep(rawMsg, {});
   }
   if (sessionActive && session!.pending_intent === 'dep') {
     return await handleDep(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
   }
+
 
   // ---------- COLLECTE ----------
   if (hasCollectKeyword) {
@@ -1992,9 +2236,35 @@ A traiter manuellement.`);
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Confirmation OUI/NON avant creation
-    if (!prior.awaiting_confirm) {
-      await saveSession('dep', { ...collected, awaiting_confirm: true });
+    // Date passée → proposer +7j (uniquement quand on vient de la parser)
+    if (dateIso && !prior.date_confirmed) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const d = new Date(dateIso); d.setHours(0, 0, 0, 0);
+      if (d.getTime() < today.getTime()) {
+        const sugg = new Date(d.getTime()); sugg.setDate(sugg.getDate() + 7);
+        const suggIso = sugg.toISOString().slice(0, 10);
+        await saveSession('dep', { ...collected, suggested_date: suggIso, awaiting_date_fix: true });
+        await reply(
+          `⚠️ Cette date est passee.\nVoulez-vous dire le ${formatDateFr(suggIso)} ? Repondez OUI ou donnez une autre date.`,
+          'dep_date_past',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+    }
+    if (prior.awaiting_date_fix) {
+      if (isYes(text) && prior.suggested_date) {
+        dateIso = String(prior.suggested_date);
+      }
+      // sinon on garde la nouvelle date qu'on vient de parser
+    }
+
+    // Skip OUI/NON si tous les params ont ete fournis d'un coup
+    const oneShot = !prior.awaiting_confirm
+      && !prior.awaiting_date_fix
+      && !prior.city && !prior.date && !prior.weight;
+
+    if (!oneShot && !prior.awaiting_confirm) {
+      await saveSession('dep', { ...collected, awaiting_confirm: true, date_confirmed: true });
       const dStr = formatDateFr(dateIso);
       await reply(`Confirmer ce depart ?
 Destination : ${city}
@@ -2004,15 +2274,16 @@ Capacite : ${Math.max(1, Math.round(weight))}kg
 Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
-    if (isNo(text)) {
+    if (prior.awaiting_confirm && isNo(text)) {
       await clearSession();
       await reply(`Annule. Tapez AIDE pour recommencer.`, 'dep_cancel');
       return new Response('ok', { headers: corsHeaders });
     }
-    if (!isYes(text)) {
+    if (prior.awaiting_confirm && !isYes(text)) {
       await reply(`Repondez OUI pour valider ce depart ou NON pour annuler.`, 'dep_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
+
 
     // OUI → on cree
     const capacity = Math.max(1, Math.round(weight));
