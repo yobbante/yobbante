@@ -189,7 +189,7 @@ export function MessagesTab() {
       supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
     ]);
     if (!mountedRef.current) return;
-    setInbound((inData ?? []) as InboundMsg[]);
+    setInbound(((inData ?? []) as InboundMsg[]).filter((m) => !isSuperAdmin(m)));
     setOutbound((outData ?? []) as OutboundMsg[]);
     setLoading(false);
     if (!opts?.silent) setReloading(false);
