@@ -1610,10 +1610,20 @@ Voir : yobbante.com/admin`);
     const choice = MENU_MAP[msg];
     await clearSession();
     if (choice === '1') {
-      await saveSession('dep', {});
-      await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      const primaryCity = getPrimaryCity(transporteur);
+      if (primaryCity) {
+        await saveSession('dep', { default_city: primaryCity });
+        await reply(
+          `Prochain depart pour ${primaryCity} ?\nRepondez : [date] [kg]\nEx : 15/07 25kg\n(ou tapez une autre ville si different)`,
+          'menu_dep_smart',
+        );
+      } else {
+        await saveSession('dep', {});
+        await reply(`Pour quelle ville partez-vous ?`, 'menu_dep');
+      }
       return new Response('ok', { headers: corsHeaders });
     }
+
     if (choice === '2') {
       await saveSession('collecte', {});
       await reply(`Quel est le numero de suivi du colis ?\n(Exemple : YOB-K7M9P2)`, 'menu_collecte');
