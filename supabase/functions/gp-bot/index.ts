@@ -1,4 +1,4 @@
-// gp-bot — assistant WhatsApp tolerant pour transporteurs Yobbanté (926).
+// gp-bot — assistant WhatsApp tolerant pour transporteurs Konnekt (926).
 // Parser tolérant + conversation guidée + onboarding + alertes admin.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
@@ -117,7 +117,7 @@ function formatDateFr(iso: string): string {
 //  Messages canoniques (sans accents, compatibilité WhatsApp basique)
 // =================================================================
 
-const HELP_TEXT = `Bienvenue sur Yobbante GP !
+const HELP_TEXT = `Bienvenue sur Konnekt !
 Je suis votre assistant automatique.
 
 Que voulez-vous faire ?
@@ -165,7 +165,7 @@ ou choisissez :
 
 
 const ONBOARDING_TEXT = `Bonjour ! 👋
-Ce numero est reserve aux transporteurs partenaires de Yobbante.
+Ce numero est reserve aux transporteurs partenaires de Konnekt.
 
 Si vous etes transporteur et souhaitez rejoindre notre reseau :
 👉 yobbante.com/rejoindre-konnekt
@@ -849,7 +849,7 @@ Tapez la commande, ou STOP pour quitter.`;
           beta_rejected_at: new Date().toISOString(),
           beta_rejected_reason: 'Rejected by admin via WhatsApp',
         }).eq('id', gp.id);
-        await sendToGp(gp.telephone_1, `Bonjour ${gp.prenom ?? ''},\n\nVotre demande d'acces beta Konnekt n'a pas pu etre validee pour le moment.\nNotre equipe vous recontactera prochainement.\n\nMerci de votre comprehension.\n— Yobbante`, gp.id);
+        await sendToGp(gp.telephone_1, `Bonjour ${gp.prenom ?? ''},\n\nVotre demande d'acces beta Konnekt n'a pas pu etre validee pour le moment.\nNotre equipe vous recontactera prochainement.\n\nMerci de votre comprehension.\n— Konnekt`, gp.id);
         await saReply(`❌ GP ${nm} (GP${ref}) rejete. Message envoye.`);
         await saAudit('REJETTE', { gp_reference: ref, gp_id: gp.id, target_phone: gp.telephone_1 });
         return new Response('ok', { headers: corsHeaders });
@@ -1225,7 +1225,7 @@ Voir : yobbante.com/admin`);
       } catch (_) { /* noop */ }
       await onbSave('onb_prenom', {});
       await reply(
-        `Bienvenue sur Yobbante GP ! 👋\n\nPour vous inscrire en tant que transporteur partenaire, j'ai besoin de quelques infos.\n\nQuel est votre PRENOM ?`,
+        `Bienvenue sur Konnekt ! 👋\n\nPour vous inscrire en tant que transporteur partenaire, j'ai besoin de quelques infos.\n\nQuel est votre PRENOM ?`,
         'onb_start',
       );
       await notifyAdmin(`Nouveau contact sur le 926 (Konnekt GP) — onboarding lance :\n${fromPhone}${input.from_name ? ` (${input.from_name})` : ''}`);
@@ -1738,7 +1738,7 @@ Voir : yobbante.com/admin`);
     navettes.forEach((n: any) => (n.villes ?? []).forEach((v: any) => v.ville && villesSet.add(v.ville)));
     const villes = Array.from(villesSet).filter(v => v.toLowerCase() !== 'dakar');
     const lines = [
-      `📇 Votre profil Yobbante GP`,
+      `📇 Votre profil Konnekt`,
       ``,
       `Ref : GP${transporteur.reference}`,
       `Nom : ${transporteur.prenom ?? ''} ${transporteur.nom ?? ''}`.trim(),
