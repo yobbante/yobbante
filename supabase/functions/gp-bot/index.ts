@@ -1,4 +1,4 @@
-// gp-bot — assistant WhatsApp tolerant pour transporteurs Yobbanté (926).
+// gp-bot — assistant WhatsApp tolerant pour transporteurs Konnekt (926).
 // Parser tolérant + conversation guidée + onboarding + alertes admin.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
