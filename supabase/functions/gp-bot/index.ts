@@ -2389,13 +2389,22 @@ Repondez OUI pour valider ou NON pour annuler.`, 'collecte_confirm');
     if (error) {
       await reply(`Erreur : ${error.message}`, 'collecte_error');
     } else {
-      await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
+      if (!transporteur.tutorial_poids_sent) {
+        await reply(
+          `Super ! Pesez le colis et tapez :\nPOIDS ${dossier.tracking_id} [kg]`,
+          'tutorial_poids',
+        );
+        await supa.from('transporteurs').update({ tutorial_poids_sent: true }).eq('id', transporteur.id);
+      } else {
+        await reply(`✅ Collecte confirmee pour ${dossier.tracking_id}.
 Pesez le colis et envoyez :
 POIDS ${dossier.tracking_id} X.Xkg`, 'collecte_ok');
+      }
       await notifyAdmin(`${prenom} (Ref ${transporteur.reference}) a confirme la collecte de ${dossier.tracking_id} (${dossier.buyer_name ?? '—'})`);
     }
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handlePoids(text: string, prior: Record<string, any>) {
     let tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
