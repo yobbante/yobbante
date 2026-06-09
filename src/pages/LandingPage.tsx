@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, MapPin, CreditCard, FileEdit, UserCheck, PackageCheck, Star } from 'lucide-react';
 import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+import { LandingWorldMap } from '@/components/LandingWorldMap';
 import { QuoteForm } from '@/components/quote/QuoteForm';
 import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
 import { useSeo } from '@/hooks/useSeo';
@@ -272,11 +273,7 @@ export default function LandingPage() {
           </p>
 
           <div style={{ marginTop: 48 }}>
-            <HubsWorldMap
-              value={selectedHub}
-              onChange={(id) => setSelectedHub(id)}
-              variant="dark"
-            />
+            <LandingWorldMap />
           </div>
 
           <div
