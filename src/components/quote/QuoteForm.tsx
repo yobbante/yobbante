@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Search, Inbox, ArrowRightLeft, MapPin } from 'lucide-react';
 import {
@@ -96,6 +96,25 @@ export function QuoteForm() {
   const [weight, setWeight] = useState('');
   const [mode, setMode] = useState<TransportMode>('air');
   const [type, setType] = useState<GoodsType>('standard');
+  const weightInputRef = useRef<HTMLInputElement>(null);
+
+  // External trigger from the landing world map (or destination pills):
+  // prefill the SEND tab with Dakar → <city> and focus the weight field.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { city?: string; countryLabel?: string }
+        | undefined;
+      if (!detail?.city || !detail?.countryLabel) return;
+      setService('send');
+      setDirection('from_dakar');
+      setOrigin(DAKAR);
+      setDestination(`${detail.city}, ${detail.countryLabel}`);
+      setTimeout(() => weightInputRef.current?.focus(), 350);
+    };
+    window.addEventListener('yobbante:prefill-destination', handler as EventListener);
+    return () => window.removeEventListener('yobbante:prefill-destination', handler as EventListener);
+  }, []);
 
   // Sourcing
   const [query, setQuery] = useState('');
@@ -288,7 +307,7 @@ export function QuoteForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Field label="Poids (kg) *">
-              <input type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
+              <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
             </Field>
             <Field label="Mode">
