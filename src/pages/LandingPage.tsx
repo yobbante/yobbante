@@ -166,7 +166,7 @@ export default function LandingPage() {
               fontWeight: 500,
             }}
           >
-            ✈️ Depuis Dakar · Paris · New York · Dubai
+            Dakar · Abidjan · Paris · New York · Dubai
           </span>
 
           <h1
