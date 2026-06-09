@@ -307,7 +307,7 @@ export function QuoteForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Field label="Poids (kg) *">
-              <input type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
+              <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
             </Field>
             <Field label="Mode">
