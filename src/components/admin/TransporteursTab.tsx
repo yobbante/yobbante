@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
 import { DupNamesDialog } from './transporteurs/DupNamesDialog';
 import { GpImportDialog } from './GpImportDialog';
@@ -163,6 +163,14 @@ export function TransporteursTab() {
   const [konnektFilter, setKonnektFilter] = useState<'all' | 'to_invite' | 'invited' | 'active'>('all');
   const [massInviteOpen, setMassInviteOpen] = useState(false);
   const [validatingId, setValidatingId] = useState<string | null>(null);
+  type SortKey = 'ref' | 'nom' | 'tel' | 'navettes' | 'profil' | 'konnekt' | 'bot';
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = (k: SortKey) => {
+    if (sortKey !== k) { setSortKey(k); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  };
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
@@ -455,19 +463,44 @@ export function TransporteursTab() {
         return true;
       });
     }
-    if (!q.trim()) return base;
-    const s = q.trim().toLowerCase();
-    return base.filter(t =>
-      (t.reference ?? '').includes(s) ||
-      (t.nom ?? '').toLowerCase().includes(s) ||
-      (t.prenom ?? '').toLowerCase().includes(s) ||
-      (t.telephone_1 ?? '').toLowerCase().includes(s) ||
-      (t.telephone_2 ?? '').toLowerCase().includes(s) ||
-      (t.ville ?? '').toLowerCase().includes(s) ||
-      uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
-    );
-
-  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap]);
+    let result = base;
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      result = base.filter(t =>
+        (t.reference ?? '').includes(s) ||
+        (t.nom ?? '').toLowerCase().includes(s) ||
+        (t.prenom ?? '').toLowerCase().includes(s) ||
+        (t.telephone_1 ?? '').toLowerCase().includes(s) ||
+        (t.telephone_2 ?? '').toLowerCase().includes(s) ||
+        (t.ville ?? '').toLowerCase().includes(s) ||
+        uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
+      );
+    }
+    if (sortKey) {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const val = (t: Transporteur): string | number => {
+        switch (sortKey) {
+          case 'ref': return Number(t.reference) || 0;
+          case 'nom': return `${t.prenom ?? ''} ${t.nom ?? ''}`.trim().toLowerCase();
+          case 'tel': return (t.telephone_1 ?? '').replace(/\D/g, '');
+          case 'navettes': return (uniqueCitiesFromNavettes(t.navettes)[0] ?? '').toLowerCase();
+          case 'profil': return t.profile_complete ? 1 : 0;
+          case 'konnekt': {
+            const st = getKonnektStatus(t);
+            return st === 'active' ? 2 : st === 'invited' ? 1 : 0;
+          }
+          case 'bot': return botActiveIds?.has(t.id) ? 2 : (botSentMap[t.id] || t.invitation_bot_sent_at) ? 1 : 0;
+        }
+      };
+      result = [...result].sort((a, b) => {
+        const va = val(a), vb = val(b);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+    }
+    return result;
+  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap, sortKey, sortDir, botActiveIds, botSentMap]);
 
   const konnektCounts = useMemo(() => {
     const base = (list.data ?? []).filter(t => showInactive ? true : t.actif);
@@ -699,8 +732,19 @@ export function TransporteursTab() {
         </div>
       ) : (
         <div className="border border-border rounded-lg overflow-hidden">
-          <div className="hidden md:grid grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
-            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Navettes</div><div>Profil</div><div>Konnekt</div><div>Bot</div><div></div>
+          <div className="hidden md:grid grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_90px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
+            {([
+              ['ref','Réf'],['nom','Nom'],['tel','Téléphone'],['navettes','Navettes'],
+              ['profil','Profil'],['konnekt','Konnekt'],['bot','Bot'],
+            ] as [SortKey,string][]).map(([k,label]) => (
+              <button key={k} type="button" onClick={() => toggleSort(k)} className="flex items-center gap-1 text-left hover:text-foreground transition-colors">
+                <span>{label}</span>
+                {sortKey === k ? (
+                  sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                ) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+              </button>
+            ))}
+            <div></div>
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
@@ -709,7 +753,7 @@ export function TransporteursTab() {
             const botActive = !!botActiveIds?.has(t.id);
             const cities = uniqueCitiesFromNavettes(t.navettes);
             return (
-              <div key={t.id} className={`grid md:grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
+              <div key={t.id} className={`grid md:grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_90px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
                 <div className="font-medium min-w-0 truncate">
                   {formatTransporteurName(t.prenom, t.nom)}
@@ -761,7 +805,29 @@ export function TransporteursTab() {
                 </div>
                 <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} failed={failedMap[t.id]?.kind === 'konnekt' ? failedMap[t.id].wa : null} onRetry={() => openInvite(t)} /></div>
                 <div><BotStatus invitedAt={botInviteAt} active={botActive} failed={failedMap[t.id]?.kind === 'bot' ? failedMap[t.id].wa : null} onRetry={() => openBotInvite(t)} /></div>
-                <div className="flex justify-end">
+                <div className="flex justify-end items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={async () => {
+                            try {
+                              const link = buildKonnektInviteWaUrl(t);
+                              await navigator.clipboard.writeText(link);
+                              await markKonnektInvited(t);
+                              toast.success("Lien WhatsApp d'invitation GP copié");
+                            } catch { toast.error('Copie impossible'); }
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Copier le lien WhatsApp d'invitation GP</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
