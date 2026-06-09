@@ -41,6 +41,63 @@ export const WORLD_HUBS: HubMeta[] = [
   { id: 'SN', flag: '🇸🇳', label: 'Sénégal', city: 'Dakar',     tagline: 'Hub local · regroupement & livraison', x: 44, y: 52, konnektMatch: ['SN', 'SEN', 'SENEGAL', 'SÉNÉGAL'] },
 ];
 
+/* ──────────────────────────────────────────────────────────────────────
+   36 destinations — flag markers placed on the map via a piecewise
+   equirectangular projection calibrated on the existing hub positions.
+   ────────────────────────────────────────────────────────────────────── */
+
+type CityMarker = { city: string; country: string; flag: string; lat: number; lon: number };
+
+const CITIES_36: CityMarker[] = [
+  { city: 'Abidjan',     country: 'CI', flag: '🇨🇮', lat: 5.36,  lon: -4.0  },
+  { city: 'Alméria',     country: 'ES', flag: '🇪🇸', lat: 36.84, lon: -2.46 },
+  { city: 'Bamako',      country: 'ML', flag: '🇲🇱', lat: 12.65, lon: -8.0  },
+  { city: 'Barcelone',   country: 'ES', flag: '🇪🇸', lat: 41.39, lon: 2.17  },
+  { city: 'Berlin',      country: 'DE', flag: '🇩🇪', lat: 52.52, lon: 13.4  },
+  { city: 'Beyrouth',    country: 'LB', flag: '🇱🇧', lat: 33.89, lon: 35.5  },
+  { city: 'Bordeaux',    country: 'FR', flag: '🇫🇷', lat: 44.84, lon: -0.58 },
+  { city: 'Brazzaville', country: 'CG', flag: '🇨🇬', lat: -4.27, lon: 15.28 },
+  { city: 'Bruxelles',   country: 'BE', flag: '🇧🇪', lat: 50.85, lon: 4.35  },
+  { city: 'Casablanca',  country: 'MA', flag: '🇲🇦', lat: 33.57, lon: -7.59 },
+  { city: 'Conakry',     country: 'GN', flag: '🇬🇳', lat: 9.64,  lon: -13.58 },
+  { city: 'Douala',      country: 'CM', flag: '🇨🇲', lat: 4.05,  lon: 9.77  },
+  { city: 'Dubaï',       country: 'AE', flag: '🇦🇪', lat: 25.2,  lon: 55.27 },
+  { city: 'Düsseldorf',  country: 'DE', flag: '🇩🇪', lat: 51.23, lon: 6.78  },
+  { city: 'Gatineau',    country: 'CA', flag: '🇨🇦', lat: 45.48, lon: -75.7 },
+  { city: 'Genève',      country: 'CH', flag: '🇨🇭', lat: 46.2,  lon: 6.14  },
+  { city: 'Istanbul',    country: 'TR', flag: '🇹🇷', lat: 41.0,  lon: 28.97 },
+  { city: 'Kinshasa',    country: 'CD', flag: '🇨🇩', lat: -4.33, lon: 15.31 },
+  { city: 'Libreville',  country: 'GA', flag: '🇬🇦', lat: 0.42,  lon: 9.45  },
+  { city: 'Lille',       country: 'FR', flag: '🇫🇷', lat: 50.63, lon: 3.06  },
+  { city: 'Lyon',        country: 'FR', flag: '🇫🇷', lat: 45.76, lon: 4.84  },
+  { city: 'Madrid',      country: 'ES', flag: '🇪🇸', lat: 40.42, lon: -3.7  },
+  { city: 'Malabo',      country: 'GQ', flag: '🇬🇶', lat: 3.75,  lon: 8.78  },
+  { city: 'Marseille',   country: 'FR', flag: '🇫🇷', lat: 43.3,  lon: 5.37  },
+  { city: 'Milan',       country: 'IT', flag: '🇮🇹', lat: 45.46, lon: 9.19  },
+  { city: 'Montpellier', country: 'FR', flag: '🇫🇷', lat: 43.61, lon: 3.88  },
+  { city: 'Montréal',    country: 'CA', flag: '🇨🇦', lat: 45.5,  lon: -73.57 },
+  { city: "N'Djamena",   country: 'TD', flag: '🇹🇩', lat: 12.13, lon: 15.05 },
+  { city: 'New York',    country: 'US', flag: '🇺🇸', lat: 40.71, lon: -74.0 },
+  { city: 'Nîmes',       country: 'FR', flag: '🇫🇷', lat: 43.84, lon: 4.36  },
+  { city: 'Ottawa',      country: 'CA', flag: '🇨🇦', lat: 45.42, lon: -75.7 },
+  { city: 'Paris',       country: 'FR', flag: '🇫🇷', lat: 48.85, lon: 2.35  },
+  { city: 'Providence',  country: 'US', flag: '🇺🇸', lat: 41.82, lon: -71.4 },
+  { city: 'Rennes',      country: 'FR', flag: '🇫🇷', lat: 48.11, lon: -1.68 },
+  { city: 'Rouen',       country: 'FR', flag: '🇫🇷', lat: 49.44, lon: 1.1   },
+  { city: 'Washington',  country: 'US', flag: '🇺🇸', lat: 38.9,  lon: -77.04 },
+  { city: 'Yaoundé',     country: 'CM', flag: '🇨🇲', lat: 3.87,  lon: 11.52 },
+];
+
+/** Piecewise projection calibrated on existing hub positions (viewBox 0..100 × 0..50). */
+function projectLatLon(lat: number, lon: number): { x: number; y: number } {
+  let x: number;
+  if (lon <= 2.35) x = 50 + (lon - 2.35) * 0.366;
+  else if (lon <= 55.3) x = 50 + (lon - 2.35) * 0.225;
+  else x = 62 + (lon - 55.3) * 0.272;
+  const y = 61.5 - 0.644 * lat;
+  return { x, y };
+}
+
 /** Build an O(1) lookup table: normalized token -> hub id. */
 const KONNEKT_LOOKUP: Record<string, HubId> = (() => {
   const out: Record<string, HubId> = {};
