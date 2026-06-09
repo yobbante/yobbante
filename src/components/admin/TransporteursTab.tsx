@@ -805,7 +805,29 @@ export function TransporteursTab() {
                 </div>
                 <div><KonnektStatus invitedAt={inviteAt} registered={!!t.konnekt_registered} failed={failedMap[t.id]?.kind === 'konnekt' ? failedMap[t.id].wa : null} onRetry={() => openInvite(t)} /></div>
                 <div><BotStatus invitedAt={botInviteAt} active={botActive} failed={failedMap[t.id]?.kind === 'bot' ? failedMap[t.id].wa : null} onRetry={() => openBotInvite(t)} /></div>
-                <div className="flex justify-end">
+                <div className="flex justify-end items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={async () => {
+                            try {
+                              const link = buildKonnektInviteWaUrl(t);
+                              await navigator.clipboard.writeText(link);
+                              await markKonnektInvited(t);
+                              toast.success("Lien WhatsApp d'invitation GP copié");
+                            } catch { toast.error('Copie impossible'); }
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Copier le lien WhatsApp d'invitation GP</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
