@@ -732,8 +732,19 @@ export function TransporteursTab() {
         </div>
       ) : (
         <div className="border border-border rounded-lg overflow-hidden">
-          <div className="hidden md:grid grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
-            <div>Réf</div><div>Nom</div><div>Téléphone</div><div>Navettes</div><div>Profil</div><div>Konnekt</div><div>Bot</div><div></div>
+          <div className="hidden md:grid grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_90px] items-center gap-3 px-3 py-2 bg-secondary/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sticky top-0">
+            {([
+              ['ref','Réf'],['nom','Nom'],['tel','Téléphone'],['navettes','Navettes'],
+              ['profil','Profil'],['konnekt','Konnekt'],['bot','Bot'],
+            ] as [SortKey,string][]).map(([k,label]) => (
+              <button key={k} type="button" onClick={() => toggleSort(k)} className="flex items-center gap-1 text-left hover:text-foreground transition-colors">
+                <span>{label}</span>
+                {sortKey === k ? (
+                  sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                ) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+              </button>
+            ))}
+            <div></div>
           </div>
           {filtered.map((t) => {
             const c = counts[t.reference] ?? { count: 0, last: null };
