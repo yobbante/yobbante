@@ -323,22 +323,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ───── DEPARTURES TICKER (existing) ───── */}
-      <section
-        style={{
-          background: YELLOW,
-          height: 56,
-          display: 'flex',
-          alignItems: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ width: '100%' }}>
-          <LiveDeparturesTicker />
-        </div>
-      </section>
-
       {/* ───── COMMENT ÇA MARCHE ───── */}
+
       <section style={{ background: '#FFFFFF', padding: '96px 20px' }}>
         <div className="max-w-[1180px] mx-auto">
           <p
