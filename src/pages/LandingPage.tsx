@@ -126,7 +126,23 @@ export default function LandingPage() {
       <LandingNav onExpedier={() => goExpedier()} />
       <ReturningClientBanner />
 
+      {/* ───── DEPARTURES TICKER ───── */}
+      <section
+        style={{
+          background: YELLOW,
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ width: '100%' }}>
+          <LiveDeparturesTicker />
+        </div>
+      </section>
+
       {/* ───── HERO ───── */}
+
       <section
         style={{
           minHeight: 'calc(100vh - 64px)',
