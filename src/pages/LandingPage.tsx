@@ -273,11 +273,7 @@ export default function LandingPage() {
           </p>
 
           <div style={{ marginTop: 48 }}>
-            <HubsWorldMap
-              value={selectedHub}
-              onChange={(id) => setSelectedHub(id)}
-              variant="dark"
-            />
+            <LandingWorldMap />
           </div>
 
           <div
