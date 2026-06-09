@@ -205,6 +205,7 @@ export default function LandingPage() {
 
           {/* Search card (kept) */}
           <div
+            id="hero-quote-form"
             style={{
               width: '100%',
               maxWidth: 720,
