@@ -290,7 +290,28 @@ export default function LandingPage() {
               <button
                 key={d.name}
                 type="button"
-                onClick={() => goExpedier(d.hub)}
+                onClick={() => {
+                  // Try to open the world-map tooltip for this city; fallback to legacy hub flow.
+                  const cityId = (() => {
+                    switch (d.name) {
+                      case 'Paris': return 'FR-Paris';
+                      case 'New York': return 'US-New York';
+                      case 'Montréal': return 'CA-Montréal';
+                      case 'Dubai': return 'AE-Dubaï';
+                      case 'Abidjan': return 'CI-Abidjan';
+                      default: return null;
+                    }
+                  })();
+                  if (cityId) {
+                    window.dispatchEvent(
+                      new CustomEvent('yobbante:show-city-tooltip', { detail: { cityId } }),
+                    );
+                    const map = document.querySelector('svg[aria-label="Carte des 36 destinations Yobbanté"]');
+                    map?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  } else {
+                    goExpedier(d.hub);
+                  }
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
