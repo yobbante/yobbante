@@ -753,7 +753,7 @@ export function TransporteursTab() {
             const botActive = !!botActiveIds?.has(t.id);
             const cities = uniqueCitiesFromNavettes(t.navettes);
             return (
-              <div key={t.id} className={`grid md:grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_50px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
+              <div key={t.id} className={`grid md:grid-cols-[70px_1fr_130px_1fr_110px_90px_90px_90px] grid-cols-1 gap-2 md:gap-3 px-3 py-3 border-t border-border text-sm items-center ${!t.actif ? 'opacity-60' : ''}`}>
                 <div className="font-mono font-semibold">{gpRef(t.reference)}</div>
                 <div className="font-medium min-w-0 truncate">
                   {formatTransporteurName(t.prenom, t.nom)}
