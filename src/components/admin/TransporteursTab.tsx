@@ -463,19 +463,44 @@ export function TransporteursTab() {
         return true;
       });
     }
-    if (!q.trim()) return base;
-    const s = q.trim().toLowerCase();
-    return base.filter(t =>
-      (t.reference ?? '').includes(s) ||
-      (t.nom ?? '').toLowerCase().includes(s) ||
-      (t.prenom ?? '').toLowerCase().includes(s) ||
-      (t.telephone_1 ?? '').toLowerCase().includes(s) ||
-      (t.telephone_2 ?? '').toLowerCase().includes(s) ||
-      (t.ville ?? '').toLowerCase().includes(s) ||
-      uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
-    );
-
-  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap]);
+    let result = base;
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      result = base.filter(t =>
+        (t.reference ?? '').includes(s) ||
+        (t.nom ?? '').toLowerCase().includes(s) ||
+        (t.prenom ?? '').toLowerCase().includes(s) ||
+        (t.telephone_1 ?? '').toLowerCase().includes(s) ||
+        (t.telephone_2 ?? '').toLowerCase().includes(s) ||
+        (t.ville ?? '').toLowerCase().includes(s) ||
+        uniqueCitiesFromNavettes(t.navettes).some(c => c.toLowerCase().includes(s)),
+      );
+    }
+    if (sortKey) {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const val = (t: Transporteur): string | number => {
+        switch (sortKey) {
+          case 'ref': return Number(t.reference) || 0;
+          case 'nom': return `${t.prenom ?? ''} ${t.nom ?? ''}`.trim().toLowerCase();
+          case 'tel': return (t.telephone_1 ?? '').replace(/\D/g, '');
+          case 'navettes': return (uniqueCitiesFromNavettes(t.navettes)[0] ?? '').toLowerCase();
+          case 'profil': return t.profile_complete ? 1 : 0;
+          case 'konnekt': {
+            const st = getKonnektStatus(t);
+            return st === 'active' ? 2 : st === 'invited' ? 1 : 0;
+          }
+          case 'bot': return botActiveIds?.has(t.id) ? 2 : (botSentMap[t.id] || t.invitation_bot_sent_at) ? 1 : 0;
+        }
+      };
+      result = [...result].sort((a, b) => {
+        const va = val(a), vb = val(b);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+    }
+    return result;
+  }, [list.data, q, showInactive, onlyIncomplete, konnektFilter, konnektInvitedMap, sortKey, sortDir, botActiveIds, botSentMap]);
 
   const konnektCounts = useMemo(() => {
     const base = (list.data ?? []).filter(t => showInactive ? true : t.actif);
