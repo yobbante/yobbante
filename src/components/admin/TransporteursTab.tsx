@@ -163,6 +163,14 @@ export function TransporteursTab() {
   const [konnektFilter, setKonnektFilter] = useState<'all' | 'to_invite' | 'invited' | 'active'>('all');
   const [massInviteOpen, setMassInviteOpen] = useState(false);
   const [validatingId, setValidatingId] = useState<string | null>(null);
+  type SortKey = 'ref' | 'nom' | 'tel' | 'navettes' | 'profil' | 'konnekt' | 'bot';
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = (k: SortKey) => {
+    if (sortKey !== k) { setSortKey(k); setSortDir('asc'); }
+    else if (sortDir === 'asc') setSortDir('desc');
+    else { setSortKey(null); setSortDir('asc'); }
+  };
 
   const sendTestWhatsApp = async (gp: Transporteur) => {
     const phoneDigits = (gp.telephone_1 || '').replace(/\D/g, '');
