@@ -41,6 +41,63 @@ export const WORLD_HUBS: HubMeta[] = [
   { id: 'SN', flag: '🇸🇳', label: 'Sénégal', city: 'Dakar',     tagline: 'Hub local · regroupement & livraison', x: 44, y: 52, konnektMatch: ['SN', 'SEN', 'SENEGAL', 'SÉNÉGAL'] },
 ];
 
+/* ──────────────────────────────────────────────────────────────────────
+   36 destinations — flag markers placed on the map via a piecewise
+   equirectangular projection calibrated on the existing hub positions.
+   ────────────────────────────────────────────────────────────────────── */
+
+type CityMarker = { city: string; country: string; flag: string; lat: number; lon: number };
+
+const CITIES_36: CityMarker[] = [
+  { city: 'Abidjan',     country: 'CI', flag: '🇨🇮', lat: 5.36,  lon: -4.0  },
+  { city: 'Alméria',     country: 'ES', flag: '🇪🇸', lat: 36.84, lon: -2.46 },
+  { city: 'Bamako',      country: 'ML', flag: '🇲🇱', lat: 12.65, lon: -8.0  },
+  { city: 'Barcelone',   country: 'ES', flag: '🇪🇸', lat: 41.39, lon: 2.17  },
+  { city: 'Berlin',      country: 'DE', flag: '🇩🇪', lat: 52.52, lon: 13.4  },
+  { city: 'Beyrouth',    country: 'LB', flag: '🇱🇧', lat: 33.89, lon: 35.5  },
+  { city: 'Bordeaux',    country: 'FR', flag: '🇫🇷', lat: 44.84, lon: -0.58 },
+  { city: 'Brazzaville', country: 'CG', flag: '🇨🇬', lat: -4.27, lon: 15.28 },
+  { city: 'Bruxelles',   country: 'BE', flag: '🇧🇪', lat: 50.85, lon: 4.35  },
+  { city: 'Casablanca',  country: 'MA', flag: '🇲🇦', lat: 33.57, lon: -7.59 },
+  { city: 'Conakry',     country: 'GN', flag: '🇬🇳', lat: 9.64,  lon: -13.58 },
+  { city: 'Douala',      country: 'CM', flag: '🇨🇲', lat: 4.05,  lon: 9.77  },
+  { city: 'Dubaï',       country: 'AE', flag: '🇦🇪', lat: 25.2,  lon: 55.27 },
+  { city: 'Düsseldorf',  country: 'DE', flag: '🇩🇪', lat: 51.23, lon: 6.78  },
+  { city: 'Gatineau',    country: 'CA', flag: '🇨🇦', lat: 45.48, lon: -75.7 },
+  { city: 'Genève',      country: 'CH', flag: '🇨🇭', lat: 46.2,  lon: 6.14  },
+  { city: 'Istanbul',    country: 'TR', flag: '🇹🇷', lat: 41.0,  lon: 28.97 },
+  { city: 'Kinshasa',    country: 'CD', flag: '🇨🇩', lat: -4.33, lon: 15.31 },
+  { city: 'Libreville',  country: 'GA', flag: '🇬🇦', lat: 0.42,  lon: 9.45  },
+  { city: 'Lille',       country: 'FR', flag: '🇫🇷', lat: 50.63, lon: 3.06  },
+  { city: 'Lyon',        country: 'FR', flag: '🇫🇷', lat: 45.76, lon: 4.84  },
+  { city: 'Madrid',      country: 'ES', flag: '🇪🇸', lat: 40.42, lon: -3.7  },
+  { city: 'Malabo',      country: 'GQ', flag: '🇬🇶', lat: 3.75,  lon: 8.78  },
+  { city: 'Marseille',   country: 'FR', flag: '🇫🇷', lat: 43.3,  lon: 5.37  },
+  { city: 'Milan',       country: 'IT', flag: '🇮🇹', lat: 45.46, lon: 9.19  },
+  { city: 'Montpellier', country: 'FR', flag: '🇫🇷', lat: 43.61, lon: 3.88  },
+  { city: 'Montréal',    country: 'CA', flag: '🇨🇦', lat: 45.5,  lon: -73.57 },
+  { city: "N'Djamena",   country: 'TD', flag: '🇹🇩', lat: 12.13, lon: 15.05 },
+  { city: 'New York',    country: 'US', flag: '🇺🇸', lat: 40.71, lon: -74.0 },
+  { city: 'Nîmes',       country: 'FR', flag: '🇫🇷', lat: 43.84, lon: 4.36  },
+  { city: 'Ottawa',      country: 'CA', flag: '🇨🇦', lat: 45.42, lon: -75.7 },
+  { city: 'Paris',       country: 'FR', flag: '🇫🇷', lat: 48.85, lon: 2.35  },
+  { city: 'Providence',  country: 'US', flag: '🇺🇸', lat: 41.82, lon: -71.4 },
+  { city: 'Rennes',      country: 'FR', flag: '🇫🇷', lat: 48.11, lon: -1.68 },
+  { city: 'Rouen',       country: 'FR', flag: '🇫🇷', lat: 49.44, lon: 1.1   },
+  { city: 'Washington',  country: 'US', flag: '🇺🇸', lat: 38.9,  lon: -77.04 },
+  { city: 'Yaoundé',     country: 'CM', flag: '🇨🇲', lat: 3.87,  lon: 11.52 },
+];
+
+/** Piecewise projection calibrated on existing hub positions (viewBox 0..100 × 0..50). */
+function projectLatLon(lat: number, lon: number): { x: number; y: number } {
+  let x: number;
+  if (lon <= 2.35) x = 50 + (lon - 2.35) * 0.366;
+  else if (lon <= 55.3) x = 50 + (lon - 2.35) * 0.225;
+  else x = 62 + (lon - 55.3) * 0.272;
+  const y = 61.5 - 0.644 * lat;
+  return { x, y };
+}
+
 /** Build an O(1) lookup table: normalized token -> hub id. */
 const KONNEKT_LOOKUP: Record<string, HubId> = (() => {
   const out: Record<string, HubId> = {};
@@ -167,56 +224,73 @@ export function HubsWorldMap({
               stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'} strokeWidth="0.1" />
           ))}
 
-          {/* Stylised continent silhouettes — refined recognizability at small sizes */}
-          <g fill={isDark ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.05)'}
-             stroke={isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.1)'}
+          {/* Stylised continent silhouettes — refined for recognizability */}
+          <g fill={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}
+             stroke={isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.1)'}
              strokeWidth="0.13"
              strokeLinejoin="round"
              strokeLinecap="round">
             {/* Greenland */}
-            <path d="M33,8 L40,7 L42,11 L39,14 L34,13 Z" />
-            {/* North America — wider east coast, tapered Mexico */}
-            <path d="M5,14 L13,10 L20,11 L26,13 L30,17 L29,22 L25,25 L20,28 L17,31 L14,29 L10,26 L7,22 L4,18 Z" />
-            {/* Central America bridge */}
-            <path d="M17,31 L20,33 L22,35 L21,37 L19,36 L17,33 Z" />
-            {/* South America — wide north, tapered south */}
-            <path d="M21,37 L26,37 L29,40 L29,44 L26,48 L23,49 L21,46 L20,42 Z" />
+            <path d="M34,6 C37,5 41,5 43,7 C44,10 43,13 40,14 C36,15 33,13 32,11 C32,9 33,7 34,6 Z" />
+            {/* North America — Alaska, Canada, US, Florida, Mexico */}
+            <path d="M3,15 C5,12 9,10 13,10 C16,9 20,10 24,11 C27,12 30,14 31,17 C32,20 31,23 29,25 C27,26 25,26 24,28 C23,30 22,32 21,33 L24,34 C25,35 24,37 22,37 L19,36 C17,34 15,32 13,30 C10,28 7,25 5,22 C3,20 2,17 3,15 Z" />
+            {/* Central America bridge + Florida nub */}
+            <path d="M19,28 C21,29 23,31 24,33 L22,34 L20,33 Z" />
+            {/* South America — wide north, tapered Patagonia */}
+            <path d="M22,36 C25,35 28,36 30,38 C31,41 30,44 28,46 C27,48 25,49 23,48 C21,47 20,44 20,41 C20,39 21,37 22,36 Z" />
             {/* Iceland */}
-            <path d="M42,15 L44,14 L45,16 L43,17 Z" />
+            <path d="M42,15 C43,14 45,14 45,16 C45,17 43,18 42,17 Z" />
             {/* British Isles */}
-            <path d="M44,17 L46,16 L47,19 L45,20 Z" />
+            <path d="M44,17 C45,16 47,16 47,18 C47,20 46,21 45,21 C44,20 43,18 44,17 Z" />
             {/* Iberian peninsula */}
-            <path d="M44,21 L48,20 L49,23 L46,24 Z" />
-            {/* Continental Europe */}
-            <path d="M48,18 L55,17 L58,20 L56,23 L51,23 L48,21 Z" />
-            {/* Italy boot hint */}
-            <path d="M52,22 L54,22 L54,25 L53,26 L52,24 Z" />
+            <path d="M44,21 C46,20 49,20 50,22 C50,24 48,25 46,25 C44,24 43,22 44,21 Z" />
+            {/* Continental Europe (France/Germany/Poland) */}
+            <path d="M47,18 C51,17 56,17 59,19 C60,21 59,23 57,24 C53,24 50,23 47,22 C46,21 46,19 47,18 Z" />
+            {/* Italian boot */}
+            <path d="M52,22 C53,22 54,23 54,25 C53,26 52,27 52,26 C51,25 51,23 52,22 Z" />
             {/* Scandinavia */}
-            <path d="M51,13 L55,12 L57,16 L53,17 Z" />
-            {/* North Africa */}
-            <path d="M44,25 L54,24 L57,27 L56,31 L48,32 L44,29 Z" />
-            {/* Sub-Saharan Africa + Horn */}
-            <path d="M46,31 L56,31 L58,34 L60,33 L60,36 L57,38 L55,42 L51,43 L47,40 L45,35 Z" />
+            <path d="M50,12 C53,11 56,12 57,15 C57,17 55,17 53,17 C51,16 50,14 50,12 Z" />
+            {/* North Africa (Maghreb + Sahara) */}
+            <path d="M43,24 C48,23 54,23 58,25 C59,27 58,30 56,31 C51,32 47,32 44,31 C42,29 41,26 43,24 Z" />
+            {/* Sub-Saharan Africa with Gulf of Guinea curve + Horn of Africa */}
+            <path d="M44,31 C49,30 54,31 57,32 C59,32 61,33 62,35 C62,37 60,38 58,38 C57,40 56,42 54,43 C51,44 48,43 46,41 C44,39 43,36 43,33 Z" />
             {/* Madagascar */}
-            <path d="M58,40 L60,40 L60,43 L58,43 Z" />
+            <path d="M58,40 C59,40 60,41 60,43 C59,44 58,44 58,42 Z" />
             {/* Arabian peninsula */}
-            <path d="M57,25 L62,24 L64,28 L61,30 L58,28 Z" />
-            {/* Asia mainland — broad, with Siberia top */}
-            <path d="M58,12 L70,10 L82,11 L89,15 L88,21 L84,24 L78,25 L72,23 L66,22 L60,20 L57,16 Z" />
+            <path d="M56,25 C60,24 63,25 64,28 C63,30 61,31 58,30 C56,29 55,27 56,25 Z" />
+            {/* Asia mainland (Siberia → Mongolia → China) */}
+            <path d="M58,11 C65,9 74,9 82,10 C87,11 90,13 90,16 C89,20 86,22 82,23 C76,24 70,23 64,22 C60,21 57,18 57,15 C57,13 57,12 58,11 Z" />
             {/* Indian subcontinent */}
-            <path d="M68,25 L73,25 L74,29 L71,33 L68,30 Z" />
+            <path d="M68,24 C71,24 74,25 75,28 C74,31 72,33 69,32 C67,30 66,27 68,24 Z" />
             {/* South-East Asia / Indochina */}
-            <path d="M76,26 L80,26 L82,29 L80,32 L77,30 Z" />
-            {/* Indonesia / Philippines (archipelago dots) */}
-            <path d="M81,32 L84,32 L85,34 L82,34 Z" />
-            <path d="M86,30 L88,30 L88,32 L86,32 Z" />
+            <path d="M75,25 C78,25 81,27 82,30 C81,32 78,32 76,30 C74,28 74,26 75,25 Z" />
+            {/* Indonesia / Philippines archipelago */}
+            <path d="M80,32 C82,31 85,32 85,34 C84,35 82,35 80,34 Z" />
+            <path d="M86,30 C88,29 89,31 88,32 C86,33 85,31 86,30 Z" />
+            <path d="M83,35 C84,34 86,35 86,36 C84,37 83,36 83,35 Z" />
             {/* Japan */}
-            <path d="M88,17 L90,16 L91,19 L89,20 Z" />
+            <path d="M87,16 C89,15 91,17 90,19 C88,21 86,19 87,16 Z" />
             {/* Australia */}
-            <path d="M82,38 L90,37 L93,40 L91,44 L84,44 L81,41 Z" />
+            <path d="M81,37 C86,36 91,37 93,40 C93,43 90,45 86,45 C82,45 79,43 79,40 C79,38 80,37 81,37 Z" />
             {/* New Zealand */}
-            <path d="M93,44 L95,44 L95,46 L93,46 Z" />
+            <path d="M93,44 C94,44 95,45 95,46 C94,47 92,46 93,44 Z" />
           </g>
+
+          {/* 36 city markers — small filled dots per city, anchor for the flag overlay */}
+          {CITIES_36.map((c, idx) => {
+            const { x, y } = projectLatLon(c.lat, c.lon);
+            return (
+              <circle
+                key={`city-dot-${idx}`}
+                cx={x}
+                cy={y}
+                r="0.45"
+                fill={isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)'}
+                stroke={isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)'}
+                strokeWidth="0.08"
+              />
+            );
+          })}
 
           {/* Routes from each hub to destination */}
           {WORLD_HUBS.filter(h => h.id !== destination).map(h => {
@@ -254,6 +328,37 @@ export function HubsWorldMap({
             );
           })}
         </svg>
+
+        {/* Flag overlay for the 36 destinations — small clickable chips with tooltip */}
+        {CITIES_36.map((c) => {
+          const { x, y } = projectLatLon(c.lat, c.lon);
+          return (
+            <span
+              key={`city-flag-${c.country}-${c.city}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto group/city z-[1]"
+              style={{ left: `${x}%`, top: `${y}%` }}
+              title={`${c.city}`}
+            >
+              <span
+                className={cn(
+                  'inline-flex items-center justify-center rounded-full leading-none select-none transition-transform group-hover/city:scale-150',
+                  'text-[8px] sm:text-[10px]',
+                  'drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]'
+                )}
+              >
+                {c.flag}
+              </span>
+              <span
+                className={cn(
+                  'absolute left-1/2 -translate-x-1/2 top-full mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold whitespace-nowrap pointer-events-none opacity-0 group-hover/city:opacity-100 transition-opacity',
+                  isDark ? 'bg-white text-zinc-950' : 'bg-foreground text-background'
+                )}
+              >
+                {c.city}
+              </span>
+            </span>
+          );
+        })}
 
         {/* Hub nodes */}
         {WORLD_HUBS.map((h, i) => {
