@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
+import { ALL_CITIES } from '@/lib/worldCities';
+import { ratePerKgForCorridor } from '@/lib/startingPrice';
 
 /* ──────────────────────────────────────────────────────────────────────
    LandingWorldMap — D3 + TopoJSON world map for the landing page.
-   - Continents only (no graticules, no country borders)
-   - 36 city markers (gold dots) with hover tooltip (flag + city name)
-   - Responsive to its parent container width
+   - Dakar = special origin marker (white fill, gold ring, pulse, label)
+   - 36 city markers (r=5, gold) with declustering offset
+   - Click a city dot → fixed tooltip below the map with CTA
+   - CTA prefills the hero quote form and scrolls there
    ────────────────────────────────────────────────────────────────────── */
 
 type CityMarker = { city: string; country: string; flag: string; lat: number; lon: number };
@@ -24,7 +27,6 @@ const CITIES_36: CityMarker[] = [
   { city: 'Bruxelles',   country: 'BE', flag: '🇧🇪', lat: 50.85, lon: 4.35  },
   { city: 'Casablanca',  country: 'MA', flag: '🇲🇦', lat: 33.57, lon: -7.59 },
   { city: 'Conakry',     country: 'GN', flag: '🇬🇳', lat: 9.64,  lon: -13.58 },
-  { city: 'Dakar',       country: 'SN', flag: '🇸🇳', lat: 14.69, lon: -17.45 },
   { city: 'Douala',      country: 'CM', flag: '🇨🇲', lat: 4.05,  lon: 9.77  },
   { city: 'Dubaï',       country: 'AE', flag: '🇦🇪', lat: 25.2,  lon: 55.27 },
   { city: 'Düsseldorf',  country: 'DE', flag: '🇩🇪', lat: 51.23, lon: 6.78  },
@@ -53,9 +55,10 @@ const CITIES_36: CityMarker[] = [
   { city: 'Yaoundé',     country: 'CM', flag: '🇨🇲', lat: 3.87,  lon: 11.52 },
 ];
 
+const DAKAR: CityMarker = { city: 'Dakar', country: 'SN', flag: '🇸🇳', lat: 14.69, lon: -17.45 };
+
 const TOPO_URL = 'https://unpkg.com/world-atlas@2.0.2/countries-110m.json';
 
-// Module-level cache to avoid re-fetching on remounts
 let cachedLand: FeatureCollection<Geometry> | null = null;
 let inflight: Promise<FeatureCollection<Geometry>> | null = null;
 
@@ -73,13 +76,59 @@ function loadLand(): Promise<FeatureCollection<Geometry>> {
   return inflight;
 }
 
+/** Pull country label + canonical id from the worldCities catalog. */
+function lookupCity(c: CityMarker) {
+  const found = ALL_CITIES.find((x) => x.city === c.city && x.country === c.country);
+  return {
+    id: found?.id ?? `${c.country}-${c.city}`,
+    countryLabel: found?.countryLabel ?? c.country,
+  };
+}
+
+/** Simple iterative declustering: offsets overlapping points apart. */
+function decluster(points: Array<{ x: number; y: number }>, minDist = 15, maxIter = 6) {
+  const pts = points.map((p) => ({ ...p }));
+  for (let iter = 0; iter < maxIter; iter++) {
+    let moved = false;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[j].x - pts[i].x;
+        const dy = pts[j].y - pts[i].y;
+        const d = Math.hypot(dx, dy);
+        if (d < minDist && d > 0.0001) {
+          const push = (minDist - d) / 2 + 0.5;
+          const nx = dx / d;
+          const ny = dy / d;
+          pts[i].x -= nx * push;
+          pts[i].y -= ny * push;
+          pts[j].x += nx * push;
+          pts[j].y += ny * push;
+          moved = true;
+        } else if (d === 0) {
+          pts[j].x += 4;
+          pts[j].y += 4;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  return pts;
+}
+
+type Selected = {
+  city: string;
+  country: string;
+  countryLabel: string;
+  flag: string;
+};
+
 export function LandingWorldMap({ className }: { className?: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(960);
   const [land, setLand] = useState<FeatureCollection<Geometry> | null>(cachedLand);
-  const [hover, setHover] = useState<{ city: string; flag: string; x: number; y: number } | null>(null);
+  const [selected, setSelected] = useState<Selected | null>(null);
 
-  // Responsive width observer
   useEffect(() => {
     if (!wrapRef.current) return;
     const el = wrapRef.current;
@@ -92,27 +141,100 @@ export function LandingWorldMap({ className }: { className?: string }) {
     return () => ro.disconnect();
   }, []);
 
-  // Load TopoJSON
   useEffect(() => {
     let alive = true;
     loadLand().then((l) => { if (alive) setLand(l); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  const height = Math.round(width / 2); // equirectangular ratio
+  // Allow external triggers (e.g. destination pills) to open the tooltip.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { cityId?: string } | undefined;
+      if (!detail?.cityId) return;
+      const found = ALL_CITIES.find((c) => c.id === detail.cityId);
+      if (found) {
+        setSelected({
+          city: found.city,
+          country: found.country,
+          countryLabel: found.countryLabel,
+          flag: found.flag,
+        });
+      }
+    };
+    window.addEventListener('yobbante:show-city-tooltip', handler as EventListener);
+    return () => window.removeEventListener('yobbante:show-city-tooltip', handler as EventListener);
+  }, []);
+
+  const height = Math.round(width / 2);
   const projection = useMemo(
     () => geoEquirectangular().scale(width / (2 * Math.PI)).translate([width / 2, height / 2]),
-    [width, height]
+    [width, height],
   );
   const pathGen = useMemo(() => geoPath(projection as any), [projection]);
 
-  const cityPoints = useMemo(
-    () => CITIES_36.map((c) => {
+  const dakarPt = useMemo(() => {
+    const p = projection([DAKAR.lon, DAKAR.lat]);
+    return p ? { x: p[0], y: p[1] } : null;
+  }, [projection]);
+
+  const cityPoints = useMemo(() => {
+    const raw = CITIES_36.map((c) => {
       const p = projection([c.lon, c.lat]);
       return p ? { ...c, x: p[0], y: p[1] } : null;
-    }).filter(Boolean) as (CityMarker & { x: number; y: number })[],
-    [projection]
-  );
+    }).filter(Boolean) as (CityMarker & { x: number; y: number })[];
+
+    const offsets = decluster(raw.map(({ x, y }) => ({ x, y })));
+    return raw.map((c, i) => ({ ...c, x: offsets[i].x, y: offsets[i].y }));
+  }, [projection]);
+
+  const openCity = (c: CityMarker) => {
+    const meta = lookupCity(c);
+    setSelected({
+      city: c.city,
+      country: c.country,
+      countryLabel: meta.countryLabel,
+      flag: c.flag,
+    });
+  };
+
+  const ratePerKg = selected ? ratePerKgForCorridor('SN', selected.country) : null;
+  const rateLabel = ratePerKg
+    ? `À partir de ${ratePerKg.toLocaleString('fr-FR')} FCFA/kg`
+    : 'Tarif sur devis';
+
+  const handleCta = () => {
+    if (!selected) return;
+    const found = ALL_CITIES.find(
+      (c) => c.city === selected.city && c.country === selected.country,
+    );
+    if (found) {
+      window.dispatchEvent(
+        new CustomEvent('yobbante:prefill-destination', {
+          detail: {
+            city: found.city,
+            country: found.country,
+            countryLabel: found.countryLabel,
+          },
+        }),
+      );
+    }
+    setSelected(null);
+    const target = document.getElementById('hero-quote-form');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // Click-outside to dismiss
+  useEffect(() => {
+    if (!selected) return;
+    const onDocClick = (e: MouseEvent) => {
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+      if (!wrap.contains(e.target as Node)) setSelected(null);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [selected]);
 
   return (
     <div
@@ -128,7 +250,15 @@ export function LandingWorldMap({ className }: { className?: string }) {
         role="img"
         aria-label="Carte des 36 destinations Yobbanté"
       >
-        {/* Continents */}
+        <defs>
+          <style>{`
+            @keyframes yobb-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
+            .yobb-dakar-pulse { animation: yobb-pulse 2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+            @keyframes yobb-ring { 0% { r: 8; opacity: 0.55 } 100% { r: 18; opacity: 0 } }
+            .yobb-dakar-ring { animation: yobb-ring 2s ease-out infinite; }
+          `}</style>
+        </defs>
+
         {land && (
           <g>
             {land.features.map((f, i) => (
@@ -151,44 +281,130 @@ export function LandingWorldMap({ className }: { className?: string }) {
               key={`${c.country}-${c.city}`}
               cx={c.x}
               cy={c.y}
-              r={4}
+              r={5}
               fill="#D4AF37"
               stroke="rgba(0,0,0,0.4)"
               strokeWidth={0.75}
               style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setHover({ city: c.city, flag: c.flag, x: c.x, y: c.y })}
-              onMouseLeave={() => setHover(null)}
-              onTouchStart={() => setHover({ city: c.city, flag: c.flag, x: c.x, y: c.y })}
+              onClick={(e) => { e.stopPropagation(); openCity(c); }}
             >
               <title>{`${c.flag} ${c.city}`}</title>
             </circle>
           ))}
         </g>
+
+        {/* Dakar — origin marker */}
+        {dakarPt && (
+          <g>
+            <circle
+              className="yobb-dakar-ring"
+              cx={dakarPt.x}
+              cy={dakarPt.y}
+              r={8}
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth={1.5}
+            />
+            <circle
+              className="yobb-dakar-pulse"
+              cx={dakarPt.x}
+              cy={dakarPt.y}
+              r={8}
+              fill="#FFFFFF"
+              stroke="#D4AF37"
+              strokeWidth={2}
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); openCity(DAKAR); }}
+            >
+              <title>🇸🇳 Dakar</title>
+            </circle>
+            <text
+              x={dakarPt.x}
+              y={dakarPt.y + 20}
+              textAnchor="middle"
+              fill="#D4AF37"
+              style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
+            >
+              Dakar
+            </text>
+          </g>
+        )}
       </svg>
 
-      {/* Floating tooltip */}
-      {hover && (
+      {/* Fixed tooltip below map */}
+      {selected && (
         <div
           style={{
-            position: 'absolute',
-            left: hover.x,
-            top: hover.y - 12,
-            transform: 'translate(-50%, -100%)',
-            background: 'rgba(10, 15, 30, 0.95)',
-            color: '#fff',
-            border: '1px solid rgba(212, 175, 55, 0.5)',
-            borderRadius: 8,
-            padding: '6px 10px',
-            fontSize: 12,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-            zIndex: 10,
+            marginTop: 16,
+            display: 'flex',
+            justifyContent: 'center',
+            animation: 'fade-in 0.2s ease-out',
           }}
         >
-          <span style={{ marginRight: 6 }}>{hover.flag}</span>
-          {hover.city}
+          <div
+            style={{
+              position: 'relative',
+              background: 'rgba(10, 15, 30, 0.96)',
+              border: '1px solid rgba(212, 175, 55, 0.5)',
+              borderRadius: 14,
+              padding: '14px 44px 14px 16px',
+              color: '#fff',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              minWidth: 260,
+              maxWidth: 380,
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Fermer"
+              onClick={() => setSelected(null)}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#fff',
+                cursor: 'pointer',
+                lineHeight: 1,
+                fontSize: 14,
+              }}
+            >
+              ×
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 22 }}>{selected.flag}</span>
+              <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.1 }}>
+                {selected.city}
+                <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.6)' }}>
+                  {selected.countryLabel}
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 600, margin: '4px 0 12px' }}>
+              {rateLabel}
+            </div>
+            <button
+              type="button"
+              onClick={handleCta}
+              style={{
+                width: '100%',
+                background: '#D4AF37',
+                color: '#0A0F1E',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Expédier vers {selected.city} →
+            </button>
+          </div>
         </div>
       )}
     </div>
