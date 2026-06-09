@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy } from 'lucide-react';
+import { MoreHorizontal, Search, Power, Pencil, Send, Upload, ExternalLink, Check, Bot, MessageCircle, Activity, History, Copy, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { WhatsAppHistoryDialog } from './transporteur/WhatsAppHistoryDialog';
 import { DupNamesDialog } from './transporteurs/DupNamesDialog';
 import { GpImportDialog } from './GpImportDialog';
