@@ -436,16 +436,15 @@ Deno.serve(async (req) => {
         recipient_phone: fromPhone,
         recipient_type: 'gp',
         message:
-          `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
-          `Votre compte GP${ref} est bien active.\n\n` +
-          `Pour commencer, declarez vos prochains departs :\n` +
+          `✅ Bienvenue sur Konnekt, ${prenom} !\n\n` +
+          `Votre compte GP${ref} est bien actif.\n\n` +
+          `Vos espaces GP :\n\n` +
+          `🔗 https://usekonnekt.com/gp/GP${ref}\n` +
+          `🔗 https://yobbante.com/gp/GP${ref}\n\n` +
+          `Pour declarer un depart :\n` +
           `DEP [ville_depart] [ville_arrivee] [date] [kg]\n` +
-          `Ex : DEP Dakar Paris 15/07 25kg\n\n` +
-          `Votre espace personnel :\n` +
-          `https://usekonnekt.com/gp/GP${ref}\n` +
-          `Completez votre profil pour recevoir vos premieres missions 🚀\n\n` +
-          `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
-          `Tapez AIDE a tout moment pour revoir le menu.`,
+          `Ex : DEP Dakar Paris 15/06 30kg\n\n` +
+          `Tapez AIDE pour le menu complet.`,
 
 
         transporteur_id: gp.id,
