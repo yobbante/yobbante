@@ -69,11 +69,20 @@ function buildKonnektInviteMessage(gp: Transporteur) {
   return `Bonjour ${greetingName}, c'est Amath (Yobbanté). Je t'envoie ça parce qu'on a déjà travaillé ensemble — je voulais te partager quelque chose qu'on est en train de construire.\n\nKonnekt, c'est une app où tu publies tes propres départs, tu fixes ton prix, tes conditions. Tu gères tout toi-même. Pour le lancement on t'envoie aussi des missions Yobbanté directement.\n\nOn est en beta — les premiers à s'inscrire ont la priorité sur les missions. Deux minutes pour rejoindre :\n${buildKonnektOnboardingUrl(gp)}`;
 }
 
-
-function buildKonnektInviteWaUrl(gp: Transporteur) {
-  const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  return `https://wa.me/${phone}?text=${encodeURIComponent(buildKonnektInviteMessage(gp))}`;
+/** Message court pour le bouton "Inviter sur Konnekt" (dropdown ligne GP). */
+function buildShortKonnektInvite(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
+  return `Bonjour ${prenom}, je vous invite à rejoindre Konnekt votre espace GP :\n${buildKonnektOnboardingUrl(gp)}`;
 }
+
+/** Lien wa.me partageable vers le 926, pré-rempli avec un message d'onboarding GP. */
+function buildShareableKonnektWaLink(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
+  const ref = gpRef(gp.reference);
+  const message = `Bonjour, je suis ${prenom || 'un nouveau GP'} (réf ${ref}). Je souhaite activer mon compte Konnekt.`;
+  return `https://wa.me/221789269756?text=${encodeURIComponent(message)}`;
+}
+
 
 
 /** Pad ref to GP0001 form. */
