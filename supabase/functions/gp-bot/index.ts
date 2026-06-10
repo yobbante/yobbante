@@ -146,7 +146,7 @@ Autres commandes :
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
-Ex: DEP Paris 28/05 25kg
+Ex: DEP Dakar Paris 28/05 25kg
 Ex: TARIF Paris 6500
 
 Si vous voulez nous ecrire : +221789269756`;
@@ -439,8 +439,8 @@ Deno.serve(async (req) => {
           `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
           `Votre compte GP${ref} est bien active.\n\n` +
           `Pour commencer, declarez vos prochains departs :\n` +
-          `DEP [ville] [date] [kg]\n` +
-          `Ex : DEP Paris 15/07 25kg\n\n` +
+          `DEP [ville_depart] [ville_arrivee] [date] [kg]\n` +
+          `Ex : DEP Dakar Paris 15/07 25kg\n\n` +
           `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
           `Tapez AIDE a tout moment pour revoir le menu.`,
 
@@ -1506,7 +1506,7 @@ Voir : yobbante.com/admin`);
       .order('departure_date', { ascending: true })
       .limit(20);
     if (!data || data.length === 0) {
-      await reply(`Aucun depart programme.\nTapez DEP [ville] [date] [Xkg] pour en creer un.`, 'mes_departs');
+      await reply(`Aucun depart programme.\nTapez DEP [ville_depart] [ville_arrivee] [date] [kg] pour en creer un.\nEx : DEP Dakar Paris 15/06 30kg`, 'mes_departs');
     } else {
       const lines = data.map((d) => {
         const dStr = d.departure_date ? formatDateFr(d.departure_date) : '?';
@@ -2058,7 +2058,7 @@ Si ville_arrivee ET date_depart absents → {"confiance": "basse"}`;
     const mediaTypes = new Set(['image', 'audio', 'voice', 'document', 'video', 'sticker']);
     if (input.message_type && mediaTypes.has(input.message_type)) {
       await reply(
-        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville] [date] [kg]\nou envoyez AIDE pour le menu complet.`,
+        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville_depart] [ville_arrivee] [date] [kg]\nEx : DEP Dakar Paris 15/06 30kg\nou envoyez AIDE pour le menu complet.`,
         'media_received',
       );
       const ref = transporteur?.reference ?? '—';
@@ -2515,7 +2515,7 @@ A traiter manuellement.`);
     // Strip keyword
     const cleaned = text.replace(/\b(dep|depart|départ|departure|trajet)\b\s*/i, '').trim();
 
-    // Extract weight first (clearest marker)
+    // Extract weight first
     let weight = prior.weight as number | null | undefined;
     const wMatch = cleaned.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?|k)\b/i);
     if (!weight && wMatch) weight = parseFloat(wMatch[1].replace(',', '.'));
@@ -2524,11 +2524,12 @@ A traiter manuellement.`);
     let dateIso = prior.date as string | null | undefined;
     if (!dateIso) dateIso = parseDateLoose(cleaned);
 
-    // City: what remains after stripping date + weight tokens
-    let city = prior.city as string | undefined;
-    let onlyDakar = false;
-    if (!city) {
-      let cityCandidate = cleaned
+    // Extract city/cities from what remains after stripping date + weight
+    let origin = prior.origin as string | undefined;
+    let destination = prior.destination as string | undefined;
+
+    if (!origin || !destination) {
+      let rest = cleaned
         .replace(/\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k)\b/gi, ' ')
         .replace(/\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?/g, ' ')
         .replace(/\b\d{1,2}\s?[a-zA-Zéû]+\.?\s?\d{0,4}\b/g, (m) => /\d/.test(m) && /[a-z]/i.test(m) ? ' ' : m)
@@ -2536,71 +2537,54 @@ A traiter manuellement.`);
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Strip "Dakar" used as origin: "Dakar Paris", "de Dakar a Paris", "depuis Dakar Paris"
-      const normCandidate = normalize(cityCandidate);
-      const dakarOnlyRe = /^(depuis\s+|de\s+|depart\s+de\s+|au\s+depart\s+de\s+)?dakar(\s+(a|vers|pour))?\s*$/;
-      if (dakarOnlyRe.test(normCandidate)) {
-        onlyDakar = true;
-        cityCandidate = '';
-      } else {
-        // Remove a leading "Dakar" (with optional "depuis/de/au depart de" prefix and trailing connector)
-        cityCandidate = cityCandidate
-          .replace(/^\s*(depuis|de|au\s+depart\s+de)\s+dakar\b\s*(a|vers|pour)?\s*/i, '')
-          .replace(/^\s*dakar\b\s*(a|vers|pour|-|>)?\s*/i, '')
-          .replace(/\s+/g, ' ')
-          .trim();
-      }
+      // Remove connectors: "de X a/vers/pour Y", "depuis X a Y", "X -> Y", "X > Y"
+      rest = rest
+        .replace(/^\s*(depuis|de|au\s+depart\s+de)\s+/i, '')
+        .replace(/\s+(a|vers|pour|->|>|-)\s+/i, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-      if (cityCandidate.length >= 2 && /[a-z]/i.test(cityCandidate)) {
-        city = cityCandidate;
+      const tokens = rest.split(/\s+/).filter((t) => t.length >= 2 && /[a-z]/i.test(t));
+
+      // Single token = destination only (origin must be asked)
+      if (tokens.length === 1) {
+        if (!destination) destination = tokens[0];
+      } else if (tokens.length >= 2) {
+        // Heuristic: "Ville1 Ville2" → origin=Ville1, destination=Ville2
+        // If a token is a multi-word city we lose it; keep simple split.
+        if (!origin) origin = tokens[0];
+        if (!destination) destination = tokens.slice(1).join(' ');
       }
     }
 
-    // Fallback to GP's primary navette city if none provided
-    if (!city && prior.default_city) {
-      city = String(prior.default_city);
-    }
+    const collected = { origin, destination, date: dateIso, weight };
 
-    const collected = { city, date: dateIso, weight, default_city: prior.default_city };
-
-    // GP a repondu uniquement "Dakar" / "depuis Dakar" quand on lui demande la destination
-    if (!city && onlyDakar) {
+    // Demande progressive : origine
+    if (!origin) {
       await saveSession('dep', collected);
-      await reply(
-        `Je vois que vous partez de Dakar 🙂\nVers quelle ville allez-vous ?\n(Ex : Paris, Madrid, New York...)`,
-        'dep_ask_destination_after_dakar',
-      );
+      await reply(`De quelle ville partez-vous ?`, 'dep_ask_origin');
       return new Response('ok', { headers: corsHeaders });
     }
-
-    // Demande progressive
-    if (!city) {
-      const primaryCity = getPrimaryCity(transporteur);
-      if (primaryCity) {
-        await saveSession('dep', { ...collected, default_city: primaryCity });
-        await reply(
-          `Prochain depart pour ${primaryCity} ?\nRepondez : [date] [kg]\nEx : 15/07 25kg\n(ou tapez une autre ville si different)`,
-          'dep_ask_city_smart',
-        );
-        return new Response('ok', { headers: corsHeaders });
-      }
+    // Demande progressive : destination
+    if (!destination) {
       await saveSession('dep', collected);
-      await reply(`Vers quelle ville partez-vous ?`, 'dep_ask_city');
+      await reply(`Vers quelle ville allez-vous ?`, 'dep_ask_destination');
       return new Response('ok', { headers: corsHeaders });
     }
-
+    // Demande progressive : date
     if (!dateIso) {
       await saveSession('dep', collected);
-      await reply(`Quelle est la date de depart ? (ex: 28/05)`, 'dep_ask_date');
+      await reply(`Quelle est la date de depart ? (ex: 15/06)`, 'dep_ask_date');
       return new Response('ok', { headers: corsHeaders });
     }
+    // Demande progressive : poids
     if (!weight) {
       await saveSession('dep', collected);
-      await reply(`Quelle est votre capacite en kg ?`, 'dep_ask_weight');
+      await reply(`Quelle capacite disponible en kg ?`, 'dep_ask_weight');
       return new Response('ok', { headers: corsHeaders });
     }
 
-    // Date passée → proposer +7j (uniquement quand on vient de la parser)
+    // Date passée → proposer +7j
     if (dateIso && !prior.date_confirmed) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const d = new Date(dateIso); d.setHours(0, 0, 0, 0);
@@ -2619,19 +2603,18 @@ A traiter manuellement.`);
       if (isYes(text) && prior.suggested_date) {
         dateIso = String(prior.suggested_date);
       }
-      // sinon on garde la nouvelle date qu'on vient de parser
     }
 
     // Skip OUI/NON si tous les params ont ete fournis d'un coup
     const oneShot = !prior.awaiting_confirm
       && !prior.awaiting_date_fix
-      && !prior.city && !prior.date && !prior.weight;
+      && !prior.origin && !prior.destination && !prior.date && !prior.weight;
 
     if (!oneShot && !prior.awaiting_confirm) {
       await saveSession('dep', { ...collected, awaiting_confirm: true, date_confirmed: true });
       const dStr = formatDateFr(dateIso);
       await reply(`Confirmer ce depart ?
-Destination : ${city}
+Trajet : ${origin} → ${destination}
 Date : ${dStr}
 Capacite : ${Math.max(1, Math.round(weight))}kg
 
@@ -2648,18 +2631,21 @@ Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
       return new Response('ok', { headers: corsHeaders });
     }
 
-
     // OUI → on cree
     const capacity = Math.max(1, Math.round(weight));
     const { data: dep, error } = await supa
       .from('manual_departures')
       .insert({
         transporteur_ref: transporteur.reference,
-        destination: city,
+        origin_city: origin,
+        destination_city: destination,
+        transport_mode: 'air',
         departure_date: dateIso,
         total_capacity_kg: capacity,
         available_capacity_kg: capacity,
         status: 'active',
+        created_via: 'bot',
+        source: 'gp_self',
       })
       .select('short_ref')
       .maybeSingle();
@@ -2674,14 +2660,15 @@ Repondez OUI pour valider ou NON pour annuler.`, 'dep_confirm');
 
     const dStr = formatDateFr(dateIso);
     await reply(`✅ Depart enregistre !
-Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg
+Ref #${dep?.short_ref} - ${origin} → ${destination} - ${dStr} - ${capacity}kg
 Visible sur yobbante.com sous 1h.
 Tapez AIDE pour toutes les commandes.`, 'dep_ok');
 
     await notifyAdmin(`Nouveau depart enregistre par ${prenom} (Ref ${transporteur.reference}) :
-Ref #${dep?.short_ref} - ${city} - ${dStr} - ${capacity}kg`);
+Ref #${dep?.short_ref} - ${origin} → ${destination} - ${dStr} - ${capacity}kg`);
     return new Response('ok', { headers: corsHeaders });
   }
+
 
   async function handleCollecte(text: string, prior: Record<string, any>) {
     let tracking = (prior.tracking as string | undefined) ?? parseTracking(text);
