@@ -347,12 +347,23 @@ export function LandingWorldMap({ className }: { className?: string }) {
       {/* Fixed tooltip below map */}
       {selected && (
         <div
-          style={{
-            marginTop: 16,
-            display: 'flex',
-            justifyContent: 'center',
-            animation: 'fade-in 0.2s ease-out',
-          }}
+          style={
+            isMobile
+              ? {
+                  position: 'fixed',
+                  bottom: 80,
+                  left: 16,
+                  right: 16,
+                  zIndex: 100,
+                  animation: 'fade-in 0.2s ease-out',
+                }
+              : {
+                  marginTop: 16,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  animation: 'fade-in 0.2s ease-out',
+                }
+          }
         >
           <div
             style={{
@@ -363,8 +374,9 @@ export function LandingWorldMap({ className }: { className?: string }) {
               padding: '14px 44px 14px 16px',
               color: '#fff',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              minWidth: 260,
-              maxWidth: 380,
+              minWidth: isMobile ? undefined : 260,
+              maxWidth: isMobile ? undefined : 380,
+              width: isMobile ? '100%' : undefined,
             }}
           >
             <button
