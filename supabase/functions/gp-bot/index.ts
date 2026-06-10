@@ -2058,7 +2058,7 @@ Si ville_arrivee ET date_depart absents → {"confiance": "basse"}`;
     const mediaTypes = new Set(['image', 'audio', 'voice', 'document', 'video', 'sticker']);
     if (input.message_type && mediaTypes.has(input.message_type)) {
       await reply(
-        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville] [date] [kg]\nou envoyez AIDE pour le menu complet.`,
+        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville_depart] [ville_arrivee] [date] [kg]\nEx : DEP Dakar Paris 15/06 30kg\nou envoyez AIDE pour le menu complet.`,
         'media_received',
       );
       const ref = transporteur?.reference ?? '—';
