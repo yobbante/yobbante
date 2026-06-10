@@ -1506,7 +1506,7 @@ Voir : yobbante.com/admin`);
       .order('departure_date', { ascending: true })
       .limit(20);
     if (!data || data.length === 0) {
-      await reply(`Aucun depart programme.\nTapez DEP [ville] [date] [Xkg] pour en creer un.`, 'mes_departs');
+      await reply(`Aucun depart programme.\nTapez DEP [ville_depart] [ville_arrivee] [date] [kg] pour en creer un.\nEx : DEP Dakar Paris 15/06 30kg`, 'mes_departs');
     } else {
       const lines = data.map((d) => {
         const dStr = d.departure_date ? formatDateFr(d.departure_date) : '?';
