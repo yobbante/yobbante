@@ -130,6 +130,7 @@ export function LandingWorldMap({ className }: { className?: string }) {
   const [width, setWidth] = useState(960);
   const [land, setLand] = useState<FeatureCollection<Geometry> | null>(cachedLand);
   const [selected, setSelected] = useState<Selected | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!wrapRef.current) return;
