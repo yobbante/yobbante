@@ -472,6 +472,36 @@ Deno.serve(async (req) => {
     }
   }
 
+  // =================================================================
+  //  GATE : GP existant mais whatsapp_confirmed_at IS NULL
+  //  Tout message (autre que le message d'activation onboarding ci-dessus)
+  //  → renvoyer vers l'inscription Konnekt et notifier l'admin.
+  //  Ne jamais afficher AIDE / menu tant que non active.
+  // =================================================================
+  if (transporteur && !transporteur.whatsapp_confirmed_at) {
+    const ref = String(transporteur.reference ?? '').padStart(4, '0');
+    const fullName = `${transporteur.prenom ?? ''} ${transporteur.nom ?? ''}`.trim() || '—';
+    const tel = transporteur.telephone_1 ?? fromPhone;
+    const userText = (rawMsg || '').slice(0, 300) || '[message vide]';
+
+    await reply(
+      `Bonjour ! Konnekt est votre espace GP pour declarer vos departs et recevoir des missions Yobbante.\n\n` +
+      `Inscription gratuite en 2 min :\n` +
+      `https://usekonnekt.com/onboarding/${ref}\n\n` +
+      `Des questions ? Un conseiller vous repond sous 24h.`,
+      'gp_not_activated_redirect',
+    );
+
+    await sendWa({
+      recipient_phone: '+221784604003',
+      recipient_type: 'admin',
+      message: `Message GP avant activation : ${fullName} ${tel}\nMessage : ${userText}`,
+      trigger_type: 'admin_gp_pre_activation_msg',
+    });
+
+    return new Response('ok', { headers: corsHeaders });
+  }
+
 
 
   // =================================================================
