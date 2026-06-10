@@ -444,7 +444,10 @@ export function TransporteursTab() {
 
 
   const getKonnektStatus = (t: Transporteur): 'active' | 'invited' | 'none' => {
-    if (t.konnekt_registered) return 'active';
+    // Active = même condition que "✅ ACTIF" dans la colonne Bot
+    // (au moins un message inbound côté GP). On garde konnekt_registered en filet
+    // pour les GPs déjà enregistrés mais qui n'ont pas encore écrit au bot.
+    if (botActiveIds?.has(t.id) || t.konnekt_registered) return 'active';
     const invited = konnektInvitedMap[t.id] ?? (t as any).konnekt_invited_at ?? null;
     if (invited) return 'invited';
     return 'none';
