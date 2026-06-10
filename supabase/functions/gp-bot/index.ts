@@ -1879,6 +1879,26 @@ Voir : yobbante.com/admin`);
     }
   }
 
+  // ---------- MEDIA générique (image sans tracking, audio, vidéo, document) ----------
+  {
+    const mediaTypes = new Set(['image', 'audio', 'voice', 'document', 'video', 'sticker']);
+    if (input.message_type && mediaTypes.has(input.message_type)) {
+      await reply(
+        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville] [date] [kg]\nou envoyez AIDE pour le menu complet.`,
+        'media_received',
+      );
+      const ref = transporteur?.reference ?? '—';
+      const senderName = (transporteur?.prenom || transporteur?.nom || prenom || 'GP').toString();
+      await sendWa({
+        recipient_phone: Deno.env.get('ADMIN_WHATSAPP_NUMBER') || '+221784604003',
+        recipient_type: 'admin',
+        message: `📎 Media recu de ${senderName} (Ref ${ref}) : ${input.message_type}\nA traiter manuellement.`,
+        trigger_type: 'admin_media_received',
+      });
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
   // ---------- STATUT [YOB-XXXXX] ----------
   {
     const m = msg.match(/^statut\s+(.+)$/i) || msg.match(/^status\s+(.+)$/i);
