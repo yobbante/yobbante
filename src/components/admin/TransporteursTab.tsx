@@ -827,7 +827,7 @@ export function TransporteursTab() {
                           className="h-8 w-8"
                           onClick={async () => {
                             try {
-                              const link = buildKonnektInviteWaUrl(t);
+                              const link = buildShareableKonnektWaLink(t);
                               await navigator.clipboard.writeText(link);
                               await markKonnektInvited(t);
                               toast.success("Lien WhatsApp d'invitation GP copié");
@@ -864,7 +864,7 @@ export function TransporteursTab() {
                         <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const link = buildKonnektInviteWaUrl(t);
+                        const link = buildShareableKonnektWaLink(t);
                         try {
                           await navigator.clipboard.writeText(link);
                           await markKonnektInvited(t);
@@ -991,7 +991,7 @@ export function TransporteursTab() {
                 Tous les GP actifs ont déjà été invités 🎉
               </div>
             ) : toInviteList.map(g => {
-              const link = buildKonnektInviteWaUrl(g);
+              const link = buildShareableKonnektWaLink(g);
               const onboarding = buildKonnektOnboardingUrl(g);
               return (
                 <div key={g.id} className="flex items-center gap-3 p-3 text-sm">
@@ -1473,7 +1473,7 @@ function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: 
 
 function KonnektDrawerSection({ transporteur }: { transporteur: Transporteur }) {
   const onboardingUrl = buildKonnektOnboardingUrl(transporteur);
-  const waUrl = buildKonnektInviteWaUrl(transporteur);
+  const waUrl = buildShareableKonnektWaLink(transporteur);
   const invitedAt = (transporteur as any).konnekt_invited_at as string | null | undefined;
   const registered = !!transporteur.konnekt_registered;
   const status: 'active' | 'invited' | 'none' = registered ? 'active' : invitedAt ? 'invited' : 'none';
