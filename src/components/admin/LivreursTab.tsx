@@ -16,7 +16,7 @@ import { sendGpMessage } from '@/lib/sendGpMessage';
 import { DispatchPanel } from './DispatchPanel';
 import { QUARTIER_GROUPS } from '@/lib/dakarZones';
 
-const YOBBANTE_BOT_NUMBER = '+221781221891';
+const YOBBANTE_BOT_NUMBER = '+221789269756';
 
 interface Livreur {
   id: string;

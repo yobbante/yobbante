@@ -94,7 +94,7 @@ export function WhatsAppHistoryDialog({ transporteurId, phone, gpLabel, onClose 
         </DialogHeader>
 
         <div className="rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-600 dark:text-amber-400">
-          ⚠️ Tout envoi manuel doit partir du compte WhatsApp <span className="font-mono font-semibold">122 (+221 78 122 18 91)</span>,
+          ⚠️ Tout envoi manuel doit partir du compte WhatsApp <span className="font-mono font-semibold">122 (+221 78 926 97 56)</span>,
           jamais depuis votre numéro personnel.
         </div>
 

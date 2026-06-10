@@ -560,7 +560,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
           origin: (hub ? COUNTRY_NAME(hub) : '') || 'Non précisé',
           destination: (destination ? COUNTRY_NAME(destination) : '') || 'Non précisé',
           weight: totalWeight.toFixed(2),
-          recipient_phone: '+221781221891'
+          recipient_phone: '+221789269756'
         }
       }).then(({ data, error }) => {
         if (error) console.error('WA_INVOKE_ERROR:', error);

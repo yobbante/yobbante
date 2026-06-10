@@ -62,8 +62,8 @@ const MODES = [
   { id: "mobility",              label: "Mobility",   icon: Car },
 ];
 
-const KONNEKT_WA = "221781221891";
-const KONNEKT_TEL = "+221 78 122 18 91";
+const KONNEKT_WA = "221789269756";
+const KONNEKT_TEL = "+221 78 926 97 56";
 
 type RoleId = typeof ROLES[number]["id"];
 

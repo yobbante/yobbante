@@ -123,7 +123,7 @@ export const WeekExportTemplate = forwardRef<HTMLDivElement, Props>(({ departure
       >
         <div style={{ fontSize: 20 }}>
           <div style={{ opacity: 0.6, fontSize: 14 }}>Réservez via WhatsApp</div>
-          <div style={{ fontWeight: 700, fontSize: 26, color: '#F5C518' }}>+221 78 122 18 91</div>
+          <div style={{ fontWeight: 700, fontSize: 26, color: '#F5C518' }}>+221 78 926 97 56</div>
         </div>
         <div style={{ fontSize: 18, opacity: 0.7 }}>yobbante.com</div>
       </div>

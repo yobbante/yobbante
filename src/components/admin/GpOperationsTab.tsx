@@ -13,7 +13,7 @@ import { WeighingDialog, type WeighingDossier } from './WeighingDialog';
 import { parseDepartureMessage } from '@/lib/parseDepartureMessage';
 import { CreateGpFromContactDialog } from './CreateGpFromContactDialog';
 
-const YOBBANTE_BOT_NUMBER = '+221781221891';
+const YOBBANTE_BOT_NUMBER = '+221789269756';
 
 const SECTIONS = [
   { id: 'no_response', label: 'GP sans reponse', icon: AlertTriangle },

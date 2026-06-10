@@ -126,7 +126,7 @@ export default function GpDepartPage() {
           <AlertCircle className="w-10 h-10 mx-auto text-destructive mb-3" />
           <h2 className="text-lg font-semibold">Lien invalide</h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Cette URL ne correspond à aucun GP actif. Contactez l'équipe Yobbanté au +221 78 122 18 91.
+            Cette URL ne correspond à aucun GP actif. Contactez l'équipe Yobbanté au +221 78 926 97 56.
           </p>
         </div>
       </Shell>

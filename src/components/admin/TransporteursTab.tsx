@@ -39,7 +39,7 @@ import {
 } from '@/lib/dakarZones';
 import { gpWhatsappLink, YOBBANTE_GP_WHATSAPP_DISPLAY } from '@/lib/contact';
 
-const YOBBANTE_BOT_NUMBER = '+221781221891';
+const YOBBANTE_BOT_NUMBER = '+221789269756';
 const SUPER_ADMIN_PHONE = '+221784604003';
 
 /** Build the personalized bot-onboarding message (no accents for WhatsApp). */
@@ -1676,7 +1676,7 @@ function EditDrawer({
             <h3 className="text-base font-semibold border-b border-border pb-2">2. Contact</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Téléphone 1 * <span className="text-[10px] text-muted-foreground">(WhatsApp bot 122)</span></Label>
+                <Label>Téléphone 1 * <span className="text-[10px] text-muted-foreground">(WhatsApp bot 926)</span></Label>
                 <Input value={tel1} onChange={(e) => setTel1(e.target.value)} placeholder="+221 XX XXX XX XX" />
               </div>
               <div>
