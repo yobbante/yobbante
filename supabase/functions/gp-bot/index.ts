@@ -439,8 +439,8 @@ Deno.serve(async (req) => {
           `✅ Bienvenue sur Konnekt, ${prenom} !\n` +
           `Votre compte GP${ref} est bien active.\n\n` +
           `Pour commencer, declarez vos prochains departs :\n` +
-          `DEP [ville] [date] [kg]\n` +
-          `Ex : DEP Paris 15/07 25kg\n\n` +
+          `DEP [ville_depart] [ville_arrivee] [date] [kg]\n` +
+          `Ex : DEP Dakar Paris 15/07 25kg\n\n` +
           `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
           `Tapez AIDE a tout moment pour revoir le menu.`,
 
