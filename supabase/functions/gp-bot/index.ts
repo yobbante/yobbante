@@ -146,7 +146,7 @@ Autres commandes :
 
 Repondez avec le numero de votre choix
 ou tapez directement votre commande.
-Ex: DEP Paris 28/05 25kg
+Ex: DEP Dakar Paris 28/05 25kg
 Ex: TARIF Paris 6500
 
 Si vous voulez nous ecrire : +221789269756`;
