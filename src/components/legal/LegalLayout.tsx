@@ -117,7 +117,7 @@ export const COMPANY_INFO = {
   rccm: env.VITE_YOBBANTE_RCCM || env.VITE_COMPANY_RCCM || 'SN DKR 2021 A 42031',
   email: env.VITE_COMPANY_EMAIL || 'contact@yobbante.com',
   phone: env.VITE_COMPANY_PHONE || '+221 78 607 80 80',
-  phoneGp: env.VITE_COMPANY_PHONE_GP || '+221 78 122 18 91',
+  phoneGp: env.VITE_COMPANY_PHONE_GP || '+221 78 926 97 56',
   site: env.VITE_COMPANY_SITE || 'https://yobbante.com',
   host: env.VITE_COMPANY_HOST || 'Lovable / Vercel (à confirmer)',
 };

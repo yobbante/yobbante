@@ -144,7 +144,7 @@ const CHAPTERS: Chapter[] = [
           {
             kind: "list",
             items: [
-              "1. GP envoie POIDS YOB-XXXX 4.5kg au bot 122.",
+              "1. GP envoie POIDS YOB-XXXX 4.5kg au bot 926.",
               "2. Le statut passe a WEIGHED et le prix est calcule.",
               "3. Une demande de paiement Wave/OM est envoyee au client.",
               "4. Apres paiement, le dossier passe en IN_TRANSIT.",

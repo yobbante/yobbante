@@ -441,8 +441,12 @@ Deno.serve(async (req) => {
           `Pour commencer, declarez vos prochains departs :\n` +
           `DEP [ville_depart] [ville_arrivee] [date] [kg]\n` +
           `Ex : DEP Dakar Paris 15/07 25kg\n\n` +
+          `Votre espace personnel :\n` +
+          `https://usekonnekt.com/gp/GP${ref}\n` +
+          `Completez votre profil pour recevoir vos premieres missions 🚀\n\n` +
           `Les autres commandes vous seront expliquees au fur et a mesure de vos premieres missions.\n` +
           `Tapez AIDE a tout moment pour revoir le menu.`,
+
 
         transporteur_id: gp.id,
         trigger_type: 'konnekt_onboarding_welcome',

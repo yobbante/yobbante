@@ -115,7 +115,7 @@ export const WA_TEMPLATES = {
     label: 'Relance paiement 48h',
   },
 
-  // ----- GP (sent from 122) -----
+  // ----- GP (sent from 926) -----
   MISSION_ASSIGNED_GP: {
     name: 'mission_assigned_gp_v2',
     fallbackName: 'mission_assigned_gp',

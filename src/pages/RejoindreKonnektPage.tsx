@@ -81,7 +81,7 @@ export default function RejoindreKonnektPage() {
         </div>
 
         <p className="text-[11px] text-muted-foreground text-center mt-6">
-          Une question ? Ecrivez-nous sur WhatsApp au +221 78 122 18 91
+          Une question ? Ecrivez-nous sur WhatsApp au +221 78 926 97 56
         </p>
       </section>
     </main>

@@ -39,7 +39,7 @@ import {
 } from '@/lib/dakarZones';
 import { gpWhatsappLink, YOBBANTE_GP_WHATSAPP_DISPLAY } from '@/lib/contact';
 
-const YOBBANTE_BOT_NUMBER = '+221781221891';
+const YOBBANTE_BOT_NUMBER = '+221789269756';
 const SUPER_ADMIN_PHONE = '+221784604003';
 
 /** Build the personalized bot-onboarding message (no accents for WhatsApp). */
@@ -69,11 +69,20 @@ function buildKonnektInviteMessage(gp: Transporteur) {
   return `Bonjour ${greetingName}, c'est Amath (Yobbanté). Je t'envoie ça parce qu'on a déjà travaillé ensemble — je voulais te partager quelque chose qu'on est en train de construire.\n\nKonnekt, c'est une app où tu publies tes propres départs, tu fixes ton prix, tes conditions. Tu gères tout toi-même. Pour le lancement on t'envoie aussi des missions Yobbanté directement.\n\nOn est en beta — les premiers à s'inscrire ont la priorité sur les missions. Deux minutes pour rejoindre :\n${buildKonnektOnboardingUrl(gp)}`;
 }
 
-
-function buildKonnektInviteWaUrl(gp: Transporteur) {
-  const phone = (gp.telephone_1 || '').replace(/\D/g, '');
-  return `https://wa.me/${phone}?text=${encodeURIComponent(buildKonnektInviteMessage(gp))}`;
+/** Message court pour le bouton "Inviter sur Konnekt" (dropdown ligne GP). */
+function buildShortKonnektInvite(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
+  return `Bonjour ${prenom}, je vous invite à rejoindre Konnekt votre espace GP :\n${buildKonnektOnboardingUrl(gp)}`;
 }
+
+/** Lien wa.me partageable vers le 926, pré-rempli avec un message d'onboarding GP. */
+function buildShareableKonnektWaLink(gp: Transporteur) {
+  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
+  const ref = gpRef(gp.reference);
+  const message = `Bonjour, je suis ${prenom || 'un nouveau GP'} (réf ${ref}). Je souhaite activer mon compte Konnekt.`;
+  return `https://wa.me/221789269756?text=${encodeURIComponent(message)}`;
+}
+
 
 
 /** Pad ref to GP0001 form. */
@@ -288,7 +297,7 @@ export function TransporteursTab() {
       return;
     }
 
-    // 2. WhatsApp activation (depuis le 122)
+    // 2. WhatsApp activation (depuis le 926)
     const message = [
       `Salam ${prenom},`,
       ``,
@@ -345,7 +354,7 @@ export function TransporteursTab() {
               `GP : ${formatTransporteurName(gp.prenom, gp.nom)}`,
               `Tel : ${gp.telephone_1}`,
               `Ref : ${reference}`,
-              `Envoyer manuellement depuis le 122 :`,
+              `Envoyer manuellement depuis le 926 :`,
               res.waLink,
             ].join('\n'),
             client_name: formatTransporteurName(gp.prenom, gp.nom),
@@ -818,7 +827,7 @@ export function TransporteursTab() {
                           className="h-8 w-8"
                           onClick={async () => {
                             try {
-                              const link = buildKonnektInviteWaUrl(t);
+                              const link = buildShareableKonnektWaLink(t);
                               await navigator.clipboard.writeText(link);
                               await markKonnektInvited(t);
                               toast.success("Lien WhatsApp d'invitation GP copié");
@@ -842,20 +851,30 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setEditing(t)}>
                         <Pencil className="w-4 h-4 mr-2" /> Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openInvite(t)}>
+                      <DropdownMenuItem onClick={async () => {
+                        const name = formatTransporteurName(t.prenom, t.nom);
+                        const res = await sendSmartInvite({
+                          phone: t.telephone_1,
+                          message: buildShortKonnektInvite(t),
+                          gp_name: name,
+                          gp_ref: gpRef(t.reference),
+                          transporteur_id: t.id,
+                          kind: 'konnekt_invite',
+                          trigger_type: 'admin_invite_konnekt',
+                        });
+                        if (res.ok) await markKonnektInvited(t);
+                      }}>
                         <Send className="w-4 h-4 mr-2" /> Inviter sur Konnekt
                       </DropdownMenuItem>
+
                       <DropdownMenuItem onClick={() => openBotInvite(t)}>
                         <Bot className="w-4 h-4 mr-2" /> Onboarder sur le bot
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate(`/admin/messages?gp=${t.id}`)}>
                         <MessageCircle className="w-4 h-4 mr-2" /> Voir conversation bot
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
-                        <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const link = buildKonnektInviteWaUrl(t);
+                        const link = buildShareableKonnektWaLink(t);
                         try {
                           await navigator.clipboard.writeText(link);
                           await markKonnektInvited(t);
@@ -871,23 +890,55 @@ export function TransporteursTab() {
                         <History className="w-4 h-4 mr-2" /> Historique WhatsApp
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
+                        const url = `https://usekonnekt.com/gp/${gpRef(t.reference)}/departures`;
                         try { await navigator.clipboard.writeText(url); toast.success('URL départ copiée'); }
                         catch { toast.error('Copie impossible'); }
                       }}>
                         <Copy className="w-4 h-4 mr-2" /> Copier URL départ GP
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
-                        const phone = (((t as any).whatsapp as string | null) || t.telephone_1 || '').replace(/\D/g, '');
-                        const text = `Salam ${t.prenom || ''}, voici ton lien pour publier tes departs Yobbante en 30s :\n${url}`;
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      <DropdownMenuItem onClick={async () => {
+                        const ref = gpRef(t.reference);
+                        const message = `Votre lien de départ Konnekt :\nhttps://usekonnekt.com/gp/${ref}/departures`;
+                        try {
+                          const { error } = await supabase.functions.invoke('send-whatsapp', {
+                            body: {
+                              recipient_phone: t.telephone_1,
+                              recipient_type: 'gp',
+                              message,
+                              transporteur_id: t.id,
+                              trigger_type: 'admin_send_depart_url',
+                            },
+                          });
+                          if (error) throw error;
+                          toast.success('Message envoyé via WhatsApp (926)');
+                        } catch (e: any) {
+                          toast.error('Échec envoi via 926', { description: e?.message });
+                        }
                       }}>
                         <Send className="w-4 h-4 mr-2" /> Envoyer URL départ (WhatsApp)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
+                      <DropdownMenuItem onClick={async () => {
+                        const ref = gpRef(t.reference);
+                        const message = `Complétez votre profil GP :\nhttps://usekonnekt.com/onboarding/${ref}/edit`;
+                        try {
+                          const { error } = await supabase.functions.invoke('send-whatsapp', {
+                            body: {
+                              recipient_phone: t.telephone_1,
+                              recipient_type: 'gp',
+                              message,
+                              transporteur_id: t.id,
+                              trigger_type: 'admin_send_edit_link',
+                            },
+                          });
+                          if (error) throw error;
+                          toast.success('Message envoyé via WhatsApp (926)');
+                        } catch (e: any) {
+                          toast.error('Échec envoi via 926', { description: e?.message });
+                        }
+                      }}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
+
                       {!t.actif && (
                         <DropdownMenuItem onClick={() => validateBeta(t)} className="text-emerald-600 dark:text-emerald-400">
                           <Check className="w-4 h-4 mr-2" /> Valider beta (activer GP)
@@ -982,7 +1033,7 @@ export function TransporteursTab() {
                 Tous les GP actifs ont déjà été invités 🎉
               </div>
             ) : toInviteList.map(g => {
-              const link = buildKonnektInviteWaUrl(g);
+              const link = buildShareableKonnektWaLink(g);
               const onboarding = buildKonnektOnboardingUrl(g);
               return (
                 <div key={g.id} className="flex items-center gap-3 p-3 text-sm">
@@ -1464,7 +1515,7 @@ function KonnektStatus({ invitedAt, registered, failed, onRetry }: { invitedAt: 
 
 function KonnektDrawerSection({ transporteur }: { transporteur: Transporteur }) {
   const onboardingUrl = buildKonnektOnboardingUrl(transporteur);
-  const waUrl = buildKonnektInviteWaUrl(transporteur);
+  const waUrl = buildShareableKonnektWaLink(transporteur);
   const invitedAt = (transporteur as any).konnekt_invited_at as string | null | undefined;
   const registered = !!transporteur.konnekt_registered;
   const status: 'active' | 'invited' | 'none' = registered ? 'active' : invitedAt ? 'invited' : 'none';
@@ -1676,7 +1727,7 @@ function EditDrawer({
             <h3 className="text-base font-semibold border-b border-border pb-2">2. Contact</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Téléphone 1 * <span className="text-[10px] text-muted-foreground">(WhatsApp bot 122)</span></Label>
+                <Label>Téléphone 1 * <span className="text-[10px] text-muted-foreground">(WhatsApp bot 926)</span></Label>
                 <Input value={tel1} onChange={(e) => setTel1(e.target.value)} placeholder="+221 XX XXX XX XX" />
               </div>
               <div>

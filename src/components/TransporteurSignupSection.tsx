@@ -101,7 +101,7 @@ export function TransporteurSignupSection() {
             sécurisées et payées via la plateforme. Aucun frais d'inscription.
           </p>
           <a
-            href={`https://wa.me/221781221891?text=${encodeURIComponent('Bonjour, je souhaite devenir transporteur GP avec Yobbanté.')}`}
+            href={`https://wa.me/221789269756?text=${encodeURIComponent('Bonjour, je souhaite devenir transporteur GP avec Yobbanté.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-full transition-opacity hover:opacity-90"
@@ -112,7 +112,7 @@ export function TransporteurSignupSection() {
               fontWeight: 600,
             }}
           >
-            💬 WhatsApp transporteurs · +221 78 122 18 91
+            💬 WhatsApp transporteurs · +221 78 926 97 56
           </a>
         </div>
 

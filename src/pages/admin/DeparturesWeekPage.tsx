@@ -45,7 +45,7 @@ function buildWhatsAppText(departures: ManualDeparture[]): string {
     const mode = MODE_LABEL[d.transport_mode] ?? d.transport_mode;
     return `- ${date} · ${mode} · ${d.origin_city} -> ${d.destination_city} · *Réf ${d.short_ref ?? '----'}*`;
   });
-  return `*PROCHAINS DÉPARTS YOBBANTÉ*\n\n${lines.join('\n')}\n\nContactez-nous au +221 78 122 18 91 en indiquant la référence du départ.`;
+  return `*PROCHAINS DÉPARTS YOBBANTÉ*\n\n${lines.join('\n')}\n\nContactez-nous au +221 78 926 97 56 en indiquant la référence du départ.`;
 }
 
 export default function DeparturesWeekPage() {
