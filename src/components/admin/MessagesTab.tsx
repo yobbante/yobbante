@@ -13,6 +13,7 @@ import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/w
 import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
 import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
+import { MediaMessage } from './messages/MediaMessage';
 
 interface LinkedDossier {
   id: string;
@@ -883,7 +884,10 @@ export function MessagesTab() {
               {/* Thread */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-background/50">
                 {thread.map((t) => {
-                  const isAudio = t.kind === 'in' && (t.m as InboundMsg).message_type === 'audio' && (t.m as InboundMsg).media_url;
+                  const inMsg = t.kind === 'in' ? (t.m as InboundMsg) : null;
+                  const mediaKinds = new Set(['image', 'audio', 'voice', 'video', 'document', 'sticker']);
+                  const isMedia = !!(inMsg && inMsg.media_url && mediaKinds.has(inMsg.message_type));
+                  const hasTextBody = !!(inMsg?.message_body && inMsg.message_body !== `[${inMsg.message_type}]`);
                   return (
                   <div key={`${t.kind}-${t.id}`} className={cn('flex flex-col', t.kind === 'out' ? 'items-end' : 'items-start')}>
                     <div
@@ -895,10 +899,12 @@ export function MessagesTab() {
                       )}
                       style={t.kind === 'out' ? { background: '#F5C518' } : undefined}
                     >
-                      {isAudio ? (
-                        <AudioMessage
-                          mediaUrl={(t.m as InboundMsg).media_url!}
-                          wamid={(t.m as any).wamid ?? null}
+                      {isMedia && inMsg ? (
+                        <MediaMessage
+                          mediaUrl={inMsg.media_url!}
+                          messageType={inMsg.message_type}
+                          caption={hasTextBody ? inMsg.message_body : null}
+                          wamid={(inMsg as any).wamid ?? null}
                         />
                       ) : (
                         t.body
