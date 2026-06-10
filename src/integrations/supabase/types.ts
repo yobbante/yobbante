@@ -3111,6 +3111,7 @@ export type Database = {
           depart_url: string | null
           destinations: string[] | null
           email: string | null
+          gp_notes: string | null
           id: string
           invitation_bot_sent_at: string | null
           is_beta_validated: boolean
@@ -3127,6 +3128,7 @@ export type Database = {
           photo_url: string | null
           prenom: string | null
           profile_complete: boolean | null
+          profile_completed_at: string | null
           rates_collected_at: string | null
           rates_per_city: Json
           rates_reminder_sent_at: string | null
@@ -3141,6 +3143,7 @@ export type Database = {
           ville: string | null
           whatsapp: string | null
           whatsapp_confirmed_at: string | null
+          wizard_step: number
           zone: string | null
         }
         Insert: {
@@ -3162,6 +3165,7 @@ export type Database = {
           depart_url?: string | null
           destinations?: string[] | null
           email?: string | null
+          gp_notes?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
           is_beta_validated?: boolean
@@ -3178,6 +3182,7 @@ export type Database = {
           photo_url?: string | null
           prenom?: string | null
           profile_complete?: boolean | null
+          profile_completed_at?: string | null
           rates_collected_at?: string | null
           rates_per_city?: Json
           rates_reminder_sent_at?: string | null
@@ -3192,6 +3197,7 @@ export type Database = {
           ville?: string | null
           whatsapp?: string | null
           whatsapp_confirmed_at?: string | null
+          wizard_step?: number
           zone?: string | null
         }
         Update: {
@@ -3213,6 +3219,7 @@ export type Database = {
           depart_url?: string | null
           destinations?: string[] | null
           email?: string | null
+          gp_notes?: string | null
           id?: string
           invitation_bot_sent_at?: string | null
           is_beta_validated?: boolean
@@ -3229,6 +3236,7 @@ export type Database = {
           photo_url?: string | null
           prenom?: string | null
           profile_complete?: boolean | null
+          profile_completed_at?: string | null
           rates_collected_at?: string | null
           rates_per_city?: Json
           rates_reminder_sent_at?: string | null
@@ -3243,6 +3251,7 @@ export type Database = {
           ville?: string | null
           whatsapp?: string | null
           whatsapp_confirmed_at?: string | null
+          wizard_step?: number
           zone?: string | null
         }
         Relationships: []
@@ -3831,6 +3840,7 @@ export type Database = {
         }[]
       }
       get_edit_token: { Args: { p_token: string }; Returns: Json }
+      get_gp_dashboard: { Args: { _ref: string }; Returns: Json }
       get_user_contact: {
         Args: { _user_id: string }
         Returns: {
