@@ -1915,6 +1915,144 @@ Voir : yobbante.com/admin`);
     }
   }
 
+  // ---------- IMAGE flyer GP : extraction IA Claude ----------
+  if (input.message_type === 'image' && input.media_url) {
+    try {
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+      const waToken = Deno.env.get('WHATSAPP_TOKEN');
+      if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY missing');
+
+      // Télécharger l'image (avec auth WhatsApp si nécessaire)
+      const imgRes = await fetch(input.media_url, {
+        headers: waToken ? { Authorization: `Bearer ${waToken}` } : {},
+      });
+      if (!imgRes.ok) throw new Error(`image fetch ${imgRes.status}`);
+      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+      const buf = new Uint8Array(await imgRes.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+      const b64 = btoa(bin);
+
+      const demain = new Date(Date.now() + 86400 * 1000);
+      const ddmmyyyy = (d: Date) =>
+        `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      const dateDemain = ddmmyyyy(demain);
+
+      const systemPrompt = `Tu analyses des flyers de GP (transporteurs voyageurs) qui transportent des colis entre des villes internationales.
+
+Règles d'extraction :
+- ville_depart : ville de départ explicite sur le flyer. Ne pas supposer Dakar par défaut.
+- ville_arrivee : destination principale du trajet. Si plusieurs villes (ex: Marseille + Avignon), prendre la première. Mettre les autres dans destinations_secondaires.
+- FILTRE OBLIGATOIRE : si ni ville_depart ni ville_arrivee n'est Dakar ou une ville d'Afrique de l'Ouest → répondre {hors_zone: true}. Ce service opère depuis/vers l'Afrique de l'Ouest.
+- date_depart : convertir en DD/MM/YYYY. Si 'demain' → ${dateDemain}. Si 'mercredi 10 juin' → 10/06/2026. Si '10/06/26' → 10/06/2026.
+- Ne jamais extraire le prix/tarif du flyer.
+- multi_trajets : true si flyer contient aller + retour.
+- date_retour : ville et date du retour si présents.
+
+Réponds UNIQUEMENT en JSON valide :
+{
+  "hors_zone": boolean,
+  "ville_depart": string,
+  "ville_arrivee": string,
+  "destinations_secondaires": string[] | null,
+  "date_depart": "DD/MM/YYYY" | null,
+  "date_depot_limite": "DD/MM/YYYY" | null,
+  "multi_trajets": boolean,
+  "ville_retour": string | null,
+  "date_retour": "DD/MM/YYYY" | null,
+  "telephone_gp": string | null,
+  "confiance": "haute" | "moyenne" | "basse"
+}
+Si ville_arrivee ET date_depart absents → {"confiance": "basse"}`;
+
+      const anthRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 500,
+          system: systemPrompt,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: contentType, data: b64 } },
+              { type: 'text', text: 'Analyse ce flyer GP et réponds uniquement en JSON.' },
+            ],
+          }],
+        }),
+      });
+
+      if (!anthRes.ok) throw new Error(`anthropic ${anthRes.status}: ${await anthRes.text()}`);
+      const anthJson = await anthRes.json();
+      const rawText: string = anthJson?.content?.[0]?.text ?? '';
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('no json');
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // CAS A — hors zone
+      if (parsed.hors_zone === true) {
+        await reply(
+          `Ce trajet ne correspond pas a nos corridors actuels (Afrique de l'Ouest <-> monde).\n\nPour declarer un depart valide :\nDEP [ville_depart] [ville_arrivee] [date] [kg]\nEx : DEP Dakar Paris 15/06 30kg`,
+          'image_ia_hors_zone',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // CAS B — confiance basse / champs manquants
+      if (
+        parsed.confiance === 'basse' ||
+        !parsed.ville_arrivee ||
+        !parsed.date_depart
+      ) {
+        await reply(
+          `Je n'ai pas pu lire les infos de depart 🙏\n\nTapez : DEP [ville_depart] [ville_arrivee] [date] [kg]\nEx : DEP Dakar Paris 15/06 30kg`,
+          'image_ia_low_confidence',
+        );
+        return new Response('ok', { headers: corsHeaders });
+      }
+
+      // CAS C — proposer création
+      const dest2 = Array.isArray(parsed.destinations_secondaires)
+        ? parsed.destinations_secondaires.filter(Boolean) as string[]
+        : [];
+      const lines: string[] = [
+        `J'ai lu votre annonce 👀`,
+        ``,
+        `🛫 ${parsed.ville_depart} → ${parsed.ville_arrivee}`,
+      ];
+      if (dest2.length) lines.push(`Via : ${dest2.join(', ')}`);
+      lines.push(`📅 Depart : ${parsed.date_depart}`);
+      if (parsed.date_depot_limite) lines.push(`📦 Depot limite : ${parsed.date_depot_limite}`);
+      if (parsed.multi_trajets && parsed.ville_retour && parsed.date_retour) {
+        lines.push(`🔄 Retour : ${parsed.ville_retour} ${parsed.date_retour}`);
+      }
+      lines.push(``, `Je cree ce depart sur Konnekt ?`, `Repondez OUI pour confirmer.`);
+
+      await saveSession('image_dep_confirm', {
+        ville_depart: parsed.ville_depart,
+        ville_arrivee: parsed.ville_arrivee,
+        destinations_secondaires: dest2,
+        date_depart: parsed.date_depart,
+        date_depot_limite: parsed.date_depot_limite ?? null,
+        multi_trajets: !!parsed.multi_trajets,
+        ville_retour: parsed.ville_retour ?? null,
+        date_retour: parsed.date_retour ?? null,
+        confiance: parsed.confiance,
+      });
+
+      await reply(lines.join('\n'), 'image_ia_propose');
+      return new Response('ok', { headers: corsHeaders });
+    } catch (e) {
+      console.error('IMAGE_IA error', (e as Error).message);
+      // Fallback vers le message média générique
+    }
+  }
+
+
   // ---------- MEDIA générique (image sans tracking, audio, vidéo, document) ----------
   {
     const mediaTypes = new Set(['image', 'audio', 'voice', 'document', 'video', 'sticker']);
@@ -2176,6 +2314,105 @@ Recuperez-le sous 5 jours.`,
   if (sessionActive && session!.pending_intent === 'dep') {
     return await handleDep(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
   }
+
+  // ---------- IMAGE IA : confirmation OUI/NON pour créer le départ ----------
+  if (sessionActive && session!.pending_intent === 'image_dep_confirm') {
+    const data = (session!.pending_data ?? {}) as Record<string, any>;
+
+    if (isNo(rawMsg) || (!isYes(rawMsg) && /^(non|stop|annul|cancel|pas)/i.test(msg))) {
+      await clearSession();
+      await reply(
+        `Pas de probleme !\nDEP [ville_depart] [ville_arrivee] [date] [kg]`,
+        'image_ia_declined',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(rawMsg)) {
+      await reply(`Repondez OUI pour confirmer la creation du depart, ou NON pour annuler.`, 'image_ia_await');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // OUI → créer manual_departures
+    const parseDate = (s: string | null | undefined): string | null => {
+      if (!s) return null;
+      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (!m) return null;
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      let y = m[3];
+      if (y.length === 2) y = '20' + y;
+      return `${y}-${mo}-${d}`;
+    };
+
+    const depDate = parseDate(data.date_depart);
+    const limitDate = parseDate(data.date_depot_limite);
+    if (!depDate) {
+      await clearSession();
+      await reply(`Date invalide, recommencez avec DEP.`, 'image_ia_bad_date');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const dest2: string[] = Array.isArray(data.destinations_secondaires) ? data.destinations_secondaires : [];
+    const notes = dest2.length ? dest2.join(' / ') : null;
+    const baseRow = {
+      transporteur_ref: transporteur.reference,
+      origin_city: data.ville_depart,
+      destination_city: data.ville_arrivee,
+      transport_mode: 'air',
+      departure_date: depDate,
+      arrival_estimate: limitDate,
+      total_capacity_kg: 20,
+      available_capacity_kg: 20,
+      status: 'active',
+      source: 'image_ia',
+      created_via: 'bot',
+      notes,
+    };
+
+    const inserts: any[] = [baseRow];
+    if (data.multi_trajets && data.ville_retour && data.date_retour) {
+      const retDate = parseDate(data.date_retour);
+      if (retDate) {
+        inserts.push({
+          ...baseRow,
+          origin_city: data.ville_arrivee,
+          destination_city: data.ville_retour,
+          departure_date: retDate,
+          arrival_estimate: null,
+        });
+      }
+    }
+
+    const { data: created, error } = await supa
+      .from('manual_departures')
+      .insert(inserts)
+      .select('short_ref, origin_city, destination_city, departure_date');
+
+    await clearSession();
+
+    if (error || !created?.length) {
+      console.error('IMAGE_IA insert error', error?.message);
+      await reply(`Desole, impossible d'enregistrer ce depart : ${error?.message ?? 'erreur'}`, 'image_ia_insert_error');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const first = created[0];
+    const ref = first.short_ref || '—';
+    await reply(
+      `✅ Depart enregistre !\n${first.origin_city} → ${first.destination_city} 📅 ${data.date_depart}\nRef : #${ref}\nVos clients pourront reserver via Yobbante 🛫`,
+      'image_ia_created',
+    );
+
+    await sendWa({
+      recipient_phone: Deno.env.get('ADMIN_WHATSAPP_NUMBER') || '+221784604003',
+      recipient_type: 'admin',
+      message: `Depart cree via image IA :\n${prenom} (${transporteur.reference})\n${first.origin_city} → ${first.destination_city} ${data.date_depart}\nConfiance : ${data.confiance}`,
+      trigger_type: 'admin_image_ia_created',
+    });
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+
 
 
   // ---------- COLLECTE ----------
