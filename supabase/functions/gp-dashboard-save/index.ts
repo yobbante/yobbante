@@ -87,8 +87,9 @@ Deno.serve(async (req) => {
             status: 'active',
             publication_status: 'published',
             published_at: new Date().toISOString(),
-            source: 'gp_self',
+            source: 'gp_dashboard_beta',
             created_via: 'gp_self',
+
           })
           .select('id, short_ref')
           .single();
@@ -96,7 +97,8 @@ Deno.serve(async (req) => {
         return ok({ ok: true, departure: data });
       }
 
-      case 'cancel_departure': {
+      case 'cancel_departure':
+      case 'delete_departure': {
         const id = String(body.departure_id ?? '');
         if (!id) return bad('departure_id requis');
         const { error } = await supa
@@ -107,6 +109,30 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return ok({ ok: true });
       }
+
+      case 'update_departure': {
+        const id = String(body.departure_id ?? '');
+        if (!id) return bad('departure_id requis');
+        const patch: Record<string, unknown> = {};
+        if (typeof body.origin_city === 'string') patch.origin_city = body.origin_city.trim();
+        if (typeof body.destination_city === 'string') patch.destination_city = body.destination_city.trim();
+        if (typeof body.departure_date === 'string') patch.departure_date = body.departure_date;
+        if (body.total_capacity_kg != null) {
+          const kg = Number(body.total_capacity_kg);
+          patch.total_capacity_kg = kg;
+          patch.available_capacity_kg = kg;
+        }
+        if (body.price_override_xof !== undefined)
+          patch.price_override_xof = body.price_override_xof === null ? null : Number(body.price_override_xof);
+        const { error } = await supa
+          .from('manual_departures')
+          .update(patch)
+          .eq('id', id)
+          .eq('transporteur_ref', ref);
+        if (error) throw error;
+        return ok({ ok: true });
+      }
+
 
       case 'update_rates': {
         const patch: Record<string, unknown> = {};
