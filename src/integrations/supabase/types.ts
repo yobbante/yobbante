@@ -3100,9 +3100,13 @@ export type Database = {
           adresse_dakar_2: string | null
           adresses_remise: Json
           beta_invite_sent_at: string | null
+          beta_migrated_at: string | null
+          beta_notes_conditions: string | null
           beta_rejected_at: string | null
           beta_rejected_reason: string | null
+          beta_tarif_defaut: number | null
           beta_validated_at: string | null
+          beta_wizard_completed_at: string | null
           bot_paused_until: string | null
           created_at: string
           creneau_dakar: string[] | null
@@ -3154,9 +3158,13 @@ export type Database = {
           adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
+          beta_migrated_at?: string | null
+          beta_notes_conditions?: string | null
           beta_rejected_at?: string | null
           beta_rejected_reason?: string | null
+          beta_tarif_defaut?: number | null
           beta_validated_at?: string | null
+          beta_wizard_completed_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
           creneau_dakar?: string[] | null
@@ -3208,9 +3216,13 @@ export type Database = {
           adresse_dakar_2?: string | null
           adresses_remise?: Json
           beta_invite_sent_at?: string | null
+          beta_migrated_at?: string | null
+          beta_notes_conditions?: string | null
           beta_rejected_at?: string | null
           beta_rejected_reason?: string | null
+          beta_tarif_defaut?: number | null
           beta_validated_at?: string | null
+          beta_wizard_completed_at?: string | null
           bot_paused_until?: string | null
           created_at?: string
           creneau_dakar?: string[] | null
