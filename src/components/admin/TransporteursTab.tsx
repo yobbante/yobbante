@@ -516,7 +516,7 @@ export function TransporteursTab() {
     }
     return { total: base.length, none, invited, active };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, showInactive, konnektInvitedMap]);
+  }, [list.data, showInactive, konnektInvitedMap, botActiveIds]);
 
   const toInviteList = useMemo(
     () => (list.data ?? []).filter(t => t.actif && getKonnektStatus(t) === 'none'),
