@@ -2315,6 +2315,105 @@ Recuperez-le sous 5 jours.`,
     return await handleDep(rawMsg, (session!.pending_data ?? {}) as Record<string, any>);
   }
 
+  // ---------- IMAGE IA : confirmation OUI/NON pour créer le départ ----------
+  if (sessionActive && session!.pending_intent === 'image_dep_confirm') {
+    const data = (session!.pending_data ?? {}) as Record<string, any>;
+
+    if (isNo(rawMsg) || (!isYes(rawMsg) && /^(non|stop|annul|cancel|pas)/i.test(msg))) {
+      await clearSession();
+      await reply(
+        `Pas de probleme !\nDEP [ville_depart] [ville_arrivee] [date] [kg]`,
+        'image_ia_declined',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
+    if (!isYes(rawMsg)) {
+      await reply(`Repondez OUI pour confirmer la creation du depart, ou NON pour annuler.`, 'image_ia_await');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    // OUI → créer manual_departures
+    const parseDate = (s: string | null | undefined): string | null => {
+      if (!s) return null;
+      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (!m) return null;
+      const d = m[1].padStart(2, '0');
+      const mo = m[2].padStart(2, '0');
+      let y = m[3];
+      if (y.length === 2) y = '20' + y;
+      return `${y}-${mo}-${d}`;
+    };
+
+    const depDate = parseDate(data.date_depart);
+    const limitDate = parseDate(data.date_depot_limite);
+    if (!depDate) {
+      await clearSession();
+      await reply(`Date invalide, recommencez avec DEP.`, 'image_ia_bad_date');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const dest2: string[] = Array.isArray(data.destinations_secondaires) ? data.destinations_secondaires : [];
+    const notes = dest2.length ? dest2.join(' / ') : null;
+    const baseRow = {
+      transporteur_ref: transporteur.reference,
+      origin_city: data.ville_depart,
+      destination_city: data.ville_arrivee,
+      transport_mode: 'air',
+      departure_date: depDate,
+      arrival_estimate: limitDate,
+      total_capacity_kg: 20,
+      available_capacity_kg: 20,
+      status: 'active',
+      source: 'image_ia',
+      created_via: 'bot',
+      notes,
+    };
+
+    const inserts: any[] = [baseRow];
+    if (data.multi_trajets && data.ville_retour && data.date_retour) {
+      const retDate = parseDate(data.date_retour);
+      if (retDate) {
+        inserts.push({
+          ...baseRow,
+          origin_city: data.ville_arrivee,
+          destination_city: data.ville_retour,
+          departure_date: retDate,
+          arrival_estimate: null,
+        });
+      }
+    }
+
+    const { data: created, error } = await supa
+      .from('manual_departures')
+      .insert(inserts)
+      .select('short_ref, origin_city, destination_city, departure_date');
+
+    await clearSession();
+
+    if (error || !created?.length) {
+      console.error('IMAGE_IA insert error', error?.message);
+      await reply(`Desole, impossible d'enregistrer ce depart : ${error?.message ?? 'erreur'}`, 'image_ia_insert_error');
+      return new Response('ok', { headers: corsHeaders });
+    }
+
+    const first = created[0];
+    const ref = first.short_ref || '—';
+    await reply(
+      `✅ Depart enregistre !\n${first.origin_city} → ${first.destination_city} 📅 ${data.date_depart}\nRef : #${ref}\nVos clients pourront reserver via Yobbante 🛫`,
+      'image_ia_created',
+    );
+
+    await sendWa({
+      recipient_phone: Deno.env.get('ADMIN_WHATSAPP_NUMBER') || '+221784604003',
+      recipient_type: 'admin',
+      message: `Depart cree via image IA :\n${prenom} (${transporteur.reference})\n${first.origin_city} → ${first.destination_city} ${data.date_depart}\nConfiance : ${data.confiance}`,
+      trigger_type: 'admin_image_ia_created',
+    });
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+
+
 
   // ---------- COLLECTE ----------
   if (hasCollectKeyword) {
