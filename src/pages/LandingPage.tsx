@@ -675,6 +675,25 @@ export default function LandingPage() {
 
 /* ───────────────────────────── NAV ───────────────────────────── */
 function LandingNav({ onExpedier }: { onExpedier: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
+  const allLinks = [
+    ...NAV_LINKS,
+    { label: 'Se connecter', to: '/auth' },
+  ];
+
   return (
     <header
       style={{
@@ -747,8 +766,8 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
           <button
             type="button"
             onClick={onExpedier}
+            className="hidden md:inline-flex"
             style={{
-              display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
               padding: '0 18px',
@@ -765,7 +784,185 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
           >
             Expédier maintenant <ArrowRight size={16} />
           </button>
+
+          {/* Hamburger new-gen (mobile/tablet) */}
+          <button
+            type="button"
+            aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="md:hidden"
+            style={{
+              position: 'relative',
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              background: menuOpen ? NAVY : '#F6F6F8',
+              border: '1px solid',
+              borderColor: menuOpen ? NAVY : '#ECECF0',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.35s ease, border-color 0.35s ease, transform 0.2s ease',
+              transform: menuOpen ? 'scale(0.96)' : 'scale(1)',
+            }}
+          >
+            <span
+              style={{
+                position: 'relative',
+                width: 20,
+                height: 14,
+                display: 'inline-block',
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: menuOpen ? 6 : 0,
+                  width: '100%',
+                  height: 2,
+                  borderRadius: 2,
+                  background: menuOpen ? '#FFFFFF' : NAVY,
+                  transform: menuOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+                  transition: 'top 0.25s ease, transform 0.35s cubic-bezier(0.65,0,0.35,1), background 0.2s ease',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 6,
+                  width: '100%',
+                  height: 2,
+                  borderRadius: 2,
+                  background: menuOpen ? '#FFFFFF' : NAVY,
+                  opacity: menuOpen ? 0 : 1,
+                  transform: menuOpen ? 'translateX(8px)' : 'translateX(0)',
+                  transition: 'opacity 0.18s ease, transform 0.25s ease, background 0.2s ease',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: menuOpen ? 6 : 12,
+                  width: '100%',
+                  height: 2,
+                  borderRadius: 2,
+                  background: menuOpen ? '#FFFFFF' : NAVY,
+                  transform: menuOpen ? 'rotate(-45deg)' : 'rotate(0deg)',
+                  transition: 'top 0.25s ease, transform 0.35s cubic-bezier(0.65,0,0.35,1), background 0.2s ease',
+                }}
+              />
+            </span>
+          </button>
         </div>
+      </div>
+
+      {/* Backdrop blur */}
+      <div
+        onClick={() => setMenuOpen(false)}
+        aria-hidden
+        className="md:hidden"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          top: 64,
+          background: 'rgba(13, 27, 42, 0.32)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          opacity: menuOpen ? 1 : 0,
+          pointerEvents: menuOpen ? 'auto' : 'none',
+          transition: 'opacity 0.35s ease',
+          zIndex: 40,
+        }}
+      />
+
+      {/* Dropdown panel */}
+      <div
+        className="md:hidden"
+        style={{
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          top: 72,
+          background: '#FFFFFF',
+          borderRadius: 20,
+          boxShadow:
+            '0 1px 0 rgba(13,27,42,0.04), 0 24px 48px -16px rgba(13,27,42,0.18), 0 8px 24px -8px rgba(13,27,42,0.10)',
+          border: '1px solid #F1F1F4',
+          padding: 14,
+          transformOrigin: 'top right',
+          transform: menuOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.98)',
+          opacity: menuOpen ? 1 : 0,
+          pointerEvents: menuOpen ? 'auto' : 'none',
+          transition:
+            'opacity 0.32s cubic-bezier(0.22,1,0.36,1), transform 0.42s cubic-bezier(0.22,1,0.36,1)',
+          zIndex: 45,
+        }}
+      >
+        <nav style={{ display: 'flex', flexDirection: 'column' }}>
+          {allLinks.map((l, i) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 14px',
+                borderRadius: 12,
+                fontSize: 16,
+                fontWeight: 600,
+                color: NAVY,
+                letterSpacing: '-0.01em',
+                transform: menuOpen ? 'translateY(0)' : 'translateY(6px)',
+                opacity: menuOpen ? 1 : 0,
+                transition: `opacity 0.4s ease ${80 + i * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + i * 50}ms, background 0.15s ease`,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.background = '#F6F6F8';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+              }}
+            >
+              <span>{l.label}</span>
+              <ArrowRight size={16} style={{ opacity: 0.4 }} />
+            </Link>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onExpedier();
+            }}
+            style={{
+              marginTop: 10,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              height: 50,
+              borderRadius: 14,
+              background: YELLOW,
+              color: NAVY,
+              fontWeight: 700,
+              fontSize: 15,
+              border: 'none',
+              cursor: 'pointer',
+              transform: menuOpen ? 'translateY(0)' : 'translateY(8px)',
+              opacity: menuOpen ? 1 : 0,
+              transition: `opacity 0.4s ease ${80 + allLinks.length * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + allLinks.length * 50}ms`,
+            }}
+          >
+            Expédier maintenant <ArrowRight size={16} />
+          </button>
+        </nav>
       </div>
     </header>
   );
