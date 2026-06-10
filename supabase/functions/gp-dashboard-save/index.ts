@@ -51,11 +51,18 @@ Deno.serve(async (req) => {
         if (typeof body.ville === 'string') patch.ville = body.ville.trim();
         if (typeof body.photo_url === 'string') patch.photo_url = body.photo_url;
         if (typeof body.wizard_step === 'number') patch.wizard_step = body.wizard_step;
+        if (body.beta_tarif_defaut !== undefined)
+          patch.beta_tarif_defaut = body.beta_tarif_defaut === null ? null : Number(body.beta_tarif_defaut);
+        if (typeof body.beta_notes_conditions === 'string')
+          patch.beta_notes_conditions = body.beta_notes_conditions;
+        if (body.beta_wizard_completed === true)
+          patch.beta_wizard_completed_at = new Date().toISOString();
         if (body.profile_completed === true) patch.profile_completed_at = new Date().toISOString();
         const { error } = await supa.from('transporteurs').update(patch).eq('id', gp.id);
         if (error) throw error;
         return ok({ ok: true });
       }
+
 
       case 'add_departure': {
         const origin = String(body.origin_city ?? '').trim();
