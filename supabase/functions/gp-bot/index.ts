@@ -1837,12 +1837,18 @@ Voir : yobbante.com/admin`);
 
 
 
-  const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg);
+  // Liste de villes connues pour detecter une intention DEP même sans le mot-clé
+  const KNOWN_DEP_CITIES = ['paris','marseille','lyon','toulouse','nice','nantes','bordeaux','lille','rennes','montpellier','strasbourg','new york','newark','brooklyn','manhattan','washington','atlanta','boston','miami','chicago','houston','los angeles','bruxelles','liege','geneve','lausanne','zurich','montreal','toronto','london','londres','madrid','barcelona','barcelone','roma','rome','milano','milan','berlin','frankfurt','francfort','casablanca','rabat','abidjan','bamako','cotonou','lome','conakry','nouakchott','libreville','douala','yaounde','dubai','dubaï','istanbul','beijing','pekin','shanghai','guangzhou','canton'];
+  const mentionsKnownCity = KNOWN_DEP_CITIES.some((c) => msg.includes(c));
+
+  const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg)
+    || (/\bje\s+pars\b/.test(msg) && mentionsKnownCity)
+    || (/\bje\s+vais\s+a\b/.test(msg) && mentionsKnownCity);
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
   const hasPoidsKeyword = /\b(poids|pese|weight|fait\s+\d|pesant)\b/.test(msg);
   const hasLivreKeyword = /\b(livr|delivered|remis|livraison)\b/.test(msg);
   const hasDeposeKeyword = /\b(depose|depot|deposer|relais)\b/.test(msg);
-  const hasEnRouteKeyword = /\b(en\s*route|enroute|departe|je\s+pars|on\s+part)\b/.test(msg);
+  const hasEnRouteKeyword = !hasDepKeyword && (/\b(en\s*route|enroute|departe|on\s+part)\b/.test(msg));
 
   // =================================================================
   //  NOUVELLES COMMANDES — STATUT / PAIEMENT / ANNULER / MODIFIER /
