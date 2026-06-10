@@ -2259,6 +2259,7 @@ A traiter manuellement.`);
 
     // City: what remains after stripping date + weight tokens
     let city = prior.city as string | undefined;
+    let onlyDakar = false;
     if (!city) {
       let cityCandidate = cleaned
         .replace(/\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k)\b/gi, ' ')
@@ -2267,7 +2268,22 @@ A traiter manuellement.`);
         .replace(/[,;]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      // If a session has no city stored and the cleaned cityCandidate is empty, treat as missing
+
+      // Strip "Dakar" used as origin: "Dakar Paris", "de Dakar a Paris", "depuis Dakar Paris"
+      const normCandidate = normalize(cityCandidate);
+      const dakarOnlyRe = /^(depuis\s+|de\s+|depart\s+de\s+|au\s+depart\s+de\s+)?dakar(\s+(a|vers|pour))?\s*$/;
+      if (dakarOnlyRe.test(normCandidate)) {
+        onlyDakar = true;
+        cityCandidate = '';
+      } else {
+        // Remove a leading "Dakar" (with optional "depuis/de/au depart de" prefix and trailing connector)
+        cityCandidate = cityCandidate
+          .replace(/^\s*(depuis|de|au\s+depart\s+de)\s+dakar\b\s*(a|vers|pour)?\s*/i, '')
+          .replace(/^\s*dakar\b\s*(a|vers|pour|-|>)?\s*/i, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
       if (cityCandidate.length >= 2 && /[a-z]/i.test(cityCandidate)) {
         city = cityCandidate;
       }
@@ -2279,6 +2295,16 @@ A traiter manuellement.`);
     }
 
     const collected = { city, date: dateIso, weight, default_city: prior.default_city };
+
+    // GP a repondu uniquement "Dakar" / "depuis Dakar" quand on lui demande la destination
+    if (!city && onlyDakar) {
+      await saveSession('dep', collected);
+      await reply(
+        `Je vois que vous partez de Dakar 🙂\nVers quelle ville allez-vous ?\n(Ex : Paris, Madrid, New York...)`,
+        'dep_ask_destination_after_dakar',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
 
     // Demande progressive
     if (!city) {
