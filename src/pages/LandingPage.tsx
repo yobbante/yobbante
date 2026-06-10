@@ -277,68 +277,6 @@ export default function LandingPage() {
             <LandingWorldMap />
           </div>
 
-          <div
-            style={{
-              marginTop: 40,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 12,
-              justifyContent: 'center',
-            }}
-          >
-            {DESTINATIONS.map((d) => (
-              <button
-                key={d.name}
-                type="button"
-                onClick={() => {
-                  // Try to open the world-map tooltip for this city; fallback to legacy hub flow.
-                  const cityId = (() => {
-                    switch (d.name) {
-                      case 'Paris': return 'FR-Paris';
-                      case 'New York': return 'US-New York';
-                      case 'Montréal': return 'CA-Montréal';
-                      case 'Dubai': return 'AE-Dubaï';
-                      case 'Abidjan': return 'CI-Abidjan';
-                      default: return null;
-                    }
-                  })();
-                  if (cityId) {
-                    window.dispatchEvent(
-                      new CustomEvent('yobbante:show-city-tooltip', { detail: { cityId } }),
-                    );
-                    const map = document.querySelector('svg[aria-label="Carte des 36 destinations Yobbanté"]');
-                    map?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  } else {
-                    goExpedier(d.hub);
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '10px 18px',
-                  borderRadius: 999,
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#FFFFFF',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.16)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.08)';
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{d.flag}</span> {d.name}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 

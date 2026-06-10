@@ -4,6 +4,8 @@ import { feature } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 /* ──────────────────────────────────────────────────────────────────────
    LandingWorldMap — D3 + TopoJSON world map for the landing page.
@@ -128,6 +130,7 @@ export function LandingWorldMap({ className }: { className?: string }) {
   const [width, setWidth] = useState(960);
   const [land, setLand] = useState<FeatureCollection<Geometry> | null>(cachedLand);
   const [selected, setSelected] = useState<Selected | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -274,24 +277,34 @@ export function LandingWorldMap({ className }: { className?: string }) {
           </g>
         )}
 
-        {/* City dots (gold) */}
+        {/* City dots (gold) + invisible touch targets */}
         <g>
           {cityPoints.map((c) => (
-            <circle
-              key={`${c.country}-${c.city}`}
-              cx={c.x}
-              cy={c.y}
-              r={5}
-              fill="#D4AF37"
-              stroke="rgba(0,0,0,0.4)"
-              strokeWidth={0.75}
-              style={{ cursor: 'pointer' }}
-              onClick={(e) => { e.stopPropagation(); openCity(c); }}
-            >
-              <title>{`${c.flag} ${c.city}`}</title>
-            </circle>
+            <g key={`${c.country}-${c.city}`}>
+              <circle
+                cx={c.x}
+                cy={c.y}
+                r={5}
+                fill="#D4AF37"
+                stroke="rgba(0,0,0,0.4)"
+                strokeWidth={0.75}
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); openCity(c); }}
+              >
+                <title>{`${c.flag} ${c.city}`}</title>
+              </circle>
+              <circle
+                cx={c.x}
+                cy={c.y}
+                r={20}
+                fill="transparent"
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                onClick={(e) => { e.stopPropagation(); openCity(c); }}
+              />
+            </g>
           ))}
         </g>
+
 
         {/* Dakar — origin marker */}
         {dakarPt && (
@@ -334,12 +347,23 @@ export function LandingWorldMap({ className }: { className?: string }) {
       {/* Fixed tooltip below map */}
       {selected && (
         <div
-          style={{
-            marginTop: 16,
-            display: 'flex',
-            justifyContent: 'center',
-            animation: 'fade-in 0.2s ease-out',
-          }}
+          style={
+            isMobile
+              ? {
+                  position: 'fixed',
+                  bottom: 80,
+                  left: 16,
+                  right: 16,
+                  zIndex: 100,
+                  animation: 'fade-in 0.2s ease-out',
+                }
+              : {
+                  marginTop: 16,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  animation: 'fade-in 0.2s ease-out',
+                }
+          }
         >
           <div
             style={{
@@ -350,8 +374,9 @@ export function LandingWorldMap({ className }: { className?: string }) {
               padding: '14px 44px 14px 16px',
               color: '#fff',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              minWidth: 260,
-              maxWidth: 380,
+              minWidth: isMobile ? undefined : 260,
+              maxWidth: isMobile ? undefined : 380,
+              width: isMobile ? '100%' : undefined,
             }}
           >
             <button
