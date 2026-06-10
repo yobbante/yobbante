@@ -274,24 +274,34 @@ export function LandingWorldMap({ className }: { className?: string }) {
           </g>
         )}
 
-        {/* City dots (gold) */}
+        {/* City dots (gold) + invisible touch targets */}
         <g>
           {cityPoints.map((c) => (
-            <circle
-              key={`${c.country}-${c.city}`}
-              cx={c.x}
-              cy={c.y}
-              r={5}
-              fill="#D4AF37"
-              stroke="rgba(0,0,0,0.4)"
-              strokeWidth={0.75}
-              style={{ cursor: 'pointer' }}
-              onClick={(e) => { e.stopPropagation(); openCity(c); }}
-            >
-              <title>{`${c.flag} ${c.city}`}</title>
-            </circle>
+            <g key={`${c.country}-${c.city}`}>
+              <circle
+                cx={c.x}
+                cy={c.y}
+                r={5}
+                fill="#D4AF37"
+                stroke="rgba(0,0,0,0.4)"
+                strokeWidth={0.75}
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); openCity(c); }}
+              >
+                <title>{`${c.flag} ${c.city}`}</title>
+              </circle>
+              <circle
+                cx={c.x}
+                cy={c.y}
+                r={20}
+                fill="transparent"
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                onClick={(e) => { e.stopPropagation(); openCity(c); }}
+              />
+            </g>
           ))}
         </g>
+
 
         {/* Dakar — origin marker */}
         {dakarPt && (
