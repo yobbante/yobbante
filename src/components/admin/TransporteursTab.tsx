@@ -860,9 +860,6 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => navigate(`/admin/messages?gp=${t.id}`)}>
                         <MessageCircle className="w-4 h-4 mr-2" /> Voir conversation bot
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(buildDirectMessageToGpLine(t), '_blank', 'noopener,noreferrer')}>
-                        <ExternalLink className="w-4 h-4 mr-2" /> Envoyer msg WhatsApp (wa.me)
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
                         const link = buildShareableKonnektWaLink(t);
                         try {
@@ -880,23 +877,55 @@ export function TransporteursTab() {
                         <History className="w-4 h-4 mr-2" /> Historique WhatsApp
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
+                        const url = `https://usekonnekt.com/gp/${gpRef(t.reference)}/departures`;
                         try { await navigator.clipboard.writeText(url); toast.success('URL départ copiée'); }
                         catch { toast.error('Copie impossible'); }
                       }}>
                         <Copy className="w-4 h-4 mr-2" /> Copier URL départ GP
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const url = (t as any).depart_url || `https://yobbante.com/gp/depart/${t.reference}`;
-                        const phone = (((t as any).whatsapp as string | null) || t.telephone_1 || '').replace(/\D/g, '');
-                        const text = `Salam ${t.prenom || ''}, voici ton lien pour publier tes departs Yobbante en 30s :\n${url}`;
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      <DropdownMenuItem onClick={async () => {
+                        const ref = gpRef(t.reference);
+                        const message = `Votre lien de départ Konnekt :\nhttps://usekonnekt.com/gp/${ref}/departures`;
+                        try {
+                          const { error } = await supabase.functions.invoke('send-whatsapp', {
+                            body: {
+                              recipient_phone: t.telephone_1,
+                              recipient_type: 'gp',
+                              message,
+                              transporteur_id: t.id,
+                              trigger_type: 'admin_send_depart_url',
+                            },
+                          });
+                          if (error) throw error;
+                          toast.success('Message envoyé via WhatsApp (926)');
+                        } catch (e: any) {
+                          toast.error('Échec envoi via 926', { description: e?.message });
+                        }
                       }}>
                         <Send className="w-4 h-4 mr-2" /> Envoyer URL départ (WhatsApp)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditLinkGp(t)}>
+                      <DropdownMenuItem onClick={async () => {
+                        const ref = gpRef(t.reference);
+                        const message = `Complétez votre profil GP :\nhttps://usekonnekt.com/onboarding/${ref}/edit`;
+                        try {
+                          const { error } = await supabase.functions.invoke('send-whatsapp', {
+                            body: {
+                              recipient_phone: t.telephone_1,
+                              recipient_type: 'gp',
+                              message,
+                              transporteur_id: t.id,
+                              trigger_type: 'admin_send_edit_link',
+                            },
+                          });
+                          if (error) throw error;
+                          toast.success('Message envoyé via WhatsApp (926)');
+                        } catch (e: any) {
+                          toast.error('Échec envoi via 926', { description: e?.message });
+                        }
+                      }}>
                         <PencilIcon className="w-4 h-4 mr-2" /> Envoyer lien de modification
                       </DropdownMenuItem>
+
                       {!t.actif && (
                         <DropdownMenuItem onClick={() => validateBeta(t)} className="text-emerald-600 dark:text-emerald-400">
                           <Check className="w-4 h-4 mr-2" /> Valider beta (activer GP)
