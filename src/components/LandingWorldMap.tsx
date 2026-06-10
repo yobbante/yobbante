@@ -4,6 +4,8 @@ import { feature } from 'topojson-client';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 /* ──────────────────────────────────────────────────────────────────────
    LandingWorldMap — D3 + TopoJSON world map for the landing page.
