@@ -851,9 +851,22 @@ export function TransporteursTab() {
                       <DropdownMenuItem onClick={() => setEditing(t)}>
                         <Pencil className="w-4 h-4 mr-2" /> Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openInvite(t)}>
+                      <DropdownMenuItem onClick={async () => {
+                        const name = formatTransporteurName(t.prenom, t.nom);
+                        const res = await sendSmartInvite({
+                          phone: t.telephone_1,
+                          message: buildShortKonnektInvite(t),
+                          gp_name: name,
+                          gp_ref: gpRef(t.reference),
+                          transporteur_id: t.id,
+                          kind: 'konnekt_invite',
+                          trigger_type: 'admin_invite_konnekt',
+                        });
+                        if (res.ok) await markKonnektInvited(t);
+                      }}>
                         <Send className="w-4 h-4 mr-2" /> Inviter sur Konnekt
                       </DropdownMenuItem>
+
                       <DropdownMenuItem onClick={() => openBotInvite(t)}>
                         <Bot className="w-4 h-4 mr-2" /> Onboarder sur le bot
                       </DropdownMenuItem>
