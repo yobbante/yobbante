@@ -291,7 +291,7 @@ function SendMessageDialog({ gp, onClose }: { gp: Transporteur; onClose: () => v
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Envoyer un message a {gp.prenom ?? ''} {gp.nom}</DialogTitle>
-          <DialogDescription>Texte libre via le numero 122 (fenetre 24h requise).</DialogDescription>
+          <DialogDescription>Texte libre via le numero 926 (fenetre 24h requise).</DialogDescription>
         </DialogHeader>
         <Textarea
           value={text}

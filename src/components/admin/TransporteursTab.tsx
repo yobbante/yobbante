@@ -288,7 +288,7 @@ export function TransporteursTab() {
       return;
     }
 
-    // 2. WhatsApp activation (depuis le 122)
+    // 2. WhatsApp activation (depuis le 926)
     const message = [
       `Salam ${prenom},`,
       ``,
@@ -345,7 +345,7 @@ export function TransporteursTab() {
               `GP : ${formatTransporteurName(gp.prenom, gp.nom)}`,
               `Tel : ${gp.telephone_1}`,
               `Ref : ${reference}`,
-              `Envoyer manuellement depuis le 122 :`,
+              `Envoyer manuellement depuis le 926 :`,
               res.waLink,
             ].join('\n'),
             client_name: formatTransporteurName(gp.prenom, gp.nom),
