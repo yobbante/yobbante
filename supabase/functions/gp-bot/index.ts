@@ -1837,12 +1837,18 @@ Voir : yobbante.com/admin`);
 
 
 
-  const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg);
+  // Liste de villes connues pour detecter une intention DEP même sans le mot-clé
+  const KNOWN_DEP_CITIES = ['paris','marseille','lyon','toulouse','nice','nantes','bordeaux','lille','rennes','montpellier','strasbourg','new york','newark','brooklyn','manhattan','washington','atlanta','boston','miami','chicago','houston','los angeles','bruxelles','liege','geneve','lausanne','zurich','montreal','toronto','london','londres','madrid','barcelona','barcelone','roma','rome','milano','milan','berlin','frankfurt','francfort','casablanca','rabat','abidjan','bamako','cotonou','lome','conakry','nouakchott','libreville','douala','yaounde','dubai','dubaï','istanbul','beijing','pekin','shanghai','guangzhou','canton'];
+  const mentionsKnownCity = KNOWN_DEP_CITIES.some((c) => msg.includes(c));
+
+  const hasDepKeyword = /\b(dep|depart|departure|trajet)\b/.test(msg)
+    || (/\bje\s+pars\b/.test(msg) && mentionsKnownCity)
+    || (/\bje\s+vais\s+a\b/.test(msg) && mentionsKnownCity);
   const hasCollectKeyword = /\b(collect|pris|recup|recupere|prise)\b/.test(msg) || /\bok\s+collect/.test(msg);
   const hasPoidsKeyword = /\b(poids|pese|weight|fait\s+\d|pesant)\b/.test(msg);
   const hasLivreKeyword = /\b(livr|delivered|remis|livraison)\b/.test(msg);
   const hasDeposeKeyword = /\b(depose|depot|deposer|relais)\b/.test(msg);
-  const hasEnRouteKeyword = /\b(en\s*route|enroute|departe|je\s+pars|on\s+part)\b/.test(msg);
+  const hasEnRouteKeyword = !hasDepKeyword && (/\b(en\s*route|enroute|departe|on\s+part)\b/.test(msg));
 
   // =================================================================
   //  NOUVELLES COMMANDES — STATUT / PAIEMENT / ANNULER / MODIFIER /
@@ -1875,6 +1881,26 @@ Voir : yobbante.com/admin`);
       await supa.from('dossiers').update({ collecte_photos: photos }).eq('id', dossier.id);
       await reply(`✅ Photo enregistree pour 📦 ${tracking}.`, 'photo_saved');
       await notifyAdmin(`📸 Nouvelle photo de ${prenom} (Ref ${transporteur.reference}) sur ${tracking}`);
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
+  // ---------- MEDIA générique (image sans tracking, audio, vidéo, document) ----------
+  {
+    const mediaTypes = new Set(['image', 'audio', 'voice', 'document', 'video', 'sticker']);
+    if (input.message_type && mediaTypes.has(input.message_type)) {
+      await reply(
+        `Merci pour votre envoi 📎\nNotre equipe l'a bien recu et reviendra vers vous.\n\nPour declarer un depart tapez DEP [ville] [date] [kg]\nou envoyez AIDE pour le menu complet.`,
+        'media_received',
+      );
+      const ref = transporteur?.reference ?? '—';
+      const senderName = (transporteur?.prenom || transporteur?.nom || prenom || 'GP').toString();
+      await sendWa({
+        recipient_phone: Deno.env.get('ADMIN_WHATSAPP_NUMBER') || '+221784604003',
+        recipient_type: 'admin',
+        message: `📎 Media recu de ${senderName} (Ref ${ref}) : ${input.message_type}\nA traiter manuellement.`,
+        trigger_type: 'admin_media_received',
+      });
       return new Response('ok', { headers: corsHeaders });
     }
   }
@@ -2233,6 +2259,7 @@ A traiter manuellement.`);
 
     // City: what remains after stripping date + weight tokens
     let city = prior.city as string | undefined;
+    let onlyDakar = false;
     if (!city) {
       let cityCandidate = cleaned
         .replace(/\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k)\b/gi, ' ')
@@ -2241,7 +2268,22 @@ A traiter manuellement.`);
         .replace(/[,;]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      // If a session has no city stored and the cleaned cityCandidate is empty, treat as missing
+
+      // Strip "Dakar" used as origin: "Dakar Paris", "de Dakar a Paris", "depuis Dakar Paris"
+      const normCandidate = normalize(cityCandidate);
+      const dakarOnlyRe = /^(depuis\s+|de\s+|depart\s+de\s+|au\s+depart\s+de\s+)?dakar(\s+(a|vers|pour))?\s*$/;
+      if (dakarOnlyRe.test(normCandidate)) {
+        onlyDakar = true;
+        cityCandidate = '';
+      } else {
+        // Remove a leading "Dakar" (with optional "depuis/de/au depart de" prefix and trailing connector)
+        cityCandidate = cityCandidate
+          .replace(/^\s*(depuis|de|au\s+depart\s+de)\s+dakar\b\s*(a|vers|pour)?\s*/i, '')
+          .replace(/^\s*dakar\b\s*(a|vers|pour|-|>)?\s*/i, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
       if (cityCandidate.length >= 2 && /[a-z]/i.test(cityCandidate)) {
         city = cityCandidate;
       }
@@ -2253,6 +2295,16 @@ A traiter manuellement.`);
     }
 
     const collected = { city, date: dateIso, weight, default_city: prior.default_city };
+
+    // GP a repondu uniquement "Dakar" / "depuis Dakar" quand on lui demande la destination
+    if (!city && onlyDakar) {
+      await saveSession('dep', collected);
+      await reply(
+        `Je vois que vous partez de Dakar 🙂\nVers quelle ville allez-vous ?\n(Ex : Paris, Madrid, New York...)`,
+        'dep_ask_destination_after_dakar',
+      );
+      return new Response('ok', { headers: corsHeaders });
+    }
 
     // Demande progressive
     if (!city) {
