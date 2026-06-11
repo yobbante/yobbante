@@ -103,8 +103,38 @@ Si ville_arrivee ET date_depart absents → {"confiance":"basse"}`;
         continue;
       }
 
-      // 2b. Download image
-      const imgRes = await fetch(msg.media_url!, {
+      // 2b. Resolve media: stored value is either a full URL or a Meta media ID
+      const stored = (msg.media_url || '').trim();
+      let downloadUrl = stored;
+      if (!/^https?:\/\//i.test(stored)) {
+        // Meta media ID → resolve via Graph API
+        if (!waToken) {
+          r.status = 'no_wa_token';
+          results.push(r);
+          continue;
+        }
+        const metaRes = await fetch(`https://graph.facebook.com/v20.0/${stored}`, {
+          headers: { Authorization: `Bearer ${waToken}` },
+        });
+        if (!metaRes.ok) {
+          r.status = `meta_resolve_${metaRes.status}`;
+          await supa.from('whatsapp_inbound_messages')
+            .update({ bot_intent: 'image_ia_fetch_failed' })
+            .eq('id', msg.id);
+          results.push(r);
+          continue;
+        }
+        const metaJson = await metaRes.json();
+        downloadUrl = metaJson?.url;
+        if (!downloadUrl) {
+          r.status = 'meta_no_url';
+          results.push(r);
+          continue;
+        }
+      }
+
+      // 2c. Download image bytes
+      const imgRes = await fetch(downloadUrl, {
         headers: waToken ? { Authorization: `Bearer ${waToken}` } : {},
       });
       if (!imgRes.ok) {
