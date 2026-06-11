@@ -61,188 +61,188 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
   const shouldShowIntent = showIntentBar ?? !hideActions;
 
   return (
-    <div className="sticky top-0 z-50" style={{ background: 'hsl(var(--background-primary))' }}>
-    <nav
-      ref={ref}
-      style={{
-        height: 52,
-        background: 'hsl(var(--background-primary))',
-        borderBottom: '0.5px solid hsl(var(--color-border-tertiary))',
-      }}
-    >
-      <div className="max-w-6xl mx-auto h-full px-6 flex items-center justify-between gap-4">
-        {/* Brand — logged-in users go straight to /app */}
-        <Link
-          to={user ? '/app' : '/'}
-          aria-label="Yobbanté — Accueil"
-          className="inline-flex items-center"
+    <>
+      <div className="fixed top-0 left-0 right-0 z-50 w-full" style={{ background: 'hsl(var(--background-primary))' }}>
+        <nav
+          ref={ref}
+          style={{
+            height: 52,
+            background: 'hsl(var(--background-primary))',
+            borderBottom: '0.5px solid hsl(var(--color-border-tertiary))',
+          }}
         >
-          <img
-            src={yobbanteLogoAsset.url}
-            alt="Yobbanté"
-            style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
-          />
-        </Link>
-
-
-
-
-        {/* Center links — desktop */}
-        {!hideActions && (
-          <div className="hidden md:flex items-center gap-1 h-full">
-            {LINKS.map(l => {
-              const active = l.match(location.pathname);
-              return (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  className="relative inline-flex flex-col items-center justify-center px-3 h-full text-[14px] transition-colors"
-                  style={{
-                    color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                    fontWeight: active ? 500 : 400,
-                    lineHeight: 1.1,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
-                >
-                  <span>{l.label}</span>
-                  {l.subBadge && <SubBadge>{l.subBadge}</SubBadge>}
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute left-3 right-3 bottom-0"
-                      style={{ height: 2, background: '#1a1a1a' }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Right */}
-        <div className="flex items-center gap-2">
-          {user ? (
+          <div className="max-w-6xl mx-auto h-full px-6 flex items-center justify-between gap-4">
+            {/* Brand — logged-in users go straight to /app */}
             <Link
-              to="/app"
-              aria-label="Mon espace"
-              className="hidden sm:inline-flex items-center justify-center rounded-full"
-              style={{
-                width: 32,
-                height: 32,
-                background: 'hsl(var(--secondary))',
-                color: 'hsl(var(--foreground))',
-                fontSize: 13,
-                fontWeight: 500,
-                border: '0.5px solid hsl(var(--color-border-tertiary))',
-              }}
+              to={user ? '/app' : '/'}
+              aria-label="Yobbanté — Accueil"
+              className="inline-flex items-center"
             >
-              {initials((user as any).user_metadata?.full_name, user.email)}
+              <img
+                src={yobbanteLogoAsset.url}
+                alt="Yobbanté"
+                style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
+              />
             </Link>
-          ) : (
-            <>
-              <Link
-                to="/auth"
-                className="hidden sm:inline-flex items-center text-[13px] transition-colors"
-                style={{ color: 'hsl(var(--muted-foreground))', padding: '6px 8px' }}
-              >
-                Connexion
-              </Link>
-              <Link to="/auth" className="hidden sm:inline-flex btn-cta">
-                Mon espace
-              </Link>
-            </>
-          )}
 
-          {/* Mobile burger */}
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <button
-                aria-label="Ouvrir le menu"
-                className="md:hidden inline-flex items-center justify-center rounded-lg"
-                style={{
-                  width: 36,
-                  height: 36,
-                  border: '0.5px solid hsl(var(--color-border-tertiary))',
-                  color: 'hsl(var(--foreground))',
-                  background: 'transparent',
-                }}
-              >
-                <Menu className="w-4 h-4" />
-              </button>
-            </SheetTrigger>
-            <SheetContent
-              side="bottom"
-              className="p-0"
-              style={{
-                background: 'hsl(var(--background-primary))',
-                borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
-              }}
-            >
-              <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                <img src={yobbanteLogoAsset.url} alt="Yobbanté" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
-                <button
-                  aria-label="Fermer le menu"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex items-center justify-center rounded-lg"
-                  style={{ width: 36, height: 36 }}
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* Center links — desktop */}
+            {!hideActions && (
+              <div className="hidden md:flex items-center gap-1 h-full">
+                {LINKS.map(l => {
+                  const active = l.match(location.pathname);
+                  return (
+                    <Link
+                      key={l.to}
+                      to={l.to}
+                      className="relative inline-flex flex-col items-center justify-center px-3 h-full text-[14px] transition-colors"
+                      style={{
+                        color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                        fontWeight: active ? 500 : 400,
+                        lineHeight: 1.1,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
+                    >
+                      <span>{l.label}</span>
+                      {l.subBadge && <SubBadge>{l.subBadge}</SubBadge>}
+                      {active && (
+                        <span
+                          aria-hidden
+                          className="absolute left-3 right-3 bottom-0"
+                          style={{ height: 2, background: '#1a1a1a' }}
+                        />
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-              <div className="px-6 py-2">
-                {LINKS.map((l, i) => (
+            )}
+
+            {/* Right */}
+            <div className="flex items-center gap-2">
+              {user ? (
+                <Link
+                  to="/app"
+                  aria-label="Mon espace"
+                  className="hidden sm:inline-flex items-center justify-center rounded-full"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    background: 'hsl(var(--secondary))',
+                    color: 'hsl(var(--foreground))',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: '0.5px solid hsl(var(--color-border-tertiary))',
+                  }}
+                >
+                  {initials((user as any).user_metadata?.full_name, user.email)}
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/auth"
+                    className="hidden sm:inline-flex items-center text-[13px] transition-colors"
+                    style={{ color: 'hsl(var(--muted-foreground))', padding: '6px 8px' }}
+                  >
+                    Connexion
+                  </Link>
+                  <Link to="/auth" className="hidden sm:inline-flex btn-cta">
+                    Mon espace
+                  </Link>
+                </>
+              )}
+
+              {/* Mobile burger */}
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
                   <button
-                    key={l.to}
-                    type="button"
-                    onClick={() => { setOpen(false); navigate(l.to); }}
-                    className="w-full text-left flex items-center"
+                    aria-label="Ouvrir le menu"
+                    className="md:hidden inline-flex items-center justify-center rounded-lg"
                     style={{
-                      fontSize: 16,
+                      width: 36,
+                      height: 36,
+                      border: '0.5px solid hsl(var(--color-border-tertiary))',
                       color: 'hsl(var(--foreground))',
-                      padding: '14px 0',
-                      borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                      background: 'transparent',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
-                      <span>{l.label}</span>
-                      {l.subBadge && (
-                        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
-                      )}
-                    </span>
+                    <Menu className="w-4 h-4" />
                   </button>
-                ))}
-              </div>
-              <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                {user ? (
-                  <Link to="/app" onClick={() => setOpen(false)} className="btn-cta w-full">Mon espace</Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/auth"
+                </SheetTrigger>
+                <SheetContent
+                  side="bottom"
+                  className="p-0"
+                  style={{
+                    background: 'hsl(var(--background-primary))',
+                    borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
+                  }}
+                >
+                  <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                    <img src={yobbanteLogoAsset.url} alt="Yobbanté" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
+                    <button
+                      aria-label="Fermer le menu"
                       onClick={() => setOpen(false)}
-                      className="flex-1 inline-flex items-center justify-center rounded-lg text-[13px]"
-                      style={{
-                        height: 40,
-                        border: '0.5px solid hsl(var(--color-border-tertiary))',
-                        color: 'hsl(var(--foreground))',
-                      }}
+                      className="inline-flex items-center justify-center rounded-lg"
+                      style={{ width: 36, height: 36 }}
                     >
-                      Connexion
-                    </Link>
-                    <Link to="/auth" onClick={() => setOpen(false)} className="btn-cta flex-1">
-                      Mon espace
-                    </Link>
-                  </>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="px-6 py-2">
+                    {LINKS.map((l, i) => (
+                      <button
+                        key={l.to}
+                        type="button"
+                        onClick={() => { setOpen(false); navigate(l.to); }}
+                        className="w-full text-left flex items-center"
+                        style={{
+                          fontSize: 16,
+                          color: 'hsl(var(--foreground))',
+                          padding: '14px 0',
+                          borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
+                          <span>{l.label}</span>
+                          {l.subBadge && (
+                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
+                    {user ? (
+                      <Link to="/app" onClick={() => setOpen(false)} className="btn-cta w-full">Mon espace</Link>
+                    ) : (
+                      <>
+                        <Link
+                          to="/auth"
+                          onClick={() => setOpen(false)}
+                          className="flex-1 inline-flex items-center justify-center rounded-lg text-[13px]"
+                          style={{
+                            height: 40,
+                            border: '0.5px solid hsl(var(--color-border-tertiary))',
+                            color: 'hsl(var(--foreground))',
+                          }}
+                        >
+                          Connexion
+                        </Link>
+                        <Link to="/auth" onClick={() => setOpen(false)} className="btn-cta flex-1">
+                          Mon espace
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </nav>
+        <LiveDeparturesTicker />
       </div>
-    </nav>
-    <LiveDeparturesTicker />
-    </div>
+      <div style={{ height: 84 }} />
+    </>
   );
 });
 
