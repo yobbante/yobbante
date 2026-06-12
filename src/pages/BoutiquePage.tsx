@@ -37,17 +37,16 @@ const DEKK = {
   muted: '#6B6B6B',
 };
 
-const CATEGORIES: { key: string; label: string }[] = [
-  { key: 'all', label: 'Tout' },
-  { key: 'electronique', label: 'Électronique' },
-  { key: 'mode', label: 'Mode' },
-  { key: 'maison', label: 'Maison' },
-  { key: 'auto', label: 'Auto' },
-  { key: 'tech', label: 'Tech' },
-  { key: 'beaute', label: 'Beauté' },
-  { key: 'autre', label: 'Autre' },
-];
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]));
+const CAT_LABEL: Record<string, string> = Object.fromEntries(CAT_PILLS.map(c => [c.key, c.label]));
+
+const DB_TO_UI: Record<string, CatKey> = {
+  'mode': 'merch-identite',
+  'auto': 'voyage-mobilite',
+  'tech': 'tech-productivite',
+  'electronique': 'rc-gadgets',
+  'maison': 'lifestyle-deco',
+  'beaute': 'bien-etre',
+};
 
 const SORTS = [
   { id: 'trending', label: 'Tendance' },
@@ -72,10 +71,9 @@ export default function BoutiquePage() {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState('all');
+  const [activeCat, setActiveCat] = useState<CatKey>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('trending');
-  const [showSort, setShowSort] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -120,7 +118,9 @@ export default function BoutiquePage() {
   };
 
   const filtered = useMemo(() => {
-    let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
+    let list = activeCat === 'all'
+      ? products
+      : products.filter(p => DB_TO_UI[p.category] === activeCat);
     if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -131,12 +131,6 @@ export default function BoutiquePage() {
     else if (sort === 'new') list = [...list].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     return list;
   }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
-
-  const counts = useMemo(() => {
-    const m: Record<string, number> = { all: products.length };
-    products.forEach(p => { m[p.category] = (m[p.category] || 0) + 1; });
-    return m;
-  }, [products]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
@@ -205,7 +199,7 @@ export default function BoutiquePage() {
         {!loading && filtered.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
             <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', margin: 0 }}>
-              {activeCat === 'all' ? 'Toute la sélection' : CATEGORY_LABEL[activeCat]}
+              {activeCat === 'all' ? 'Toute la sélection' : CAT_LABEL[activeCat]}
             </h2>
             <p style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, margin: 0 }}>
               {filtered.length} produit{filtered.length > 1 ? 's' : ''}
