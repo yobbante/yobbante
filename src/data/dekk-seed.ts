@@ -73,6 +73,18 @@ export async function runDekkSeed(): Promise<{ ok: number; errors: { ref: string
   const errors: { ref: string; error: string }[] = [];
   let ok = 0;
 
+  // Fetch existing rows by ref in one query
+  const refs = DEKK_SEED.map(r => r.ref);
+  const { data: existing, error: fetchErr } = await supabase
+    .from('products' as any)
+    .select('id, ref')
+    .in('ref', refs);
+  if (fetchErr) {
+    return { ok: 0, errors: DEKK_SEED.map(r => ({ ref: r.ref, error: fetchErr.message })) };
+  }
+  const byRef = new Map<string, string>();
+  ((existing as any[]) || []).forEach(row => { if (row.ref) byRef.set(row.ref, row.id); });
+
   for (const r of DEKK_SEED) {
     const price_eur = Math.max(1, Math.round(r.prix_vente / FCFA_PER_EUR));
     const payload: any = {
@@ -95,9 +107,10 @@ export async function runDekkSeed(): Promise<{ ok: number; errors: { ref: string
       verified: true,
     };
 
-    const { error } = await supabase
-      .from('products' as any)
-      .upsert(payload, { onConflict: 'ref' });
+    const existingId = byRef.get(r.ref);
+    const { error } = existingId
+      ? await supabase.from('products' as any).update(payload).eq('id', existingId)
+      : await supabase.from('products' as any).insert(payload);
 
     if (error) errors.push({ ref: r.ref, error: error.message });
     else ok++;
@@ -105,3 +118,4 @@ export async function runDekkSeed(): Promise<{ ok: number; errors: { ref: string
 
   return { ok, errors };
 }
+
