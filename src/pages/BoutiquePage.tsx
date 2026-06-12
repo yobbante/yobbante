@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, X, Plus, Minus, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { CatNav, CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { ecommerce } from '@/lib/analytics';
@@ -36,17 +37,16 @@ const DEKK = {
   muted: '#6B6B6B',
 };
 
-const CATEGORIES: { key: string; label: string }[] = [
-  { key: 'all', label: 'Tout' },
-  { key: 'electronique', label: 'Électronique' },
-  { key: 'mode', label: 'Mode' },
-  { key: 'maison', label: 'Maison' },
-  { key: 'auto', label: 'Auto' },
-  { key: 'tech', label: 'Tech' },
-  { key: 'beaute', label: 'Beauté' },
-  { key: 'autre', label: 'Autre' },
-];
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map(c => [c.key, c.label]));
+const CAT_LABEL: Record<string, string> = Object.fromEntries(CAT_PILLS.map(c => [c.key, c.label]));
+
+const DB_TO_UI: Record<string, CatKey> = {
+  'mode': 'merch-identite',
+  'auto': 'voyage-mobilite',
+  'tech': 'tech-productivite',
+  'electronique': 'rc-gadgets',
+  'maison': 'lifestyle-deco',
+  'beaute': 'bien-etre',
+};
 
 const SORTS = [
   { id: 'trending', label: 'Tendance' },
@@ -71,10 +71,9 @@ export default function BoutiquePage() {
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState('all');
+  const [activeCat, setActiveCat] = useState<CatKey>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('trending');
-  const [showSort, setShowSort] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -119,7 +118,9 @@ export default function BoutiquePage() {
   };
 
   const filtered = useMemo(() => {
-    let list = activeCat === 'all' ? products : products.filter(p => p.category === activeCat);
+    let list = activeCat === 'all'
+      ? products
+      : products.filter(p => DB_TO_UI[p.category] === activeCat);
     if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -130,12 +131,6 @@ export default function BoutiquePage() {
     else if (sort === 'new') list = [...list].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     return list;
   }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
-
-  const counts = useMemo(() => {
-    const m: Record<string, number> = { all: products.length };
-    products.forEach(p => { m[p.category] = (m[p.category] || 0) + 1; });
-    return m;
-  }, [products]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
@@ -197,69 +192,14 @@ export default function BoutiquePage() {
       </div>
 
 
-      {/* STICKY FILTERS */}
-      <div style={{
-        position: 'sticky', top: 90, zIndex: 30,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: `0.5px solid ${DEKK.line}`,
-      }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-6" style={{ padding: '12px 16px' }}>
-          <div className="flex items-center gap-2 relative">
-            <div className="dekk-chips flex gap-2 overflow-x-auto flex-nowrap flex-1" style={{ scrollbarWidth: 'none', minWidth: 0, WebkitOverflowScrolling: 'touch' }}>
-              {CATEGORIES.map(cat => {
-                const active = cat.key === activeCat;
-                const count = counts[cat.key] || 0;
-                return (
-                  <button key={cat.key} type="button" onClick={() => setActiveCat(cat.key)}
-                    style={{
-                      flex: '0 0 auto', height: 36, padding: '0 14px',
-                      borderRadius: 100, fontSize: 12.5, lineHeight: 1,
-                      fontWeight: active ? 600 : 500,
-                      background: active ? DEKK.ink : '#fff',
-                      color: active ? '#fff' : DEKK.ink,
-                      border: `1px solid ${active ? DEKK.ink : DEKK.line}`,
-                      cursor: 'pointer', whiteSpace: 'nowrap',
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      transition: 'all 180ms',
-                    }}>
-                    {cat.label}
-                    {count > 0 && (
-                      <span style={{ fontSize: 10, opacity: active ? 0.6 : 0.5, fontFamily: '"DM Mono", monospace' }}>{count}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={() => setShowSort(s => !s)}
-              style={{
-                flex: '0 0 auto', height: 36, padding: '0 12px', borderRadius: 100,
-                background: '#fff', border: `1px solid ${DEKK.line}`, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: DEKK.ink,
-              }}>
-              <SlidersHorizontal size={14} />
-              <span className="hidden sm:inline">{SORTS.find(s => s.id === sort)?.label}</span>
-            </button>
-            {showSort && (
-              <div style={{ position: 'absolute', right: 0, top: 44, background: '#fff', border: `1px solid ${DEKK.line}`, borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.08)', padding: 4, zIndex: 40, minWidth: 180, animation: 'dekkFadeIn 180ms ease-out' }}>
-                {SORTS.map(s => (
-                  <button key={s.id} onClick={() => { setSort(s.id); setShowSort(false); }}
-                    style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', fontSize: 13, background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: DEKK.ink }}>
-                    {s.label}{sort === s.id && <Check size={14} color={DEKK.accent} />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* CAT NAV */}
+      <CatNav active={activeCat} onChange={setActiveCat} />
 
       <main className="max-w-6xl mx-auto px-4 md:px-6" style={{ padding: '24px 16px 100px' }}>
         {!loading && filtered.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
             <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em', margin: 0 }}>
-              {activeCat === 'all' ? 'Toute la sélection' : CATEGORY_LABEL[activeCat]}
+              {activeCat === 'all' ? 'Toute la sélection' : CAT_LABEL[activeCat]}
             </h2>
             <p style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, margin: 0 }}>
               {filtered.length} produit{filtered.length > 1 ? 's' : ''}
@@ -457,7 +397,7 @@ function ProductCard({ p, idx, wished, onWish, onAdd }: {
 
       <div style={{ padding: '12px 2px 0', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: DEKK.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{CATEGORY_LABEL[p.category] ?? p.category}</span>
+          <span>{CAT_LABEL[DB_TO_UI[p.category]] ?? p.category}</span>
           <span style={{ width: 3, height: 3, borderRadius: 2, background: stockBadge.dot, display: 'inline-block' }} />
           <span>{stockBadge.label}</span>
         </div>
