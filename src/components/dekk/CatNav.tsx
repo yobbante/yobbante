@@ -54,7 +54,6 @@ export function CatNav({ active, onChange }: CatNavProps) {
               key={pill.key}
               type="button"
               onClick={() => onChange(pill.key)}
-              className="catnav-scroll"
               style={{
                 flex: '0 0 auto',
                 padding: '5px 12px',
