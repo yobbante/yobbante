@@ -397,7 +397,7 @@ function ProductCard({ p, idx, wished, onWish, onAdd }: {
 
       <div style={{ padding: '12px 2px 0', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: DEKK.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{CATEGORY_LABEL[p.category] ?? p.category}</span>
+          <span>{CAT_LABEL[DB_TO_UI[p.category]] ?? p.category}</span>
           <span style={{ width: 3, height: 3, borderRadius: 2, background: stockBadge.dot, display: 'inline-block' }} />
           <span>{stockBadge.label}</span>
         </div>
