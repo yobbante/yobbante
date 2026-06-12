@@ -4,9 +4,12 @@ import { toast } from 'sonner';
 import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
 import { BoutiqueStatsPanel } from './BoutiqueStatsPanel';
 import { BoutiquePromosPanel } from './BoutiquePromosPanel';
+import { runDekkSeed } from '@/data/dekk-seed';
+
 
 type Product = {
   id: string;
+  ref: string | null;
   name: string;
   description: string | null;
   category: string;
@@ -16,6 +19,8 @@ type Product = {
   stock_mode: string;
   stock_qty: number | null;
   delivery_days: number | null;
+  delai_drop: string | null;
+  en_vente: boolean;
   status: string;
   image_url: string | null;
   source_type: string;
