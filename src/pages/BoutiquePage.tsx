@@ -346,36 +346,11 @@ export default function BoutiquePage() {
   );
 }
 
-function FeaturedStrip() {
-  return (
-    <div
-      className="flex items-center justify-between flex-wrap gap-3"
-      style={{
-        background: DEKK.ink, color: '#fff',
-        borderRadius: 18, padding: '24px 26px', margin: '24px 0',
-        position: 'relative', overflow: 'hidden',
-      }}>
-      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(600px circle at 90% 50%, ${DEKK.accent}30, transparent 60%)`, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative' }}>
-        <div style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.14em', color: DEKK.accent, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          Sélection du moment
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginTop: 6, letterSpacing: '-0.01em' }}>
-          Ce que Dakar commande maintenant.
-        </div>
-      </div>
-      <button style={{ background: '#fff', color: DEKK.ink, fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 100, padding: '11px 20px', cursor: 'pointer', position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        Découvrir <ArrowUpRight size={14} />
-      </button>
-    </div>
-  );
-}
-
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} style={{ borderRadius: 14, overflow: 'hidden', background: '#FAFAFA', border: `0.5px solid ${DEKK.line}` }}>
+        <div key={i} style={{ borderRadius: 12, overflow: 'hidden', background: '#FAFAFA', border: `0.5px solid ${DEKK.line}` }}>
           <div style={{ aspectRatio: '1/1', background: 'linear-gradient(90deg, #F0F0F0 0%, #F8F8F8 50%, #F0F0F0 100%)', backgroundSize: '200% 100%', animation: 'dekkShimmer 1.4s infinite' }} />
           <div style={{ padding: 12 }}>
             <div style={{ height: 10, width: '40%', background: '#EEE', borderRadius: 4, marginBottom: 8 }} />
@@ -385,134 +360,6 @@ function SkeletonGrid() {
         </div>
       ))}
     </div>
-  );
-}
-
-function EmptyState({ onReset }: { onReset: () => void }) {
-  return (
-    <div className="text-center" style={{ padding: '64px 24px' }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: 28, background: DEKK.accentSoft,
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18,
-      }}>
-        <ShoppingBag size={22} color={DEKK.accent} />
-      </div>
-      <p style={{ fontSize: 17, fontWeight: 600, color: DEKK.ink, margin: 0 }}>Aucun produit trouvé.</p>
-      <p style={{ fontSize: 13, color: DEKK.muted, marginTop: 8 }}>
-        Essayez d'autres filtres ou explorez toutes les catégories.
-      </p>
-      <button onClick={onReset} style={{ marginTop: 20, background: DEKK.ink, color: '#fff', border: 'none', borderRadius: 100, padding: '12px 24px', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-        Réinitialiser
-      </button>
-    </div>
-  );
-}
-
-function ProductCard({ p, idx, wished, onWish, onAdd, badge }: {
-  p: Product; idx: number; wished: boolean;
-  onWish: () => void; onAdd: () => void;
-  badge?: string;
-}) {
-  const [hovering, setHovering] = useState(false);
-  const stockBadge =
-    p.stock_mode === 'stock'
-      ? { label: 'En stock', dot: '#0E7A4F' }
-      : { label: `Sous ${p.delivery_days ?? 7} j`, dot: DEKK.accent };
-  const newBadge = isNew(p.created_at);
-
-  return (
-    <article
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      style={{
-        display: 'flex', flexDirection: 'column',
-        animation: `dekkFadeIn 320ms ease-out ${Math.min(idx * 40, 320)}ms both`,
-      }}>
-      <Link to={`/boutique/${p.id}`} style={{
-        position: 'relative', aspectRatio: '1/1', background: '#F6F6F6', overflow: 'hidden',
-        borderRadius: 14, display: 'block',
-      }}>
-        {p.image_url ? (
-          <img src={p.image_url} alt={p.name} loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 600ms cubic-bezier(.2,.8,.2,1)', transform: hovering ? 'scale(1.05)' : 'scale(1)' }} />
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#CCC' }}>
-            <ShoppingBag size={28} />
-          </div>
-        )}
-
-        {/* Top-left badges */}
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {badge && (
-            <span style={{ background: '#C97B3A', color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
-              {badge}
-            </span>
-          )}
-          {newBadge && (
-            <span style={{ background: DEKK.ink, color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
-              NOUVEAU
-            </span>
-          )}
-          {p.verified && (
-            <span style={{ background: '#fff', color: DEKK.ink, borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <ShieldCheck size={10} color={DEKK.accent} /> TESTÉ
-            </span>
-          )}
-        </div>
-
-        {/* Wishlist */}
-        <button onClick={(e) => { e.preventDefault(); onWish(); }} aria-label="Favori"
-          style={{
-            position: 'absolute', top: 10, right: 10, width: 32, height: 32,
-            borderRadius: 16, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(6px)',
-            border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-          <Heart size={14} fill={wished ? DEKK.accent : 'none'} color={wished ? DEKK.accent : DEKK.ink} />
-        </button>
-      </Link>
-
-      <div style={{ padding: '12px 2px 0', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.1em', color: DEKK.muted, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{CAT_LABEL[DB_TO_UI[p.category]] ?? p.category}</span>
-          <span style={{ width: 3, height: 3, borderRadius: 2, background: stockBadge.dot, display: 'inline-block' }} />
-          <span>{stockBadge.label}</span>
-        </div>
-        <Link to={`/boutique/${p.id}`} style={{
-          fontSize: 13.5, fontWeight: 500, color: DEKK.ink, lineHeight: 1.35,
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-          overflow: 'hidden', minHeight: 36, marginTop: 6, textDecoration: 'none',
-        }}>
-          {p.name}
-        </Link>
-
-        <div style={{ marginTop: 'auto', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', color: DEKK.ink, lineHeight: 1 }}>
-              {fmtEur(p.price_eur)}
-            </div>
-            <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace', marginTop: 3 }}>
-              {fmtFcfa(p.price_fcfa)}
-            </div>
-          </div>
-          <button
-            onClick={onAdd}
-            aria-label="Ajouter au panier"
-            style={{
-              width: 38, height: 38, borderRadius: 19,
-              background: DEKK.ink, color: '#fff',
-              border: 'none', cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'transform 150ms, background 150ms',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = DEKK.accent; }}
-            onMouseLeave={e => { e.currentTarget.style.background = DEKK.ink; }}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-      </div>
-    </article>
   );
 }
 
