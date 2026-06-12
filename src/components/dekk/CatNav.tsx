@@ -37,7 +37,7 @@ export function CatNav({ active, onChange }: CatNavProps) {
       }}
     >
       <div
-        className="max-w-6xl mx-auto px-4 md:px-6"
+        className="catnav-scroll max-w-6xl mx-auto px-4 md:px-6"
         style={{
           display: 'flex',
           gap: 6,
@@ -46,9 +46,6 @@ export function CatNav({ active, onChange }: CatNavProps) {
           msOverflowStyle: 'none',
         }}
       >
-        <style>{`
-          .catnav-scroll::-webkit-scrollbar { display: none; }
-        `}</style>
         {CAT_PILLS.map((pill) => {
           const isActive = pill.key === active;
           return (
