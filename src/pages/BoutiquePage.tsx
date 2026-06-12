@@ -249,13 +249,37 @@ export default function BoutiquePage() {
           </div>
         )}
 
+        {/* SECTION EFFET WAOUH */}
+        {!loading && wowProducts.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }}>
+                Effet waouh — à ne pas rater
+              </h2>
+              <button
+                onClick={() => setActiveCat('all')}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: '#C97B3A', cursor: 'pointer', padding: 0 }}
+              >
+                Voir tout →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+              {wowProducts.map((p, i) => (
+                <ProductCard key={p.id} p={p} idx={i}
+                  wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
+                  onAdd={() => addToCart(p)} badge="Waouh" />
+              ))}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <SkeletonGrid />
         ) : filtered.length === 0 ? (
           <EmptyState onReset={() => { setActiveCat('all'); setSearch(''); }} />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+            <div id="dekk-product-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
               {filtered.slice(0, 6).map((p, i) => (
                 <ProductCard key={p.id} p={p} idx={i}
                   wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
