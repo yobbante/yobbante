@@ -196,28 +196,6 @@ export default function BoutiquePage() {
         </div>
       </div>
 
-      {/* PART 4 — Search bar (existing) */}
-      <section style={{ borderBottom: `0.5px solid ${DEKK.line}`, background: '#fff' }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-6 pb-6">
-          <div style={{ position: 'relative', maxWidth: 580 }}>
-            <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: DEKK.muted }} />
-            <input
-              id="dekk-search-input"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un produit, une marque…"
-              style={{
-                width: '100%', height: 52, padding: '0 16px 0 44px', fontSize: 14,
-                border: `1px solid ${DEKK.line}`, borderRadius: 14,
-                background: '#FAFAFA', color: DEKK.ink, outline: 'none',
-                transition: 'all 200ms',
-              }}
-              onFocus={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = DEKK.ink; }}
-              onBlur={e => { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderColor = DEKK.line; }}
-            />
-          </div>
-        </div>
-      </section>
 
       {/* STICKY FILTERS */}
       <div style={{
