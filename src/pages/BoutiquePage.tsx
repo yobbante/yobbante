@@ -75,8 +75,8 @@ const CAT_CARDS: { key: CatKey; label: string; icon: React.ElementType; match: (
   { key: 'lifestyle-deco', label: 'Lifestyle / Déco', icon: Sparkles, match: (c) => c === 'maison' },
   { key: 'equipement-pro', label: 'Pro', icon: Briefcase, match: (c) => c === 'pro' || c === 'equipement-pro' },
   { key: 'packs-cadeaux', label: 'Packs', icon: Gift, match: (c) => c === 'packs' || c === 'packs-cadeaux' },
-  { key: 'cachettes', label: 'Cachettes', icon: LockIcon, match: (c) => c === 'cachettes' },
-  { key: 'gaming', label: 'Gaming', icon: Package, match: (c) => c === 'gaming' },
+  { key: 'cachettes', label: 'Cachettes', icon: Shield, match: (c) => c === 'cachettes' },
+  { key: 'gaming', label: 'Gaming', icon: Gamepad2, match: (c) => c === 'gaming' },
 ];
 
 const GUARANTEES = [
