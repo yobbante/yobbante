@@ -199,7 +199,7 @@ export default function BoutiquePage() {
 
       {/* STICKY FILTERS */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 30,
+        position: 'sticky', top: 90, zIndex: 30,
         background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
