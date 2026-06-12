@@ -36,11 +36,16 @@ export function AdminOnlyGuard() {
   useEffect(() => {
     if (isLoading || !isAdmin) return;
     const path = location.pathname;
+    const search = location.search || '';
     if (path === '/auth') return;
     if (isPublicPath(path)) return;
     if (path === '/admin' || path.startsWith('/admin/')) return;
+    // CORRECTION 3 — laisser l'admin terminer un flow client en cours
+    // (modal de confirmation OAuth → ?resume=1). Sans ça, le bouton
+    // "Continuer avec Google" du formulaire renverrait l'admin sur /admin.
+    if (search.includes('resume=1')) return;
     navigate('/admin', { replace: true });
-  }, [isAdmin, isLoading, location.pathname, navigate]);
+  }, [isAdmin, isLoading, location.pathname, location.search, navigate]);
 
   return null;
 }

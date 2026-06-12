@@ -536,7 +536,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const routeOk = !!originCity && !!destCity;
   const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
   const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
-  const packageOk = !!description.trim() && !!declaredLocal && weightTouched;
+  const packageOk = !!description.trim() && weightTouched; // CORRECTION 7 — declaredLocal optionnel
   const goodsAutoConfident = false;
   const skipGoodsStep = false;
   const goodsOk = !!goodsType;
@@ -572,7 +572,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     pickupDate:      !pickupDate,
     pickupSlot:      !pickupSlot,
     description:     !description.trim(),
-    declaredLocal:   !declaredLocal,
+    declaredLocal:   false, // CORRECTION 7 — champ optionnel
     goodsType:       !goodsType,
   } : {} as Record<string, boolean>;
 
@@ -1325,7 +1325,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       : 'Disponible uniquement à Dakar',
                     disabled: !destIsDakar || !hasRelays,
                     disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : (!hasRelays ? 'Points relais bientôt disponibles à Dakar' : undefined),
-                    hidden: destIsDakar && !hasRelays, // masqué si Dakar mais aucun relais actif
+                    // CORRECTION 6 — masquer complètement l'option pour toute
+                    // destination hors Sénégal/Dakar. On ne propose un relais
+                    // que pour la livraison locale Dakar.
+                    hidden: !destIsDakar || (destIsDakar && !hasRelays),
                   },
                   {
                     id: 'home_delivery',
@@ -1333,6 +1336,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     sub: destIsDakar ? 'Frais selon zone et transporteur' : 'Disponible uniquement à Dakar',
                     disabled: !destIsDakar,
                     disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : undefined,
+                    hidden: !destIsDakar,
                   },
                 ];
                 return options.filter(o => !o.hidden).map(opt => {
@@ -1465,8 +1469,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <div>
               <div className="flex items-center gap-1 mb-1 text-[12px] font-medium">
                 <span>Valeur déclarée</span>
-                <span className="text-red-500" aria-hidden>*</span>
                 <span className="text-muted-foreground">({originProfile.currencySymbol})</span>
+                <span className="text-[10px] text-muted-foreground italic">— optionnel</span>
                 <span
                   className="cursor-help text-muted-foreground"
                   title="Valeur marchande approximative du contenu. Utilisée pour la douane et l'assurance. En cas de sinistre, c'est cette valeur qui sera prise en compte."
@@ -1479,10 +1483,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 placeholder={originProfile.currency === 'XOF' ? 'Ex. : 50 000 FCFA' : 'Ex. : 120'}
                 suffix={originProfile.currencySymbol}
                 type="number"
-                invalid={fieldErrors.declaredLocal}
               />
               <p className="mt-1 text-[11px] text-muted-foreground italic">
-                Optionnel — recommandé pour l'assurance.
+                Optionnel — recommandé pour l'assurance. Laissez vide si non applicable.
               </p>
             </div>
             <div className="flex items-end">
@@ -1491,6 +1494,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               </p>
             </div>
           </div>
+
 
           {/* Poids — slider classique + saisie manuelle */}
           <div className="space-y-2">
