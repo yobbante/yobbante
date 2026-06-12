@@ -71,7 +71,7 @@ const isNew = (d: string) => Date.now() - +new Date(d) < 14 * 24 * 3600 * 1000;
 type CartItem = { product: Product; qty: number };
 
 const CAT_CARDS: { key: CatKey; label: string; icon: React.ElementType; match: (cat: string) => boolean }[] = [
-  { key: 'cachettes', label: 'Cachettes', icon: Lock, match: (c) => c === 'cachettes' },
+  { key: 'cachettes', label: 'Cachettes', icon: LockIcon, match: (c) => c === 'cachettes' },
   { key: 'gaming', label: 'Gaming', icon: Package, match: (c) => c === 'gaming' },
   { key: 'tech-productivite', label: 'Tech', icon: Cpu, match: (c) => c === 'tech' },
   { key: 'rc-gadgets', label: 'RC & Gadgets', icon: Car, match: (c) => c === 'electronique' },
