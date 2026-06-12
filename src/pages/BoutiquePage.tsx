@@ -414,6 +414,11 @@ function ProductCard({ p, idx, wished, onWish, onAdd, badge }: {
 
         {/* Top-left badges */}
         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {badge && (
+            <span style={{ background: '#C97B3A', color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
+              {badge}
+            </span>
+          )}
           {newBadge && (
             <span style={{ background: DEKK.ink, color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
               NOUVEAU
