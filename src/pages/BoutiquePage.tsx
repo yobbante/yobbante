@@ -79,12 +79,6 @@ const CAT_CARDS: { key: CatKey; label: string; icon: React.ElementType; match: (
   { key: 'gaming', label: 'Gaming', icon: Gamepad2, match: (c) => c === 'gaming' },
 ];
 
-const GUARANTEES = [
-  { label: 'Livraison Yobbanté', sublabel: 'Dakar J+1 · Régions J+3', icon: Truck },
-  { label: 'Produits testés', sublabel: 'Sélection rigoureuse', icon: ShieldCheck },
-  { label: 'Support WhatsApp', sublabel: 'Réponse sous 2h', icon: MessageCircle },
-  { label: 'Retour 7 jours', sublabel: 'Sans conditions', icon: RefreshCw },
-];
 
 export default function BoutiquePage() {
   useSeo({
