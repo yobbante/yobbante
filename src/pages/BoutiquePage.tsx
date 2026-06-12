@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe } from 'lucide-react';
+import {
+  ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe,
+  Shield, Gamepad2, Cpu, Car, Sparkles, Briefcase, Gift,
+  Truck, ShieldCheck, MessageCircle, RefreshCw,
+} from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { CatNav, CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
