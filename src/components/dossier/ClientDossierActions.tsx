@@ -159,7 +159,13 @@ export function ClientDossierActions({
               type="date"
               value={dateVal}
               min={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setDateVal(e.target.value)}
+              max="2099-12-31"
+              onChange={(e) => {
+                const v = e.target.value;
+                const m = v.match(/^(\d{4})-\d{2}-\d{2}$/);
+                if (v && (!m || Number(m[1]) < 2024 || Number(m[1]) > 2099)) return;
+                setDateVal(v);
+              }}
             />
           </div>
           <DialogFooter className="gap-2">

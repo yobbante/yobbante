@@ -28,47 +28,28 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
   const today = new Date().toISOString().slice(0, 10);
   const items: TickerItem[] = [];
 
-  // SOURCE 1 + 2: manual_departures (with optional transporteur join)
+  // Toutes les sources sont anonymisées côté client : on n'expose ni le nom
+  // du GP ni la plateforme source (cf. Correction 1).
   try {
     const { data: manual } = await supabase
       .from('public_active_departures' as any)
-      .select('origin_city, destination_city, departure_date, transport_mode, transporteur_ref, carrier_name')
+      .select('origin_city, destination_city, departure_date, transport_mode')
       .gte('departure_date', today)
       .order('departure_date', { ascending: true })
       .limit(20);
-
-
     if (manual?.length) {
-      const rows = manual as any[];
-      const refs = rows.map(m => m.transporteur_ref).filter(Boolean) as string[];
-      let transporteursMap: Record<string, string> = {};
-      if (refs.length) {
-        const { data: trans } = await supabase
-          .from('transporteurs')
-          .select('reference, nom, actif')
-          .in('reference', refs)
-          .eq('actif', true);
-        if (trans) {
-          for (const t of trans) transporteursMap[t.reference as string] = t.nom as string;
-        }
-      }
-      for (const m of rows) {
+      for (const m of manual as any[]) {
         items.push({
           ville_depart: m.origin_city,
           ville_arrivee: m.destination_city,
           date_depart: m.departure_date,
           mode_transport: m.transport_mode,
-          transporteur:
-            (m.transporteur_ref && transporteursMap[m.transporteur_ref]) ||
-            m.carrier_name ||
-            'Yobbanté',
+          transporteur: 'Yobbanté',
         });
       }
     }
-
   } catch { /* skip silently */ }
 
-  // SOURCE 3: konnekt_departures table (cached/synced)
   try {
     const { data: konnekt } = await supabase
       .from('konnekt_departures')
@@ -84,13 +65,12 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
           ville_arrivee: k.destination_city,
           date_depart: k.departure_date,
           mode_transport: k.transport,
-          transporteur: 'Konnekt',
+          transporteur: 'Yobbanté',
         });
       }
     }
   } catch { /* skip silently */ }
 
-  // SOURCE 4: live Konnekt feed via edge function (fallback when table is empty)
   try {
     const { data: live } = await supabase.functions.invoke('list-departures');
     const deps = (live as any)?.departures as Array<any> | undefined;
@@ -102,7 +82,7 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
           ville_arrivee: k.destination_city,
           date_depart: k.departure_date,
           mode_transport: k.transport,
-          transporteur: 'Konnekt',
+          transporteur: 'Yobbanté',
         });
       }
     }

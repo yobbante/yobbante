@@ -212,8 +212,8 @@ export default function PayPage() {
               )}
               {dossier.assigned_transporteur_ref && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">GP assigné</span>
-                  <span className="font-mono text-xs">{dossier.assigned_transporteur_ref}</span>
+                  <span className="text-muted-foreground">Transporteur assigné</span>
+                  <span className="text-xs">Yobbanté</span>
                 </div>
               )}
               <div className="flex justify-between pt-2 mt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>

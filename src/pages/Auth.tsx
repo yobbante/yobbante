@@ -14,13 +14,21 @@ import logoYobbante from '@/assets/logo-yobbante.png';
  * regardless of any ?redirect= param. Other users use the requested redirect.
  */
 async function resolvePostLoginRoute(userId: string, fallback: string): Promise<string> {
+  // CORRECTION 3 — un admin qui finalise une commande client ne doit PAS être
+  // renvoyé sur /admin. On respecte la destination demandée dès qu'elle porte
+  // une intention client explicite (resume=1, /pay, /suivre, /devis, /expedier,
+  // /confirmation…). Sinon, comportement par défaut : admin → /admin.
+  const isClientIntent =
+    fallback.includes('resume=1') ||
+    /^\/(pay|suivre|track|expedier|devis|confirmation|orders|app|gp\/depart)(\/|\?|$)/.test(fallback);
   try {
     const { data } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
     const isAdmin = (data ?? []).some((r) => r.role === 'admin');
-    return isAdmin ? '/admin' : fallback;
+    if (isAdmin && !isClientIntent) return '/admin';
+    return fallback;
   } catch {
     return fallback;
   }
