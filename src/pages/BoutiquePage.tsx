@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, Search, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { useDekkCart } from '@/hooks/useDekkCart';
@@ -137,11 +137,6 @@ export default function BoutiquePage() {
     return m;
   }, [products]);
 
-  const focusSearch = () => {
-    const el = document.getElementById('dekk-search-input') as HTMLInputElement | null;
-    if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  };
-
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
@@ -153,9 +148,8 @@ export default function BoutiquePage() {
       `}</style>
 
       <DekkHeader
-        title="Boutique Dëkk"
-        backTo="/"
-        onSearch={focusSearch}
+        searchValue={search}
+        onSearchChange={setSearch}
         onWishlist={toggleWishlistFilter}
       />
 
@@ -202,32 +196,10 @@ export default function BoutiquePage() {
         </div>
       </div>
 
-      {/* PART 4 — Search bar (existing) */}
-      <section style={{ borderBottom: `0.5px solid ${DEKK.line}`, background: '#fff' }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-6 pb-6">
-          <div style={{ position: 'relative', maxWidth: 580 }}>
-            <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: DEKK.muted }} />
-            <input
-              id="dekk-search-input"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un produit, une marque…"
-              style={{
-                width: '100%', height: 52, padding: '0 16px 0 44px', fontSize: 14,
-                border: `1px solid ${DEKK.line}`, borderRadius: 14,
-                background: '#FAFAFA', color: DEKK.ink, outline: 'none',
-                transition: 'all 200ms',
-              }}
-              onFocus={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = DEKK.ink; }}
-              onBlur={e => { e.currentTarget.style.background = '#FAFAFA'; e.currentTarget.style.borderColor = DEKK.line; }}
-            />
-          </div>
-        </div>
-      </section>
 
       {/* STICKY FILTERS */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 30,
+        position: 'sticky', top: 90, zIndex: 30,
         background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',

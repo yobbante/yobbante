@@ -6,6 +6,7 @@
    YOBBANTÉ — Design System (v2)
    Primary CTA: #1a1a1a · Success: #1D9E75 · Warning: #BA7517
    Danger: #A32D2D · No shadows · No gradients · No blur
+   DËKK accent: #C97B3A · DËKK pale: #FBF3EC · DËKK light: #F5E6D8 · DËKK dark: #8B5220
    ============================================================ */
 
 @layer base {
@@ -81,6 +82,12 @@
     --sidebar-accent-foreground: 36 25% 97%;
     --sidebar-border: 0 0% 16%;
     --sidebar-ring: 162 71% 37%;
+
+    /* ─── DËKK tokens ──────────────────────────────────── */
+    --dekk-terra: 27 55% 51%;
+    --dekk-terra-light: 28 55% 90%;
+    --dekk-terra-dark: 26 63% 33%;
+    --dekk-terra-pale: 28 55% 95%;
   }
 
   :root { color-scheme: light; }
