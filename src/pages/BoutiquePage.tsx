@@ -137,11 +137,6 @@ export default function BoutiquePage() {
     return m;
   }, [products]);
 
-  const focusSearch = () => {
-    const el = document.getElementById('dekk-search-input') as HTMLInputElement | null;
-    if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  };
-
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
@@ -153,9 +148,8 @@ export default function BoutiquePage() {
       `}</style>
 
       <DekkHeader
-        title="Boutique Dëkk"
-        backTo="/"
-        onSearch={focusSearch}
+        searchValue={search}
+        onSearchChange={setSearch}
         onWishlist={toggleWishlistFilter}
       />
 
