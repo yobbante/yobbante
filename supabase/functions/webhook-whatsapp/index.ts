@@ -393,6 +393,121 @@ Deno.serve(async (req) => {
               console.error('WA_ERROR livreur-bot fetch', e);
             }
           } else if (channel === 'gp') {
+            // ============================================================
+            // PATTERNS PRIORITAIRES (avant tout autre traitement gp-bot)
+            //   "MON LIEN <ref>"  -> renvoie le lien d'onboarding
+            //   "KONNEKT <ref>"   -> active le GP sur le bot Konnekt
+            // ============================================================
+            try {
+              const raw = (body ?? '').trim();
+              const upper = raw.toUpperCase();
+              const SUPER_ADMIN_PHONE = '+221784604003';
+              const supaUrl = Deno.env.get('SUPABASE_URL')!;
+              const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+              const sendBack = async (text: string) => {
+                await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+                  body: JSON.stringify({
+                    recipient_phone: fromPhone,
+                    recipient_type: 'gp',
+                    message: text,
+                    trigger_type: 'gp_priority_pattern',
+                  }),
+                }).catch((e) => console.error('WA_ERROR pattern reply', e));
+              };
+
+              const extractRef = (s: string): string | null => {
+                const m = s.match(/GP\s*0*(\d{1,6})/i);
+                if (!m) return null;
+                return `GP${m[1]}`;
+              };
+
+              const lookupGp = async (ref: string) => {
+                const digits = ref.replace(/\D/g, '');
+                const { data } = await supa
+                  .from('transporteurs')
+                  .select('id, reference, prenom, nom, telephone_1')
+                  .eq('reference', digits)
+                  .maybeSingle();
+                return data;
+              };
+
+              if (upper.startsWith('MON LIEN')) {
+                const ref = extractRef(upper);
+                console.log('[PATTERN MON LIEN]', { from: fromPhone, ref });
+                if (!ref) {
+                  await sendBack(`Référence non reconnue.\nContactez : +221 78 460 40 03`);
+                } else {
+                  const gp = await lookupGp(ref);
+                  if (!gp) {
+                    await sendBack(`Référence non reconnue.\nContactez : +221 78 460 40 03`);
+                  } else {
+                    const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
+                    await sendBack(
+                      `Bonjour ${prenom} 👋\n\n` +
+                      `Voici votre lien d'accès Konnekt :\n` +
+                      `https://usekonnekt.com/onboarding/${ref}\n\n` +
+                      `Cliquez pour finaliser votre inscription.`
+                    );
+                  }
+                }
+                continue; // skip gp-bot delegation
+              }
+
+              if (upper.startsWith('KONNEKT')) {
+                const ref = extractRef(upper);
+                console.log('[PATTERN KONNEKT]', { from: fromPhone, ref });
+                if (!ref) {
+                  await sendBack(`Référence non reconnue.\nContactez : +221 78 460 40 03`);
+                  continue;
+                }
+                const gp = await lookupGp(ref);
+                if (!gp) {
+                  await sendBack(`Référence non reconnue.\nContactez : +221 78 460 40 03`);
+                  continue;
+                }
+                const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || 'partenaire');
+                const konnektBase = Deno.env.get('KONNEKT_BASE_URL') ?? '';
+                const konnektKey = Deno.env.get('KONNEKT_SHARED_KEY') ?? '';
+                try {
+                  const r = await fetch(`${konnektBase.replace(/\/$/, '')}/functions/v1/activate-gp`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${konnektKey}`,
+                      'x-konnekt-key': konnektKey,
+                    },
+                    body: JSON.stringify({ ref, phone: fromPhone }),
+                  });
+                  if (!r.ok) console.error('WA_ERROR activate-gp', r.status, await r.text().catch(() => ''));
+                } catch (e) {
+                  console.error('WA_ERROR activate-gp fetch', e);
+                }
+                await sendBack(
+                  `✅ Bienvenue ${prenom} !\n\n` +
+                  `Votre bot Konnekt est activé. Vous recevrez désormais vos missions et rappels ici.\n\n` +
+                  `Tapez AIDE pour voir les commandes.`
+                );
+                // Notifier super admin
+                await fetch(`${supaUrl}/functions/v1/send-whatsapp`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+                  body: JSON.stringify({
+                    recipient_phone: SUPER_ADMIN_PHONE,
+                    recipient_type: 'admin',
+                    message: `✅ GP ${ref} ${prenom} activé WhatsApp Konnekt`,
+                    trigger_type: 'gp_konnekt_activated',
+                  }),
+                }).catch((e) => console.error('WA_ERROR admin notify activate', e));
+                continue; // skip gp-bot delegation
+              }
+            } catch (e) {
+              console.error('WA_ERROR priority patterns', e);
+            }
+            // ============================================================
+
             // Auto-relance onboarding : si c'est le PREMIER message inbound du GP
             // (donc la fenetre Meta 24h vient de s'ouvrir) et qu'on a deja envoye
             // une invitation bot par le passe, on relance l'onboarding par API.
