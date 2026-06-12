@@ -6,7 +6,6 @@ import {
   ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe,
   Shield, Gamepad2, Cpu, Car, Sparkles, Briefcase, Gift,
   Truck, ShieldCheck, MessageCircle, RefreshCw,
-  Lock as LockIcon, Package,
 } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
