@@ -69,6 +69,23 @@ const isNew = (d: string) => Date.now() - +new Date(d) < 14 * 24 * 3600 * 1000;
 
 type CartItem = { product: Product; qty: number };
 
+const CAT_CARDS: { key: CatKey; label: string; icon: React.ElementType; match: (cat: string) => boolean }[] = [
+  { key: 'cachettes', label: 'Cachettes', icon: Shield, match: (c) => c === 'cachettes' },
+  { key: 'gaming', label: 'Gaming', icon: Gamepad2, match: (c) => c === 'gaming' },
+  { key: 'tech-productivite', label: 'Tech', icon: Cpu, match: (c) => c === 'tech' },
+  { key: 'rc-gadgets', label: 'RC & Gadgets', icon: Car, match: (c) => c === 'electronique' },
+  { key: 'lifestyle-deco', label: 'Lifestyle / Déco', icon: Sparkles, match: (c) => c === 'maison' },
+  { key: 'equipement-pro', label: 'Pro', icon: Briefcase, match: (c) => c === 'pro' || c === 'equipement-pro' },
+  { key: 'packs-cadeaux', label: 'Packs', icon: Gift, match: (c) => c === 'packs' || c === 'packs-cadeaux' },
+];
+
+const GUARANTEES = [
+  { label: 'Livraison Yobbanté', sublabel: 'Dakar J+1 · Régions J+3', icon: Truck },
+  { label: 'Produits testés', sublabel: 'Sélection rigoureuse', icon: ShieldCheck },
+  { label: 'Support WhatsApp', sublabel: 'Réponse sous 2h', icon: MessageCircle },
+  { label: 'Retour 7 jours', sublabel: 'Sans conditions', icon: RefreshCw },
+];
+
 export default function BoutiquePage() {
   useSeo({
     title: 'Boutique Dëkk — Produits importés à Dakar | Yobbanté',
