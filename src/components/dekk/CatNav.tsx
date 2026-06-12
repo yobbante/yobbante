@@ -36,6 +36,7 @@ export function CatNav({ active, onChange }: CatNavProps) {
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
+      <style>{`.catnav-scroll::-webkit-scrollbar { display: none; }`}</style>
       <div
         className="catnav-scroll max-w-6xl mx-auto px-4 md:px-6"
         style={{
