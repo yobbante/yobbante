@@ -343,6 +343,7 @@ export default function BoutiquePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
               {CAT_CARDS.map((c) => {
                 const count = products.filter(p => c.match(p.category)).length;
+                const Icon = c.icon;
                 return (
                   <button
                     key={c.key}
@@ -363,7 +364,7 @@ export default function BoutiquePage() {
                       width: 36, height: 36, borderRadius: 8, background: '#FBF3EC',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <c.icon size={18} color="#C97B3A" />
+                      <Icon size={18} color="#C97B3A" />
                     </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: DEKK.ink }}>{c.label}</div>
