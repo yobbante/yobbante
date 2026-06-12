@@ -63,7 +63,7 @@ export function DekkProductCard({
     modeBadge = { label: 'Waouh', bg: DEKK.accent, color: '#fff' };
   } else if (isDrop) {
     modeBadge = { label: '10–15j', bg: '#2563EB', color: '#fff' };
-  } else if (p.stock_qty > 0) {
+  } else if ((p.stock_qty ?? 0) > 0) {
     modeBadge = { label: 'En stock', bg: '#0E7A4F', color: '#fff' };
   } else {
     modeBadge = { label: 'Rupture', bg: '#DC2626', color: '#fff' };
