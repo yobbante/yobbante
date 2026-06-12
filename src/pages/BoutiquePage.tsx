@@ -132,7 +132,13 @@ export default function BoutiquePage() {
     return list;
   }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
 
-  return (
+  const wowProducts = useMemo(() => {
+    const wowCats = ['cachettes', 'rc-gadgets', 'gaming'];
+    return products
+      .filter(p => wowCats.includes(p.category) && (p.stock_qty > 0 || p.stock_mode === 'DROP'))
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+      .slice(0, 4);
+  }, [products]);
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
         .dekk-chips::-webkit-scrollbar{display:none}
