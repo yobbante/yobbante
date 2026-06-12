@@ -53,7 +53,8 @@ export function DekkProductCard({
   const uiCat = DB_TO_UI[p.category] ?? (p.category as CatKey);
   const catLabel = CAT_LABEL[uiCat] ?? p.category;
   const isWow = WOW_UI_CATS.includes(uiCat);
-  const isDrop = (p.stock_mode || '').toUpperCase() === 'DROP';
+  const mode = (p.stock_mode || '').toLowerCase();
+  const isDrop = mode === 'drop' || mode === 'commande';
 
   let modeBadge: { label: string; bg: string; color: string } | null = null;
   if (badge) {
