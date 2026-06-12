@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, X, Plus, Minus, ArrowUpRight, ShieldCheck, Globe } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { CatNav, CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
+import { DekkProductCard } from '@/components/dekk/DekkProductCard';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { ecommerce } from '@/lib/analytics';
@@ -263,11 +264,15 @@ export default function BoutiquePage() {
                 Voir tout →
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-              {wowProducts.map((p, i) => (
-                <ProductCard key={p.id} p={p} idx={i}
-                  wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
-                  onAdd={() => addToCart(p)} badge="Waouh" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
+              {wowProducts.map((p) => (
+                <DekkProductCard
+                  key={p.id}
+                  p={p as any}
+                  wished={wishlist.has(p.id)}
+                  onWish={() => toggleWish(p.id)}
+                  onAdd={() => addToCart(p)}
+                />
               ))}
             </div>
           </div>
@@ -276,29 +281,29 @@ export default function BoutiquePage() {
         {loading ? (
           <SkeletonGrid />
         ) : filtered.length === 0 ? (
-          <EmptyState onReset={() => { setActiveCat('all'); setSearch(''); }} />
+          <div style={{ textAlign: 'center', padding: '64px 24px', color: DEKK.muted, fontSize: 14 }}>
+            Catalogue en cours de construction — revenez bientôt !
+          </div>
         ) : (
-          <>
-            <div id="dekk-product-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-              {filtered.slice(0, 6).map((p, i) => (
-                <ProductCard key={p.id} p={p} idx={i}
-                  wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
-                  onAdd={() => addToCart(p)} />
-              ))}
-            </div>
-
-            {filtered.length > 6 && <FeaturedStrip />}
-
-            {filtered.length > 6 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-                {filtered.slice(6).map((p, i) => (
-                  <ProductCard key={p.id} p={p} idx={i + 6}
-                    wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
-                    onAdd={() => addToCart(p)} />
-                ))}
-              </div>
-            )}
-          </>
+          <div
+            id="dekk-product-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap: 12,
+              marginBottom: 28,
+            }}
+          >
+            {filtered.map((p) => (
+              <DekkProductCard
+                key={p.id}
+                p={p as any}
+                wished={wishlist.has(p.id)}
+                onWish={() => toggleWish(p.id)}
+                onAdd={() => addToCart(p)}
+              />
+            ))}
+          </div>
         )}
 
         <footer className="mt-20 pt-10" style={{ borderTop: `0.5px solid ${DEKK.line}`, textAlign: 'center' }}>
