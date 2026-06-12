@@ -148,46 +148,79 @@ export default function BoutiquePage() {
         onWishlist={toggleWishlistFilter}
       />
 
-      {/* PART 2 — Hero band */}
-      <header style={{ background: '#0A0A0A', padding: '16px 16px 20px' }}>
-        <p style={{
-          fontFamily: '"Inter", system-ui, sans-serif',
-          fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em',
-          color: 'rgba(255,255,255,0.4)', margin: 0, marginBottom: 4,
+      {/* HERO BANNER */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6" style={{ marginTop: 24 }}>
+        <div style={{
+          background: '#FBF3EC',
+          border: '0.5px solid #F5E6D8',
+          borderRadius: 12,
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 24,
         }}>
-          YOBBANTÉ · BOUTIQUE
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>
-          Boutique Dëkk
-        </h1>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4, lineHeight: 1.5, maxWidth: 520 }}>
-          Les meilleurs produits, livrés depuis le monde entier.
-        </p>
-      </header>
-
-      {/* PART 3 — Trust ticker */}
-      <div style={{
-        background: '#161616',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '8px 0',
-        overflow: 'hidden', whiteSpace: 'nowrap',
-      }}>
-        <div style={{ display: 'inline-flex', animation: 'dekkMarquee 32s linear infinite' }}>
-          {Array.from({ length: 2 }).map((_, k) => (
-            <div key={k} style={{
-              display: 'inline-flex', gap: 28, paddingRight: 28,
-              fontFamily: '"Inter", system-ui, sans-serif',
-              fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em',
-              color: 'rgba(255,255,255,0.3)',
+          <div>
+            <span style={{
+              fontSize: 10,
+              fontFamily: '"SF Mono", "DM Mono", ui-monospace, monospace',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: '#C97B3A',
             }}>
-              <span>PAIEMENT SÉCURISÉ · WAVE · OM · CARTE</span>
-              <span>SERVICE APRÈS-VENTE</span>
-              <span>LIVRAISON DAKAR</span>
-              <span>PRODUITS VÉRIFIÉS</span>
-              <span>RETOURS ACCEPTÉS</span>
-            </div>
-          ))}
+              LANCEMENT DËKK
+            </span>
+            <h2 style={{
+              fontSize: 18,
+              fontWeight: 500,
+              color: '#8B5220',
+              lineHeight: 1.3,
+              marginTop: 6,
+              marginBottom: 0,
+            }}>
+              Produits testés,<br />livrés depuis le monde.
+            </h2>
+            <p style={{
+              fontSize: 13,
+              color: '#8B5220',
+              opacity: 0.7,
+              marginTop: 4,
+              marginBottom: 0,
+            }}>
+              Sélection rigoureuse · Prix justes · Livraison Yobbanté
+            </p>
+            <button
+              onClick={() => document.getElementById('dekk-product-grid')?.scrollIntoView({ behavior: 'smooth' })}
+              style={{
+                background: '#C97B3A',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                fontSize: 12,
+                fontWeight: 500,
+                marginTop: 14,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              Découvrir <ArrowUpRight size={14} />
+            </button>
+          </div>
+          <div style={{
+            width: 80,
+            height: 80,
+            background: '#F5E6D8',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Globe size={36} color="#C97B3A" />
+          </div>
         </div>
       </div>
 
