@@ -226,12 +226,21 @@ export function BoutiqueTab() {
           </h2>
         </div>
         {view === 'products' && (
-          <button
-            onClick={openCreate}
-            style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
-          >
-            + Ajouter un produit
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={seedCatalog}
+              disabled={seeding}
+              style={{ background: '#FBF3EC', color: '#8B5220', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: '0.5px solid #F5E6D8', cursor: seeding ? 'wait' : 'pointer', opacity: seeding ? 0.6 : 1 }}
+            >
+              {seeding ? 'Initialisation…' : 'Initialiser le catalogue'}
+            </button>
+            <button
+              onClick={openCreate}
+              style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+            >
+              + Ajouter un produit
+            </button>
+          </div>
         )}
       </div>
 
@@ -253,6 +262,33 @@ export function BoutiqueTab() {
         <TabBtn active={tab === 'published'} onClick={() => setTab('published')}>Produits publiés</TabBtn>
         <TabBtn active={tab === 'draft'}     onClick={() => setTab('draft')}>Drafts ({drafts.length})</TabBtn>
       </div>
+
+      {/* Filter pills (published only) */}
+      {tab === 'published' && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {([
+            ['all',     `Tous (${published.length})`],
+            ['live',    `Live ✓ (${published.filter(p => p.en_vente).length})`],
+            ['waiting', `En attente de stock (${published.filter(p => !p.en_vente && p.stock_mode === 'stock').length})`],
+          ] as const).map(([k, label]) => {
+            const active = saleFilter === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setSaleFilter(k)}
+                style={{
+                  background: active ? '#C97B3A' : 'transparent',
+                  color: active ? '#fff' : '#6B6B6B',
+                  border: `0.5px solid ${active ? '#C97B3A' : 'hsl(var(--color-border-tertiary))'}`,
+                  borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Table */}
       <div style={{ border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 12, overflow: 'hidden' }}>
