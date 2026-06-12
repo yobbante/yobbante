@@ -198,63 +198,8 @@ export default function BoutiquePage() {
       </div>
 
 
-      {/* STICKY FILTERS */}
-      <div style={{
-        position: 'sticky', top: 90, zIndex: 30,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: `0.5px solid ${DEKK.line}`,
-      }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-6" style={{ padding: '12px 16px' }}>
-          <div className="flex items-center gap-2 relative">
-            <div className="dekk-chips flex gap-2 overflow-x-auto flex-nowrap flex-1" style={{ scrollbarWidth: 'none', minWidth: 0, WebkitOverflowScrolling: 'touch' }}>
-              {CATEGORIES.map(cat => {
-                const active = cat.key === activeCat;
-                const count = counts[cat.key] || 0;
-                return (
-                  <button key={cat.key} type="button" onClick={() => setActiveCat(cat.key)}
-                    style={{
-                      flex: '0 0 auto', height: 36, padding: '0 14px',
-                      borderRadius: 100, fontSize: 12.5, lineHeight: 1,
-                      fontWeight: active ? 600 : 500,
-                      background: active ? DEKK.ink : '#fff',
-                      color: active ? '#fff' : DEKK.ink,
-                      border: `1px solid ${active ? DEKK.ink : DEKK.line}`,
-                      cursor: 'pointer', whiteSpace: 'nowrap',
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      transition: 'all 180ms',
-                    }}>
-                    {cat.label}
-                    {count > 0 && (
-                      <span style={{ fontSize: 10, opacity: active ? 0.6 : 0.5, fontFamily: '"DM Mono", monospace' }}>{count}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={() => setShowSort(s => !s)}
-              style={{
-                flex: '0 0 auto', height: 36, padding: '0 12px', borderRadius: 100,
-                background: '#fff', border: `1px solid ${DEKK.line}`, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: DEKK.ink,
-              }}>
-              <SlidersHorizontal size={14} />
-              <span className="hidden sm:inline">{SORTS.find(s => s.id === sort)?.label}</span>
-            </button>
-            {showSort && (
-              <div style={{ position: 'absolute', right: 0, top: 44, background: '#fff', border: `1px solid ${DEKK.line}`, borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.08)', padding: 4, zIndex: 40, minWidth: 180, animation: 'dekkFadeIn 180ms ease-out' }}>
-                {SORTS.map(s => (
-                  <button key={s.id} onClick={() => { setSort(s.id); setShowSort(false); }}
-                    style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', fontSize: 13, background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: DEKK.ink }}>
-                    {s.label}{sort === s.id && <Check size={14} color={DEKK.accent} />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* CAT NAV */}
+      <CatNav active={activeCat} onChange={setActiveCat} />
 
       <main className="max-w-6xl mx-auto px-4 md:px-6" style={{ padding: '24px 16px 100px' }}>
         {!loading && filtered.length > 0 && (
