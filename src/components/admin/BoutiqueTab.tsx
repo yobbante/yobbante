@@ -381,6 +381,42 @@ export function BoutiqueTab() {
   );
 }
 
+function EnVenteToggle({ product, onToggle }: { product: Product; onToggle: () => void }) {
+  const isDrop = product.stock_mode === 'commande';
+  const live = product.en_vente;
+  const label = live ? 'Live' : 'Masqué';
+  const sub = live
+    ? (isDrop ? 'Drop — visible' : 'Stock en main')
+    : (isDrop ? 'Désactivé' : 'En attente de stock');
+  const bg = live ? '#1D9E75' : '#D4D4D4';
+  return (
+    <button
+      onClick={onToggle}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+    >
+      <span style={{
+        width: 32, height: 18, borderRadius: 999, background: bg,
+        position: 'relative', display: 'inline-block', transition: 'background 0.15s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: live ? 16 : 2,
+          width: 14, height: 14, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+        }} />
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: live ? '#085041' : 'hsl(var(--muted-foreground))' }}>{label}</span>
+        <span style={{
+          fontSize: 10,
+          color: (!live && !isDrop) ? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))',
+          fontStyle: (!live && !isDrop) ? 'italic' : 'normal',
+        }}>{sub}</span>
+      </span>
+    </button>
+  );
+}
+
+
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
