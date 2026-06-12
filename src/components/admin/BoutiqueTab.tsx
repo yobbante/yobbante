@@ -77,6 +77,8 @@ export function BoutiqueTab() {
   const [view, setView] = useState<'products' | 'orders' | 'promos' | 'stats'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
+  const [saleFilter, setSaleFilter] = useState<'all' | 'live' | 'waiting'>('all');
+  const [seeding, setSeeding] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -96,7 +98,39 @@ export function BoutiqueTab() {
 
   const published = useMemo(() => products.filter(p => p.status === 'published'), [products]);
   const drafts    = useMemo(() => products.filter(p => p.status === 'draft'),     [products]);
-  const rows = tab === 'published' ? published : drafts;
+
+  const baseRows = tab === 'published' ? published : drafts;
+  const rows = useMemo(() => {
+    if (tab !== 'published') return baseRows;
+    if (saleFilter === 'live')    return baseRows.filter(p => p.en_vente);
+    if (saleFilter === 'waiting') return baseRows.filter(p => !p.en_vente && p.stock_mode === 'stock');
+    return baseRows;
+  }, [baseRows, saleFilter, tab]);
+
+  const toggleEnVente = async (p: Product) => {
+    const next = !p.en_vente;
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, en_vente: next } : x));
+    const { error } = await supabase.from('products' as any).update({ en_vente: next }).eq('id', p.id);
+    if (error) {
+      setProducts(prev => prev.map(x => x.id === p.id ? { ...x, en_vente: !next } : x));
+      return toast.error(error.message);
+    }
+    toast.success(next ? `✓ ${p.name} est maintenant visible en boutique` : `○ ${p.name} masqué de la boutique`);
+  };
+
+  const seedCatalog = async () => {
+    if (!confirm('Initialiser/mettre à jour le catalogue Dëkk (28 produits) ?')) return;
+    setSeeding(true);
+    const { ok, errors } = await runDekkSeed();
+    setSeeding(false);
+    if (errors.length) {
+      console.error('Seed errors:', errors);
+      toast.error(`${ok} produits ok · ${errors.length} erreur(s) — voir console`);
+    } else {
+      toast.success(`Catalogue initialisé : ${ok} produits`);
+    }
+    load();
+  };
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('products' as any).update({ status }).eq('id', id);
