@@ -53,7 +53,8 @@ export function DekkProductCard({
   const uiCat = DB_TO_UI[p.category] ?? (p.category as CatKey);
   const catLabel = CAT_LABEL[uiCat] ?? p.category;
   const isWow = WOW_UI_CATS.includes(uiCat);
-  const isDrop = (p.stock_mode || '').toUpperCase() === 'DROP';
+  const mode = (p.stock_mode || '').toLowerCase();
+  const isDrop = mode === 'drop' || mode === 'commande';
 
   let modeBadge: { label: string; bg: string; color: string } | null = null;
   if (badge) {
@@ -62,7 +63,7 @@ export function DekkProductCard({
     modeBadge = { label: 'Waouh', bg: DEKK.accent, color: '#fff' };
   } else if (isDrop) {
     modeBadge = { label: '10–15j', bg: '#2563EB', color: '#fff' };
-  } else if (p.stock_qty > 0) {
+  } else if ((p.stock_qty ?? 0) > 0) {
     modeBadge = { label: 'En stock', bg: '#0E7A4F', color: '#fff' };
   } else {
     modeBadge = { label: 'Rupture', bg: '#DC2626', color: '#fff' };

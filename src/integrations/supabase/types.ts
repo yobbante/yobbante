@@ -2284,14 +2284,18 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          delai_drop: string | null
           delivery_days: number | null
           description: string
+          en_vente: boolean
           id: string
           image_url: string
           name: string
           origin_country: string
           price_eur: number
           price_fcfa: number
+          prix_achat: number | null
+          ref: string | null
           source_type: string
           status: string
           stock_mode: string
@@ -2302,14 +2306,18 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          delai_drop?: string | null
           delivery_days?: number | null
           description: string
+          en_vente?: boolean
           id?: string
           image_url: string
           name: string
           origin_country?: string
           price_eur?: number
           price_fcfa?: number
+          prix_achat?: number | null
+          ref?: string | null
           source_type?: string
           status?: string
           stock_mode?: string
@@ -2320,14 +2328,18 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          delai_drop?: string | null
           delivery_days?: number | null
           description?: string
+          en_vente?: boolean
           id?: string
           image_url?: string
           name?: string
           origin_country?: string
           price_eur?: number
           price_fcfa?: number
+          prix_achat?: number | null
+          ref?: string | null
           source_type?: string
           status?: string
           stock_mode?: string

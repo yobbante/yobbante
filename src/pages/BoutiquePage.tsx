@@ -107,6 +107,7 @@ export default function BoutiquePage() {
         .from('products' as any)
         .select('*')
         .eq('status', 'published')
+        .eq('en_vente', true)
         .order('created_at', { ascending: false });
       setProducts((data as any as Product[]) || []);
       setLoading(false);
@@ -152,7 +153,7 @@ export default function BoutiquePage() {
   const wowProducts = useMemo(() => {
     const wowCats = ['cachettes', 'rc-gadgets', 'gaming'];
     return products
-      .filter(p => wowCats.includes(p.category) && (p.stock_qty > 0 || p.stock_mode === 'DROP'))
+      .filter(p => wowCats.includes(p.category) && ((p.stock_qty ?? 0) > 0 || p.stock_mode === 'commande'))
       .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
       .slice(0, 4);
   }, [products]);

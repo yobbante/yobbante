@@ -4,9 +4,12 @@ import { toast } from 'sonner';
 import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
 import { BoutiqueStatsPanel } from './BoutiqueStatsPanel';
 import { BoutiquePromosPanel } from './BoutiquePromosPanel';
+import { runDekkSeed } from '@/data/dekk-seed';
+
 
 type Product = {
   id: string;
+  ref: string | null;
   name: string;
   description: string | null;
   category: string;
@@ -16,6 +19,8 @@ type Product = {
   stock_mode: string;
   stock_qty: number | null;
   delivery_days: number | null;
+  delai_drop: string | null;
+  en_vente: boolean;
   status: string;
   image_url: string | null;
   source_type: string;
@@ -72,6 +77,8 @@ export function BoutiqueTab() {
   const [view, setView] = useState<'products' | 'orders' | 'promos' | 'stats'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
+  const [saleFilter, setSaleFilter] = useState<'all' | 'live' | 'waiting'>('all');
+  const [seeding, setSeeding] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -91,7 +98,39 @@ export function BoutiqueTab() {
 
   const published = useMemo(() => products.filter(p => p.status === 'published'), [products]);
   const drafts    = useMemo(() => products.filter(p => p.status === 'draft'),     [products]);
-  const rows = tab === 'published' ? published : drafts;
+
+  const baseRows = tab === 'published' ? published : drafts;
+  const rows = useMemo(() => {
+    if (tab !== 'published') return baseRows;
+    if (saleFilter === 'live')    return baseRows.filter(p => p.en_vente);
+    if (saleFilter === 'waiting') return baseRows.filter(p => !p.en_vente && p.stock_mode === 'stock');
+    return baseRows;
+  }, [baseRows, saleFilter, tab]);
+
+  const toggleEnVente = async (p: Product) => {
+    const next = !p.en_vente;
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, en_vente: next } : x));
+    const { error } = await supabase.from('products' as any).update({ en_vente: next }).eq('id', p.id);
+    if (error) {
+      setProducts(prev => prev.map(x => x.id === p.id ? { ...x, en_vente: !next } : x));
+      return toast.error(error.message);
+    }
+    toast.success(next ? `✓ ${p.name} est maintenant visible en boutique` : `○ ${p.name} masqué de la boutique`);
+  };
+
+  const seedCatalog = async () => {
+    if (!confirm('Initialiser/mettre à jour le catalogue Dëkk (28 produits) ?')) return;
+    setSeeding(true);
+    const { ok, errors } = await runDekkSeed();
+    setSeeding(false);
+    if (errors.length) {
+      console.error('Seed errors:', errors);
+      toast.error(`${ok} produits ok · ${errors.length} erreur(s) — voir console`);
+    } else {
+      toast.success(`Catalogue initialisé : ${ok} produits`);
+    }
+    load();
+  };
 
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('products' as any).update({ status }).eq('id', id);
@@ -187,12 +226,21 @@ export function BoutiqueTab() {
           </h2>
         </div>
         {view === 'products' && (
-          <button
-            onClick={openCreate}
-            style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
-          >
-            + Ajouter un produit
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={seedCatalog}
+              disabled={seeding}
+              style={{ background: '#FBF3EC', color: '#8B5220', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: '0.5px solid #F5E6D8', cursor: seeding ? 'wait' : 'pointer', opacity: seeding ? 0.6 : 1 }}
+            >
+              {seeding ? 'Initialisation…' : 'Initialiser le catalogue'}
+            </button>
+            <button
+              onClick={openCreate}
+              style={{ background: '#1a1a1a', color: '#fff', height: 40, padding: '0 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer' }}
+            >
+              + Ajouter un produit
+            </button>
+          </div>
         )}
       </div>
 
@@ -215,6 +263,33 @@ export function BoutiqueTab() {
         <TabBtn active={tab === 'draft'}     onClick={() => setTab('draft')}>Drafts ({drafts.length})</TabBtn>
       </div>
 
+      {/* Filter pills (published only) */}
+      {tab === 'published' && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {([
+            ['all',     `Tous (${published.length})`],
+            ['live',    `Live ✓ (${published.filter(p => p.en_vente).length})`],
+            ['waiting', `En attente de stock (${published.filter(p => !p.en_vente && p.stock_mode === 'stock').length})`],
+          ] as const).map(([k, label]) => {
+            const active = saleFilter === k;
+            return (
+              <button
+                key={k}
+                onClick={() => setSaleFilter(k)}
+                style={{
+                  background: active ? '#C97B3A' : 'transparent',
+                  color: active ? '#fff' : '#6B6B6B',
+                  border: `0.5px solid ${active ? '#C97B3A' : 'hsl(var(--color-border-tertiary))'}`,
+                  borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ border: '0.5px solid hsl(var(--color-border-tertiary))', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
@@ -226,16 +301,21 @@ export function BoutiqueTab() {
             <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: 720 }}>
               <thead style={{ background: 'hsl(var(--background-secondary))' }}>
                 <tr>
-                  {['', 'Nom', 'Catégorie', 'Prix EUR', 'Disponibilité', 'Origine', ...(tab === 'draft' ? ['Source'] : []), 'Date', ''].map((h, i) => (
+                  {['', 'Réf', 'Nom', 'Catégorie', 'Mode', 'Prix EUR', 'Stock', ...(tab === 'published' ? ['En vente'] : []), ...(tab === 'draft' ? ['Source'] : []), 'Date', ''].map((h, i) => (
                     <th key={i} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map(p => {
-                  const stock = p.stock_mode === 'stock'
-                    ? { label: 'En stock', bg: '#E1F5EE', color: '#085041' }
-                    : { label: `Sous ${p.delivery_days ?? 7} j`, bg: '#F5E6D8', color: '#8B5220' };
+                  const isDrop = p.stock_mode === 'commande';
+                  const modeLabel = isDrop ? 'DROP' : 'STOCK';
+                  const modePill = isDrop
+                    ? { bg: '#EFF6FF', color: '#1D4ED8' }
+                    : { bg: '#E1F5EE', color: '#085041' };
+                  const stockText = isDrop
+                    ? (p.delai_drop || `Sous ${p.delivery_days ?? 12}j`)
+                    : (p.stock_qty == null ? '∞' : `${p.stock_qty}`);
                   return (
                     <tr key={p.id} style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                       <td style={{ padding: 8 }}>
@@ -243,13 +323,19 @@ export function BoutiqueTab() {
                           {p.image_url && <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                         </div>
                       </td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace', fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{p.ref ?? '—'}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
                       <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
-                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
                       <td style={{ padding: '10px 12px' }}>
-                        <Pill label={stock.label} bg={stock.bg} color={stock.color} />
+                        <Pill label={modeLabel} bg={modePill.bg} color={modePill.color} />
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.origin_country}</td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace', fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{stockText}</td>
+                      {tab === 'published' && (
+                        <td style={{ padding: '10px 12px' }}>
+                          <EnVenteToggle product={p} onToggle={() => toggleEnVente(p)} />
+                        </td>
+                      )}
                       {tab === 'draft' && (
                         <td style={{ padding: '10px 12px' }}>
                           {(() => { const s = SOURCE_BADGE[p.source_type] || SOURCE_BADGE.manual; return (
@@ -294,6 +380,42 @@ export function BoutiqueTab() {
     </div>
   );
 }
+
+function EnVenteToggle({ product, onToggle }: { product: Product; onToggle: () => void }) {
+  const isDrop = product.stock_mode === 'commande';
+  const live = product.en_vente;
+  const label = live ? 'Live' : 'Masqué';
+  const sub = live
+    ? (isDrop ? 'Drop — visible' : 'Stock en main')
+    : (isDrop ? 'Désactivé' : 'En attente de stock');
+  const bg = live ? '#1D9E75' : '#D4D4D4';
+  return (
+    <button
+      onClick={onToggle}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+    >
+      <span style={{
+        width: 32, height: 18, borderRadius: 999, background: bg,
+        position: 'relative', display: 'inline-block', transition: 'background 0.15s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: live ? 16 : 2,
+          width: 14, height: 14, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+        }} />
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: live ? '#085041' : 'hsl(var(--muted-foreground))' }}>{label}</span>
+        <span style={{
+          fontSize: 10,
+          color: (!live && !isDrop) ? 'hsl(var(--muted-foreground))' : 'hsl(var(--muted-foreground))',
+          fontStyle: (!live && !isDrop) ? 'italic' : 'normal',
+        }}>{sub}</span>
+      </span>
+    </button>
+  );
+}
+
 
 function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
