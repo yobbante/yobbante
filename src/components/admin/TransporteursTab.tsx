@@ -75,12 +75,12 @@ function buildShortKonnektInvite(gp: Transporteur) {
   return `Bonjour ${prenom}, je vous invite à rejoindre Konnekt votre espace GP :\n${buildKonnektOnboardingUrl(gp)}`;
 }
 
-/** Lien wa.me partageable vers le 926, pré-rempli avec un message d'onboarding GP. */
+/** Lien wa.me direct vers le GP, pré-rempli avec le message d'invitation Konnekt
+ *  signé "Amath" et le lien onboarding personnalisé (ref GP). */
 function buildShareableKonnektWaLink(gp: Transporteur) {
-  const prenom = (gp.prenom?.trim() || gp.nom?.split(' ')[0] || '');
-  const ref = gpRef(gp.reference);
-  const message = `Bonjour, je suis ${prenom || 'un nouveau GP'} (réf ${ref}). Je souhaite activer mon compte Konnekt.`;
-  return `https://wa.me/221789269756?text=${encodeURIComponent(message)}`;
+  const phone = (gp.telephone_1 || '').replace(/\D/g, '');
+  const message = buildKonnektInviteMessage(gp);
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 
