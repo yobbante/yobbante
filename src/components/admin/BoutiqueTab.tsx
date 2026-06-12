@@ -301,16 +301,21 @@ export function BoutiqueTab() {
             <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: 720 }}>
               <thead style={{ background: 'hsl(var(--background-secondary))' }}>
                 <tr>
-                  {['', 'Nom', 'Catégorie', 'Prix EUR', 'Disponibilité', 'Origine', ...(tab === 'draft' ? ['Source'] : []), 'Date', ''].map((h, i) => (
+                  {['', 'Réf', 'Nom', 'Catégorie', 'Mode', 'Prix EUR', 'Stock', ...(tab === 'published' ? ['En vente'] : []), ...(tab === 'draft' ? ['Source'] : []), 'Date', ''].map((h, i) => (
                     <th key={i} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'hsl(var(--muted-foreground))', fontFamily: '"DM Mono", monospace' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map(p => {
-                  const stock = p.stock_mode === 'stock'
-                    ? { label: 'En stock', bg: '#E1F5EE', color: '#085041' }
-                    : { label: `Sous ${p.delivery_days ?? 7} j`, bg: '#F5E6D8', color: '#8B5220' };
+                  const isDrop = p.stock_mode === 'commande';
+                  const modeLabel = isDrop ? 'DROP' : 'STOCK';
+                  const modePill = isDrop
+                    ? { bg: '#EFF6FF', color: '#1D4ED8' }
+                    : { bg: '#E1F5EE', color: '#085041' };
+                  const stockText = isDrop
+                    ? (p.delai_drop || `Sous ${p.delivery_days ?? 12}j`)
+                    : (p.stock_qty == null ? '∞' : `${p.stock_qty}`);
                   return (
                     <tr key={p.id} style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                       <td style={{ padding: 8 }}>
@@ -318,13 +323,19 @@ export function BoutiqueTab() {
                           {p.image_url && <img src={p.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                         </div>
                       </td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace', fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{p.ref ?? '—'}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 500 }}>{p.name}</td>
                       <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{CATEGORY_LABEL[p.category] ?? p.category}</td>
-                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
                       <td style={{ padding: '10px 12px' }}>
-                        <Pill label={stock.label} bg={stock.bg} color={stock.color} />
+                        <Pill label={modeLabel} bg={modePill.bg} color={modePill.color} />
                       </td>
-                      <td style={{ padding: '10px 12px', color: 'hsl(var(--muted-foreground))' }}>{p.origin_country}</td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace' }}>{Math.round(p.price_eur).toLocaleString('fr-FR')} €</td>
+                      <td style={{ padding: '10px 12px', fontFamily: '"DM Mono", monospace', fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>{stockText}</td>
+                      {tab === 'published' && (
+                        <td style={{ padding: '10px 12px' }}>
+                          <EnVenteToggle product={p} onToggle={() => toggleEnVente(p)} />
+                        </td>
+                      )}
                       {tab === 'draft' && (
                         <td style={{ padding: '10px 12px' }}>
                           {(() => { const s = SOURCE_BADGE[p.source_type] || SOURCE_BADGE.manual; return (
