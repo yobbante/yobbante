@@ -406,8 +406,8 @@ export default function BoutiquePage() {
 
         {/* BLOC C — Footer garanties */}
         <div style={{
-          background: 'var(--color-background-secondary)',
-          border: '0.5px solid var(--color-border-tertiary)',
+          background: '#f8f8f8',
+          border: '0.5px solid #e0e0e0',
           borderRadius: 12,
           padding: '16px 20px',
           display: 'grid',
@@ -415,15 +415,34 @@ export default function BoutiquePage() {
           gap: 12,
           marginTop: 28,
         }}>
-          {GUARANTEES.map((g) => (
-            <div key={g.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <g.icon size={18} color="#C97B3A" />
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: 'hsl(var(--text-primary))' }}>{g.label}</div>
-                <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))' }}>{g.sublabel}</div>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Truck size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Livraison Yobbanté</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Dakar J+1 · Régions J+3</div>
             </div>
-          ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldCheck size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Produits testés</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Sélection rigoureuse</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MessageCircle size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Support WhatsApp</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Réponse sous 2h</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <RefreshCw size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Retour 7 jours</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Sans conditions</div>
+            </div>
+          </div>
         </div>
 
         <footer className="mt-20 pt-10" style={{ borderTop: `0.5px solid ${DEKK.line}`, textAlign: 'center' }}>
