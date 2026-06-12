@@ -163,6 +163,12 @@ export default function BoutiquePage() {
       .slice(0, 4);
   }, [products]);
 
+  const packProducts = useMemo(() => {
+    return products
+      .filter(p => p.category === 'packs' || p.category === 'packs-cadeaux')
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  }, [products]);
+
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
