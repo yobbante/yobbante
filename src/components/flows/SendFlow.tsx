@@ -1219,8 +1219,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     <CalendarIcon className="w-3 h-3" /> Date de collecte *
                   </span>
                   <input
-                    type="date" value={pickupDate} min={localCalendarMin}
-                    onChange={(e) => setPickupDate(e.target.value)}
+                    type="date" value={pickupDate} min={localCalendarMin} max="2099-12-31"
+                    onChange={(e) => {
+                      // CORRECTION 4 — bloque les années aberrantes (ex: 60620)
+                      // qui apparaissent quand la saisie native est mal interprétée.
+                      const v = e.target.value;
+                      if (!v) { setPickupDate(''); return; }
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      if (!m) return;
+                      const y = Number(m[1]);
+                      if (y < 2024 || y > 2099) return;
+                      setPickupDate(v);
+                    }}
                     aria-invalid={fieldErrors.pickupDate || undefined}
                     className={cn(
                       'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card focus:outline-none transition-all',
