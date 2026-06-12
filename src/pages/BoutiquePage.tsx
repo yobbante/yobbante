@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe } from 'lucide-react';
+import {
+  ShoppingBag, X, Plus, Minus, ArrowUpRight, Globe,
+  Shield, Gamepad2, Cpu, Car, Sparkles, Briefcase, Gift,
+  Truck, ShieldCheck, MessageCircle, RefreshCw,
+} from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { CatNav, CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
@@ -64,6 +68,17 @@ const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 const isNew = (d: string) => Date.now() - +new Date(d) < 14 * 24 * 3600 * 1000;
 
 type CartItem = { product: Product; qty: number };
+
+const CAT_CARDS: { key: CatKey; label: string; icon: React.ElementType; match: (cat: string) => boolean }[] = [
+  { key: 'tech-productivite', label: 'Tech', icon: Cpu, match: (c) => c === 'tech' },
+  { key: 'rc-gadgets', label: 'RC & Gadgets', icon: Car, match: (c) => c === 'electronique' },
+  { key: 'lifestyle-deco', label: 'Lifestyle / Déco', icon: Sparkles, match: (c) => c === 'maison' },
+  { key: 'equipement-pro', label: 'Pro', icon: Briefcase, match: (c) => c === 'pro' || c === 'equipement-pro' },
+  { key: 'packs-cadeaux', label: 'Packs', icon: Gift, match: (c) => c === 'packs' || c === 'packs-cadeaux' },
+  { key: 'cachettes', label: 'Cachettes', icon: Shield, match: (c) => c === 'cachettes' },
+  { key: 'gaming', label: 'Gaming', icon: Gamepad2, match: (c) => c === 'gaming' },
+];
+
 
 export default function BoutiquePage() {
   useSeo({
@@ -140,6 +155,12 @@ export default function BoutiquePage() {
       .filter(p => wowCats.includes(p.category) && (p.stock_qty > 0 || p.stock_mode === 'DROP'))
       .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
       .slice(0, 4);
+  }, [products]);
+
+  const packProducts = useMemo(() => {
+    return products
+      .filter(p => p.category === 'packs' || p.category === 'packs-cadeaux')
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }, [products]);
 
   return (
@@ -305,6 +326,119 @@ export default function BoutiquePage() {
             ))}
           </div>
         )}
+
+        {/* BLOC A — Toutes les catégories */}
+        {!loading && (
+          <div style={{ marginTop: 32, marginBottom: 32 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: '0 0 14px' }}>
+              Toutes les catégories
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+              {CAT_CARDS.map((c) => {
+                const count = products.filter(p => c.match(p.category)).length;
+                const Icon = c.icon;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => setActiveCat(c.key)}
+                    style={{
+                      background: '#fff',
+                      border: '0.5px solid ' + DEKK.line,
+                      borderRadius: 12,
+                      padding: '16px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, background: '#FBF3EC',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <Icon size={18} color="#C97B3A" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: DEKK.ink }}>{c.label}</div>
+                      <div style={{ fontSize: 11, color: DEKK.muted }}>{count} produit{count > 1 ? 's' : ''}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* BLOC B — Packs cadeaux */}
+        {!loading && packProducts.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }}>
+                Packs cadeaux
+              </h2>
+              <button
+                onClick={() => setActiveCat('packs-cadeaux')}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: '#C97B3A', cursor: 'pointer', padding: 0 }}
+              >
+                Voir tout →
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, marginBottom: 28 }}>
+              {packProducts.map((p) => (
+                <DekkProductCard
+                  key={p.id}
+                  p={p as any}
+                  wished={wishlist.has(p.id)}
+                  onWish={() => toggleWish(p.id)}
+                  onAdd={() => addToCart(p)}
+                  badge="Waouh"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BLOC C — Footer garanties */}
+        <div style={{
+          background: '#f8f8f8',
+          border: '0.5px solid #e0e0e0',
+          borderRadius: 12,
+          padding: '16px 20px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: 12,
+          marginTop: 28,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Truck size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Livraison Yobbanté</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Dakar J+1 · Régions J+3</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldCheck size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Produits testés</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Sélection rigoureuse</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MessageCircle size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Support WhatsApp</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Réponse sous 2h</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <RefreshCw size={18} color="#C97B3A" />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#0E0E0E' }}>Retour 7 jours</div>
+              <div style={{ fontSize: 11, color: '#6B6B6B' }}>Sans conditions</div>
+            </div>
+          </div>
+        </div>
 
         <footer className="mt-20 pt-10" style={{ borderTop: `0.5px solid ${DEKK.line}`, textAlign: 'center' }}>
           <p style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.1em', margin: 0 }}>

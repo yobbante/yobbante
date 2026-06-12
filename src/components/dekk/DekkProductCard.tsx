@@ -42,11 +42,13 @@ export function DekkProductCard({
   wished,
   onWish,
   onAdd,
+  badge,
 }: {
   p: DekkProduct;
   wished: boolean;
   onWish: () => void;
   onAdd: () => void;
+  badge?: string;
 }) {
   const uiCat = DB_TO_UI[p.category] ?? (p.category as CatKey);
   const catLabel = CAT_LABEL[uiCat] ?? p.category;
@@ -54,7 +56,9 @@ export function DekkProductCard({
   const isDrop = (p.stock_mode || '').toUpperCase() === 'DROP';
 
   let modeBadge: { label: string; bg: string; color: string } | null = null;
-  if (isWow) {
+  if (badge) {
+    modeBadge = { label: badge, bg: DEKK.accent, color: '#fff' };
+  } else if (isWow) {
     modeBadge = { label: 'Waouh', bg: DEKK.accent, color: '#fff' };
   } else if (isDrop) {
     modeBadge = { label: '10–15j', bg: '#2563EB', color: '#fff' };
