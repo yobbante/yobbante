@@ -352,8 +352,14 @@ export function ShipNowDialog({ open, onOpenChange, presetCountry }: ShipNowDial
                           id="m-date"
                           type="date"
                           value={manualDate}
-                          onChange={e => setManualDate(e.target.value)}
+                          onChange={e => {
+                            const v = e.target.value;
+                            const m = v.match(/^(\d{4})-\d{2}-\d{2}$/);
+                            if (v && (!m || Number(m[1]) < 2024 || Number(m[1]) > 2099)) return;
+                            setManualDate(v);
+                          }}
                           min={new Date().toISOString().slice(0, 10)}
+                          max="2099-12-31"
                         />
                       </div>
                       <div>

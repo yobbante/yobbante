@@ -230,7 +230,13 @@ export function ClientDepartureDecision({
                 type="date"
                 value={pickDate}
                 min={new Date().toISOString().slice(0, 10)}
-                onChange={e => setPickDate(e.target.value)}
+                max="2099-12-31"
+                onChange={e => {
+                  const v = e.target.value;
+                  const m = v.match(/^(\d{4})-\d{2}-\d{2}$/);
+                  if (v && (!m || Number(m[1]) < 2024 || Number(m[1]) > 2099)) return;
+                  setPickDate(v);
+                }}
                 className="mt-1"
               />
             </div>
