@@ -310,6 +310,99 @@ export default function BoutiquePage() {
           </div>
         )}
 
+        {/* BLOC A — Toutes les catégories */}
+        {!loading && (
+          <div style={{ marginTop: 32, marginBottom: 32 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: '0 0 14px' }}>
+              Toutes les catégories
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+              {CAT_CARDS.map((c) => {
+                const count = products.filter(p => c.match(p.category)).length;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => setActiveCat(c.key)}
+                    style={{
+                      background: '#fff',
+                      border: '0.5px solid ' + DEKK.line,
+                      borderRadius: 12,
+                      padding: '16px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, background: '#FBF3EC',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <c.icon size={18} color="#C97B3A" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: DEKK.ink }}>{c.label}</div>
+                      <div style={{ fontSize: 11, color: DEKK.muted }}>{count} produit{count > 1 ? 's' : ''}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* BLOC B — Packs cadeaux */}
+        {!loading && packProducts.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }}>
+                Packs cadeaux
+              </h2>
+              <button
+                onClick={() => setActiveCat('packs-cadeaux')}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: '#C97B3A', cursor: 'pointer', padding: 0 }}
+              >
+                Voir tout →
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, marginBottom: 28 }}>
+              {packProducts.map((p) => (
+                <DekkProductCard
+                  key={p.id}
+                  p={p as any}
+                  wished={wishlist.has(p.id)}
+                  onWish={() => toggleWish(p.id)}
+                  onAdd={() => addToCart(p)}
+                  badge="Waouh"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* BLOC C — Footer garanties */}
+        <div style={{
+          background: 'var(--color-background-secondary)',
+          border: '0.5px solid var(--color-border-tertiary)',
+          borderRadius: 12,
+          padding: '16px 20px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: 12,
+          marginTop: 28,
+        }}>
+          {GUARANTEES.map((g) => (
+            <div key={g.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <g.icon size={18} color="#C97B3A" />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'hsl(var(--text-primary))' }}>{g.label}</div>
+                <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))' }}>{g.sublabel}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <footer className="mt-20 pt-10" style={{ borderTop: `0.5px solid ${DEKK.line}`, textAlign: 'center' }}>
           <p style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.1em', margin: 0 }}>
             DËKK · BY YOBBANTÉ · ÉDITION 2026
