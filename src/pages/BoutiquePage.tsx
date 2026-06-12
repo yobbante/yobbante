@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, X, Plus, Minus, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, X, Plus, Minus, ArrowUpRight, ShieldCheck, Globe } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { CatNav, CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
@@ -19,6 +19,7 @@ type Product = {
   price_fcfa: number;
   origin_country: string;
   stock_mode: string;
+  stock_qty: number;
   delivery_days: number | null;
   status: string;
   image_url: string | null;
@@ -132,6 +133,14 @@ export default function BoutiquePage() {
     return list;
   }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
 
+  const wowProducts = useMemo(() => {
+    const wowCats = ['cachettes', 'rc-gadgets', 'gaming'];
+    return products
+      .filter(p => wowCats.includes(p.category) && (p.stock_qty > 0 || p.stock_mode === 'DROP'))
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+      .slice(0, 4);
+  }, [products]);
+
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
@@ -148,46 +157,79 @@ export default function BoutiquePage() {
         onWishlist={toggleWishlistFilter}
       />
 
-      {/* PART 2 — Hero band */}
-      <header style={{ background: '#0A0A0A', padding: '16px 16px 20px' }}>
-        <p style={{
-          fontFamily: '"Inter", system-ui, sans-serif',
-          fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em',
-          color: 'rgba(255,255,255,0.4)', margin: 0, marginBottom: 4,
+      {/* HERO BANNER */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6" style={{ marginTop: 24 }}>
+        <div style={{
+          background: '#FBF3EC',
+          border: '0.5px solid #F5E6D8',
+          borderRadius: 12,
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 24,
         }}>
-          YOBBANTÉ · BOUTIQUE
-        </p>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>
-          Boutique Dëkk
-        </h1>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4, lineHeight: 1.5, maxWidth: 520 }}>
-          Les meilleurs produits, livrés depuis le monde entier.
-        </p>
-      </header>
-
-      {/* PART 3 — Trust ticker */}
-      <div style={{
-        background: '#161616',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '8px 0',
-        overflow: 'hidden', whiteSpace: 'nowrap',
-      }}>
-        <div style={{ display: 'inline-flex', animation: 'dekkMarquee 32s linear infinite' }}>
-          {Array.from({ length: 2 }).map((_, k) => (
-            <div key={k} style={{
-              display: 'inline-flex', gap: 28, paddingRight: 28,
-              fontFamily: '"Inter", system-ui, sans-serif',
-              fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em',
-              color: 'rgba(255,255,255,0.3)',
+          <div>
+            <span style={{
+              fontSize: 10,
+              fontFamily: '"SF Mono", "DM Mono", ui-monospace, monospace',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: '#C97B3A',
             }}>
-              <span>PAIEMENT SÉCURISÉ · WAVE · OM · CARTE</span>
-              <span>SERVICE APRÈS-VENTE</span>
-              <span>LIVRAISON DAKAR</span>
-              <span>PRODUITS VÉRIFIÉS</span>
-              <span>RETOURS ACCEPTÉS</span>
-            </div>
-          ))}
+              LANCEMENT DËKK
+            </span>
+            <h2 style={{
+              fontSize: 18,
+              fontWeight: 500,
+              color: '#8B5220',
+              lineHeight: 1.3,
+              marginTop: 6,
+              marginBottom: 0,
+            }}>
+              Produits testés,<br />livrés depuis le monde.
+            </h2>
+            <p style={{
+              fontSize: 13,
+              color: '#8B5220',
+              opacity: 0.7,
+              marginTop: 4,
+              marginBottom: 0,
+            }}>
+              Sélection rigoureuse · Prix justes · Livraison Yobbanté
+            </p>
+            <button
+              onClick={() => document.getElementById('dekk-product-grid')?.scrollIntoView({ behavior: 'smooth' })}
+              style={{
+                background: '#C97B3A',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 16px',
+                fontSize: 12,
+                fontWeight: 500,
+                marginTop: 14,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              Découvrir <ArrowUpRight size={14} />
+            </button>
+          </div>
+          <div style={{
+            width: 80,
+            height: 80,
+            background: '#F5E6D8',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Globe size={36} color="#C97B3A" />
+          </div>
         </div>
       </div>
 
@@ -207,13 +249,37 @@ export default function BoutiquePage() {
           </div>
         )}
 
+        {/* SECTION EFFET WAOUH */}
+        {!loading && wowProducts.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }}>
+                Effet waouh — à ne pas rater
+              </h2>
+              <button
+                onClick={() => setActiveCat('all')}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: '#C97B3A', cursor: 'pointer', padding: 0 }}
+              >
+                Voir tout →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+              {wowProducts.map((p, i) => (
+                <ProductCard key={p.id} p={p} idx={i}
+                  wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
+                  onAdd={() => addToCart(p)} badge="Waouh" />
+              ))}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <SkeletonGrid />
         ) : filtered.length === 0 ? (
           <EmptyState onReset={() => { setActiveCat('all'); setSearch(''); }} />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+            <div id="dekk-product-grid" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
               {filtered.slice(0, 6).map((p, i) => (
                 <ProductCard key={p.id} p={p} idx={i}
                   wished={wishlist.has(p.id)} onWish={() => toggleWish(p.id)}
@@ -337,9 +403,10 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-function ProductCard({ p, idx, wished, onWish, onAdd }: {
+function ProductCard({ p, idx, wished, onWish, onAdd, badge }: {
   p: Product; idx: number; wished: boolean;
   onWish: () => void; onAdd: () => void;
+  badge?: string;
 }) {
   const [hovering, setHovering] = useState(false);
   const stockBadge =
@@ -371,6 +438,11 @@ function ProductCard({ p, idx, wished, onWish, onAdd }: {
 
         {/* Top-left badges */}
         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {badge && (
+            <span style={{ background: '#C97B3A', color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
+              {badge}
+            </span>
+          )}
           {newBadge && (
             <span style={{ background: DEKK.ink, color: '#fff', borderRadius: 4, padding: '3px 7px', fontFamily: '"DM Mono", monospace', fontSize: 9, fontWeight: 600, letterSpacing: '0.08em' }}>
               NOUVEAU
