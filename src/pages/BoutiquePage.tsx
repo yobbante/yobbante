@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingBag, Heart, SlidersHorizontal, X, Plus, Minus, Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, X, Plus, Minus, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { CatNav, CAT_PILLS } from '@/components/dekk/CatNav';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { ecommerce } from '@/lib/analytics';
