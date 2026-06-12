@@ -379,9 +379,10 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-function ProductCard({ p, idx, wished, onWish, onAdd }: {
+function ProductCard({ p, idx, wished, onWish, onAdd, badge }: {
   p: Product; idx: number; wished: boolean;
   onWish: () => void; onAdd: () => void;
+  badge?: string;
 }) {
   const [hovering, setHovering] = useState(false);
   const stockBadge =
