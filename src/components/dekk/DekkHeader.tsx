@@ -1,94 +1,249 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, Search, ShoppingCart, Heart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, Heart, User } from 'lucide-react';
 import { useDekkCartCount } from '@/hooks/useDekkCart';
-import { useDekkWishlistCount } from '@/hooks/useDekkWishlist';
 
 export interface DekkHeaderProps {
-  title?: string;
-  /** Where the back arrow goes. Defaults to /boutique on inner pages, / on the boutique root. */
-  backTo?: string;
-  /** Custom search handler (e.g. focus the on-page input). If omitted, navigates to /boutique. */
-  onSearch?: () => void;
-  /** Custom wishlist handler. If omitted, navigates to /boutique?wishlist=1. */
+  /** Current search value (controlled). */
+  searchValue?: string;
+  /** Called when the search input changes. */
+  onSearchChange?: (value: string) => void;
+  /** Called when the heart / wishlist icon is clicked. */
   onWishlist?: () => void;
-  /** Whether the header should stick to the top of the viewport. */
+  /** Whether the whole header (banner + bar) should stick to the top. */
   sticky?: boolean;
 }
 
 /**
- * Sticky black header used across all Boutique Dëkk pages.
- * Layout: ← Back · Title · 🔍 🛒(badge) ♡(badge)
+ * Dëkk boutique header.
+ * 1. Delivery banner
+ * 2. Main bar: wordmark | search | icons
+ * 3. 0.5px bottom separator
  */
 export function DekkHeader({
-  title = 'Boutique Dëkk',
-  backTo,
-  onSearch,
+  searchValue = '',
+  onSearchChange,
   onWishlist,
   sticky = true,
 }: DekkHeaderProps) {
   const nav = useNavigate();
-  const loc = useLocation();
   const cartCount = useDekkCartCount();
-  const wishCount = useDekkWishlistCount();
 
-  const fallbackBack = loc.pathname === '/boutique' || loc.pathname === '/dekk' ? '/' : '/boutique';
-  const back = backTo ?? fallbackBack;
-
-  const handleSearch = () => {
-    if (onSearch) onSearch();
-    else nav('/boutique');
+  const handleSearch = (v: string) => {
+    onSearchChange?.(v);
   };
-  const handleWishlist = () => {
-    if (onWishlist) onWishlist();
-    else nav('/boutique?wishlist=1');
-  };
-
-  const Badge = ({ n, color = 'hsl(var(--primary))' }: { n: number; color?: string }) => (
-    <span
-      aria-label={`${n}`}
-      style={{
-        position: 'absolute', top: -4, right: -6,
-        minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999,
-        background: color, color: '#fff',
-        fontSize: 9, fontWeight: 700, lineHeight: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >{n > 99 ? '99+' : n}</span>
-  );
 
   return (
-    <div
+    <header
       style={{
         position: sticky ? 'sticky' : 'static',
-        top: 0, zIndex: 50,
-        height: 52, padding: '0 16px',
-        background: '#0A0A0A',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        top: 0,
+        zIndex: 50,
+        background: '#fff',
+        borderBottom: '0.5px solid hsl(var(--color-border-tertiary))',
       }}
     >
-      <Link to={back} aria-label="Retour" style={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }}>
-        <ChevronLeft size={22} />
-      </Link>
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
-        {title}
+      {/* ── Delivery banner ───────────────────────────── */}
+      <div
+        style={{
+          width: '100%',
+          background: '#FBF3EC',
+          borderBottom: '1px solid #F5E6D8',
+          padding: '7px 16px',
+          textAlign: 'center',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            color: '#8B5220',
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif',
+          }}
+        >
+          🚚 Livraison gratuite à partir de 25 000 FCFA · Dakar J+1 · Régions J+3
+        </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button type="button" onClick={handleSearch} aria-label="Rechercher"
-          style={{ background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-          <Search size={20} />
-        </button>
-        <button type="button" onClick={() => nav('/panier')} aria-label="Voir le panier"
-          style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: '#fff', cursor: 'pointer', display: 'inline-flex' }}>
-          <ShoppingCart size={20} />
-          <Badge n={cartCount} />
-        </button>
-        <button type="button" onClick={handleWishlist} aria-label="Favoris"
-          style={{ position: 'relative', background: 'transparent', border: 'none', padding: 0, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'inline-flex' }}>
-          <Heart size={20} fill={wishCount > 0 ? '#fff' : 'none'} />
-          {wishCount > 0 && <Badge n={wishCount} color="#C97B3A" />}
-        </button>
+
+      {/* ── Main bar ──────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          padding: '10px 16px',
+          height: 60,
+        }}
+      >
+        {/* Left — wordmark */}
+        <Link
+          to="/boutique"
+          style={{
+            textDecoration: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: '#C97B3A',
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif',
+            }}
+          >
+            DËKK
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily:
+                '"SF Mono", "DM Mono", "Fira Code", ui-monospace, monospace',
+              color: 'hsl(var(--text-tertiary))',
+              lineHeight: 1.2,
+            }}
+          >
+            by Yobbanté · Le monde, livré ici.
+          </span>
+        </Link>
+
+        {/* Center — search */}
+        <div
+          style={{
+            flex: 1,
+            maxWidth: 340,
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Search
+            size={16}
+            style={{
+              position: 'absolute',
+              left: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'hsl(var(--text-tertiary))',
+              pointerEvents: 'none',
+            }}
+          />
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Chercher un produit..."
+            style={{
+              width: '100%',
+              height: 40,
+              padding: '0 12px 0 36px',
+              fontSize: 14,
+              borderRadius: 8,
+              border: '0.5px solid hsl(var(--color-border-tertiary))',
+              background: '#F5F5F5',
+              color: 'hsl(var(--foreground))',
+              outline: 'none',
+              transition: 'border-color 150ms ease',
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#C97B3A';
+              e.currentTarget.style.background = '#fff';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'hsl(var(--color-border-tertiary))';
+              e.currentTarget.style.background = '#F5F5F5';
+            }}
+          />
+        </div>
+
+        {/* Right — icons */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flexShrink: 0,
+          }}
+        >
+          <button
+            type="button"
+            onClick={onWishlist}
+            aria-label="Favoris"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              color: '#141414',
+              cursor: 'pointer',
+              display: 'inline-flex',
+            }}
+          >
+            <Heart size={22} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => nav('/panier')}
+            aria-label="Voir le panier"
+            style={{
+              position: 'relative',
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              color: '#141414',
+              cursor: 'pointer',
+              display: 'inline-flex',
+            }}
+          >
+            <ShoppingCart size={22} />
+            {cartCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -4,
+                  minWidth: 18,
+                  height: 18,
+                  padding: '0 5px',
+                  borderRadius: 999,
+                  background: '#C97B3A',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => nav('/auth')}
+            aria-label="Compte"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              color: '#141414',
+              cursor: 'pointer',
+              display: 'inline-flex',
+            }}
+          >
+            <User size={22} />
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
