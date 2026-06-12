@@ -139,6 +139,8 @@ export default function BoutiquePage() {
       .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
       .slice(0, 4);
   }, [products]);
+
+  return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
       <style>{`
         .dekk-chips::-webkit-scrollbar{display:none}
