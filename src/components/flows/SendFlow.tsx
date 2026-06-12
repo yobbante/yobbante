@@ -2139,7 +2139,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       </p>
                     )}
                     <p className="mt-1.5 text-[11px] text-muted-foreground">
-                      {chosen ? 'Prix confirmé · GP assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
+                      {chosen ? 'Prix confirmé · Transporteur assigné.' : 'Prix estimatif — confirmé après pesée. Si différence > 10 %, notification avant facturation.'}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground italic">
+                      Inclut la collecte, le dédouanement et la livraison à destination.
                     </p>
                   </div>
                 );
