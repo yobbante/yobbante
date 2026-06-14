@@ -17,6 +17,7 @@ import { TransporteurReferenceLookup } from '@/components/admin/TransporteurRefe
 import { assignDossierToDeparture } from '@/lib/assignGpAndNotify';
 import { clarityEvent } from '@/lib/clarity';
 import { useNavigate } from 'react-router-dom';
+import { ManualDepartureForm } from '@/components/admin/ManualDepartureForm';
 
 interface Props {
   open: boolean;
@@ -43,6 +44,9 @@ export function AssignDepartureDialog({
   const [ref, setRef] = useState(initialTransporteurRef ?? '');
   const [gp, setGp] = useState<any>(null);
   const [departureId, setDepartureId] = useState<string | null>(null);
+  // CORRECTION #3 — ouverture du formulaire "Nouveau départ" en overlay,
+  // sans navigation vers /admin/departures (évite de perdre le dossier en cours).
+  const [createDepartureOpen, setCreateDepartureOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -224,15 +228,7 @@ export function AssignDepartureDialog({
                 <Button
                   size="sm"
                   className="w-full bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
-                  onClick={() => {
-                    const params = new URLSearchParams({
-                      gp: ref,
-                      ...(destinationCity ? { dest_city: destinationCity } : {}),
-                      ...(destinationCountry ? { dest_country: destinationCountry } : {}),
-                    });
-                    navigate(`/admin/departures?new=1&${params.toString()}`);
-                    onOpenChange(false);
-                  }}
+                  onClick={() => setCreateDepartureOpen(true)}
                 >
                   <Plus className="w-3.5 h-3.5 mr-1.5" /> Créer un départ pour ce GP
                 </Button>
@@ -346,6 +342,22 @@ export function AssignDepartureDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* CORRECTION #3 — Overlay "Nouveau départ" préremplis (GP + destination). */}
+      <ManualDepartureForm
+        open={createDepartureOpen}
+        onClose={() => {
+          setCreateDepartureOpen(false);
+          // Refresh available departures so the new one shows up immediately.
+          qc.invalidateQueries({ queryKey: ['assign-departures', ref] });
+        }}
+        departure={null}
+        prefill={{
+          transporteurRef: ref || null,
+          destCity: destinationCity ?? null,
+          destCountry: destinationCountry ?? null,
+        }}
+      />
     </Dialog>
   );
 }

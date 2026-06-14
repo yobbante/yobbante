@@ -329,6 +329,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Unlike the regular draft, this includes cities + direction so the user
   // lands on the exact same quote without re-picking anything.
   const RESUME_KEY = 'send-flow:resume';
+  // CORRECTION #1 — quand on revient de /auth après login Google/Apple, on
+  // hydrate l'état complet ET on relance automatiquement submit() une fois
+  // que tous les champs sont à nouveau valides. Plus de "retour au step 1".
+  const autoSubmitRef = useRef(false);
   // Restore once on mount when ?resume=1 is present in the URL.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -343,6 +347,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         if (r.destCityId) setDestCity(r.destCityId);
       }
     } catch {}
+    // Marqueur pour auto-submit dès que la session + le formulaire sont prêts.
+    autoSubmitRef.current = true;
     // Scroll to the sticky CTA so the user just confirms — they don't
     // need to scroll up and re-check anything.
     const t = window.setTimeout(() => {
@@ -541,6 +547,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const skipGoodsStep = false;
   const goodsOk = !!goodsType;
   const allReady = routeOk && collecteOk && recipientOk && packageOk && goodsOk && !!senderName.trim() && !!senderPhone.trim();
+
+  // CORRECTION #1 — Auto-relance de submit() après login Google/Apple.
+  // Conditions : marqueur autoSubmitRef + tous les champs requis OK + utilisateur connecté.
+  useEffect(() => {
+    if (!autoSubmitRef.current) return;
+    if (!allReady) return;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      autoSubmitRef.current = false;
+      // submit() est une déclaration de fonction hoistée dans le composant.
+      submit();
+    })();
+    return () => { cancelled = true; };
+  }, [allReady]);
 
   const summary = originCity && destCity
     ? `${originCity.city} → ${destCity.city}${transportMode ? ` · ${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}` : ''} · ${formatLocalAmount(totalEur, originProfile)}`

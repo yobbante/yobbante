@@ -1,10 +1,7 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Loader2, RefreshCcw } from 'lucide-react';
-import { toast } from 'sonner';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Image as ImageIcon } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { TransporteursTab } from './TransporteursTab';
 import { LivreursTab } from './LivreursTab';
 import { GpOperationsTab } from './GpOperationsTab';
@@ -15,29 +12,15 @@ type TabId = typeof TABS[number];
 
 export function TerrainHubTab() {
   const [sp, setSp] = useSearchParams();
+  const navigate = useNavigate();
   const tabParam = sp.get('tab') as TabId | null;
   const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : 'gp';
-  const [reprocessing, setReprocessing] = useState(false);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
     if (v === 'gp') next.delete('tab');
     else next.set('tab', v);
     setSp(next, { replace: true });
-  };
-
-  const reprocessFlyers = async () => {
-    setReprocessing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gp-bot-reprocess-flyers');
-      if (error) throw error;
-      const sent = (data?.results ?? []).filter((r: any) => r.status === 'sent').length;
-      toast.success(`Retraitement : ${sent} récap(s) envoyé(s) sur ${data?.pending ?? 0} image(s)`);
-    } catch (e: any) {
-      toast.error(e?.message || 'Erreur retraitement');
-    } finally {
-      setReprocessing(false);
-    }
   };
 
   return (
@@ -47,11 +30,11 @@ export function TerrainHubTab() {
           <h1 className="text-2xl font-semibold text-foreground">Équipe terrain</h1>
           <p className="text-sm text-muted-foreground">Transporteurs GP, livreurs Dakar et opérations du jour.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={reprocessFlyers} disabled={reprocessing}>
-          {reprocessing
-            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            : <RefreshCcw className="h-4 w-4 mr-2" />}
-          🔄 Retraiter les flyers non lus
+        {/* CORRECTION #6 — ouvre la page dédiée /admin/flyers (liste + actions
+            individuelles) au lieu de lancer un batch aveugle. */}
+        <Button variant="outline" size="sm" onClick={() => navigate('/admin/flyers')}>
+          <ImageIcon className="h-4 w-4 mr-2" />
+          Flyers WhatsApp
         </Button>
       </div>
 

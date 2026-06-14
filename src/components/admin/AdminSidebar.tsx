@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
-  Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen,
+  Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +78,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isGuide = pathname.startsWith('/admin/guide');
+  const isFlyers = pathname.startsWith('/admin/flyers');
 
 
   useEffect(() => {
@@ -168,7 +169,36 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         );
       })}
 
-      <div className="mt-auto pt-3">
+      <div className="mt-auto pt-3 flex flex-col gap-1">
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin/flyers')}
+            aria-current={isFlyers ? 'page' : undefined}
+            className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+            style={{
+              borderRadius: isFlyers ? 0 : 8,
+              borderLeft: isFlyers ? '2px solid #F5C518' : '2px solid transparent',
+              background: isFlyers ? 'hsl(var(--secondary))' : 'transparent',
+              color: isFlyers ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+              fontWeight: isFlyers ? 500 : undefined,
+            }}
+            onMouseEnter={e => {
+              if (!isFlyers) {
+                e.currentTarget.style.background = 'hsl(var(--secondary))';
+                e.currentTarget.style.color = 'hsl(var(--foreground))';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isFlyers) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+              }
+            }}
+          >
+            <ImageIcon className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 truncate">Flyers WhatsApp</span>
+          </button>
+        )}
         <button
           onClick={() => navigate('/admin/guide')}
           aria-current={isGuide ? 'page' : undefined}
