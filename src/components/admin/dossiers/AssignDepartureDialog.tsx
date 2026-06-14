@@ -342,6 +342,22 @@ export function AssignDepartureDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* CORRECTION #3 — Overlay "Nouveau départ" préremplis (GP + destination). */}
+      <ManualDepartureForm
+        open={createDepartureOpen}
+        onClose={() => {
+          setCreateDepartureOpen(false);
+          // Refresh available departures so the new one shows up immediately.
+          qc.invalidateQueries({ queryKey: ['assign-departures', ref] });
+        }}
+        departure={null}
+        prefill={{
+          transporteurRef: ref || null,
+          destCity: destinationCity ?? null,
+          destCountry: destinationCountry ?? null,
+        }}
+      />
     </Dialog>
   );
 }
