@@ -17,6 +17,7 @@ import { TransporteurReferenceLookup } from '@/components/admin/TransporteurRefe
 import { assignDossierToDeparture } from '@/lib/assignGpAndNotify';
 import { clarityEvent } from '@/lib/clarity';
 import { useNavigate } from 'react-router-dom';
+import { ManualDepartureForm } from '@/components/admin/ManualDepartureForm';
 
 interface Props {
   open: boolean;
