@@ -44,6 +44,9 @@ export function AssignDepartureDialog({
   const [ref, setRef] = useState(initialTransporteurRef ?? '');
   const [gp, setGp] = useState<any>(null);
   const [departureId, setDepartureId] = useState<string | null>(null);
+  // CORRECTION #3 — ouverture du formulaire "Nouveau départ" en overlay,
+  // sans navigation vers /admin/departures (évite de perdre le dossier en cours).
+  const [createDepartureOpen, setCreateDepartureOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
