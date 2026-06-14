@@ -142,15 +142,36 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         applyTransporteur(null);
       }
     } else {
-      setOriginCountry(''); setOriginCity(''); setDestCountry(''); setDestCity('');
-      setMode('air'); setDepartureDate(undefined); setArrivalEstimate(undefined);
-      setTotalCapacity(0); setAvailableCapacity(0);
+      // CORRECTION #4 — Mapping form départ
+      // - Origine SN/Dakar par défaut, destination = pays/ville du GP via prefill.
+      // - Adresse principale du GP laissée vide tant que le GP n'est pas chargé.
+      setOriginCountry(prefill?.originCountry ?? 'SN');
+      setOriginCity(prefill?.originCity ?? 'Dakar');
+      setDestCountry(prefill?.destCountry ?? '');
+      setDestCity(prefill?.destCity ?? '');
+      setMode('air');
+      setDepartureDate(prefill?.departureDate ? new Date(prefill.departureDate) : undefined);
+      setArrivalEstimate(undefined);
+      setTotalCapacity(prefill?.totalCapacityKg ?? 0);
+      setAvailableCapacity(prefill?.totalCapacityKg ?? 0);
       setUseFixedPrice(false); setPriceOverride('');
-      setNotes(''); setStatus('draft');
-      setTRef(''); applyTransporteur(null);
+      setNotes(prefill?.notes ?? '');
+      setStatus('draft');
+      const pref = prefill?.transporteurRef ?? '';
+      setTRef(pref);
+      if (pref && /^[0-9]{4}$/.test(pref)) {
+        fetchTransporteurByRef(pref).then((t) => {
+          applyTransporteur(t);
+          // Adresse principale laissée vide : on ne préremplit PAS depuis matched.adresse_1
+          // pour ce départ. Le bloc applyTransporteur l'a mise, on la blanchit.
+          setTAdr1('');
+        });
+      } else {
+        applyTransporteur(null);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, departure]);
+  }, [open, departure, prefill]);
 
   async function save(publish: boolean) {
     // Transporter validation
