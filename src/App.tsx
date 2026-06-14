@@ -179,6 +179,7 @@ const MainRoutes = () => (
     <Route path="/admin/relais" element={<RelaisPage />} />
     <Route path="/admin/parametres" element={<ParametresPage />} />
     <Route path="/admin/guide" element={<GuidePage />} />
+    <Route path="/admin/flyers" element={<FlyersPage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
     {/* Canonical tracking URL — /suivre redirects to /track */}
     <Route path="/suivre" element={<SuivreEntry />} />
