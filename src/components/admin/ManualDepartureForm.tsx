@@ -59,7 +59,7 @@ const Schema = z.object({
 
 const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Touba', 'Autre'];
 
-export function ManualDepartureForm({ open, onClose, departure }: Props) {
+export function ManualDepartureForm({ open, onClose, departure, prefill }: Props) {
   const { create, update } = useManualDepartures();
   const { upsert: upsertTransporteur } = useTransporteurs();
   const isEdit = !!departure;
