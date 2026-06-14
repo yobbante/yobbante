@@ -25,10 +25,24 @@ import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
+export interface ManualDeparturePrefill {
+  transporteurRef?: string | null;
+  originCountry?: string | null;
+  originCity?: string | null;
+  destCountry?: string | null;
+  destCity?: string | null;
+  /** ISO yyyy-mm-dd */
+  departureDate?: string | null;
+  totalCapacityKg?: number | null;
+  notes?: string | null;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
   departure: ManualDeparture | null;
+  /** CORRECTION #3 / #6 — Préremplir le formulaire (depuis assignation GP ou page flyers). */
+  prefill?: ManualDeparturePrefill | null;
 }
 
 const Schema = z.object({
