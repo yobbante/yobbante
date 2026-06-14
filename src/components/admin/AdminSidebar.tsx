@@ -78,6 +78,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isGuide = pathname.startsWith('/admin/guide');
+  const isFlyers = pathname.startsWith('/admin/flyers');
 
 
   useEffect(() => {
