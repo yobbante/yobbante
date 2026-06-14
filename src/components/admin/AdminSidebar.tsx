@@ -169,7 +169,36 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         );
       })}
 
-      <div className="mt-auto pt-3">
+      <div className="mt-auto pt-3 flex flex-col gap-1">
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin/flyers')}
+            aria-current={isFlyers ? 'page' : undefined}
+            className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+            style={{
+              borderRadius: isFlyers ? 0 : 8,
+              borderLeft: isFlyers ? '2px solid #F5C518' : '2px solid transparent',
+              background: isFlyers ? 'hsl(var(--secondary))' : 'transparent',
+              color: isFlyers ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+              fontWeight: isFlyers ? 500 : undefined,
+            }}
+            onMouseEnter={e => {
+              if (!isFlyers) {
+                e.currentTarget.style.background = 'hsl(var(--secondary))';
+                e.currentTarget.style.color = 'hsl(var(--foreground))';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isFlyers) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+              }
+            }}
+          >
+            <ImageIcon className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 truncate">Flyers WhatsApp</span>
+          </button>
+        )}
         <button
           onClick={() => navigate('/admin/guide')}
           aria-current={isGuide ? 'page' : undefined}
