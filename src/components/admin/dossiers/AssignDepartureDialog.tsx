@@ -228,15 +228,7 @@ export function AssignDepartureDialog({
                 <Button
                   size="sm"
                   className="w-full bg-[#F5C518] text-black hover:bg-[#F5C518]/90"
-                  onClick={() => {
-                    const params = new URLSearchParams({
-                      gp: ref,
-                      ...(destinationCity ? { dest_city: destinationCity } : {}),
-                      ...(destinationCountry ? { dest_country: destinationCountry } : {}),
-                    });
-                    navigate(`/admin/departures?new=1&${params.toString()}`);
-                    onOpenChange(false);
-                  }}
+                  onClick={() => setCreateDepartureOpen(true)}
                 >
                   <Plus className="w-3.5 h-3.5 mr-1.5" /> Créer un départ pour ce GP
                 </Button>
