@@ -548,6 +548,22 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const goodsOk = !!goodsType;
   const allReady = routeOk && collecteOk && recipientOk && packageOk && goodsOk && !!senderName.trim() && !!senderPhone.trim();
 
+  // CORRECTION #1 — Auto-relance de submit() après login Google/Apple.
+  // Conditions : marqueur autoSubmitRef + tous les champs requis OK + utilisateur connecté.
+  useEffect(() => {
+    if (!autoSubmitRef.current) return;
+    if (!allReady) return;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      autoSubmitRef.current = false;
+      // submit() est une déclaration de fonction hoistée dans le composant.
+      submit();
+    })();
+    return () => { cancelled = true; };
+  }, [allReady]);
+
   const summary = originCity && destCity
     ? `${originCity.city} → ${destCity.city}${transportMode ? ` · ${TRANSPORT_MODES.find(t => t.id === transportMode)?.label}` : ''} · ${formatLocalAmount(totalEur, originProfile)}`
     : '';
