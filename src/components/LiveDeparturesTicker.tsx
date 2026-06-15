@@ -157,8 +157,6 @@ export function LiveDeparturesTicker() {
           {formatDate(d.date_depart)}
           <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
           {formatMode(d.mode_transport)}
-          <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
-          {d.transporteur || 'Yobbanté'}
         </span>
       ))
     : [
