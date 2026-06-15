@@ -1,8 +1,10 @@
 // cron-mission-lifecycle — appelée toutes les 15 min par pg_cron.
 //
-// 1) AUTO-REFUS missions : dossiers ASSIGNED avec mission_accepted IS NULL
-//    dont la notif GP date de plus d'1h → mission_accepted=false,
-//    status repasse SUBMITTED, GP detache, notif super-admin.
+// 1) ALERTE MISSION NON ACCEPTÉE (CORRECTION #7) :
+//    dossiers ASSIGNED avec mission_accepted IS NULL et notif GP > 1h.
+//    On ne détache PLUS automatiquement le GP : on envoie une alerte
+//    WhatsApp au super-admin, throttlée par gp_acceptance_alert_sent_at
+//    (relancée au max toutes les 6h tant que le GP n'a pas répondu).
 //
 // 2) FEEDBACK post-livraison : dossiers DELIVERED depuis plus de 48h
 //    dont feedback_sent_at IS NULL → envoi du questionnaire 1/2/3 et
