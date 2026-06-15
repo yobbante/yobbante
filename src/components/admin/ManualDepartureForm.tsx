@@ -377,7 +377,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               <div className="col-span-1"><Label>Pays orig.</Label><Input value={originCountry} onChange={(e) => setOriginCountry(e.target.value)} placeholder="FR" maxLength={3} /></div>
               <div className="col-span-2"><Label>Ville origine *</Label><Input value={originCity} onChange={(e) => setOriginCity(e.target.value)} placeholder="Paris" /></div>
               <div className="col-span-1"><Label>Pays dest.</Label><Input value={destCountry} onChange={(e) => setDestCountry(e.target.value)} placeholder="SN" maxLength={3} /></div>
-              <div className="col-span-2"><Label>Ville destination *</Label><Input value={destCity} onChange={(e) => setDestCity(e.target.value)} placeholder="Dakar" /></div>
+              <div className="col-span-2"><Label>Ville destination *</Label><Input value={destCity} onChange={(e) => {
+                const v = e.target.value;
+                setDestCity(v);
+                // Auto-déduire le pays destination si vide
+                if (!destCountry.trim()) {
+                  const c = resolveCountryFromCity(v);
+                  if (c) setDestCountry(c);
+                }
+              }} placeholder="Paris" /></div>
             </div>
             <div>
               <Label>Mode de transport *</Label>
