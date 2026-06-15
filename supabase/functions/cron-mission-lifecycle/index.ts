@@ -1,8 +1,10 @@
 // cron-mission-lifecycle — appelée toutes les 15 min par pg_cron.
 //
-// 1) AUTO-REFUS missions : dossiers ASSIGNED avec mission_accepted IS NULL
-//    dont la notif GP date de plus d'1h → mission_accepted=false,
-//    status repasse SUBMITTED, GP detache, notif super-admin.
+// 1) ALERTE MISSION NON ACCEPTÉE (CORRECTION #7) :
+//    dossiers ASSIGNED avec mission_accepted IS NULL et notif GP > 1h.
+//    On ne détache PLUS automatiquement le GP : on envoie une alerte
+//    WhatsApp au super-admin, throttlée par gp_acceptance_alert_sent_at
+//    (relancée au max toutes les 6h tant que le GP n'a pas répondu).
 //
 // 2) FEEDBACK post-livraison : dossiers DELIVERED depuis plus de 48h
 //    dont feedback_sent_at IS NULL → envoi du questionnaire 1/2/3 et
@@ -39,41 +41,41 @@ Deno.serve(async (req) => {
     } catch (e) { console.error('cron sendWa', e); }
   }
 
-  // -------- 1) AUTO-REFUS missions assignees > 1h sans reponse --------
+  // -------- 1) ALERTE missions assignees > 1h sans reponse (no auto-detach) --------
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
   const { data: pending, error: pErr } = await supa
     .from('dossiers')
-    .select('id, tracking_id, reference, assigned_transporteur_ref, destination_city, destination_country, gp_reminded_at')
+    .select('id, tracking_id, reference, assigned_transporteur_ref, destination_city, destination_country, gp_reminded_at, gp_acceptance_alert_sent_at')
     .eq('status', 'ASSIGNED')
     .is('mission_accepted', null)
     .not('assigned_transporteur_ref', 'is', null)
     .not('gp_reminded_at', 'is', null)
     .lt('gp_reminded_at', oneHourAgo)
+    .or(`gp_acceptance_alert_sent_at.is.null,gp_acceptance_alert_sent_at.lt.${sixHoursAgo}`)
     .limit(50);
-  if (pErr) console.error('cron auto-refuse query', pErr);
+  if (pErr) console.error('cron gp-acceptance-alert query', pErr);
 
-  let refused = 0;
+  let alerted = 0;
   for (const d of pending ?? []) {
     const ref = d.tracking_id ?? d.reference ?? '?';
     const gpRef = d.assigned_transporteur_ref;
     const dest = d.destination_city ?? d.destination_country ?? '—';
-    const { error: upErr } = await supa.from('dossiers').update({
-      mission_accepted: false,
-      mission_decided_at: new Date().toISOString(),
-      assigned_transporteur_ref: null,
-      assigned_departure_id: null,
-      gp_id: null,
-      status: 'SUBMITTED',
-    }).eq('id', d.id);
-    if (upErr) { console.error('cron auto-refuse update', upErr); continue; }
-    refused++;
+    const reminded = d.gp_reminded_at ? new Date(d.gp_reminded_at) : null;
+    const hoursPending = reminded
+      ? Math.max(1, Math.round((Date.now() - reminded.getTime()) / 3_600_000))
+      : 1;
     await sendWa({
       recipient_phone: SUPER_ADMIN,
       recipient_type: 'admin',
-      message: `⏰ Auto-refus mission\nGP${gpRef} n'a pas repondu sous 1h.\nColis ${ref} -> ${dest}\nA reassigner.`,
-      trigger_type: 'mission_auto_refused',
+      message: `⏰ Mission non acceptée\nGP${gpRef} n'a pas répondu depuis ${hoursPending}h.\nColis ${ref} → ${dest}\nGP toujours assigné — relancer ou réassigner manuellement.`,
+      trigger_type: 'gp_acceptance_pending_alert',
       dossier_id: d.id,
     });
+    await supa.from('dossiers')
+      .update({ gp_acceptance_alert_sent_at: new Date().toISOString() })
+      .eq('id', d.id);
+    alerted++;
   }
 
   // -------- 2) FEEDBACK 48h post-livraison --------
@@ -145,7 +147,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, refused, asked }),
+    JSON.stringify({ ok: true, alerted, asked }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 });

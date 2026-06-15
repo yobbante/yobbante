@@ -23,7 +23,20 @@ import {
 import { useTransporteurs, fetchTransporteurByRef, type Transporteur } from '@/hooks/useTransporteurs';
 import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
+import { ALL_CITIES } from '@/lib/worldCities';
 import { cn } from '@/lib/utils';
+
+/** CORRECTION #4 — Auto-resolve country ISO from a city name (best-effort). */
+function resolveCountryFromCity(city: string | null | undefined): string {
+  if (!city) return '';
+  const v = city.trim().toLowerCase();
+  if (!v) return '';
+  const m =
+    ALL_CITIES.find(c => c.city.toLowerCase() === v) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().startsWith(v)) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().includes(v));
+  return m?.country ?? '';
+}
 
 export interface ManualDeparturePrefill {
   transporteurRef?: string | null;
@@ -144,11 +157,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
     } else {
       // CORRECTION #4 — Mapping form départ
       // - Origine SN/Dakar par défaut, destination = pays/ville du GP via prefill.
-      // - Adresse principale du GP laissée vide tant que le GP n'est pas chargé.
+      // - Pays destination auto-déduit depuis la ville si non fourni.
       setOriginCountry(prefill?.originCountry ?? 'SN');
       setOriginCity(prefill?.originCity ?? 'Dakar');
-      setDestCountry(prefill?.destCountry ?? '');
-      setDestCity(prefill?.destCity ?? '');
+      const destCityVal = prefill?.destCity ?? '';
+      setDestCountry(prefill?.destCountry ?? resolveCountryFromCity(destCityVal));
+      setDestCity(destCityVal);
       setMode('air');
       setDepartureDate(prefill?.departureDate ? new Date(prefill.departureDate) : undefined);
       setArrivalEstimate(undefined);
@@ -363,7 +377,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               <div className="col-span-1"><Label>Pays orig.</Label><Input value={originCountry} onChange={(e) => setOriginCountry(e.target.value)} placeholder="FR" maxLength={3} /></div>
               <div className="col-span-2"><Label>Ville origine *</Label><Input value={originCity} onChange={(e) => setOriginCity(e.target.value)} placeholder="Paris" /></div>
               <div className="col-span-1"><Label>Pays dest.</Label><Input value={destCountry} onChange={(e) => setDestCountry(e.target.value)} placeholder="SN" maxLength={3} /></div>
-              <div className="col-span-2"><Label>Ville destination *</Label><Input value={destCity} onChange={(e) => setDestCity(e.target.value)} placeholder="Dakar" /></div>
+              <div className="col-span-2"><Label>Ville destination *</Label><Input value={destCity} onChange={(e) => {
+                const v = e.target.value;
+                setDestCity(v);
+                // Auto-déduire le pays destination si vide
+                if (!destCountry.trim()) {
+                  const c = resolveCountryFromCity(v);
+                  if (c) setDestCountry(c);
+                }
+              }} placeholder="Paris" /></div>
             </div>
             <div>
               <Label>Mode de transport *</Label>

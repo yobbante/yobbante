@@ -1005,6 +1005,7 @@ export type Database = {
           feedback_rating: number | null
           feedback_sent_at: string | null
           final_amount_xof: number | null
+          gp_acceptance_alert_sent_at: string | null
           gp_amount: number | null
           gp_amount_set_at: string | null
           gp_amount_set_by: string | null
@@ -1155,6 +1156,7 @@ export type Database = {
           feedback_rating?: number | null
           feedback_sent_at?: string | null
           final_amount_xof?: number | null
+          gp_acceptance_alert_sent_at?: string | null
           gp_amount?: number | null
           gp_amount_set_at?: string | null
           gp_amount_set_by?: string | null
@@ -1305,6 +1307,7 @@ export type Database = {
           feedback_rating?: number | null
           feedback_sent_at?: string | null
           final_amount_xof?: number | null
+          gp_acceptance_alert_sent_at?: string | null
           gp_amount?: number | null
           gp_amount_set_at?: string | null
           gp_amount_set_by?: string | null
