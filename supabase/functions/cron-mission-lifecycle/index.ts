@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, refused, asked }),
+    JSON.stringify({ ok: true, alerted, asked }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 });
