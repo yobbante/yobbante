@@ -195,7 +195,7 @@ export function LiveDeparturesTicker() {
 
   return (
     <div
-      className="w-full"
+      className="w-full ticker-fade-in"
       style={{
         height: 32,
         background: '#0F0F0F',
