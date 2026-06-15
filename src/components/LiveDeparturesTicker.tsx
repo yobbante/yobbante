@@ -263,11 +263,22 @@ export function LiveDeparturesTicker() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes ticker-reveal {
+          0% { opacity: 0; transform: translateY(-6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .ticker-fade-in {
+          animation: ticker-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
         .ticker-scroll-zone:hover .ticker-track {
           animation-play-state: paused !important;
         }
         @media (max-width: 640px) {
           .ticker-track { font-size: 12px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ticker-fade-in { animation: none; }
+          .ticker-track { animation-duration: 240s !important; }
         }
       `}</style>
     </div>
