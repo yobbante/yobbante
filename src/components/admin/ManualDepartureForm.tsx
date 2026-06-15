@@ -157,11 +157,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
     } else {
       // CORRECTION #4 — Mapping form départ
       // - Origine SN/Dakar par défaut, destination = pays/ville du GP via prefill.
-      // - Adresse principale du GP laissée vide tant que le GP n'est pas chargé.
+      // - Pays destination auto-déduit depuis la ville si non fourni.
       setOriginCountry(prefill?.originCountry ?? 'SN');
       setOriginCity(prefill?.originCity ?? 'Dakar');
-      setDestCountry(prefill?.destCountry ?? '');
-      setDestCity(prefill?.destCity ?? '');
+      const destCityVal = prefill?.destCity ?? '';
+      setDestCountry(prefill?.destCountry ?? resolveCountryFromCity(destCityVal));
+      setDestCity(destCityVal);
       setMode('air');
       setDepartureDate(prefill?.departureDate ? new Date(prefill.departureDate) : undefined);
       setArrivalEstimate(undefined);
