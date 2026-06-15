@@ -247,8 +247,8 @@ export function LiveDeparturesTicker() {
             height: '100%',
             fontSize: 12,
             animation: hasItems
-              ? 'ticker-scroll 40s linear infinite'
-              : 'ticker-scroll 60s linear infinite',
+              ? 'ticker-scroll 120s linear infinite'
+              : 'ticker-scroll 160s linear infinite',
             whiteSpace: 'nowrap',
             willChange: 'transform',
           }}
