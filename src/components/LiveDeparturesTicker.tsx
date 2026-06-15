@@ -157,8 +157,6 @@ export function LiveDeparturesTicker() {
           {formatDate(d.date_depart)}
           <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
           {formatMode(d.mode_transport)}
-          <span style={{ color: '#8A8A8A', margin: '0 8px' }}>·</span>
-          {d.transporteur || 'Yobbanté'}
         </span>
       ))
     : [
@@ -197,7 +195,7 @@ export function LiveDeparturesTicker() {
 
   return (
     <div
-      className="w-full"
+      className="w-full ticker-fade-in"
       style={{
         height: 32,
         background: '#0F0F0F',
@@ -249,8 +247,8 @@ export function LiveDeparturesTicker() {
             height: '100%',
             fontSize: 12,
             animation: hasItems
-              ? 'ticker-scroll 40s linear infinite'
-              : 'ticker-scroll 60s linear infinite',
+              ? 'ticker-scroll 120s linear infinite'
+              : 'ticker-scroll 160s linear infinite',
             whiteSpace: 'nowrap',
             willChange: 'transform',
           }}
@@ -265,11 +263,22 @@ export function LiveDeparturesTicker() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes ticker-reveal {
+          0% { opacity: 0; transform: translateY(-6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .ticker-fade-in {
+          animation: ticker-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
         .ticker-scroll-zone:hover .ticker-track {
           animation-play-state: paused !important;
         }
         @media (max-width: 640px) {
           .ticker-track { font-size: 12px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ticker-fade-in { animation: none; }
+          .ticker-track { animation-duration: 240s !important; }
         }
       `}</style>
     </div>
