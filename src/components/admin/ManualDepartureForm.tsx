@@ -23,7 +23,20 @@ import {
 import { useTransporteurs, fetchTransporteurByRef, type Transporteur } from '@/hooks/useTransporteurs';
 import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
+import { ALL_CITIES } from '@/lib/worldCities';
 import { cn } from '@/lib/utils';
+
+/** CORRECTION #4 — Auto-resolve country ISO from a city name (best-effort). */
+function resolveCountryFromCity(city: string | null | undefined): string {
+  if (!city) return '';
+  const v = city.trim().toLowerCase();
+  if (!v) return '';
+  const m =
+    ALL_CITIES.find(c => c.city.toLowerCase() === v) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().startsWith(v)) ??
+    ALL_CITIES.find(c => c.city.toLowerCase().includes(v));
+  return m?.country ?? '';
+}
 
 export interface ManualDeparturePrefill {
   transporteurRef?: string | null;
