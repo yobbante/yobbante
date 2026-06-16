@@ -409,6 +409,9 @@ Voir → https://yobbante.com/admin`;
         if (res.ok) {
           usedFallback = true;
           activeTemplateName = fb;
+          // Re-render with the fallback template so message_body matches
+          // the text Meta actually delivered.
+          messageBody = renderTemplateBody(fb, body.template_params ?? []) ?? messageBody;
         }
       }
     }
