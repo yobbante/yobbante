@@ -64,6 +64,7 @@ const TEMPLATE_FALLBACKS: Record<string, string> = {
 };
 
 import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
+import { renderTemplateBody, GP_PRENOM_TEMPLATES } from '../_shared/whatsappTemplates.ts';
 
 function normalizePhone(input: string): string {
   // Normalisation SN-aware puis chiffres seuls (format attendu par l'API Meta).
