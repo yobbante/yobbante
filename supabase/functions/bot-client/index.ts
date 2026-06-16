@@ -449,7 +449,7 @@ async function askExpeditionWeight(supa: any, phone: string, data: Record<string
   await saveSession(supa, phone, 'exp_weight', data);
   await sendWaList(
     phone,
-    `Vers ${data.dest_city || data.dest}. Quel est le poids estime ?`,
+    `Vers ${data.dest_city || data.dest}. Quel est le poids estimé ?`,
     'Choisir poids',
     [{
       title: 'Poids',
