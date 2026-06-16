@@ -64,6 +64,7 @@ const TEMPLATE_FALLBACKS: Record<string, string> = {
 };
 
 import { normalizePhoneDigits, warnIfInvalidPhone } from '../_shared/phone.ts';
+import { renderTemplateBody, GP_PRENOM_TEMPLATES } from '../_shared/whatsappTemplates.ts';
 
 function normalizePhone(input: string): string {
   // Normalisation SN-aware puis chiffres seuls (format attendu par l'API Meta).
@@ -185,6 +186,33 @@ Deno.serve(async (req) => {
     });
   }
 
+  // BUG 3 — Resolve GP prenom server-side for any GP-prenom-first template
+  // to make sure clients never receive "Bienvenue, Awa !" sent to the wrong GP.
+  // Caller-provided prenom is kept ONLY if it matches the actual GP for this phone.
+  if (body.template_name && GP_PRENOM_TEMPLATES.has(body.template_name)) {
+    try {
+      const tail = normalizePhone(body.recipient_phone || '').slice(-9);
+      if (tail) {
+        const { data: gp } = await supa
+          .from('transporteurs')
+          .select('prenom, nom')
+          .or(`telephone_1.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+          .limit(1)
+          .maybeSingle();
+        const resolved = (gp?.prenom?.trim()
+          || (gp?.nom ? gp.nom.split(/\s+/)[0] : '')
+          || 'ami(e)').trim();
+        body.template_params = body.template_params ? [...body.template_params] : [];
+        body.template_params[0] = resolved;
+        console.log('WA_GP_PRENOM resolved', { template: body.template_name, tail, prenom: resolved });
+      }
+    } catch (e) {
+      console.error('WA_GP_PRENOM resolution failed', e instanceof Error ? e.message : String(e));
+      body.template_params = body.template_params ? [...body.template_params] : [];
+      if (!body.template_params[0]?.trim()) body.template_params[0] = 'ami(e)';
+    }
+  }
+
   // Build Meta payload
   const useTemplate = !!body.template_name;
   const useInteractive = !!body.interactive_type
@@ -264,6 +292,11 @@ Deno.serve(async (req) => {
   if (useTemplate) {
     metaBody = buildTemplateBody(body.template_name!);
     messageType = 'template';
+    // BUG 1 — Pre-render the human-readable text so we store something usable
+    // in whatsapp_outbound_messages.message_body (and mirror to dossier chat).
+    // Falls back to a generic notice if the template is not in the renderer map.
+    messageBody = renderTemplateBody(body.template_name!, body.template_params ?? [])
+      ?? `Notification Yobbanté — vous avez reçu un message. Ouvrez WhatsApp pour le consulter.`;
   } else if (useInteractive) {
     const built = buildInteractiveBody();
     if (built) {
@@ -376,6 +409,9 @@ Voir → https://yobbante.com/admin`;
         if (res.ok) {
           usedFallback = true;
           activeTemplateName = fb;
+          // Re-render with the fallback template so message_body matches
+          // the text Meta actually delivered.
+          messageBody = renderTemplateBody(fb, body.template_params ?? []) ?? messageBody;
         }
       }
     }

@@ -106,7 +106,7 @@ function validateWeight(raw: string): WeightCheck {
   return { ok: true, weight: w, heavy: w > HEAVY_WEIGHT_THRESHOLD_KG };
 }
 
-// --- Destinations Yobbante reconnues (free-text) ---
+// --- Destinations Yobbanté reconnues (free-text) ---
 // Aliases tolerent typos, accents, abreviations courantes.
 const VALID_DESTINATIONS: { city: string; aliases: string[]; country: string }[] = [
   { city: 'Paris', aliases: ['paris', 'pari', 'france', 'fr'], country: 'FR' },
@@ -171,10 +171,10 @@ function detectEnglishIntent(raw: string): Intent2 {
 }
 
 const HELP_EN_REPLY =
-  `Je suis l assistant Yobbante.\n` +
-  `Je peux vous aider a :\n` +
+  `Je suis l'assistant Yobbanté.\n` +
+  `Je peux vous aider à :\n` +
   `- envoyer un colis\n` +
-  `- suivre votre expedition\n` +
+  `- suivre votre expédition\n` +
   `- obtenir un devis`;
 
 type Intent =
@@ -207,7 +207,7 @@ interface NlpResult {
   language: 'fr' | 'en' | 'wo' | 'mixed' | 'other';
 }
 
-const NLP_SYSTEM = `Tu es le bot WhatsApp de Yobbante, service logistique Dakar vers le monde.
+const NLP_SYSTEM = `Tu es le bot WhatsApp de Yobbanté, service logistique Dakar vers le monde.
 Analyse le message du client et retourne UNIQUEMENT un JSON valide :
 {"intent":"DEPARTS|SUIVI|EXPEDITION|DEVIS|AGENT|PLAINTE|CONFIRMATION|ANNULATION|UNKNOWN","entities":{"origin":string|null,"destination":string|null,"tracking_id":string|null,"weight":number|null,"date":string|null,"response":"OUI"|"NON"|null},"confidence":number,"urgency":"LOW|MEDIUM|HIGH","language":"fr|en|wo|mixed|other"}
 
@@ -295,7 +295,7 @@ const FAQ_RESPONSES: Array<{ patterns: RegExp[]; reply: string }> = [
   {
     patterns: [/\bpaiement\b/, /\bpayer\b/, /\bcomment\s+payer\b/, /\bmode\s+de\s+paiement\b/, /\bpayment\b/],
     reply:
-      `Modes de paiement Yobbante :\n` +
+      `Modes de paiement Yobbanté :\n` +
       `- Wave\n` +
       `- Orange Money\n` +
       `- Especes a la collecte`,
@@ -330,14 +330,14 @@ const FAQ_RESPONSES: Array<{ patterns: RegExp[]; reply: string }> = [
   {
     patterns: [/\bc\s*est\s+quoi\s+un\s+gp\b/, /\bqu\s*est\s*ce\s+qu\s*un\s+gp\b/, /\bdefinition\s+gp\b/, /\bwhat\s+is\s+a\s+gp\b/],
     reply:
-      `Un GP (Gros Porteur) est un voyageur partenaire Yobbante.\n` +
+      `Un GP (Gros Porteur) est un voyageur partenaire Yobbanté.\n` +
       `Il transporte vos colis dans ses bagages lors de ses voyages.\n` +
       `Plus economique et plus rapide qu un transporteur classique.`,
   },
   {
     patterns: [/\bqui\s+etes\s+vous\b/, /\bpresentation\b/, /\byobbante\s+c\s*est\s+quoi\b/, /\bwhat\s+is\s+yobbante\b/, /\babout\s+yobbante\b/],
     reply:
-      `Yobbante connecte vos colis aux voyageurs (GP) depuis Dakar.\n` +
+      `Yobbanté connecte vos colis aux voyageurs (GP) depuis Dakar.\n` +
       `Envois rapides, prix transparents, suivi en temps reel.\n` +
       `Vers Paris, New York, Dubai, Abidjan et plus.`,
   },
@@ -449,7 +449,7 @@ async function askExpeditionWeight(supa: any, phone: string, data: Record<string
   await saveSession(supa, phone, 'exp_weight', data);
   await sendWaList(
     phone,
-    `Vers ${data.dest_city || data.dest}. Quel est le poids estime ?`,
+    `Vers ${data.dest_city || data.dest}. Quel est le poids estimé ?`,
     'Choisir poids',
     [{
       title: 'Poids',
@@ -684,10 +684,20 @@ const STATUS_FR: Record<string, string> = {
 };
 
 // Interactive menu prompt — affiche uniquement via liste interactive Meta.
-const MAIN_MENU_TEXT = `Bonjour ! Je suis l assistant Yobbante. Comment puis-je vous aider ?`;
+const MAIN_MENU_TEXT = `Bonjour ! Je suis l'assistant Yobbanté. Comment puis-je vous aider ?`;
 const SHORT_MENU_TEXT = `Que souhaitez-vous faire ensuite ?`;
-const SESSION_EXPIRED_TEXT = `Votre session a expire.`;
-const FALLBACK = `Bonjour ! Je suis l'assistant Yobbante.\nComment puis-je vous aider ?\n\n1 - Creer une expedition\n2 - Suivre mon colis\n3 - Parler a un conseiller`;
+const SESSION_EXPIRED_TEXT = `Votre session a expiré.`;
+
+// Numbered fallback shown when the user sends something we don't understand,
+// or when WhatsApp refuses the interactive list (out of 24h window, etc.).
+const NUMBERED_MENU_TEXT =
+  `Bonjour ! Je suis l'assistant Yobbanté.\n` +
+  `Comment puis-je vous aider ?\n\n` +
+  `1 — Expédier un colis\n` +
+  `2 — Suivre mon colis\n` +
+  `3 — Aide / parler à un agent\n\n` +
+  `Répondez par le chiffre, ou tapez "expédier", "suivre", "aide".`;
+const FALLBACK = NUMBERED_MENU_TEXT;
 
 // Sentinels: stripped before envoi, declenchent l UI interactive correspondante.
 const UI_MENU = '[[UI_MENU]]';
@@ -697,8 +707,8 @@ const MAIN_MENU = `${MAIN_MENU_TEXT}\n${UI_MENU}`;
 const SHORT_MENU = `${SHORT_MENU_TEXT}\n${UI_MENU}`;
 const SESSION_EXPIRED = `${SESSION_EXPIRED_TEXT}\n${UI_MENU}`;
 
-const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
-const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler|\?)\b/;
+const BACK_TO_MENU = /^(0|menu|retour|annuler|\?)$/;
 
 // Append interactive menu list (5 options) after info replies.
 function withShortMenu(reply: string): string {
@@ -717,15 +727,15 @@ const MAIN_MENU_SECTIONS = [
   {
     title: 'Nos services',
     rows: [
-      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expeditions' },
-      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expedition depuis Dakar' },
-      { id: 'DEPARTS', title: 'Prochains departs', description: 'Voir les departs disponibles' },
-      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantane en ligne' },
-      { id: 'AGENT', title: 'Parler a un agent', description: 'Contacter notre equipe' },
+      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expédition depuis Dakar' },
+      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expéditions' },
+      { id: 'DEPARTS', title: 'Prochains départs', description: 'Voir les départs disponibles' },
+      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantané en ligne' },
+      { id: 'AGENT', title: 'Parler à un agent', description: 'Contacter notre équipe' },
     ],
   },
 ];
-const MAIN_MENU_FALLBACK = `${MAIN_MENU_TEXT}\nRepondez : SUIVI, EXPEDITION, DEPARTS, DEVIS ou AGENT.`;
+const MAIN_MENU_FALLBACK = NUMBERED_MENU_TEXT;
 const BACK_BUTTONS = [{ id: 'MENU', label: 'Retour au menu' }];
 
 
@@ -754,7 +764,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
         payload: { rating, phone, tracking: trk },
       }).then(() => null, () => null);
       await sendWa(supa, phone,
-        `Merci pour votre retour. Un agent Yobbante vous recontacte rapidement au sujet du colis ${trk}.`,
+        `Merci pour votre retour. Un agent Yobbanté vous recontacte rapidement au sujet du colis ${trk}.`,
         'bot_client_rating_problem');
     } else {
       await sendWa(supa, phone,
@@ -772,7 +782,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
       .select('tracking_id, reference').eq('id', dossierId).maybeSingle();
     const trk = dos?.tracking_id || dos?.reference || '';
     await sendWaButtons(supa, phone,
-      `Comment s est passee votre experience avec Yobbante (colis ${trk}) ?`,
+      `Comment s'est passée votre expérience avec Yobbanté (colis ${trk}) ?`,
       [
         { id: `rate_excellent_${dossierId}`, title: 'Excellent' },
         { id: `rate_bien_${dossierId}`, title: 'Bien' },
@@ -827,7 +837,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
   // Contact agent
   if (id === 'contact_agent') {
     await sendWa(supa, phone,
-      `Un agent Yobbante vous recontacte rapidement. Vous pouvez aussi nous joindre au +221 78 460 40 03.`,
+      `Un agent Yobbanté vous recontacte rapidement. Vous pouvez aussi nous joindre au +221 78 460 40 03.`,
       'bot_client_contact_agent');
     await supa.from('admin_notifications').insert({
       event_type: 'client_requested_agent',
@@ -1034,7 +1044,7 @@ async function handleMenu1Departures(supa: any) {
   if (!deps || deps.length === 0) {
     return `Aucun depart disponible actuellement.\n\nReessayez bientot ou tapez 4 pour un devis.`;
   }
-  let txt = `Prochains departs Yobbante :\n\n`;
+  let txt = `Prochains departs Yobbanté :\n\n`;
   for (const d of deps) {
     const ref = d.short_ref || d.transporteur_ref || '----';
     txt += `${fmtDate(d.departure_date)} - ${d.origin_city || '?'} -> ${d.destination_city || '?'}\nRef #${ref} - Places dispo : ${d.available_capacity_kg ?? 0}kg\n\n`;
@@ -1105,7 +1115,7 @@ async function handleQuoteCalc(supa: any, dest: string, weight: number): Promise
     const stdPrice = std?.price_xof ?? std?.total_xof ?? null;
     const expressPrice = stdPrice ? Math.round(stdPrice * 1.45) : null;
 
-    let body = `Estimation Yobbante :\nDakar -> ${dest} - ${weight}kg :\n\n`;
+    let body = `Estimation Yobbanté :\nDakar -> ${dest} - ${weight}kg :\n\n`;
     if (stdPrice) body += `Standard : ${stdPrice.toLocaleString('fr-FR')} FCFA (3 jours)\n`;
     if (expressPrice) body += `Express : ${expressPrice.toLocaleString('fr-FR')} FCFA (24h)\n`;
     if (!stdPrice) body += `Nous recherchons la meilleure option. Un agent vous contactera.\n`;
@@ -1408,15 +1418,50 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
-    // PRIORITY 2: numeric (legacy) OR interactive list/button id -> top-level menu choice
-    else if (/^[1-5]$/.test(nMsg) || ['suivi','expedition','departs','devis','agent'].includes(nMsg)) {
-      const idMap: Record<string, string> = {
-        '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
-        departs: '1', suivi: '2', expedition: '3', devis: '4', agent: '5',
+    // PRIORITY 2: numeric (1/2/3 = client-facing numbered menu) OR word aliases
+    // OR interactive list/button id -> dispatch to the right top-level action.
+    //   1 / expédier / envoyer  -> expédition (handleMenuChoice '3')
+    //   2 / suivre              -> suivi      (handleMenuChoice '2')
+    //   3 / aide / ?            -> menu       (handled above by MENU_TRIGGERS)
+    //   Interactive ids keep their original mapping.
+    else if (
+      /^[1-5]$/.test(nMsg) ||
+      ['suivi','suivre','expedition','expedier','envoyer','envoi','departs','devis','agent'].includes(nMsg)
+    ) {
+      // Numbered menu (typed): user-facing 3-option layout.
+      const typedNumberMap: Record<string, '2' | '3' | 'MENU'> = {
+        '1': '3',       // 1 = Expédier
+        '2': '2',       // 2 = Suivre
+        '3': 'MENU',    // 3 = Aide / menu
       };
-      await saveSession(supa, phone, null, {});
-      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
+      // Word aliases (typed).
+      const wordMap: Record<string, '2' | '3' | '1' | '4' | '5'> = {
+        expedier: '3', expedition: '3', envoyer: '3', envoi: '3',
+        suivre: '2', suivi: '2',
+        departs: '1',
+        devis: '4',
+        agent: '5',
+      };
+
+      let target: string | undefined;
+      if (typedNumberMap[nMsg]) {
+        target = typedNumberMap[nMsg];
+      } else if (wordMap[nMsg]) {
+        target = wordMap[nMsg];
+      } else if (/^[4-5]$/.test(nMsg)) {
+        // 4/5 typed: kept as legacy aliases to devis/agent.
+        target = nMsg;
+      }
+
+      if (target === 'MENU' || !target) {
+        await saveSession(supa, phone, null, {});
+        reply = MAIN_MENU;
+      } else {
+        await saveSession(supa, phone, null, {});
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, target, msg);
+      }
     }
+
 
     // PRIORITY 2a: closure words ("rien", "merci", "ok", "d accord")
     // -> Une seule reponse polie, fin de session, PAS de menu.
@@ -1514,7 +1559,7 @@ Deno.serve(async (req) => {
       } else {
         const trk = dossier.tracking_id || dossier.reference;
         await saveSession(supa, phone, null, {});
-        reply = withShortMenu(`Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbante !`);
+        reply = withShortMenu(`Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbanté !`);
       }
     }
     // ---- Quote flow ----
@@ -1677,7 +1722,7 @@ Deno.serve(async (req) => {
         await saveSession(supa, phone, 'exp_destination', {});
         reply = withBack(`Quelle destination ? Tapez le nom de la ville (ex: Londres)`);
       } else {
-        // Texte libre : valider contre la liste Yobbante
+        // Texte libre : valider contre la liste Yobbanté
         const resolved = resolveDestination(msg);
         if (!resolved) {
           reply = withBack(INVALID_DESTINATION_MSG);
@@ -1835,7 +1880,7 @@ Deno.serve(async (req) => {
           }
         } else {
           // Intent UNKNOWN avec haute confiance -> on accompagne sans bumper retry
-          reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          reply = withFullMenu(`${greet}Je veux m'assurer de bien vous aider. Que cherchez-vous ?`);
         }
 
         // Reset retry sur intent reconnu

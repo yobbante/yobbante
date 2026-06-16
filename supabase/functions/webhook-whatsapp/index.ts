@@ -110,6 +110,27 @@ Deno.serve(async (req) => {
           const wamid = msg?.id ?? null;
           const phoneId = metadata?.phone_number_id ?? '';
 
+          // BUG 2 — IDEMPOTENCY (Meta retries can arrive minutes/hours later).
+          // Hard-skip ANY wamid we've already recorded, before super-admin
+          // routing, bot dispatch or admin notifications. No time window.
+          if (wamid) {
+            try {
+              const { data: alreadySeen } = await supa
+                .from('whatsapp_inbound_messages')
+                .select('id')
+                .eq('wamid', wamid)
+                .limit(1)
+                .maybeSingle();
+              if (alreadySeen) {
+                console.log('[WH][IDEMPOTENT] skip already-processed wamid', wamid);
+                continue;
+              }
+            } catch (e) {
+              console.error('[WH][IDEMPOTENT] check failed', e instanceof Error ? e.message : String(e));
+            }
+          }
+
+
           // -------- ETAPE 1 : SUPER ADMIN CHECK (priorite absolue) --------
           // Doit etre la TOUTE PREMIERE verification, avant insert / lookup /
           // detection client / GP / bot-client / admin-notify.
@@ -207,25 +228,9 @@ Deno.serve(async (req) => {
             continue; // STOP : pas de bot-client, pas de gp-bot, pas de MESSAGE CLIENT
           }
 
-          // ---- ANTI-DOUBLON : wamid deja traite recemment ? ----
-          if (wamid) {
-            try {
-              const cutoff = new Date(Date.now() - 30_000).toISOString();
-              const { data: dup } = await supa
-                .from('whatsapp_inbound_messages')
-                .select('id, created_at')
-                .eq('wamid', wamid)
-                .gte('created_at', cutoff)
-                .limit(1)
-                .maybeSingle();
-              if (dup) {
-                console.log('WA_DEDUP skip wamid', wamid);
-                continue;
-              }
-            } catch (e) {
-              console.error('WA_DEDUP check failed', e instanceof Error ? e.message : String(e));
-            }
-          }
+          // (Idempotency check on wamid is performed up-front, see BUG 2.)
+
+
 
           let body: string | null = null;
           let mediaUrl: string | null = null;
