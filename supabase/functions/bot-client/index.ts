@@ -1880,7 +1880,7 @@ Deno.serve(async (req) => {
           }
         } else {
           // Intent UNKNOWN avec haute confiance -> on accompagne sans bumper retry
-          reply = withFullMenu(`${greet}Je veux m assurer de bien vous aider. Que cherchez-vous ?`);
+          reply = withFullMenu(`${greet}Je veux m'assurer de bien vous aider. Que cherchez-vous ?`);
         }
 
         // Reset retry sur intent reconnu
