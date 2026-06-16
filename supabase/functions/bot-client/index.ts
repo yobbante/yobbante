@@ -684,10 +684,20 @@ const STATUS_FR: Record<string, string> = {
 };
 
 // Interactive menu prompt — affiche uniquement via liste interactive Meta.
-const MAIN_MENU_TEXT = `Bonjour ! Je suis l assistant Yobbanté. Comment puis-je vous aider ?`;
+const MAIN_MENU_TEXT = `Bonjour ! Je suis l'assistant Yobbanté. Comment puis-je vous aider ?`;
 const SHORT_MENU_TEXT = `Que souhaitez-vous faire ensuite ?`;
-const SESSION_EXPIRED_TEXT = `Votre session a expire.`;
-const FALLBACK = `Bonjour ! Je suis l'assistant Yobbanté.\nComment puis-je vous aider ?\n\n1 - Creer une expedition\n2 - Suivre mon colis\n3 - Parler a un conseiller`;
+const SESSION_EXPIRED_TEXT = `Votre session a expiré.`;
+
+// Numbered fallback shown when the user sends something we don't understand,
+// or when WhatsApp refuses the interactive list (out of 24h window, etc.).
+const NUMBERED_MENU_TEXT =
+  `Bonjour ! Je suis l'assistant Yobbanté.\n` +
+  `Comment puis-je vous aider ?\n\n` +
+  `1 — Expédier un colis\n` +
+  `2 — Suivre mon colis\n` +
+  `3 — Aide / parler à un agent\n\n` +
+  `Répondez par le chiffre, ou tapez "expédier", "suivre", "aide".`;
+const FALLBACK = NUMBERED_MENU_TEXT;
 
 // Sentinels: stripped before envoi, declenchent l UI interactive correspondante.
 const UI_MENU = '[[UI_MENU]]';
@@ -697,8 +707,8 @@ const MAIN_MENU = `${MAIN_MENU_TEXT}\n${UI_MENU}`;
 const SHORT_MENU = `${SHORT_MENU_TEXT}\n${UI_MENU}`;
 const SESSION_EXPIRED = `${SESSION_EXPIRED_TEXT}\n${UI_MENU}`;
 
-const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler)\b/;
-const BACK_TO_MENU = /^(0|menu|retour|annuler)$/;
+const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam|salaam|allo|alo|coucou|retour|annuler|\?)\b/;
+const BACK_TO_MENU = /^(0|menu|retour|annuler|\?)$/;
 
 // Append interactive menu list (5 options) after info replies.
 function withShortMenu(reply: string): string {
@@ -717,15 +727,15 @@ const MAIN_MENU_SECTIONS = [
   {
     title: 'Nos services',
     rows: [
-      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expeditions' },
-      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expedition depuis Dakar' },
-      { id: 'DEPARTS', title: 'Prochains departs', description: 'Voir les departs disponibles' },
-      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantane en ligne' },
-      { id: 'AGENT', title: 'Parler a un agent', description: 'Contacter notre equipe' },
+      { id: 'EXPEDITION', title: 'Envoyer un colis', description: 'Nouvelle expédition depuis Dakar' },
+      { id: 'SUIVI', title: 'Mes colis', description: 'Suivre mes expéditions' },
+      { id: 'DEPARTS', title: 'Prochains départs', description: 'Voir les départs disponibles' },
+      { id: 'DEVIS', title: 'Obtenir un devis', description: 'Prix instantané en ligne' },
+      { id: 'AGENT', title: 'Parler à un agent', description: 'Contacter notre équipe' },
     ],
   },
 ];
-const MAIN_MENU_FALLBACK = `${MAIN_MENU_TEXT}\nRepondez : SUIVI, EXPEDITION, DEPARTS, DEVIS ou AGENT.`;
+const MAIN_MENU_FALLBACK = NUMBERED_MENU_TEXT;
 const BACK_BUTTONS = [{ id: 'MENU', label: 'Retour au menu' }];
 
 
