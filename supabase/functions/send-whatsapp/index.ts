@@ -292,6 +292,11 @@ Deno.serve(async (req) => {
   if (useTemplate) {
     metaBody = buildTemplateBody(body.template_name!);
     messageType = 'template';
+    // BUG 1 — Pre-render the human-readable text so we store something usable
+    // in whatsapp_outbound_messages.message_body (and mirror to dossier chat).
+    // Falls back to a generic notice if the template is not in the renderer map.
+    messageBody = renderTemplateBody(body.template_name!, body.template_params ?? [])
+      ?? `Notification Yobbanté — vous avez reçu un message. Ouvrez WhatsApp pour le consulter.`;
   } else if (useInteractive) {
     const built = buildInteractiveBody();
     if (built) {
