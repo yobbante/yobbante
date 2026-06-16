@@ -261,9 +261,13 @@ export function LandingWorldMap({ className }: { className?: string }) {
         <defs>
           <style>{`
             @keyframes yobb-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
-            .yobb-dakar-pulse { animation: yobb-pulse 2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-            @keyframes yobb-ring { 0% { r: 8; opacity: 0.55 } 100% { r: 18; opacity: 0 } }
-            .yobb-dakar-ring { animation: yobb-ring 2s ease-out infinite; }
+            .yobb-dakar-pulse { animation: yobb-pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+            @keyframes yobb-ring { 0% { r: 6; opacity: 0.5 } 100% { r: 16; opacity: 0 } }
+            .yobb-dakar-ring { animation: yobb-ring 2.4s ease-out infinite; }
+            @keyframes yobb-dot-in { 0% { opacity: 0; transform: scale(0.4) } 100% { opacity: 1; transform: scale(1) } }
+            .yobb-dot { animation: yobb-dot-in 0.5s ease-out both; transform-origin: center; transform-box: fill-box; transition: r 0.18s ease, fill 0.18s ease; }
+            .yobb-dot:hover { fill: #FFFFFF; }
+            .yobb-dot.is-active { fill: #FFFFFF; }
           `}</style>
         </defs>
 
@@ -282,32 +286,34 @@ export function LandingWorldMap({ className }: { className?: string }) {
           </g>
         )}
 
-        {/* City dots (gold) + invisible touch targets */}
+        {/* City dots + invisible touch targets */}
         <g>
-          {cityPoints.map((c) => (
-            <g key={`${c.country}-${c.city}`}>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={5}
-                fill="#D4AF37"
-                stroke="rgba(0,0,0,0.4)"
-                strokeWidth={0.75}
-                style={{ cursor: 'pointer' }}
-                onClick={(e) => { e.stopPropagation(); openCity(c); }}
-              >
-                <title>{`${c.flag} ${c.city}`}</title>
-              </circle>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={20}
-                fill="transparent"
-                style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                onClick={(e) => { e.stopPropagation(); openCity(c); }}
-              />
-            </g>
-          ))}
+          {cityPoints.map((c) => {
+            const isActive = selected?.city === c.city && selected?.country === c.country;
+            return (
+              <g key={`${c.country}-${c.city}`}>
+                <circle
+                  className={`yobb-dot${isActive ? ' is-active' : ''}`}
+                  cx={c.x}
+                  cy={c.y}
+                  r={isActive ? dotR + 1.5 : dotR}
+                  fill="#D4AF37"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); openCity(c); }}
+                >
+                  <title>{`${c.flag} ${c.city}`}</title>
+                </circle>
+                <circle
+                  cx={c.x}
+                  cy={c.y}
+                  r={touchR}
+                  fill="transparent"
+                  style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                  onClick={(e) => { e.stopPropagation(); openCity(c); }}
+                />
+              </g>
+            );
+          })}
         </g>
 
 
@@ -318,33 +324,35 @@ export function LandingWorldMap({ className }: { className?: string }) {
               className="yobb-dakar-ring"
               cx={dakarPt.x}
               cy={dakarPt.y}
-              r={8}
+              r={6}
               fill="none"
               stroke="#D4AF37"
-              strokeWidth={1.5}
+              strokeWidth={1.25}
             />
             <circle
               className="yobb-dakar-pulse"
               cx={dakarPt.x}
               cy={dakarPt.y}
-              r={8}
+              r={isMobile ? 4 : 6}
               fill="#FFFFFF"
               stroke="#D4AF37"
-              strokeWidth={2}
+              strokeWidth={1.5}
               style={{ cursor: 'pointer' }}
               onClick={(e) => { e.stopPropagation(); openCity(DAKAR); }}
             >
               <title>🇸🇳 Dakar</title>
             </circle>
-            <text
-              x={dakarPt.x}
-              y={dakarPt.y + 20}
-              textAnchor="middle"
-              fill="#D4AF37"
-              style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
-            >
-              Dakar
-            </text>
+            {!isMobile && (
+              <text
+                x={dakarPt.x}
+                y={dakarPt.y + 18}
+                textAnchor="middle"
+                fill="#D4AF37"
+                style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
+              >
+                Dakar
+              </text>
+            )}
           </g>
         )}
       </svg>
