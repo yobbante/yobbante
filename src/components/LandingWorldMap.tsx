@@ -357,93 +357,148 @@ export function LandingWorldMap({ className }: { className?: string }) {
         )}
       </svg>
 
-      {/* Fixed tooltip below map */}
+      {/* Selected city — minimal sheet (mobile) / floating card (desktop) */}
       {selected && (
-        <div
-          style={
-            isMobile
-              ? {
-                  position: 'fixed',
-                  bottom: 80,
-                  left: 16,
-                  right: 16,
-                  zIndex: 100,
-                  animation: 'fade-in 0.2s ease-out',
-                }
-              : {
-                  marginTop: 16,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  animation: 'fade-in 0.2s ease-out',
-                }
-          }
-        >
-          <div
-            style={{
-              position: 'relative',
-              background: 'rgba(10, 15, 30, 0.96)',
-              border: '1px solid rgba(212, 175, 55, 0.5)',
-              borderRadius: 14,
-              padding: '14px 44px 14px 16px',
-              color: '#fff',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              minWidth: isMobile ? undefined : 260,
-              maxWidth: isMobile ? undefined : 380,
-              width: isMobile ? '100%' : undefined,
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Fermer"
+        <>
+          {isMobile && (
+            <div
               onClick={() => setSelected(null)}
               style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(5, 8, 18, 0.55)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                zIndex: 99,
+                animation: 'fade-in 0.2s ease-out',
+              }}
+            />
+          )}
+          <div
+            style={
+              isMobile
+                ? {
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 100,
+                    padding: '0 12px calc(env(safe-area-inset-bottom, 0px) + 16px)',
+                    animation: 'slide-in-from-bottom 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                  }
+                : {
+                    marginTop: 16,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    animation: 'fade-in 0.2s ease-out',
+                  }
+            }
+          >
+            <div
+              style={{
+                position: 'relative',
+                background: isMobile
+                  ? 'rgba(12, 18, 36, 0.92)'
+                  : 'rgba(10, 15, 30, 0.96)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(212, 175, 55, 0.35)',
+                borderRadius: isMobile ? 20 : 16,
+                padding: isMobile ? '18px 18px 16px' : '16px 18px',
                 color: '#fff',
-                cursor: 'pointer',
-                lineHeight: 1,
-                fontSize: 14,
+                width: isMobile ? '100%' : undefined,
+                minWidth: isMobile ? undefined : 280,
+                maxWidth: isMobile ? undefined : 360,
               }}
             >
-              ×
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 22 }}>{selected.flag}</span>
-              <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.1 }}>
-                {selected.city}
-                <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.6)' }}>
-                  {selected.countryLabel}
+              {isMobile && (
+                <div
+                  aria-hidden
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.18)',
+                    margin: '-4px auto 14px',
+                  }}
+                />
+              )}
+              <button
+                type="button"
+                aria-label="Fermer"
+                onClick={() => setSelected(null)}
+                style={{
+                  position: 'absolute',
+                  top: isMobile ? 14 : 10,
+                  right: 10,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.85)',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ×
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26, lineHeight: 1 }}>{selected.flag}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
+                    Dakar → {selected.city}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {selected.countryLabel}
+                  </div>
                 </div>
               </div>
+
+              <div
+                style={{
+                  marginTop: 14,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.55)',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 6,
+                }}
+              >
+                <span>À partir de</span>
+                <span style={{ color: '#D4AF37', fontWeight: 600, fontSize: 15 }}>
+                  {ratePerKg ? `${ratePerKg.toLocaleString('fr-FR')} FCFA` : 'Sur devis'}
+                </span>
+                {ratePerKg && <span>/ kg</span>}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCta}
+                style={{
+                  marginTop: 14,
+                  width: '100%',
+                  background: '#D4AF37',
+                  color: '#0A0F1E',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Expédier vers {selected.city} →
+              </button>
             </div>
-            <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 600, margin: '4px 0 12px' }}>
-              {rateLabel}
-            </div>
-            <button
-              type="button"
-              onClick={handleCta}
-              style={{
-                width: '100%',
-                background: '#D4AF37',
-                color: '#0A0F1E',
-                fontWeight: 700,
-                fontSize: 13,
-                padding: '10px 14px',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Expédier vers {selected.city} →
-            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
