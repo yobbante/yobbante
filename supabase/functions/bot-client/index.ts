@@ -1418,15 +1418,50 @@ Deno.serve(async (req) => {
       await saveSession(supa, phone, null, {});
       reply = MAIN_MENU;
     }
-    // PRIORITY 2: numeric (legacy) OR interactive list/button id -> top-level menu choice
-    else if (/^[1-5]$/.test(nMsg) || ['suivi','expedition','departs','devis','agent'].includes(nMsg)) {
-      const idMap: Record<string, string> = {
-        '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
-        departs: '1', suivi: '2', expedition: '3', devis: '4', agent: '5',
+    // PRIORITY 2: numeric (1/2/3 = client-facing numbered menu) OR word aliases
+    // OR interactive list/button id -> dispatch to the right top-level action.
+    //   1 / expédier / envoyer  -> expédition (handleMenuChoice '3')
+    //   2 / suivre              -> suivi      (handleMenuChoice '2')
+    //   3 / aide / ?            -> menu       (handled above by MENU_TRIGGERS)
+    //   Interactive ids keep their original mapping.
+    else if (
+      /^[1-5]$/.test(nMsg) ||
+      ['suivi','suivre','expedition','expedier','envoyer','envoi','departs','devis','agent'].includes(nMsg)
+    ) {
+      // Numbered menu (typed): user-facing 3-option layout.
+      const typedNumberMap: Record<string, '2' | '3' | 'MENU'> = {
+        '1': '3',       // 1 = Expédier
+        '2': '2',       // 2 = Suivre
+        '3': 'MENU',    // 3 = Aide / menu
       };
-      await saveSession(supa, phone, null, {});
-      reply = await handleMenuChoice(supa, phone, input.from_name ?? null, idMap[nMsg], msg);
+      // Word aliases (typed).
+      const wordMap: Record<string, '2' | '3' | '1' | '4' | '5'> = {
+        expedier: '3', expedition: '3', envoyer: '3', envoi: '3',
+        suivre: '2', suivi: '2',
+        departs: '1',
+        devis: '4',
+        agent: '5',
+      };
+
+      let target: string | undefined;
+      if (typedNumberMap[nMsg]) {
+        target = typedNumberMap[nMsg];
+      } else if (wordMap[nMsg]) {
+        target = wordMap[nMsg];
+      } else if (/^[4-5]$/.test(nMsg)) {
+        // 4/5 typed: kept as legacy aliases to devis/agent.
+        target = nMsg;
+      }
+
+      if (target === 'MENU' || !target) {
+        await saveSession(supa, phone, null, {});
+        reply = MAIN_MENU;
+      } else {
+        await saveSession(supa, phone, null, {});
+        reply = await handleMenuChoice(supa, phone, input.from_name ?? null, target, msg);
+      }
     }
+
 
     // PRIORITY 2a: closure words ("rien", "merci", "ok", "d accord")
     // -> Une seule reponse polie, fin de session, PAS de menu.
