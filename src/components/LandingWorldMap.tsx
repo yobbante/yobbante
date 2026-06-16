@@ -181,15 +181,20 @@ export function LandingWorldMap({ className }: { className?: string }) {
     return p ? { x: p[0], y: p[1] } : null;
   }, [projection]);
 
+  // Scale dot size / declustering to the viewport — mobile maps are tiny.
+  const dotR = isMobile ? 2.5 : 5;
+  const touchR = isMobile ? 14 : 20;
+  const minDist = isMobile ? 7 : 15;
+
   const cityPoints = useMemo(() => {
     const raw = CITIES_36.map((c) => {
       const p = projection([c.lon, c.lat]);
       return p ? { ...c, x: p[0], y: p[1] } : null;
     }).filter(Boolean) as (CityMarker & { x: number; y: number })[];
 
-    const offsets = decluster(raw.map(({ x, y }) => ({ x, y })));
+    const offsets = decluster(raw.map(({ x, y }) => ({ x, y })), minDist);
     return raw.map((c, i) => ({ ...c, x: offsets[i].x, y: offsets[i].y }));
-  }, [projection]);
+  }, [projection, minDist]);
 
   const openCity = (c: CityMarker) => {
     const meta = lookupCity(c);
