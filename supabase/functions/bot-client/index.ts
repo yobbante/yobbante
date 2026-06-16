@@ -171,10 +171,10 @@ function detectEnglishIntent(raw: string): Intent2 {
 }
 
 const HELP_EN_REPLY =
-  `Je suis l assistant Yobbanté.\n` +
-  `Je peux vous aider a :\n` +
+  `Je suis l'assistant Yobbanté.\n` +
+  `Je peux vous aider à :\n` +
   `- envoyer un colis\n` +
-  `- suivre votre expedition\n` +
+  `- suivre votre expédition\n` +
   `- obtenir un devis`;
 
 type Intent =
