@@ -181,15 +181,20 @@ export function LandingWorldMap({ className }: { className?: string }) {
     return p ? { x: p[0], y: p[1] } : null;
   }, [projection]);
 
+  // Scale dot size / declustering to the viewport — mobile maps are tiny.
+  const dotR = isMobile ? 2.5 : 5;
+  const touchR = isMobile ? 14 : 20;
+  const minDist = isMobile ? 7 : 15;
+
   const cityPoints = useMemo(() => {
     const raw = CITIES_36.map((c) => {
       const p = projection([c.lon, c.lat]);
       return p ? { ...c, x: p[0], y: p[1] } : null;
     }).filter(Boolean) as (CityMarker & { x: number; y: number })[];
 
-    const offsets = decluster(raw.map(({ x, y }) => ({ x, y })));
+    const offsets = decluster(raw.map(({ x, y }) => ({ x, y })), minDist);
     return raw.map((c, i) => ({ ...c, x: offsets[i].x, y: offsets[i].y }));
-  }, [projection]);
+  }, [projection, minDist]);
 
   const openCity = (c: CityMarker) => {
     const meta = lookupCity(c);
@@ -256,9 +261,13 @@ export function LandingWorldMap({ className }: { className?: string }) {
         <defs>
           <style>{`
             @keyframes yobb-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
-            .yobb-dakar-pulse { animation: yobb-pulse 2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-            @keyframes yobb-ring { 0% { r: 8; opacity: 0.55 } 100% { r: 18; opacity: 0 } }
-            .yobb-dakar-ring { animation: yobb-ring 2s ease-out infinite; }
+            .yobb-dakar-pulse { animation: yobb-pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+            @keyframes yobb-ring { 0% { r: 6; opacity: 0.5 } 100% { r: 16; opacity: 0 } }
+            .yobb-dakar-ring { animation: yobb-ring 2.4s ease-out infinite; }
+            @keyframes yobb-dot-in { 0% { opacity: 0; transform: scale(0.4) } 100% { opacity: 1; transform: scale(1) } }
+            .yobb-dot { animation: yobb-dot-in 0.5s ease-out both; transform-origin: center; transform-box: fill-box; transition: r 0.18s ease, fill 0.18s ease; }
+            .yobb-dot:hover { fill: #FFFFFF; }
+            .yobb-dot.is-active { fill: #FFFFFF; }
           `}</style>
         </defs>
 
@@ -277,32 +286,34 @@ export function LandingWorldMap({ className }: { className?: string }) {
           </g>
         )}
 
-        {/* City dots (gold) + invisible touch targets */}
+        {/* City dots + invisible touch targets */}
         <g>
-          {cityPoints.map((c) => (
-            <g key={`${c.country}-${c.city}`}>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={5}
-                fill="#D4AF37"
-                stroke="rgba(0,0,0,0.4)"
-                strokeWidth={0.75}
-                style={{ cursor: 'pointer' }}
-                onClick={(e) => { e.stopPropagation(); openCity(c); }}
-              >
-                <title>{`${c.flag} ${c.city}`}</title>
-              </circle>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={20}
-                fill="transparent"
-                style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                onClick={(e) => { e.stopPropagation(); openCity(c); }}
-              />
-            </g>
-          ))}
+          {cityPoints.map((c) => {
+            const isActive = selected?.city === c.city && selected?.country === c.country;
+            return (
+              <g key={`${c.country}-${c.city}`}>
+                <circle
+                  className={`yobb-dot${isActive ? ' is-active' : ''}`}
+                  cx={c.x}
+                  cy={c.y}
+                  r={isActive ? dotR + 1.5 : dotR}
+                  fill="#D4AF37"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); openCity(c); }}
+                >
+                  <title>{`${c.flag} ${c.city}`}</title>
+                </circle>
+                <circle
+                  cx={c.x}
+                  cy={c.y}
+                  r={touchR}
+                  fill="transparent"
+                  style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                  onClick={(e) => { e.stopPropagation(); openCity(c); }}
+                />
+              </g>
+            );
+          })}
         </g>
 
 
@@ -313,124 +324,181 @@ export function LandingWorldMap({ className }: { className?: string }) {
               className="yobb-dakar-ring"
               cx={dakarPt.x}
               cy={dakarPt.y}
-              r={8}
+              r={6}
               fill="none"
               stroke="#D4AF37"
-              strokeWidth={1.5}
+              strokeWidth={1.25}
             />
             <circle
               className="yobb-dakar-pulse"
               cx={dakarPt.x}
               cy={dakarPt.y}
-              r={8}
+              r={isMobile ? 4 : 6}
               fill="#FFFFFF"
               stroke="#D4AF37"
-              strokeWidth={2}
+              strokeWidth={1.5}
               style={{ cursor: 'pointer' }}
               onClick={(e) => { e.stopPropagation(); openCity(DAKAR); }}
             >
               <title>🇸🇳 Dakar</title>
             </circle>
-            <text
-              x={dakarPt.x}
-              y={dakarPt.y + 20}
-              textAnchor="middle"
-              fill="#D4AF37"
-              style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
-            >
-              Dakar
-            </text>
+            {!isMobile && (
+              <text
+                x={dakarPt.x}
+                y={dakarPt.y + 18}
+                textAnchor="middle"
+                fill="#D4AF37"
+                style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
+              >
+                Dakar
+              </text>
+            )}
           </g>
         )}
       </svg>
 
-      {/* Fixed tooltip below map */}
+      {/* Selected city — minimal sheet (mobile) / floating card (desktop) */}
       {selected && (
-        <div
-          style={
-            isMobile
-              ? {
-                  position: 'fixed',
-                  bottom: 80,
-                  left: 16,
-                  right: 16,
-                  zIndex: 100,
-                  animation: 'fade-in 0.2s ease-out',
-                }
-              : {
-                  marginTop: 16,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  animation: 'fade-in 0.2s ease-out',
-                }
-          }
-        >
-          <div
-            style={{
-              position: 'relative',
-              background: 'rgba(10, 15, 30, 0.96)',
-              border: '1px solid rgba(212, 175, 55, 0.5)',
-              borderRadius: 14,
-              padding: '14px 44px 14px 16px',
-              color: '#fff',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              minWidth: isMobile ? undefined : 260,
-              maxWidth: isMobile ? undefined : 380,
-              width: isMobile ? '100%' : undefined,
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Fermer"
+        <>
+          {isMobile && (
+            <div
               onClick={() => setSelected(null)}
               style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(5, 8, 18, 0.55)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                zIndex: 99,
+                animation: 'fade-in 0.2s ease-out',
+              }}
+            />
+          )}
+          <div
+            style={
+              isMobile
+                ? {
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 100,
+                    padding: '0 12px calc(env(safe-area-inset-bottom, 0px) + 16px)',
+                    animation: 'slide-in-from-bottom 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                  }
+                : {
+                    marginTop: 16,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    animation: 'fade-in 0.2s ease-out',
+                  }
+            }
+          >
+            <div
+              style={{
+                position: 'relative',
+                background: isMobile
+                  ? 'rgba(12, 18, 36, 0.92)'
+                  : 'rgba(10, 15, 30, 0.96)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(212, 175, 55, 0.35)',
+                borderRadius: isMobile ? 20 : 16,
+                padding: isMobile ? '18px 18px 16px' : '16px 18px',
                 color: '#fff',
-                cursor: 'pointer',
-                lineHeight: 1,
-                fontSize: 14,
+                width: isMobile ? '100%' : undefined,
+                minWidth: isMobile ? undefined : 280,
+                maxWidth: isMobile ? undefined : 360,
               }}
             >
-              ×
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 22 }}>{selected.flag}</span>
-              <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.1 }}>
-                {selected.city}
-                <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.6)' }}>
-                  {selected.countryLabel}
+              {isMobile && (
+                <div
+                  aria-hidden
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.18)',
+                    margin: '-4px auto 14px',
+                  }}
+                />
+              )}
+              <button
+                type="button"
+                aria-label="Fermer"
+                onClick={() => setSelected(null)}
+                style={{
+                  position: 'absolute',
+                  top: isMobile ? 14 : 10,
+                  right: 10,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 999,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.85)',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ×
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26, lineHeight: 1 }}>{selected.flag}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
+                    Dakar → {selected.city}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {selected.countryLabel}
+                  </div>
                 </div>
               </div>
+
+              <div
+                style={{
+                  marginTop: 14,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.55)',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 6,
+                }}
+              >
+                <span>À partir de</span>
+                <span style={{ color: '#D4AF37', fontWeight: 600, fontSize: 15 }}>
+                  {ratePerKg ? `${ratePerKg.toLocaleString('fr-FR')} FCFA` : 'Sur devis'}
+                </span>
+                {ratePerKg && <span>/ kg</span>}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCta}
+                style={{
+                  marginTop: 14,
+                  width: '100%',
+                  background: '#D4AF37',
+                  color: '#0A0F1E',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Expédier vers {selected.city} →
+              </button>
             </div>
-            <div style={{ fontSize: 13, color: '#D4AF37', fontWeight: 600, margin: '4px 0 12px' }}>
-              {rateLabel}
-            </div>
-            <button
-              type="button"
-              onClick={handleCta}
-              style={{
-                width: '100%',
-                background: '#D4AF37',
-                color: '#0A0F1E',
-                fontWeight: 700,
-                fontSize: 13,
-                padding: '10px 14px',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Expédier vers {selected.city} →
-            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
