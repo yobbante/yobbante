@@ -186,6 +186,33 @@ Deno.serve(async (req) => {
     });
   }
 
+  // BUG 3 — Resolve GP prenom server-side for any GP-prenom-first template
+  // to make sure clients never receive "Bienvenue, Awa !" sent to the wrong GP.
+  // Caller-provided prenom is kept ONLY if it matches the actual GP for this phone.
+  if (body.template_name && GP_PRENOM_TEMPLATES.has(body.template_name)) {
+    try {
+      const tail = normalizePhone(body.recipient_phone || '').slice(-9);
+      if (tail) {
+        const { data: gp } = await supa
+          .from('transporteurs')
+          .select('prenom, nom')
+          .or(`telephone_1.ilike.%${tail}%,whatsapp.ilike.%${tail}%`)
+          .limit(1)
+          .maybeSingle();
+        const resolved = (gp?.prenom?.trim()
+          || (gp?.nom ? gp.nom.split(/\s+/)[0] : '')
+          || 'ami(e)').trim();
+        body.template_params = body.template_params ? [...body.template_params] : [];
+        body.template_params[0] = resolved;
+        console.log('WA_GP_PRENOM resolved', { template: body.template_name, tail, prenom: resolved });
+      }
+    } catch (e) {
+      console.error('WA_GP_PRENOM resolution failed', e instanceof Error ? e.message : String(e));
+      body.template_params = body.template_params ? [...body.template_params] : [];
+      if (!body.template_params[0]?.trim()) body.template_params[0] = 'ami(e)';
+    }
+  }
+
   // Build Meta payload
   const useTemplate = !!body.template_name;
   const useInteractive = !!body.interactive_type
