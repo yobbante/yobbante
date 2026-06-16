@@ -782,7 +782,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
       .select('tracking_id, reference').eq('id', dossierId).maybeSingle();
     const trk = dos?.tracking_id || dos?.reference || '';
     await sendWaButtons(supa, phone,
-      `Comment s est passee votre experience avec Yobbanté (colis ${trk}) ?`,
+      `Comment s'est passée votre expérience avec Yobbanté (colis ${trk}) ?`,
       [
         { id: `rate_excellent_${dossierId}`, title: 'Excellent' },
         { id: `rate_bien_${dossierId}`, title: 'Bien' },
