@@ -25,6 +25,7 @@ import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
 import InboxImportPage from "./pages/admin/InboxImportPage";
@@ -87,6 +88,7 @@ const DekkRoutes = () => (
 
     {/* Compte client mutualisé */}
     <Route path="/auth" element={<Auth />} />
+    <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/mon-compte" element={<Index />} />
     <Route path="/app" element={<Index />} />
     <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
@@ -167,6 +169,7 @@ const MainRoutes = () => (
     <Route path="/entreprises" element={<EnterprisesPage />} />
     <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/app" element={<Index />} />
     <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
     <Route path="/app/mes-receptions" element={<Navigate to="/app?view=receptions" replace />} />
