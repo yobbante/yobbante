@@ -36,21 +36,26 @@ async function resolvePostLoginRoute(userId: string, fallback: string): Promise<
 
 export default function Auth() {
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'apple' | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
   const rawRedirect = params.get('redirect') || '/app';
   const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
 
-  // If a session already exists when landing on /auth (e.g. OAuth return),
-  // route admins straight to /admin and others to the intended page.
+  // CAS 1 — Session déjà active : on redirige immédiatement et on n'affiche
+  // jamais la page de connexion (évite l'écran figé après un retour OAuth).
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user || cancelled) return;
-      const dest = await resolvePostLoginRoute(session.user.id, redirectTo);
-      navigate(dest, { replace: true });
+      if (cancelled) return;
+      if (session?.user) {
+        const dest = await resolvePostLoginRoute(session.user.id, redirectTo);
+        navigate(dest, { replace: true });
+        return;
+      }
+      setSessionChecked(true);
     })();
     return () => { cancelled = true; };
   }, [navigate, redirectTo]);
@@ -58,21 +63,39 @@ export default function Auth() {
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoadingProvider(provider);
     try {
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(redirectTo)}`,
+      // Mémorise la destination post-login pour AuthCallback.
+      try { sessionStorage.setItem('post_auth_redirect', redirectTo); } catch {}
+
+      // CAS 2 — Nettoie toute session fantôme avant de relancer l'OAuth.
+      await supabase.auth.signOut().catch(() => {});
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      if (result.error) {
-        toast.error(result.error.message || `Connexion ${provider === 'google' ? 'Google' : 'Apple'} échouée`);
-        return;
+      if (error) {
+        toast.error(error.message || `Connexion ${provider === 'google' ? 'Google' : 'Apple'} échouée`);
+        setLoadingProvider(null);
       }
-      if (result.redirected) return; // Browser is redirecting to the provider.
-      const { data: { user } } = await supabase.auth.getUser();
-      const dest = user ? await resolvePostLoginRoute(user.id, redirectTo) : redirectTo;
-      navigate(dest, { replace: true });
-    } finally {
+      // Le navigateur va rediriger vers le provider — on ne réinitialise pas
+      // le loader pour conserver l'état visuel jusqu'à la redirection.
+    } catch (e: any) {
+      toast.error(e?.message || 'Impossible de démarrer la connexion');
       setLoadingProvider(null);
     }
   };
+
+  // Tant qu'on n'a pas vérifié la session, on n'affiche rien (anti-flash).
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-yellow-400" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
