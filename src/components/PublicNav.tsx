@@ -85,38 +85,9 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
               />
             </Link>
 
-            {/* Center links — desktop */}
-            {!hideActions && (
-              <div className="hidden md:flex items-center gap-1 h-full">
-                {LINKS.map(l => {
-                  const active = l.match(location.pathname);
-                  return (
-                    <Link
-                      key={l.to}
-                      to={l.to}
-                      className="relative inline-flex flex-col items-center justify-center px-3 h-full text-[14px] transition-colors"
-                      style={{
-                        color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                        fontWeight: active ? 500 : 400,
-                        lineHeight: 1.1,
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'; }}
-                    >
-                      <span>{l.label}</span>
-                      {l.subBadge && <SubBadge>{l.subBadge}</SubBadge>}
-                      {active && (
-                        <span
-                          aria-hidden
-                          className="absolute left-3 right-3 bottom-0"
-                          style={{ height: 2, background: '#1a1a1a' }}
-                        />
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+            {/* Center links retirés — navigation regroupée dans le menu burger (desktop + mobile) */}
+            <div className="flex-1" />
+
 
             {/* Right */}
             <div className="flex items-center gap-2">
@@ -152,12 +123,12 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 </>
               )}
 
-              {/* Mobile burger */}
+              {/* Burger — visible sur mobile ET desktop */}
               <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
                   <button
                     aria-label="Ouvrir le menu"
-                    className="md:hidden inline-flex items-center justify-center rounded-lg"
+                    className="inline-flex items-center justify-center rounded-lg"
                     style={{
                       width: 36,
                       height: 36,
@@ -170,13 +141,14 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   </button>
                 </SheetTrigger>
                 <SheetContent
-                  side="bottom"
-                  className="p-0"
+                  side="right"
+                  className="p-0 w-full sm:max-w-sm"
                   style={{
                     background: 'hsl(var(--background-primary))',
-                    borderTop: '0.5px solid hsl(var(--color-border-tertiary))',
+                    borderLeft: '0.5px solid hsl(var(--color-border-tertiary))',
                   }}
                 >
+
                   <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                     <img src={yobbanteLogoAsset.url} alt="Yobbanté" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
                     <button
