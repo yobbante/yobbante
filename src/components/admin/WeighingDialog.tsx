@@ -46,19 +46,27 @@ export function WeighingDialog({
   const [weight, setWeight] = useState('');
   const [location, setLocation] = useState<string>('Hub Dakar');
   const [cod, setCod] = useState(false);
+  const [manualPricing, setManualPricing] = useState(false);
+  const [manualTotal, setManualTotal] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) { setWeight(''); setLocation('Hub Dakar'); setCod(false); }
+    if (open) {
+      setWeight(''); setLocation('Hub Dakar'); setCod(false);
+      setManualPricing(false); setManualTotal('');
+    }
   }, [open, dossier?.id]);
 
   const actualKg = parseFloat(weight.replace(',', '.'));
   const valid = !isNaN(actualKg) && actualKg > 0;
+  const manualTotalNum = parseFloat(manualTotal.replace(/[\s,]/g, '').replace(',', '.'));
+  const manualValid = manualPricing ? !isNaN(manualTotalNum) && manualTotalNum > 0 : true;
 
   /**
    * Formule officielle (cf. spec QA 27/05/2026) :
    *   total = poids × tarif_gp × (1 + 0.20) + enlevement_zone
    * UN SEUL frais d'enlèvement selon la zone (5k / 10k / 15k).
+   * Si tarif manuel activé → on remplace le total calculé.
    */
   const breakdown = useMemo(() => {
     if (!dossier) return null;
@@ -71,9 +79,12 @@ export function WeighingDialog({
     const enlevement = enlevementForZone(zone);
     const clientPerKg = gpRate * (1 + YOBBANTE_MARGIN_PCT);
     const weightTotal = valid ? clientPerKg * actualKg : 0;
-    const total = valid ? Math.round(weightTotal + enlevement) : 0;
-    return { gpRate, zone, enlevement, clientPerKg, weightTotal, total };
-  }, [dossier, valid, actualKg]);
+    const computedTotal = valid ? Math.round(weightTotal + enlevement) : 0;
+    const total = manualPricing && !isNaN(manualTotalNum) && manualTotalNum > 0
+      ? Math.round(manualTotalNum)
+      : computedTotal;
+    return { gpRate, zone, enlevement, clientPerKg, weightTotal, computedTotal, total };
+  }, [dossier, valid, actualKg, manualPricing, manualTotalNum]);
 
   async function submit(asCod: boolean) {
     if (!dossier || !valid || !breakdown) return;
