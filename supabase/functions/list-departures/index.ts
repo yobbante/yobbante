@@ -354,10 +354,16 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const forceRefresh = url.searchParams.get('refresh') === '1';
 
+  const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    ]);
+
   try {
     const [konnektResult, manualDepartures] = await Promise.all([
-      fetchKonnektDepartures(),
-      fetchManualDepartures(),
+      withTimeout(fetchKonnektDepartures(), 7000, { error: 'konnekt timeout' } as { error: string }),
+      withTimeout(fetchManualDepartures(), 4000, [] as Departure[]),
     ]);
 
     let konnektDepartures: Departure[] = [];
