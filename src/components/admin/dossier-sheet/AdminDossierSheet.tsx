@@ -1208,6 +1208,22 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
     },
   });
 
+  const updateAmount = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ final_amount_xof: amount } as any)
+        .eq('id', dossier.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Tarif mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
   const paid = dossier.payment_status === 'paid';
 
   return (
@@ -1218,10 +1234,16 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
             ? <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Payé</Badge>
             : <Badge variant="secondary">{dossier.payment_status || 'pending'}</Badge>
         } />
-        <KV label="Montant final" value={fmtXof(dossier.final_amount_xof)} />
+        <EditableAmount
+          label="Montant final (manuel possible)"
+          value={dossier.final_amount_xof}
+          disabled={paid || updateAmount.isPending}
+          onSave={(v) => updateAmount.mutate(v)}
+        />
         <KV label="Poids pesé" value={dossier.actual_weight_kg ? `${dossier.actual_weight_kg} kg` : '—'} />
         <KV label="Méthode" value={dossier.payment_method || '—'} />
       </div>
+
 
       <div className="rounded-lg border border-border p-4 flex items-center justify-between">
         <div>
