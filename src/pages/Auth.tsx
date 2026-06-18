@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Globe2, Sparkles, ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -66,26 +67,32 @@ export default function Auth() {
       // Mémorise la destination post-login pour AuthCallback.
       try { sessionStorage.setItem('post_auth_redirect', redirectTo); } catch {}
 
-      // CAS 2 — Nettoie toute session fantôme avant de relancer l'OAuth.
-      await supabase.auth.signOut().catch(() => {});
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // Lovable Cloud managed OAuth — utilise le broker /~oauth.
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: `${window.location.origin}/auth/callback`,
       });
-      if (error) {
-        toast.error(error.message || `Connexion ${provider === 'google' ? 'Google' : 'Apple'} échouée`);
-        setLoadingProvider(null);
+
+      if (result.redirected) {
+        // Navigateur va rediriger — on garde le loader.
+        return;
       }
-      // Le navigateur va rediriger vers le provider — on ne réinitialise pas
-      // le loader pour conserver l'état visuel jusqu'à la redirection.
+      if (result.error) {
+        toast.error(result.error.message || `Connexion ${provider === 'google' ? 'Google' : 'Apple'} échouée`);
+        setLoadingProvider(null);
+        return;
+      }
+      // Tokens reçus directement (rare) → on route immédiatement.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const dest = await resolvePostLoginRoute(session.user.id, redirectTo);
+        navigate(dest, { replace: true });
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Impossible de démarrer la connexion');
       setLoadingProvider(null);
     }
   };
+
 
   // Tant qu'on n'a pas vérifié la session, on n'affiche rien (anti-flash).
   if (!sessionChecked) {
