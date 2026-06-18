@@ -268,7 +268,7 @@ export function WeighingDialog({
             <div className="flex flex-col gap-2 pt-2">
               {!cod ? (
                 <Button
-                  disabled={!valid || submitting}
+                  disabled={!valid || !manualValid || submitting}
                   onClick={() => submit(false)}
                   className="bg-[#F5C518] text-black hover:bg-[#e4b614]"
                 >
@@ -277,7 +277,7 @@ export function WeighingDialog({
                 </Button>
               ) : (
                 <Button
-                  disabled={!valid || submitting}
+                  disabled={!valid || !manualValid || submitting}
                   onClick={() => submit(true)}
                   className="bg-emerald-600 text-white hover:bg-emerald-500"
                 >
