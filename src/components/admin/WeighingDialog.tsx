@@ -46,19 +46,27 @@ export function WeighingDialog({
   const [weight, setWeight] = useState('');
   const [location, setLocation] = useState<string>('Hub Dakar');
   const [cod, setCod] = useState(false);
+  const [manualPricing, setManualPricing] = useState(false);
+  const [manualTotal, setManualTotal] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) { setWeight(''); setLocation('Hub Dakar'); setCod(false); }
+    if (open) {
+      setWeight(''); setLocation('Hub Dakar'); setCod(false);
+      setManualPricing(false); setManualTotal('');
+    }
   }, [open, dossier?.id]);
 
   const actualKg = parseFloat(weight.replace(',', '.'));
   const valid = !isNaN(actualKg) && actualKg > 0;
+  const manualTotalNum = parseFloat(manualTotal.replace(/[\s,]/g, '').replace(',', '.'));
+  const manualValid = manualPricing ? !isNaN(manualTotalNum) && manualTotalNum > 0 : true;
 
   /**
    * Formule officielle (cf. spec QA 27/05/2026) :
    *   total = poids × tarif_gp × (1 + 0.20) + enlevement_zone
    * UN SEUL frais d'enlèvement selon la zone (5k / 10k / 15k).
+   * Si tarif manuel activé → on remplace le total calculé.
    */
   const breakdown = useMemo(() => {
     if (!dossier) return null;
@@ -71,9 +79,12 @@ export function WeighingDialog({
     const enlevement = enlevementForZone(zone);
     const clientPerKg = gpRate * (1 + YOBBANTE_MARGIN_PCT);
     const weightTotal = valid ? clientPerKg * actualKg : 0;
-    const total = valid ? Math.round(weightTotal + enlevement) : 0;
-    return { gpRate, zone, enlevement, clientPerKg, weightTotal, total };
-  }, [dossier, valid, actualKg]);
+    const computedTotal = valid ? Math.round(weightTotal + enlevement) : 0;
+    const total = manualPricing && !isNaN(manualTotalNum) && manualTotalNum > 0
+      ? Math.round(manualTotalNum)
+      : computedTotal;
+    return { gpRate, zone, enlevement, clientPerKg, weightTotal, computedTotal, total };
+  }, [dossier, valid, actualKg, manualPricing, manualTotalNum]);
 
   async function submit(asCod: boolean) {
     if (!dossier || !valid || !breakdown) return;
@@ -214,19 +225,50 @@ export function WeighingDialog({
                 <Row label="Sous-total poids" value={formatFcfa(breakdown.weightTotal)} />
                 <Row label={`Enlèvement (${zoneLabel[breakdown.zone]})`} value={formatFcfa(breakdown.enlevement)} />
                 <div className="border-t border-[#F5C518]/30 my-1" />
-                <Row label="TOTAL" value={formatFcfa(breakdown.total)} bold />
+                <Row
+                  label={manualPricing ? 'Total calculé' : 'TOTAL'}
+                  value={formatFcfa(breakdown.computedTotal)}
+                  bold={!manualPricing}
+                />
+                {manualPricing && (
+                  <Row label="TOTAL MANUEL" value={formatFcfa(breakdown.total)} bold />
+                )}
               </div>
             )}
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={manualPricing} onCheckedChange={(v) => setManualPricing(!!v)} />
+                <span>Tarif manuel (remplace le total calculé)</span>
+              </label>
+              {manualPricing && (
+                <div>
+                  <Label className="text-xs">Total à facturer (FCFA)</Label>
+                  <Input
+                    type="number"
+                    step="100"
+                    min="0"
+                    value={manualTotal}
+                    onChange={(e) => setManualTotal(e.target.value)}
+                    placeholder="ex. 12500"
+                  />
+                  {!manualValid && (
+                    <p className="text-xs text-red-500 mt-1">Saisis un montant &gt; 0.</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox checked={cod} onCheckedChange={(v) => setCod(!!v)} />
               <span>Le client paiera à la livraison (cash on delivery)</span>
             </label>
 
+
             <div className="flex flex-col gap-2 pt-2">
               {!cod ? (
                 <Button
-                  disabled={!valid || submitting}
+                  disabled={!valid || !manualValid || submitting}
                   onClick={() => submit(false)}
                   className="bg-[#F5C518] text-black hover:bg-[#e4b614]"
                 >
@@ -235,7 +277,7 @@ export function WeighingDialog({
                 </Button>
               ) : (
                 <Button
-                  disabled={!valid || submitting}
+                  disabled={!valid || !manualValid || submitting}
                   onClick={() => submit(true)}
                   className="bg-emerald-600 text-white hover:bg-emerald-500"
                 >

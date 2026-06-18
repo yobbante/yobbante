@@ -1208,6 +1208,22 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
     },
   });
 
+  const updateAmount = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ final_amount_xof: amount } as any)
+        .eq('id', dossier.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Tarif mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
   const paid = dossier.payment_status === 'paid';
 
   return (
@@ -1218,10 +1234,16 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
             ? <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Payé</Badge>
             : <Badge variant="secondary">{dossier.payment_status || 'pending'}</Badge>
         } />
-        <KV label="Montant final" value={fmtXof(dossier.final_amount_xof)} />
+        <EditableAmount
+          label="Montant final (manuel possible)"
+          value={dossier.final_amount_xof}
+          disabled={paid || updateAmount.isPending}
+          onSave={(v) => updateAmount.mutate(v)}
+        />
         <KV label="Poids pesé" value={dossier.actual_weight_kg ? `${dossier.actual_weight_kg} kg` : '—'} />
         <KV label="Méthode" value={dossier.payment_method || '—'} />
       </div>
+
 
       <div className="rounded-lg border border-border p-4 flex items-center justify-between">
         <div>
@@ -2037,3 +2059,77 @@ function DocumentsTab({ dossier }: { dossier: DossierRow }) {
     </div>
   );
 }
+
+/* ---------------- Editable amount (manual tariff) ---------------- */
+
+function EditableAmount({
+  label, value, disabled, onSave,
+}: {
+  label: string;
+  value: number | null | undefined;
+  disabled?: boolean;
+  onSave: (v: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string>(value != null ? String(value) : '');
+
+  useEffect(() => {
+    if (!editing) setDraft(value != null ? String(value) : '');
+  }, [value, editing]);
+
+  if (!editing) {
+    return (
+      <div>
+        <div className="text-[10px] uppercase text-muted-foreground font-semibold">{label}</div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <div className="text-sm font-medium">{fmtXof(value)}</div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setEditing(true)}
+            className="text-[10px] uppercase tracking-wider text-amber-500 hover:text-amber-400 disabled:opacity-40"
+          >
+            Modifier
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const n = parseFloat(draft.replace(/[\s,]/g, '').replace(',', '.'));
+  const valid = !isNaN(n) && n >= 0;
+
+  return (
+    <div>
+      <div className="text-[10px] uppercase text-muted-foreground font-semibold">{label}</div>
+      <div className="flex items-center gap-1 mt-0.5">
+        <Input
+          type="number"
+          step="100"
+          min="0"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="h-8 text-sm"
+          autoFocus
+        />
+        <Button
+          size="sm"
+          className="h-8 px-2"
+          disabled={!valid || disabled}
+          onClick={() => { onSave(Math.round(n)); setEditing(false); }}
+        >
+          OK
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 px-2"
+          onClick={() => { setEditing(false); setDraft(value != null ? String(value) : ''); }}
+        >
+          ✕
+        </Button>
+      </div>
+    </div>
+  );
+}
+
