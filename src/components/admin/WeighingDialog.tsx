@@ -225,14 +225,45 @@ export function WeighingDialog({
                 <Row label="Sous-total poids" value={formatFcfa(breakdown.weightTotal)} />
                 <Row label={`Enlèvement (${zoneLabel[breakdown.zone]})`} value={formatFcfa(breakdown.enlevement)} />
                 <div className="border-t border-[#F5C518]/30 my-1" />
-                <Row label="TOTAL" value={formatFcfa(breakdown.total)} bold />
+                <Row
+                  label={manualPricing ? 'Total calculé' : 'TOTAL'}
+                  value={formatFcfa(breakdown.computedTotal)}
+                  bold={!manualPricing}
+                />
+                {manualPricing && (
+                  <Row label="TOTAL MANUEL" value={formatFcfa(breakdown.total)} bold />
+                )}
               </div>
             )}
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={manualPricing} onCheckedChange={(v) => setManualPricing(!!v)} />
+                <span>Tarif manuel (remplace le total calculé)</span>
+              </label>
+              {manualPricing && (
+                <div>
+                  <Label className="text-xs">Total à facturer (FCFA)</Label>
+                  <Input
+                    type="number"
+                    step="100"
+                    min="0"
+                    value={manualTotal}
+                    onChange={(e) => setManualTotal(e.target.value)}
+                    placeholder="ex. 12500"
+                  />
+                  {!manualValid && (
+                    <p className="text-xs text-red-500 mt-1">Saisis un montant &gt; 0.</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox checked={cod} onCheckedChange={(v) => setCod(!!v)} />
               <span>Le client paiera à la livraison (cash on delivery)</span>
             </label>
+
 
             <div className="flex flex-col gap-2 pt-2">
               {!cod ? (
