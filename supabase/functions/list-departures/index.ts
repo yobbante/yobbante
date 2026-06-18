@@ -227,7 +227,9 @@ async function fetchKonnektDepartures(): Promise<{
       headers['Authorization'] = `Bearer ${key}`;
       headers['X-Yobbante-Api-Key'] = key;
     }
-    const res = await fetch(endpoint, { method: 'GET', headers });
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 6000);
+    const res = await fetch(endpoint, { method: 'GET', headers, signal: ac.signal }).finally(() => clearTimeout(t));
     if (!res.ok) {
       const txt = await res.text();
       console.error('Konnekt list-departures failed', res.status, txt);
