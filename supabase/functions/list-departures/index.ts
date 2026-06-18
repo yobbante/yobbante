@@ -227,7 +227,9 @@ async function fetchKonnektDepartures(): Promise<{
       headers['Authorization'] = `Bearer ${key}`;
       headers['X-Yobbante-Api-Key'] = key;
     }
-    const res = await fetch(endpoint, { method: 'GET', headers });
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 6000);
+    const res = await fetch(endpoint, { method: 'GET', headers, signal: ac.signal }).finally(() => clearTimeout(t));
     if (!res.ok) {
       const txt = await res.text();
       console.error('Konnekt list-departures failed', res.status, txt);
@@ -352,10 +354,16 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const forceRefresh = url.searchParams.get('refresh') === '1';
 
+  const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    ]);
+
   try {
     const [konnektResult, manualDepartures] = await Promise.all([
-      fetchKonnektDepartures(),
-      fetchManualDepartures(),
+      withTimeout(fetchKonnektDepartures(), 7000, { error: 'konnekt timeout' } as { error: string }),
+      withTimeout(fetchManualDepartures(), 4000, [] as Departure[]),
     ]);
 
     let konnektDepartures: Departure[] = [];
@@ -368,30 +376,31 @@ Deno.serve(async (req) => {
       konnektDepartures = konnektResult.departures;
       source = 'konnekt';
       partner_authenticated = konnektResult.authed;
-      await writeLKG(konnektDepartures);
-      await logSync({
+      // Fire-and-forget — never block the response on writes.
+      writeLKG(konnektDepartures).catch(() => {});
+      logSync({
         source: 'konnekt',
         status: 'ok',
         count: konnektDepartures.length,
         partner_authenticated,
         raw_payload: konnektResult.raw,
-      });
+      }).catch(() => {});
     } else {
       error_message = 'error' in konnektResult ? konnektResult.error : 'Konnekt returned 0 departures';
-      const lkg = await readLKG();
+      const lkg = await withTimeout(readLKG(), 3000, null);
       if (lkg && lkg.departures.length) {
         konnektDepartures = lkg.departures;
         source = 'cache';
         lkg_updated_at = lkg.updated_at;
       }
-      await logSync({
+      logSync({
         source,
         status: 'error',
         count: konnektDepartures.length,
         partner_authenticated: 'authed' in konnektResult ? konnektResult.authed : false,
         raw_payload: 'raw' in konnektResult ? konnektResult.raw : null,
         error_message,
-      });
+      }).catch(() => {});
     }
 
     // Merge manual + konnekt and dedup. If we have manual departures and no
