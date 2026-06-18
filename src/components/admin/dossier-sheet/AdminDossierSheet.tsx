@@ -2059,3 +2059,77 @@ function DocumentsTab({ dossier }: { dossier: DossierRow }) {
     </div>
   );
 }
+
+/* ---------------- Editable amount (manual tariff) ---------------- */
+
+function EditableAmount({
+  label, value, disabled, onSave,
+}: {
+  label: string;
+  value: number | null | undefined;
+  disabled?: boolean;
+  onSave: (v: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string>(value != null ? String(value) : '');
+
+  useEffect(() => {
+    if (!editing) setDraft(value != null ? String(value) : '');
+  }, [value, editing]);
+
+  if (!editing) {
+    return (
+      <div>
+        <div className="text-[10px] uppercase text-muted-foreground font-semibold">{label}</div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <div className="text-sm font-medium">{fmtXof(value)}</div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setEditing(true)}
+            className="text-[10px] uppercase tracking-wider text-amber-500 hover:text-amber-400 disabled:opacity-40"
+          >
+            Modifier
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const n = parseFloat(draft.replace(/[\s,]/g, '').replace(',', '.'));
+  const valid = !isNaN(n) && n >= 0;
+
+  return (
+    <div>
+      <div className="text-[10px] uppercase text-muted-foreground font-semibold">{label}</div>
+      <div className="flex items-center gap-1 mt-0.5">
+        <Input
+          type="number"
+          step="100"
+          min="0"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="h-8 text-sm"
+          autoFocus
+        />
+        <Button
+          size="sm"
+          className="h-8 px-2"
+          disabled={!valid || disabled}
+          onClick={() => { onSave(Math.round(n)); setEditing(false); }}
+        >
+          OK
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 px-2"
+          onClick={() => { setEditing(false); setDraft(value != null ? String(value) : ''); }}
+        >
+          ✕
+        </Button>
+      </div>
+    </div>
+  );
+}
+
