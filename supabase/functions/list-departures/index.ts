@@ -376,30 +376,31 @@ Deno.serve(async (req) => {
       konnektDepartures = konnektResult.departures;
       source = 'konnekt';
       partner_authenticated = konnektResult.authed;
-      await writeLKG(konnektDepartures);
-      await logSync({
+      // Fire-and-forget — never block the response on writes.
+      writeLKG(konnektDepartures).catch(() => {});
+      logSync({
         source: 'konnekt',
         status: 'ok',
         count: konnektDepartures.length,
         partner_authenticated,
         raw_payload: konnektResult.raw,
-      });
+      }).catch(() => {});
     } else {
       error_message = 'error' in konnektResult ? konnektResult.error : 'Konnekt returned 0 departures';
-      const lkg = await readLKG();
+      const lkg = await withTimeout(readLKG(), 3000, null);
       if (lkg && lkg.departures.length) {
         konnektDepartures = lkg.departures;
         source = 'cache';
         lkg_updated_at = lkg.updated_at;
       }
-      await logSync({
+      logSync({
         source,
         status: 'error',
         count: konnektDepartures.length,
         partner_authenticated: 'authed' in konnektResult ? konnektResult.authed : false,
         raw_payload: 'raw' in konnektResult ? konnektResult.raw : null,
         error_message,
-      });
+      }).catch(() => {});
     }
 
     // Merge manual + konnekt and dedup. If we have manual departures and no
