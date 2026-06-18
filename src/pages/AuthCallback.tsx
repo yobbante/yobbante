@@ -29,15 +29,19 @@ export default function AuthCallback() {
         const url = new URL(window.location.href);
         const code = url.searchParams.get('code');
         if (code) {
-          await supabase.auth.exchangeCodeForSession(window.location.href);
+          try { await supabase.auth.exchangeCodeForSession(window.location.href); } catch {}
         }
-        // Implicit flow: Supabase parse le hash automatiquement via detectSessionInUrl,
-        // mais on attend explicitement la session pour fiabiliser le timing.
-        const { data: { session } } = await supabase.auth.getSession();
+
+        // Récupère la session (broker Lovable / implicit / PKCE). Petite
+        // boucle de retry car detectSessionInUrl est asynchrone au mount.
+        let session = (await supabase.auth.getSession()).data.session;
+        for (let i = 0; i < 10 && !session; i++) {
+          await new Promise((r) => setTimeout(r, 150));
+          session = (await supabase.auth.getSession()).data.session;
+        }
         if (cancelled) return;
 
         if (!session) {
-          // Aucune session → retour au login.
           navigate('/auth', { replace: true });
           return;
         }
