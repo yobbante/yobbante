@@ -1695,6 +1695,57 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 )}
               </div>
 
+              {/* Forfait produit (optionnel) — remplace le calcul au poids */}
+              {forfaits.length > 0 && goodsType && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold">Produit spécifique (optionnel)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Si votre envoi correspond à un de ces produits, son tarif forfaitaire s'applique.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-[1fr,90px] gap-2">
+                    <select
+                      value={forfaitId ?? ''}
+                      onChange={(e) => setForfaitId(e.target.value || null)}
+                      className="w-full border-2 border-border rounded-xl px-3 py-2 text-sm bg-card focus:outline-none focus:border-foreground"
+                    >
+                      <option value="">— Aucun (calcul au poids) —</option>
+                      {forfaits.map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.nom} — {f.prix_fcfa.toLocaleString('fr-FR')} FCFA
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={forfaitQty}
+                      onChange={(e) => setForfaitQty(Math.max(1, Number(e.target.value) || 1))}
+                      disabled={!forfaitId}
+                      className="w-full border-2 border-border rounded-xl px-3 py-2 text-sm bg-card text-center tabular-nums disabled:opacity-40 focus:outline-none focus:border-foreground"
+                      title="Quantité"
+                    />
+                  </div>
+                  {selectedForfait && (
+                    <div className="rounded-lg bg-card border border-border px-3 py-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          {selectedForfait.nom} × {forfaitQty}
+                        </span>
+                        <span className="font-bold tabular-nums">
+                          {(selectedForfait.prix_fcfa * forfaitQty).toLocaleString('fr-FR')} FCFA
+                        </span>
+                      </div>
+                      {selectedForfait.description && (
+                        <p className="mt-1 text-[10px] text-muted-foreground">{selectedForfait.description}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <StepSupportLink />
             </>
           )}
