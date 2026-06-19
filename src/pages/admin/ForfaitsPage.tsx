@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import AdminOnlyGuard from '@/components/AdminOnlyGuard';
+import { AdminOnlyGuard } from '@/components/AdminOnlyGuard';
 import { ratePerKgForCorridor } from '@/lib/startingPrice';
 
 // Taux de conversion vers FCFA (XOF)
