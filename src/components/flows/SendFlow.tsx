@@ -571,7 +571,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const check = calculatePricing({
-      tarifGPFcfa: ratePerKgForCorridor(originCity?.country, destCity?.country),
+      tarifGPFcfa: effectiveTarifGP,
       weightKg: weight,
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
