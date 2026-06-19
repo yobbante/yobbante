@@ -34,6 +34,7 @@ import RelaisPage from "./pages/admin/RelaisPage";
 import ParametresPage from "./pages/admin/ParametresPage";
 import GuidePage from "./pages/admin/GuidePage";
 import FlyersPage from "./pages/admin/FlyersPage";
+import ForfaitsPage from "./pages/admin/ForfaitsPage";
 import SuivreEntry from "./pages/SuivreEntry";
 import AvisPage from "./pages/AvisPage";
 import PayPage from "./pages/PayPage";
