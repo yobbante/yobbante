@@ -2283,6 +2283,54 @@ export type Database = {
         }
         Relationships: []
       }
+      product_forfaits: {
+        Row: {
+          actif: boolean
+          created_at: string
+          description: string | null
+          destination: string
+          devise_originale: string
+          id: string
+          mode: string
+          multiplicateur: number | null
+          nom: string
+          prix_devise_originale: number | null
+          prix_fcfa: number
+          taux_conversion: number | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          description?: string | null
+          destination?: string
+          devise_originale?: string
+          id?: string
+          mode?: string
+          multiplicateur?: number | null
+          nom: string
+          prix_devise_originale?: number | null
+          prix_fcfa: number
+          taux_conversion?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          description?: string | null
+          destination?: string
+          devise_originale?: string
+          id?: string
+          mode?: string
+          multiplicateur?: number | null
+          nom?: string
+          prix_devise_originale?: number | null
+          prix_fcfa?: number
+          taux_conversion?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string
