@@ -181,6 +181,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
+
+  // Forfait produit (optionnel) — remplace le calcul au poids quand sélectionné.
+  const [forfaitId, setForfaitId]   = useState<string | null>(null);
+  const [forfaitQty, setForfaitQty] = useState<number>(1);
+  const [forfaits, setForfaits]     = useState<Array<{
+    id: string; nom: string; description: string | null;
+    destination: string; mode: string; prix_fcfa: number;
+  }>>([]);
   // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
