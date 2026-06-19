@@ -354,9 +354,8 @@ function ForfaitDialog({
 }
 
 export default function ForfaitsPage() {
-  return (
-    <AdminOnlyGuard>
-      <ForfaitsPageInner />
-    </AdminOnlyGuard>
-  );
+  const { isAdmin, isLoading } = useUserRole();
+  if (isLoading) return <div className="p-8 text-sm text-muted-foreground">Chargement…</div>;
+  if (!isAdmin) return <Navigate to="/auth" replace />;
+  return <ForfaitsPageInner />;
 }
