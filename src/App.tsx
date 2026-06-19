@@ -34,6 +34,7 @@ import RelaisPage from "./pages/admin/RelaisPage";
 import ParametresPage from "./pages/admin/ParametresPage";
 import GuidePage from "./pages/admin/GuidePage";
 import FlyersPage from "./pages/admin/FlyersPage";
+import ForfaitsPage from "./pages/admin/ForfaitsPage";
 import SuivreEntry from "./pages/SuivreEntry";
 import AvisPage from "./pages/AvisPage";
 import PayPage from "./pages/PayPage";
@@ -119,6 +120,7 @@ const DekkRoutes = () => (
     <Route path="/admin/parametres" element={<ParametresPage />} />
     <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/flyers" element={<FlyersPage />} />
+    <Route path="/admin/tarifs/forfaits" element={<ForfaitsPage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
@@ -183,6 +185,7 @@ const MainRoutes = () => (
     <Route path="/admin/parametres" element={<ParametresPage />} />
     <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/flyers" element={<FlyersPage />} />
+    <Route path="/admin/tarifs/forfaits" element={<ForfaitsPage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
     {/* Canonical tracking URL — /suivre redirects to /track */}
     <Route path="/suivre" element={<SuivreEntry />} />

@@ -181,6 +181,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
+
+  // Forfait produit (optionnel) — remplace le calcul au poids quand sélectionné.
+  const [forfaitId, setForfaitId]   = useState<string | null>(null);
+  const [forfaitQty, setForfaitQty] = useState<number>(1);
+  const [forfaits, setForfaits]     = useState<Array<{
+    id: string; nom: string; description: string | null;
+    destination: string; mode: string; prix_fcfa: number;
+  }>>([]);
   // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
@@ -494,18 +502,65 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Surcharge en EUR (655 FCFA / €)
   const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
 
+  // ── Forfaits produits — fetch les forfaits actifs correspondant à destination+mode.
+  useEffect(() => {
+    const destCountry = destCity?.country;
+    if (!destCountry) { setForfaits([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('product_forfaits' as never)
+        .select('id, nom, description, destination, mode, prix_fcfa')
+        .eq('actif', true)
+        .in('destination', [destCountry, 'ALL'])
+        .in('mode', [transportMode, 'ALL']);
+      if (cancelled || error) return;
+      setForfaits((data as unknown as typeof forfaits) || []);
+    })();
+    return () => { cancelled = true; };
+  }, [destCity?.country, transportMode]);
+
+  // Reset forfait si plus dispo
+  const selectedForfait = useMemo(
+    () => forfaits.find(f => f.id === forfaitId) ?? null,
+    [forfaits, forfaitId],
+  );
+  useEffect(() => {
+    if (forfaitId && !forfaits.find(f => f.id === forfaitId)) setForfaitId(null);
+  }, [forfaits, forfaitId]);
+
+  // Coefficient marchandise (pour calculer le tarif synthétique)
+  const _goodsCoef = (() => {
+    // MARCHANDISE_COEF importé indirectement via getMarchandiseCoef — calcule à part.
+    const map: Record<string, number> = {
+      standard: 1, electronics: 1.08, fragile: 1.10, fashion: 1.02,
+      cosmetics: 1.02, food: 0.98, high_value: 1.12, documents: 0.95, auto_parts: 1.07,
+    };
+    return goodsType ? (map[goodsType] ?? 1) : 1;
+  })();
+
   // ── SOURCE UNIQUE DE VÉRITÉ — pricing engine v3 (FCFA).
-  // Recalcule à chaque changement d'input pertinent. TOUTES les UI
-  // (cards Standard/Express, récap, LiveSummaryBar, /pay, admin) lisent
-  // ici. Aucun autre calcul de prix ne doit coexister.
+  // Si un forfait produit est sélectionné, on injecte un tarif/kg synthétique :
+  //   fret_cible = prix_fcfa × qty × MARGE(1.20)
+  //   et fret_moteur = w × rate × 1.20 × coef  → rate = (prix_fcfa × qty) / (w × coef)
+  // Toutes les autres lignes (billet, agence, dossier, tva) sont calculées normalement.
+  const effectiveTarifGP = useMemo(() => {
+    if (selectedForfait) {
+      const w = Math.max(0.5, weight);
+      const qty = Math.max(1, forfaitQty);
+      return Math.max(1, (selectedForfait.prix_fcfa * qty) / (w * _goodsCoef));
+    }
+    return ratePerKgForCorridor(originCity?.country, destCity?.country);
+  }, [selectedForfait, forfaitQty, weight, _goodsCoef, originCity?.country, destCity?.country]);
+
   const pricing: PricingOutput = useMemo(() => calculatePricing({
-    tarifGPFcfa: ratePerKgForCorridor(originCity?.country, destCity?.country),
+    tarifGPFcfa: effectiveTarifGP,
     weightKg: weight,
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
     assuranceFcfa: insuranceCostFcfa,
   }, priority === 'express' ? 'express' : 'standard'),
-    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
+    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
@@ -516,7 +571,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const check = calculatePricing({
-      tarifGPFcfa: ratePerKgForCorridor(originCity?.country, destCity?.country),
+      tarifGPFcfa: effectiveTarifGP,
       weightKg: weight,
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
@@ -1639,6 +1694,57 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   </div>
                 )}
               </div>
+
+              {/* Forfait produit (optionnel) — remplace le calcul au poids */}
+              {forfaits.length > 0 && goodsType && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold">Produit spécifique (optionnel)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Si votre envoi correspond à un de ces produits, son tarif forfaitaire s'applique.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-[1fr,90px] gap-2">
+                    <select
+                      value={forfaitId ?? ''}
+                      onChange={(e) => setForfaitId(e.target.value || null)}
+                      className="w-full border-2 border-border rounded-xl px-3 py-2 text-sm bg-card focus:outline-none focus:border-foreground"
+                    >
+                      <option value="">— Aucun (calcul au poids) —</option>
+                      {forfaits.map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.nom} — {f.prix_fcfa.toLocaleString('fr-FR')} FCFA
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={forfaitQty}
+                      onChange={(e) => setForfaitQty(Math.max(1, Number(e.target.value) || 1))}
+                      disabled={!forfaitId}
+                      className="w-full border-2 border-border rounded-xl px-3 py-2 text-sm bg-card text-center tabular-nums disabled:opacity-40 focus:outline-none focus:border-foreground"
+                      title="Quantité"
+                    />
+                  </div>
+                  {selectedForfait && (
+                    <div className="rounded-lg bg-card border border-border px-3 py-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          {selectedForfait.nom} × {forfaitQty}
+                        </span>
+                        <span className="font-bold tabular-nums">
+                          {(selectedForfait.prix_fcfa * forfaitQty).toLocaleString('fr-FR')} FCFA
+                        </span>
+                      </div>
+                      {selectedForfait.description && (
+                        <p className="mt-1 text-[10px] text-muted-foreground">{selectedForfait.description}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <StepSupportLink />
             </>
