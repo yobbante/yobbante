@@ -502,18 +502,65 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Surcharge en EUR (655 FCFA / €)
   const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
 
+  // ── Forfaits produits — fetch les forfaits actifs correspondant à destination+mode.
+  useEffect(() => {
+    const destCountry = destCity?.country;
+    if (!destCountry) { setForfaits([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('product_forfaits' as never)
+        .select('id, nom, description, destination, mode, prix_fcfa')
+        .eq('actif', true)
+        .in('destination', [destCountry, 'ALL'])
+        .in('mode', [transportMode, 'ALL']);
+      if (cancelled || error) return;
+      setForfaits((data as unknown as typeof forfaits) || []);
+    })();
+    return () => { cancelled = true; };
+  }, [destCity?.country, transportMode]);
+
+  // Reset forfait si plus dispo
+  const selectedForfait = useMemo(
+    () => forfaits.find(f => f.id === forfaitId) ?? null,
+    [forfaits, forfaitId],
+  );
+  useEffect(() => {
+    if (forfaitId && !forfaits.find(f => f.id === forfaitId)) setForfaitId(null);
+  }, [forfaits, forfaitId]);
+
+  // Coefficient marchandise (pour calculer le tarif synthétique)
+  const _goodsCoef = (() => {
+    // MARCHANDISE_COEF importé indirectement via getMarchandiseCoef — calcule à part.
+    const map: Record<string, number> = {
+      standard: 1, electronics: 1.08, fragile: 1.10, fashion: 1.02,
+      cosmetics: 1.02, food: 0.98, high_value: 1.12, documents: 0.95, auto_parts: 1.07,
+    };
+    return goodsType ? (map[goodsType] ?? 1) : 1;
+  })();
+
   // ── SOURCE UNIQUE DE VÉRITÉ — pricing engine v3 (FCFA).
-  // Recalcule à chaque changement d'input pertinent. TOUTES les UI
-  // (cards Standard/Express, récap, LiveSummaryBar, /pay, admin) lisent
-  // ici. Aucun autre calcul de prix ne doit coexister.
+  // Si un forfait produit est sélectionné, on injecte un tarif/kg synthétique :
+  //   fret_cible = prix_fcfa × qty × MARGE(1.20)
+  //   et fret_moteur = w × rate × 1.20 × coef  → rate = (prix_fcfa × qty) / (w × coef)
+  // Toutes les autres lignes (billet, agence, dossier, tva) sont calculées normalement.
+  const effectiveTarifGP = useMemo(() => {
+    if (selectedForfait) {
+      const w = Math.max(0.5, weight);
+      const qty = Math.max(1, forfaitQty);
+      return Math.max(1, (selectedForfait.prix_fcfa * qty) / (w * _goodsCoef));
+    }
+    return ratePerKgForCorridor(originCity?.country, destCity?.country);
+  }, [selectedForfait, forfaitQty, weight, _goodsCoef, originCity?.country, destCity?.country]);
+
   const pricing: PricingOutput = useMemo(() => calculatePricing({
-    tarifGPFcfa: ratePerKgForCorridor(originCity?.country, destCity?.country),
+    tarifGPFcfa: effectiveTarifGP,
     weightKg: weight,
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
     assuranceFcfa: insuranceCostFcfa,
   }, priority === 'express' ? 'express' : 'standard'),
-    [originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
+    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
