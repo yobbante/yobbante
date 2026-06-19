@@ -120,6 +120,7 @@ const DekkRoutes = () => (
     <Route path="/admin/parametres" element={<ParametresPage />} />
     <Route path="/admin/guide" element={<GuidePage />} />
     <Route path="/admin/flyers" element={<FlyersPage />} />
+    <Route path="/admin/tarifs/forfaits" element={<ForfaitsPage />} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
