@@ -110,12 +110,16 @@ export default function GpDashboardPage() {
   };
 
   useEffect(() => {
+    if (!hasValidGpSessionFor(ref)) {
+      navigate('/gp/connexion', { replace: true });
+      return;
+    }
     (async () => {
       setLoading(true);
       try { await refresh(); } finally { setLoading(false); }
     })();
      
-  }, [ref]);
+  }, [ref, navigate]);
 
   useEffect(() => {
     if (!loading && data && !data.found) navigate('/', { replace: true });
