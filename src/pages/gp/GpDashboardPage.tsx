@@ -188,14 +188,30 @@ function BetaBanner() {
 }
 
 function Header({ profile }: { profile: Profile }) {
+  const navigate = useNavigate();
   const name = `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() || 'Mon espace GP';
+  const logout = () => {
+    clearGpSession();
+    navigate('/gp/connexion', { replace: true });
+  };
   return (
     <header className="border-b sticky top-0 z-30" style={{ background: BG, borderColor: BORDER }}>
-      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         <img src={logoYobbante} alt="Yobbanté" className="h-7" />
-        <div className="text-right">
-          <div className="text-sm font-semibold">{name}</div>
-          <div className="text-[11px]" style={{ color: GOLD }}>GP{profile.reference}</div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-sm font-semibold">{name}</div>
+            <div className="text-[11px]" style={{ color: GOLD }}>GP{profile.reference}</div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            title="Se déconnecter"
+            className="p-2 rounded-md hover:bg-white/5"
+            style={{ color: GOLD }}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>
