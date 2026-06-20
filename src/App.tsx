@@ -198,6 +198,8 @@ const MainRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/gp/connexion" element={<GpLoginPage />} />
+    <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
     <Route path="/gp/:ref" element={<GpDashboardPage />} />
     <Route path="/gp/:ref/departures" element={<GpDashboardPage />} />
