@@ -299,10 +299,18 @@ export default function KonnektLandingPage() {
               <span className="text-[10px] text-slate-500">by Yobbanté</span>
             </div>
           </Link>
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold border border-[#F5C518]/40 bg-[#F5C518]/15 text-[#8a6b00] rounded-full px-2.5 py-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F5C518] animate-pulse" />
-            Accès prioritaire
-          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/gp/connexion"
+              className="text-[11px] sm:text-xs font-semibold rounded-full px-3 py-1.5 bg-[#0A0E1A] text-white hover:bg-black transition"
+            >
+              Se connecter
+            </Link>
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold border border-[#F5C518]/40 bg-[#F5C518]/15 text-[#8a6b00] rounded-full px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F5C518] animate-pulse" />
+              Accès prioritaire
+            </span>
+          </div>
         </div>
       </header>
 

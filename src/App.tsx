@@ -48,6 +48,8 @@ import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
 import GpDepartPage from "./pages/gp/GpDepartPage";
 import GpDashboardPage from "./pages/gp/GpDashboardPage";
+import GpLoginPage from "./pages/gp/GpLoginPage";
+import GpAuthPage from "./pages/gp/GpAuthPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
@@ -106,6 +108,8 @@ const DekkRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/gp/connexion" element={<GpLoginPage />} />
+    <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
     <Route path="/gp/:ref" element={<GpDashboardPage />} />
     <Route path="/gp/:ref/departures" element={<GpDashboardPage />} />
@@ -194,6 +198,8 @@ const MainRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/gp/connexion" element={<GpLoginPage />} />
+    <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
     <Route path="/gp/:ref" element={<GpDashboardPage />} />
     <Route path="/gp/:ref/departures" element={<GpDashboardPage />} />

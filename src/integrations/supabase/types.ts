@@ -1529,6 +1529,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_auth_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          ref_gp: string
+          token: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          ref_gp: string
+          token: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          ref_gp?: string
+          token?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       gp_bot_sessions: {
         Row: {
           created_at: string
@@ -3924,6 +3957,7 @@ export type Database = {
           phone: string
         }[]
       }
+      gp_consume_token: { Args: { p_token: string }; Returns: Json }
       gp_get_context: { Args: { p_ref: string }; Returns: Json }
       gp_publish_departure: {
         Args: {
@@ -3936,6 +3970,7 @@ export type Database = {
         }
         Returns: Json
       }
+      gp_request_auth: { Args: { p_phone: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
