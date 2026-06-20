@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Loader2, Plane, Plus, User, Coins, Package, Trash2, Pencil, ChevronLeft, ChevronRight, X,
+  Loader2, Plane, Plus, User, Coins, Package, Trash2, Pencil, ChevronLeft, ChevronRight, X, LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import logoYobbante from '@/assets/logo-yobbante.png';
+import { hasValidGpSessionFor, clearGpSession } from '@/lib/gpSession';
 
 // ── Palette Yobbanté ────────────────────────────────────────────────────────
 const BG = '#0A0F1E';
