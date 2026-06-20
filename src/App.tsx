@@ -48,6 +48,8 @@ import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
 import GpDepartPage from "./pages/gp/GpDepartPage";
 import GpDashboardPage from "./pages/gp/GpDashboardPage";
+import GpLoginPage from "./pages/gp/GpLoginPage";
+import GpAuthPage from "./pages/gp/GpAuthPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
 import ConfidentialitePage from "./pages/legal/ConfidentialitePage";
