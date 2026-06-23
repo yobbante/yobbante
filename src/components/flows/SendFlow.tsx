@@ -661,10 +661,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     deliveryAddress: !destIsSenegal && !deliveryAddress.trim(),
     pickupAddress:   !pickupAddress.trim(),
     pickupDate:      !pickupDate,
-    pickupSlot:      !pickupSlot,
+    pickupSlot:      isAir && !pickupSlot,
     description:     !description.trim(),
     declaredLocal:   false, // CORRECTION 7 — champ optionnel
     goodsType:       !goodsType,
+    lengthCm:        !isAir && !(Number(lengthCm) > 0),
+    widthCm:         !isAir && !(Number(widthCm) > 0),
+    heightCm:        !isAir && !(Number(heightCm) > 0),
+    natureDouane:    transportMode === 'SEA' && !natureDouane.trim(),
   } : {} as Record<string, boolean>;
 
   // step number → DOM id for scroll-to + edit handling from the recap tab.
