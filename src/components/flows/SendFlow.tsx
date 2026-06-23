@@ -1650,6 +1650,87 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all" />
           </label>
 
+          {/* Dimensions — obligatoires en SEA/ROAD (CBM + poids volumétrique) */}
+          {!isAir && (() => {
+            const L = Number(lengthCm) || 0;
+            const W = Number(widthCm) || 0;
+            const H = Number(heightCm) || 0;
+            const cbm = (L * W * H) / 1_000_000;
+            return (
+              <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Dimensions du colis * (cm) — obligatoire en {transportMode === 'SEA' ? 'Maritime' : 'Routier'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {transportMode === 'SEA'
+                      ? 'Le volume (CBM) détermine le tarif maritime et le seuil conteneur complet (> 5 CBM).'
+                      : 'Sert au calcul du poids volumétrique (L × l × H / 5000).'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Longueur</span>
+                    <input type="number" min={1} max={500} value={lengthCm}
+                      onChange={(e) => setLengthCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.lengthCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.lengthCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Largeur</span>
+                    <input type="number" min={1} max={500} value={widthCm}
+                      onChange={(e) => setWidthCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.widthCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.widthCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Hauteur</span>
+                    <input type="number" min={1} max={500} value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.heightCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.heightCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                </div>
+                {cbm > 0 && (
+                  <div className="flex items-center justify-between rounded-lg bg-card border border-border px-3 py-2 text-xs">
+                    <span className="text-muted-foreground">Volume calculé (CBM)</span>
+                    <span className="font-bold tabular-nums">{cbm.toFixed(3)} m³</span>
+                  </div>
+                )}
+                {transportMode === 'SEA' && cbm > 5 && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] px-3 py-2">
+                    Volume supérieur à 5 CBM — éligible <strong>conteneur complet sur devis</strong> (étape suivante).
+                  </div>
+                )}
+
+                {transportMode === 'SEA' && (
+                  <div>
+                    <label className="block">
+                      <span className="block text-[11px] mb-1 font-medium text-muted-foreground">
+                        Nature exacte de la marchandise * (douane)
+                      </span>
+                      <input type="text" value={natureDouane}
+                        onChange={(e) => setNatureDouane(e.target.value.slice(0, 140))}
+                        placeholder="Ex. Vêtements neufs en coton — origine France"
+                        aria-invalid={fieldErrors.natureDouane || undefined}
+                        className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all',
+                          fieldErrors.natureDouane ? 'border-danger' : 'border-border focus:border-foreground')} />
+                    </label>
+                    <p className="mt-1 text-[10px] text-muted-foreground italic">
+                      Description précise exigée par la douane maritime (matière, état, origine).
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
