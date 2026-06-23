@@ -603,9 +603,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
   // ── Validation (sections are all visible, gates only block submit)
   const routeOk = !!originCity && !!destCity;
-  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
+  const isAir = transportMode === 'AIR';
+  // SEA / ROAD : dépôt entrepôt, pas de créneau de collecte à domicile
+  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && (isAir ? !!pickupSlot : true);
   const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
-  const packageOk = !!description.trim() && weightTouched; // CORRECTION 7 — declaredLocal optionnel
+  // Dimensions obligatoires pour SEA + ROAD
+  const dimsOk = isAir || (Number(lengthCm) > 0 && Number(widthCm) > 0 && Number(heightCm) > 0);
+  // Nature douane obligatoire en SEA uniquement
+  const natureOk = transportMode === 'SEA' ? !!natureDouane.trim() : true;
+  const packageOk = !!description.trim() && weightTouched && dimsOk && natureOk;
   const goodsAutoConfident = false;
   const skipGoodsStep = false;
   const goodsOk = !!goodsType;
