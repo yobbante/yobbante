@@ -1928,7 +1928,46 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
           const expressDelay  = getDeliveryDelay(destCity?.city, 'express');
 
-          const cards = [
+          // Cards mode-aware : AIR garde Standard/Express, SEA = Groupage (+ conteneur sur devis),
+          // ROAD = Groupage routier uniquement.
+          const SEA_PERKS = [
+            'Groupage maritime — meilleur tarif au volume',
+            'Dépôt au point d\'enlèvement à Dakar',
+            'Suivi conteneur + traitement douane inclus',
+            'Délai 21-30 jours porte à porte',
+          ];
+          const ROAD_PERKS = [
+            'Groupage routier — meilleur tarif sans frais portuaires',
+            'Dépôt au point d\'enlèvement à Dakar',
+            'Suivi camion + traitement douane inclus',
+            `Délai estimé ${transportMode === 'ROAD' ? (TRANSPORT_MODES.find(t => t.id === 'ROAD')?.eta ?? '7-14 jours') : '7-14 jours'} selon destination`,
+          ];
+
+          const cards = transportMode === 'SEA' ? [
+            {
+              id: 'normal' as const,
+              label: 'Groupage',
+              tagline: 'Maritime · partagé en conteneur',
+              icon: <Clock className="w-4 h-4" />,
+              eta: 'Livraison en 21-30 jours',
+              price: standardPrice,
+              perks: SEA_PERKS,
+              recommended: true,
+            },
+          ] : transportMode === 'ROAD' ? [
+            {
+              id: 'normal' as const,
+              label: 'Groupage routier',
+              tagline: 'Camion partagé · sans frais portuaires',
+              icon: <Truck className="w-4 h-4" />,
+              eta: destCity
+                ? `Livraison estimée ${TRANSPORT_MODES.find(t => t.id === 'ROAD')?.eta ?? '7-14 jours'} vers ${destCity.city}`
+                : 'Livraison estimée 7-14 jours',
+              price: standardPrice,
+              perks: ROAD_PERKS,
+              recommended: true,
+            },
+          ] : [
             {
               id: 'normal' as const,
               label: 'Standard',
@@ -1949,6 +1988,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               perks: EXPRESS_PERKS,
             },
           ];
+
+          // Force "normal" quand on n'est pas en AIR (Express réservé à l'aérien)
+          if (transportMode !== 'AIR' && priority === 'express') {
+            setTimeout(() => setPriority('normal'), 0);
+          }
+
+          // CBM pour le seuil "conteneur complet" en SEA
+          const cbmTotal = (Number(lengthCm) * Number(widthCm) * Number(heightCm)) / 1_000_000;
 
 
           const hasInstantDeparture = options.length > 0;
