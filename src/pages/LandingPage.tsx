@@ -729,7 +729,7 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
             aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden"
+            className="md:hidden inline-flex"
             style={{
               position: 'relative',
               width: 44,
@@ -739,7 +739,6 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
               border: '1px solid',
               borderColor: menuOpen ? NAVY : '#ECECF0',
               cursor: 'pointer',
-              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'background 0.35s ease, border-color 0.35s ease, transform 0.2s ease',
