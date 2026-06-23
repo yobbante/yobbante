@@ -178,6 +178,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [weight, setWeight]               = useState(preset?.weight ?? 5);
   const [weightTouched, setWeightTouched] = useState<boolean>(!!preset?.weight);
   const [parcelCount, setParcelCount]     = useState(1);
+  // Step 3 bis — dimensions (obligatoires en SEA/ROAD pour CBM + poids volumétrique)
+  const [lengthCm, setLengthCm]   = useState<string>('');
+  const [widthCm, setWidthCm]     = useState<string>('');
+  const [heightCm, setHeightCm]   = useState<string>('');
+  // Nature exacte de la marchandise (douane) — utilisée en SEA
+  const [natureDouane, setNatureDouane] = useState<string>('');
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
@@ -559,8 +565,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
     assuranceFcfa: insuranceCostFcfa,
+    transportMode: transportMode,
   }, priority === 'express' ? 'express' : 'standard'),
-    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
+    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority, transportMode]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
@@ -576,6 +583,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
       assuranceFcfa: insuranceCostFcfa,
+      transportMode: transportMode,
     }, priority === 'express' ? 'express' : 'standard');
     assertPriceCoherence('SendFlow.pricing', check.total_ttc, pricing.total_ttc);
     assertPriceCoherence('SendFlow.prix_standard', check.prix_standard, pricing.prix_standard);
@@ -593,11 +601,24 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     }
   }, [weight, weightTouched, transportMode, goodsType]);
 
+  // Express réservé à l'aérien — bascule en "normal" si on passe à SEA/ROAD
+  useEffect(() => {
+    if (transportMode !== 'AIR' && priority === 'express') {
+      setPriority('normal');
+    }
+  }, [transportMode, priority]);
+
   // ── Validation (sections are all visible, gates only block submit)
   const routeOk = !!originCity && !!destCity;
-  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && !!pickupSlot;
+  const isAir = transportMode === 'AIR';
+  // SEA / ROAD : dépôt entrepôt, pas de créneau de collecte à domicile
+  const collecteOk = routeOk && !!pickupAddress.trim() && !!pickupDate && (isAir ? !!pickupSlot : true);
   const recipientOk = !!recipientName.trim() && !!recipientPhone.trim() && (destIsSenegal || !!deliveryAddress.trim());
-  const packageOk = !!description.trim() && weightTouched; // CORRECTION 7 — declaredLocal optionnel
+  // Dimensions obligatoires pour SEA + ROAD
+  const dimsOk = isAir || (Number(lengthCm) > 0 && Number(widthCm) > 0 && Number(heightCm) > 0);
+  // Nature douane obligatoire en SEA uniquement
+  const natureOk = transportMode === 'SEA' ? !!natureDouane.trim() : true;
+  const packageOk = !!description.trim() && weightTouched && dimsOk && natureOk;
   const goodsAutoConfident = false;
   const skipGoodsStep = false;
   const goodsOk = !!goodsType;
@@ -647,10 +668,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     deliveryAddress: !destIsSenegal && !deliveryAddress.trim(),
     pickupAddress:   !pickupAddress.trim(),
     pickupDate:      !pickupDate,
-    pickupSlot:      !pickupSlot,
+    pickupSlot:      isAir && !pickupSlot,
     description:     !description.trim(),
     declaredLocal:   false, // CORRECTION 7 — champ optionnel
     goodsType:       !goodsType,
+    lengthCm:        !isAir && !(Number(lengthCm) > 0),
+    widthCm:         !isAir && !(Number(widthCm) > 0),
+    heightCm:        !isAir && !(Number(heightCm) > 0),
+    natureDouane:    transportMode === 'SEA' && !natureDouane.trim(),
   } : {} as Record<string, boolean>;
 
   // step number → DOM id for scroll-to + edit handling from the recap tab.
@@ -1249,6 +1274,26 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <div className="mt-2 space-y-4 max-w-xl">
               <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
 
+              {/* Dépôt entrepôt — SEA / ROAD : pas de collecte à domicile */}
+              {!isAir && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-blue-900">
+                  <p className="text-[11px] uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5" /> Dépôt au point d'enlèvement
+                  </p>
+                  <p className="mt-1.5 text-sm font-semibold">
+                    Entrepôt Yobbanté — Dakar
+                  </p>
+                  <p className="text-xs leading-relaxed mt-1">
+                    Km 4,5 Boulevard du Centenaire, Dakar (face station Total)<br />
+                    Lundi → Vendredi : 9h – 18h · Samedi : 9h – 13h
+                  </p>
+                  <p className="mt-2 text-[11px] italic">
+                    {transportMode === 'SEA' ? 'Maritime' : 'Routier'} — la collecte à domicile n'est pas disponible. Apportez le colis au dépôt à la date choisie.
+                  </p>
+                </div>
+              )}
+
+
               {/* Sender contact (only when user is the recipient — identity already covers sender/third) */}
               {userRole === 'recipient' && (
                 <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
@@ -1280,7 +1325,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               )}
 
               <AddressField
-                label={`Adresse de collecte à ${originCity.city} *`}
+                label={isAir
+                  ? `Adresse de collecte à ${originCity.city} *`
+                  : `Adresse de l'expéditeur à ${originCity.city} * (réf. dossier — dépôt à l'entrepôt)`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
                 invalid={fieldErrors.pickupAddress}
@@ -1293,13 +1340,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="block">
                   <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-                    <CalendarIcon className="w-3 h-3" /> Date de collecte *
+                    <CalendarIcon className="w-3 h-3" />
+                    {isAir ? 'Date de collecte *' : 'Date de dépôt à l\'entrepôt *'}
                   </span>
                   <input
                     type="date" value={pickupDate} min={localCalendarMin} max="2099-12-31"
                     onChange={(e) => {
                       // CORRECTION 4 — bloque les années aberrantes (ex: 60620)
-                      // qui apparaissent quand la saisie native est mal interprétée.
                       const v = e.target.value;
                       if (!v) { setPickupDate(''); return; }
                       const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1315,13 +1362,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     )}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Délai min {coverage.minLeadHours}h selon votre zone.
+                    {isAir ? `Délai min ${coverage.minLeadHours}h selon votre zone.` : 'Horaires entrepôt : Lun-Ven 9h-18h, Sam 9h-13h.'}
                   </p>
                 </label>
-                <div>
-                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
-                  <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
-                </div>
+                {isAir && (
+                  <div>
+                    <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
+                    <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
+                  </div>
+                )}
               </div>
 
               <StepSupportLink />
@@ -1608,6 +1657,87 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               className="w-full border-2 rounded-xl px-4 py-3 text-sm bg-card border-border focus:outline-none focus:border-foreground transition-all" />
           </label>
 
+          {/* Dimensions — obligatoires en SEA/ROAD (CBM + poids volumétrique) */}
+          {!isAir && (() => {
+            const L = Number(lengthCm) || 0;
+            const W = Number(widthCm) || 0;
+            const H = Number(heightCm) || 0;
+            const cbm = (L * W * H) / 1_000_000;
+            return (
+              <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Dimensions du colis * (cm) — obligatoire en {transportMode === 'SEA' ? 'Maritime' : 'Routier'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {transportMode === 'SEA'
+                      ? 'Le volume (CBM) détermine le tarif maritime et le seuil conteneur complet (> 5 CBM).'
+                      : 'Sert au calcul du poids volumétrique (L × l × H / 5000).'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Longueur</span>
+                    <input type="number" min={1} max={500} value={lengthCm}
+                      onChange={(e) => setLengthCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.lengthCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.lengthCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Largeur</span>
+                    <input type="number" min={1} max={500} value={widthCm}
+                      onChange={(e) => setWidthCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.widthCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.widthCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[11px] mb-1 text-muted-foreground">Hauteur</span>
+                    <input type="number" min={1} max={500} value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      placeholder="cm"
+                      aria-invalid={fieldErrors.heightCm || undefined}
+                      className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all tabular-nums',
+                        fieldErrors.heightCm ? 'border-danger' : 'border-border focus:border-foreground')} />
+                  </label>
+                </div>
+                {cbm > 0 && (
+                  <div className="flex items-center justify-between rounded-lg bg-card border border-border px-3 py-2 text-xs">
+                    <span className="text-muted-foreground">Volume calculé (CBM)</span>
+                    <span className="font-bold tabular-nums">{cbm.toFixed(3)} m³</span>
+                  </div>
+                )}
+                {transportMode === 'SEA' && cbm > 5 && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] px-3 py-2">
+                    Volume supérieur à 5 CBM — éligible <strong>conteneur complet sur devis</strong> (étape suivante).
+                  </div>
+                )}
+
+                {transportMode === 'SEA' && (
+                  <div>
+                    <label className="block">
+                      <span className="block text-[11px] mb-1 font-medium text-muted-foreground">
+                        Nature exacte de la marchandise * (douane)
+                      </span>
+                      <input type="text" value={natureDouane}
+                        onChange={(e) => setNatureDouane(e.target.value.slice(0, 140))}
+                        placeholder="Ex. Vêtements neufs en coton — origine France"
+                        aria-invalid={fieldErrors.natureDouane || undefined}
+                        className={cn('w-full border-2 rounded-xl px-3 py-2 text-sm bg-card focus:outline-none transition-all',
+                          fieldErrors.natureDouane ? 'border-danger' : 'border-border focus:border-foreground')} />
+                    </label>
+                    <p className="mt-1 text-[10px] text-muted-foreground italic">
+                      Description précise exigée par la douane maritime (matière, état, origine).
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <p className="text-[11px] text-muted-foreground">
             Le poids est ajusté à réception si différent de l'estimation. Tolérance 10 %.
           </p>
@@ -1805,7 +1935,46 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           const standardDelay = getDeliveryDelay(destCity?.city, 'standard');
           const expressDelay  = getDeliveryDelay(destCity?.city, 'express');
 
-          const cards = [
+          // Cards mode-aware : AIR garde Standard/Express, SEA = Groupage (+ conteneur sur devis),
+          // ROAD = Groupage routier uniquement.
+          const SEA_PERKS = [
+            'Groupage maritime — meilleur tarif au volume',
+            'Dépôt au point d\'enlèvement à Dakar',
+            'Suivi conteneur + traitement douane inclus',
+            'Délai 21-30 jours porte à porte',
+          ];
+          const ROAD_PERKS = [
+            'Groupage routier — meilleur tarif sans frais portuaires',
+            'Dépôt au point d\'enlèvement à Dakar',
+            'Suivi camion + traitement douane inclus',
+            `Délai estimé ${transportMode === 'ROAD' ? (TRANSPORT_MODES.find(t => t.id === 'ROAD')?.eta ?? '7-14 jours') : '7-14 jours'} selon destination`,
+          ];
+
+          const cards = transportMode === 'SEA' ? [
+            {
+              id: 'normal' as const,
+              label: 'Groupage',
+              tagline: 'Maritime · partagé en conteneur',
+              icon: <Clock className="w-4 h-4" />,
+              eta: 'Livraison en 21-30 jours',
+              price: standardPrice,
+              perks: SEA_PERKS,
+              recommended: true,
+            },
+          ] : transportMode === 'ROAD' ? [
+            {
+              id: 'normal' as const,
+              label: 'Groupage routier',
+              tagline: 'Camion partagé · sans frais portuaires',
+              icon: <Truck className="w-4 h-4" />,
+              eta: destCity
+                ? `Livraison estimée ${TRANSPORT_MODES.find(t => t.id === 'ROAD')?.eta ?? '7-14 jours'} vers ${destCity.city}`
+                : 'Livraison estimée 7-14 jours',
+              price: standardPrice,
+              perks: ROAD_PERKS,
+              recommended: true,
+            },
+          ] : [
             {
               id: 'normal' as const,
               label: 'Standard',
@@ -1826,6 +1995,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               perks: EXPRESS_PERKS,
             },
           ];
+
+          // CBM pour le seuil "conteneur complet" en SEA
+          const cbmTotal = (Number(lengthCm) * Number(widthCm) * Number(heightCm)) / 1_000_000;
 
 
           const hasInstantDeparture = options.length > 0;
@@ -1856,8 +2028,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               ) : (
                 <>
-                  {/* ── Choix Standard / Express — EN HAUT ── */}
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  {/* ── Choix Standard / Express (AIR) — Groupage seul (SEA/ROAD) ── */}
+                  <div className={cards.length > 1 ? 'grid sm:grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
                     {cards.map(c => {
                       const active = priority === c.id;
                       const isStandard = c.id === 'normal';
@@ -1905,7 +2077,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-muted-foreground">
-                            Livraison estimée · {c.eta}
+                            {c.eta}
                           </p>
 
                           <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
@@ -1924,6 +2096,29 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       );
                     })}
                   </div>
+
+                  {/* Conteneur complet — SEA uniquement, sur devis */}
+                  {transportMode === 'SEA' && (
+                    <div className="rounded-2xl border-2 border-dashed border-border bg-secondary/30 p-4 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <Ship className="w-5 h-5 shrink-0 mt-0.5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">Conteneur complet — sur devis</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Volumes &gt; 5 CBM : tarif négocié, conteneur 20' ou 40' dédié.
+                            {cbmTotal > 0 && (
+                              <> Votre volume actuel : <strong className="tabular-nums">{cbmTotal.toFixed(3)} m³</strong>{cbmTotal > 5 ? ' — éligible.' : ' — palettisez pour atteindre 5 CBM.'}</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => setManualQuoteOpen(true)}
+                        className="w-full inline-flex items-center justify-center rounded-full border-2 border-foreground text-foreground px-5 py-2 text-xs font-semibold hover:bg-foreground hover:text-background transition">
+                        Demander un devis conteneur complet
+                      </button>
+                    </div>
+                  )}
+
 
                   {weight >= 30 && priority === 'express' && (
                     <p className="text-[11px] text-muted-foreground">

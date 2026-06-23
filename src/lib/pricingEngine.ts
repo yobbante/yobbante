@@ -24,6 +24,24 @@ export const EXPRESS_COEF = 1.45;
 /** Alias explicite — multiplicateur Express appliqué uniquement sur le fret. */
 export const EXPRESS_MULTIPLIER = EXPRESS_COEF;
 
+/**
+ * Coefficient de mode de transport — appliqué uniquement sur le fret.
+ * AIR  = 1.00 (référence — tarif "à partir de" calibré aérien)
+ * SEA  = 0.55 (maritime — inclut frais portuaires)
+ * ROAD = 0.40 (routier — pas de frais portuaires, plus économique que SEA)
+ * Le moteur AIR reste inchangé : pour AIR le coef vaut 1.
+ */
+export const MODE_COEF = {
+  AIR:  1.00,
+  SEA:  0.55,
+  ROAD: 0.40,
+} as const;
+export type TransportMode = keyof typeof MODE_COEF;
+export function getModeCoef(mode?: TransportMode | null): number {
+  if (!mode) return 1;
+  return MODE_COEF[mode] ?? 1;
+}
+
 /** Taux pivot FCFA ↔ EUR (XOF est fixé à 655,957 par euro — on arrondit à 655). */
 export const FCFA_PER_EUR = 655;
 
@@ -113,6 +131,8 @@ export interface PricingInput {
   enlevementFcfa?: number;
   /** Montant assurance choisi par le client (0 si pas d'assurance). */
   assuranceFcfa?: number;
+  /** Mode de transport — affecte le coefficient de fret (AIR=1, SEA=0.55, ROAD=0.40). */
+  transportMode?: TransportMode | null;
 }
 
 export interface ModeBreakdown {
@@ -200,10 +220,11 @@ export function calculatePricing(
   const w = Math.max(0.5, Number(input.weightKg) || 0);
   const rate = Math.max(0, Number(input.tarifGPFcfa) || 0);
   const coef = getMarchandiseCoef(input.marchandise);
+  const modeCoef = getModeCoef(input.transportMode);
   const enlev = Math.max(0, roundFcfa(input.enlevementFcfa ?? 0));
   const ass = Math.max(0, roundFcfa(input.assuranceFcfa ?? 0));
 
-  const fretStandard = roundFcfa(w * rate * YOBBANTE_MARGIN * coef);
+  const fretStandard = roundFcfa(w * rate * YOBBANTE_MARGIN * coef * modeCoef);
   const fretExpress = roundFcfa(fretStandard * EXPRESS_COEF);
 
   const standard = computeMode(fretStandard, enlev, ass);
