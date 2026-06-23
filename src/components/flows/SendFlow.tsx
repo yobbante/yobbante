@@ -565,8 +565,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     marchandise: goodsType,
     enlevementFcfa: fraisEnlevement.surcharge,
     assuranceFcfa: insuranceCostFcfa,
+    transportMode: transportMode,
   }, priority === 'express' ? 'express' : 'standard'),
-    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
+    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority, transportMode]);
 
   const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
   const totalEur = toEurFcfa(pricing.total_ttc);
