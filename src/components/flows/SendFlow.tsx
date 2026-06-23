@@ -1267,6 +1267,26 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             <div className="mt-2 space-y-4 max-w-xl">
               <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
 
+              {/* Dépôt entrepôt — SEA / ROAD : pas de collecte à domicile */}
+              {!isAir && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-blue-900">
+                  <p className="text-[11px] uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5" /> Dépôt au point d'enlèvement
+                  </p>
+                  <p className="mt-1.5 text-sm font-semibold">
+                    Entrepôt Yobbanté — Dakar
+                  </p>
+                  <p className="text-xs leading-relaxed mt-1">
+                    Km 4,5 Boulevard du Centenaire, Dakar (face station Total)<br />
+                    Lundi → Vendredi : 9h – 18h · Samedi : 9h – 13h
+                  </p>
+                  <p className="mt-2 text-[11px] italic">
+                    {transportMode === 'SEA' ? 'Maritime' : 'Routier'} — la collecte à domicile n'est pas disponible. Apportez le colis au dépôt à la date choisie.
+                  </p>
+                </div>
+              )}
+
+
               {/* Sender contact (only when user is the recipient — identity already covers sender/third) */}
               {userRole === 'recipient' && (
                 <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
