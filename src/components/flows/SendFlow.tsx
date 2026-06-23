@@ -178,6 +178,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [weight, setWeight]               = useState(preset?.weight ?? 5);
   const [weightTouched, setWeightTouched] = useState<boolean>(!!preset?.weight);
   const [parcelCount, setParcelCount]     = useState(1);
+  // Step 3 bis — dimensions (obligatoires en SEA/ROAD pour CBM + poids volumétrique)
+  const [lengthCm, setLengthCm]   = useState<string>('');
+  const [widthCm, setWidthCm]     = useState<string>('');
+  const [heightCm, setHeightCm]   = useState<string>('');
+  // Nature exacte de la marchandise (douane) — utilisée en SEA
+  const [natureDouane, setNatureDouane] = useState<string>('');
   // Step 6 — goods type
   const [goodsType, setGoodsType]         = useState<GoodsId | null>(null);
   const [isGift, setIsGift]               = useState<boolean>(false);
