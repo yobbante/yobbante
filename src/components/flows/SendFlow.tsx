@@ -2026,8 +2026,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 </div>
               ) : (
                 <>
-                  {/* ── Choix Standard / Express — EN HAUT ── */}
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  {/* ── Choix Standard / Express (AIR) — Groupage seul (SEA/ROAD) ── */}
+                  <div className={cards.length > 1 ? 'grid sm:grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
                     {cards.map(c => {
                       const active = priority === c.id;
                       const isStandard = c.id === 'normal';
@@ -2075,7 +2075,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-muted-foreground">
-                            Livraison estimée · {c.eta}
+                            {c.eta}
                           </p>
 
                           <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
@@ -2094,6 +2094,29 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       );
                     })}
                   </div>
+
+                  {/* Conteneur complet — SEA uniquement, sur devis */}
+                  {transportMode === 'SEA' && (
+                    <div className="rounded-2xl border-2 border-dashed border-border bg-secondary/30 p-4 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <Ship className="w-5 h-5 shrink-0 mt-0.5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">Conteneur complet — sur devis</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Volumes &gt; 5 CBM : tarif négocié, conteneur 20' ou 40' dédié.
+                            {cbmTotal > 0 && (
+                              <> Votre volume actuel : <strong className="tabular-nums">{cbmTotal.toFixed(3)} m³</strong>{cbmTotal > 5 ? ' — éligible.' : ' — palettisez pour atteindre 5 CBM.'}</>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => setManualQuoteOpen(true)}
+                        className="w-full inline-flex items-center justify-center rounded-full border-2 border-foreground text-foreground px-5 py-2 text-xs font-semibold hover:bg-foreground hover:text-background transition">
+                        Demander un devis conteneur complet
+                      </button>
+                    </div>
+                  )}
+
 
                   {weight >= 30 && priority === 'express' && (
                     <p className="text-[11px] text-muted-foreground">
