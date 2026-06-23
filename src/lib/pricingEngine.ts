@@ -220,10 +220,11 @@ export function calculatePricing(
   const w = Math.max(0.5, Number(input.weightKg) || 0);
   const rate = Math.max(0, Number(input.tarifGPFcfa) || 0);
   const coef = getMarchandiseCoef(input.marchandise);
+  const modeCoef = getModeCoef(input.transportMode);
   const enlev = Math.max(0, roundFcfa(input.enlevementFcfa ?? 0));
   const ass = Math.max(0, roundFcfa(input.assuranceFcfa ?? 0));
 
-  const fretStandard = roundFcfa(w * rate * YOBBANTE_MARGIN * coef);
+  const fretStandard = roundFcfa(w * rate * YOBBANTE_MARGIN * coef * modeCoef);
   const fretExpress = roundFcfa(fretStandard * EXPRESS_COEF);
 
   const standard = computeMode(fretStandard, enlev, ass);
