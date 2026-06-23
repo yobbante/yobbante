@@ -1989,11 +1989,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             },
           ];
 
-          // Force "normal" quand on n'est pas en AIR (Express réservé à l'aérien)
-          if (transportMode !== 'AIR' && priority === 'express') {
-            setTimeout(() => setPriority('normal'), 0);
-          }
-
           // CBM pour le seuil "conteneur complet" en SEA
           const cbmTotal = (Number(lengthCm) * Number(widthCm) * Number(heightCm)) / 1_000_000;
 
