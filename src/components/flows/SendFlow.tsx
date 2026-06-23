@@ -1318,7 +1318,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               )}
 
               <AddressField
-                label={`Adresse de collecte à ${originCity.city} *`}
+                label={isAir
+                  ? `Adresse de collecte à ${originCity.city} *`
+                  : `Adresse de l'expéditeur à ${originCity.city} * (réf. dossier — dépôt à l'entrepôt)`}
                 value={pickupAddress} onChange={setPickup}
                 placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
                 invalid={fieldErrors.pickupAddress}
