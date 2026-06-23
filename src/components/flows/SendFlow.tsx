@@ -601,6 +601,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     }
   }, [weight, weightTouched, transportMode, goodsType]);
 
+  // Express réservé à l'aérien — bascule en "normal" si on passe à SEA/ROAD
+  useEffect(() => {
+    if (transportMode !== 'AIR' && priority === 'express') {
+      setPriority('normal');
+    }
+  }, [transportMode, priority]);
+
   // ── Validation (sections are all visible, gates only block submit)
   const routeOk = !!originCity && !!destCity;
   const isAir = transportMode === 'AIR';
