@@ -131,6 +131,8 @@ export interface PricingInput {
   enlevementFcfa?: number;
   /** Montant assurance choisi par le client (0 si pas d'assurance). */
   assuranceFcfa?: number;
+  /** Mode de transport — affecte le coefficient de fret (AIR=1, SEA=0.55, ROAD=0.40). */
+  transportMode?: TransportMode | null;
 }
 
 export interface ModeBreakdown {
