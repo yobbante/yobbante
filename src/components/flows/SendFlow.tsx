@@ -583,6 +583,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       marchandise: goodsType,
       enlevementFcfa: fraisEnlevement.surcharge,
       assuranceFcfa: insuranceCostFcfa,
+      transportMode: transportMode,
     }, priority === 'express' ? 'express' : 'standard');
     assertPriceCoherence('SendFlow.pricing', check.total_ttc, pricing.total_ttc);
     assertPriceCoherence('SendFlow.prix_standard', check.prix_standard, pricing.prix_standard);
