@@ -1333,13 +1333,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="block">
                   <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-                    <CalendarIcon className="w-3 h-3" /> Date de collecte *
+                    <CalendarIcon className="w-3 h-3" />
+                    {isAir ? 'Date de collecte *' : 'Date de dépôt à l\'entrepôt *'}
                   </span>
                   <input
                     type="date" value={pickupDate} min={localCalendarMin} max="2099-12-31"
                     onChange={(e) => {
                       // CORRECTION 4 — bloque les années aberrantes (ex: 60620)
-                      // qui apparaissent quand la saisie native est mal interprétée.
                       const v = e.target.value;
                       if (!v) { setPickupDate(''); return; }
                       const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1355,13 +1355,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     )}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Délai min {coverage.minLeadHours}h selon votre zone.
+                    {isAir ? `Délai min ${coverage.minLeadHours}h selon votre zone.` : 'Horaires entrepôt : Lun-Ven 9h-18h, Sam 9h-13h.'}
                   </p>
                 </label>
-                <div>
-                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
-                  <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
-                </div>
+                {isAir && (
+                  <div>
+                    <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
+                    <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
+                  </div>
+                )}
               </div>
 
               <StepSupportLink />
