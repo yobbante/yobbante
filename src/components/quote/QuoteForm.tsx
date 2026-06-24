@@ -194,7 +194,7 @@ export function QuoteForm() {
 
   return (
     <div
-      className="rounded-[12px] p-3 sm:p-5 max-w-[580px] w-full overflow-hidden"
+      className="rounded-[12px] p-3 sm:p-5 max-w-[580px] w-full mx-auto overflow-hidden"
       style={{ background: 'hsl(var(--secondary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
     >
       {/* Tabs */}
