@@ -182,19 +182,24 @@ export function LandingWorldMap({ className }: { className?: string }) {
   }, [projection]);
 
   // Scale dot size / declustering to the viewport — mobile maps are tiny.
-  const dotR = isMobile ? 2.5 : 5;
-  const touchR = isMobile ? 14 : 20;
-  const minDist = isMobile ? 7 : 15;
+  const dotR = isMobile ? 2.5 : 4;
+  const touchR = isMobile ? 14 : 18;
+  const minDist = isMobile ? 6 : 10;
 
   const cityPoints = useMemo(() => {
     const raw = CITIES_36.map((c) => {
       const p = projection([c.lon, c.lat]);
-      return p ? { ...c, x: p[0], y: p[1] } : null;
-    }).filter(Boolean) as (CityMarker & { x: number; y: number })[];
+      return p ? { ...c, x: p[0], y: p[1], tx: p[0], ty: p[1] } : null;
+    }).filter(Boolean) as (CityMarker & { x: number; y: number; tx: number; ty: number })[];
 
     const offsets = decluster(raw.map(({ x, y }) => ({ x, y })), minDist);
     return raw.map((c, i) => ({ ...c, x: offsets[i].x, y: offsets[i].y }));
   }, [projection, minDist]);
+
+  const selectedPt = useMemo(() => {
+    if (!selected) return null;
+    return cityPoints.find((c) => c.city === selected.city && c.country === selected.country) ?? null;
+  }, [selected, cityPoints]);
 
   const openCity = (c: CityMarker) => {
     const meta = lookupCity(c);
@@ -257,22 +262,29 @@ export function LandingWorldMap({ className }: { className?: string }) {
         style={{ display: 'block', width: '100%', height: 'auto' }}
         role="img"
         aria-label="Carte des 36 destinations Yobbanté"
+        onClick={() => setSelected(null)}
       >
         <defs>
           <style>{`
             @keyframes yobb-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
             .yobb-dakar-pulse { animation: yobb-pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-            @keyframes yobb-ring { 0% { r: 6; opacity: 0.5 } 100% { r: 16; opacity: 0 } }
+            @keyframes yobb-ring { 0% { r: 6; opacity: 0.5 } 100% { r: 18; opacity: 0 } }
             .yobb-dakar-ring { animation: yobb-ring 2.4s ease-out infinite; }
             @keyframes yobb-dot-in { 0% { opacity: 0; transform: scale(0.4) } 100% { opacity: 1; transform: scale(1) } }
-            .yobb-dot { animation: yobb-dot-in 0.5s ease-out both; transform-origin: center; transform-box: fill-box; transition: r 0.18s ease, fill 0.18s ease; }
-            .yobb-dot:hover { fill: #FFFFFF; }
-            .yobb-dot.is-active { fill: #FFFFFF; }
+            .yobb-dot-g { transition: opacity 0.28s ease, filter 0.28s ease; }
+            .yobb-dot { animation: yobb-dot-in 0.5s ease-out both; transform-origin: center; transform-box: fill-box; transition: r 0.18s ease, fill 0.18s ease, filter 0.18s ease; }
+            .yobb-dot:hover { fill: #FFFFFF; filter: drop-shadow(0 0 6px rgba(255,255,255,0.65)); }
+            .yobb-dot.is-active { fill: #FFFFFF; filter: drop-shadow(0 0 8px rgba(255,255,255,0.85)); }
+            .yobb-halo { opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+            .is-active-halo { opacity: 1; animation: yobb-ring 2s ease-out infinite; }
+            .yobb-dimmed { opacity: 0.18; filter: blur(1.2px) saturate(0.4); }
+            @keyframes yobb-arc-draw { from { stroke-dashoffset: 1000 } to { stroke-dashoffset: 0 } }
+            .yobb-arc { stroke-dasharray: 1000; animation: yobb-arc-draw 0.9s cubic-bezier(0.22,1,0.36,1) forwards; }
           `}</style>
         </defs>
 
         {land && (
-          <g>
+          <g style={{ transition: 'opacity 0.28s ease', opacity: selected ? 0.55 : 1 }}>
             {land.features.map((f, i) => (
               <path
                 key={i}
@@ -286,12 +298,52 @@ export function LandingWorldMap({ className }: { className?: string }) {
           </g>
         )}
 
+        {/* Connecting arc Dakar → selected */}
+        {dakarPt && selectedPt && (() => {
+          const dx = selectedPt.x - dakarPt.x;
+          const dy = selectedPt.y - dakarPt.y;
+          const mx = (dakarPt.x + selectedPt.x) / 2;
+          const my = (dakarPt.y + selectedPt.y) / 2;
+          const dist = Math.hypot(dx, dy);
+          // perpendicular offset for arc curvature
+          const nx = -dy / (dist || 1);
+          const ny = dx / (dist || 1);
+          const cx = mx + nx * dist * 0.22;
+          const cy = my + ny * dist * 0.22;
+          const d = `M ${dakarPt.x} ${dakarPt.y} Q ${cx} ${cy} ${selectedPt.x} ${selectedPt.y}`;
+          return (
+            <path
+              className="yobb-arc"
+              d={d}
+              fill="none"
+              stroke="#D4AF37"
+              strokeWidth={1.2}
+              strokeOpacity={0.85}
+              strokeLinecap="round"
+              style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 4px rgba(212,175,55,0.5))' }}
+            />
+          );
+        })()}
+
         {/* City dots + invisible touch targets */}
         <g>
           {cityPoints.map((c) => {
             const isActive = selected?.city === c.city && selected?.country === c.country;
+            const isDimmed = !!selected && !isActive;
             return (
-              <g key={`${c.country}-${c.city}`}>
+              <g
+                key={`${c.country}-${c.city}`}
+                className={`yobb-dot-g${isDimmed ? ' yobb-dimmed' : ''}`}
+              >
+                <circle
+                  className={`yobb-halo${isActive ? ' is-active-halo' : ''}`}
+                  cx={c.x}
+                  cy={c.y}
+                  r={6}
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth={1}
+                />
                 <circle
                   className={`yobb-dot${isActive ? ' is-active' : ''}`}
                   cx={c.x}
@@ -319,7 +371,7 @@ export function LandingWorldMap({ className }: { className?: string }) {
 
         {/* Dakar — origin marker */}
         {dakarPt && (
-          <g>
+          <g style={{ transition: 'opacity 0.28s ease', opacity: selected && selected.city !== 'Dakar' ? 1 : 1 }}>
             <circle
               className="yobb-dakar-ring"
               cx={dakarPt.x}
@@ -337,7 +389,7 @@ export function LandingWorldMap({ className }: { className?: string }) {
               fill="#FFFFFF"
               stroke="#D4AF37"
               strokeWidth={1.5}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.7))' }}
               onClick={(e) => { e.stopPropagation(); openCity(DAKAR); }}
             >
               <title>🇸🇳 Dakar</title>
@@ -345,12 +397,16 @@ export function LandingWorldMap({ className }: { className?: string }) {
             {!isMobile && (
               <text
                 x={dakarPt.x}
-                y={dakarPt.y + 18}
+                y={dakarPt.y + 20}
                 textAnchor="middle"
-                fill="#D4AF37"
-                style={{ fontSize: 10, fontWeight: 700, pointerEvents: 'none' }}
+                fill="#FFFFFF"
+                stroke="#0A0F1E"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                paintOrder="stroke"
+                style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', pointerEvents: 'none' }}
               >
-                Dakar
+                DAKAR
               </text>
             )}
           </g>
