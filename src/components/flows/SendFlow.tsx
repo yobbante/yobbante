@@ -1252,7 +1252,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
         revealed={routeOk}
-        step={1}
+        step={4}
         total={7}
         title={userRole === 'sender' ? 'Collecte du colis' : `Collecte chez l'expéditeur à ${originCity?.city ?? '—'}`}
         hint={userRole === 'sender'
@@ -1260,7 +1260,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
       >
         {originCity ? (
-          collecteOk && editingStep !== 1 && !stepIsActive(1) ? (
+          collecteOk && editingStep !== 4 && !stepIsActive(4) ? (
             <StepCollapsed
               title="Collecte programmée"
               lines={[
@@ -1268,7 +1268,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                 pickupAddress,
                 userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
               ].filter(Boolean) as string[]}
-              onEdit={() => { setCurrentStep(1); setEditingStep(1); }}
+              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
             />
           ) : (
             <div className="mt-2 space-y-4 max-w-xl">
@@ -1385,20 +1385,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 2 — Recipient ─── */}
-      {routeOk && stepIsFuture(2) ? (
-        <div className="mt-6"><LockedStep step={2} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
+      {routeOk && stepIsFuture(5) ? (
+        <div className="mt-6"><LockedStep step={5} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
       ) : (
       <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
         revealed={routeOk}
-        step={2}
+        step={5}
         total={7}
         title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'}
         hint={userRole === 'recipient'
           ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
           : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
       >
-        {recipientOk && editingStep !== 2 && !stepIsActive(2) ? (
+        {recipientOk && editingStep !== 5 && !stepIsActive(5) ? (
           <StepCollapsed
             title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
             lines={[
@@ -1406,7 +1406,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
               recipientEmail || null,
             ].filter(Boolean) as string[]}
-            onEdit={() => { setCurrentStep(2); setEditingStep(2); }}
+            onEdit={() => { setCurrentStep(5); setEditingStep(5); }}
           />
         ) : (
           <div className="space-y-3 max-w-xl">
@@ -1560,18 +1560,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 3 — Package description ─── */}
-      {routeOk && stepIsFuture(3) ? (
-        <div className="mt-6"><LockedStep step={3} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
+      {routeOk && stepIsFuture(1) ? (
+        <div className="mt-6"><LockedStep step={1} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
       ) : (
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection revealed={routeOk} step={3} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
-        {packageOk && editingStep !== 3 && !stepIsActive(3) ? (
+      <FlowSection revealed={routeOk} step={1} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
+        {packageOk && editingStep !== 1 && !stepIsActive(1) ? (
           <StepCollapsed
             title={`${description} — ${weight} kg`}
             lines={[
               `${parcelCount} colis · ${declaredLocal} ${originProfile.currencySymbol}`,
             ]}
-            onEdit={() => { setCurrentStep(3); setEditingStep(3); }}
+            onEdit={() => { setCurrentStep(1); setEditingStep(1); }}
           />
         ) : (
         <div className="space-y-4 max-w-xl">
@@ -1751,20 +1751,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}
       {!skipGoodsStep ? (
-        routeOk && stepIsFuture(4) ? (
-          <div className="mt-6"><LockedStep step={4} total={7} title="Type de marchandise" /></div>
+        routeOk && stepIsFuture(2) ? (
+          <div className="mt-6"><LockedStep step={2} total={7} title="Type de marchandise" /></div>
         ) : (
         <div id="section-goods" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-goods'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-        <FlowSection revealed={routeOk} step={4} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
+        <FlowSection revealed={routeOk} step={2} total={7} title="Type de marchandise" hint="Important pour la douane et l'assurance.">
 
-          {goodsOk && editingStep !== 4 && !stepIsActive(4) ? (
+          {goodsOk && editingStep !== 2 && !stepIsActive(2) ? (
             <StepCollapsed
               title={GOODS_TYPES.find(g => g.id === goodsType)?.label ?? '—'}
               lines={[
                 GOODS_TYPES.find(g => g.id === goodsType)?.desc ?? '',
                 goodsAutoConfident ? 'Détecté automatiquement à partir de votre description' : '',
               ].filter(Boolean)}
-              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
+              onEdit={() => { setCurrentStep(2); setEditingStep(2); }}
             />
           ) : (
             <>
@@ -1894,11 +1894,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       ) : null}
 
       {/* ─── Step 5 — Transport & priority ─── */}
-      {routeOk && stepIsFuture(5) ? (
-        <div className="mt-6"><LockedStep step={5} total={7} title="Transport & priorité" /></div>
+      {routeOk && stepIsFuture(3) ? (
+        <div className="mt-6"><LockedStep step={3} total={7} title="Transport & priorité" /></div>
       ) : (
       <div id="tarifs" className="scroll-mt-32">
-      <FlowSection revealed={routeOk} step={5} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
+      <FlowSection revealed={routeOk} step={3} total={7} title="Transport & priorité" hint="Mode de transport et urgence.">
 
 
         {(() => {
