@@ -1249,317 +1249,6 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
-      {/* ─── Step 1 — Collecte (incl. sender contact when user is recipient/third) ─── */}
-      <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection
-        revealed={routeOk}
-        step={4}
-        total={7}
-        title={userRole === 'sender' ? 'Collecte du colis' : `Collecte chez l'expéditeur à ${originCity?.city ?? '—'}`}
-        hint={userRole === 'sender'
-          ? 'Adresse + créneau souhaité pour la prise en charge.'
-          : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
-      >
-        {originCity ? (
-          collecteOk && editingStep !== 4 && !stepIsActive(4) ? (
-            <StepCollapsed
-              title="Collecte programmée"
-              lines={[
-                `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}`,
-                pickupAddress,
-                userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
-              ].filter(Boolean) as string[]}
-              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
-            />
-          ) : (
-            <div className="mt-2 space-y-4 max-w-xl">
-              <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
-
-              {/* Dépôt entrepôt — SEA / ROAD : pas de collecte à domicile */}
-              {!isAir && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-blue-900">
-                  <p className="text-[11px] uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5" /> Dépôt au point d'enlèvement
-                  </p>
-                  <p className="mt-1.5 text-sm font-semibold">
-                    Entrepôt Yobbanté — Dakar
-                  </p>
-                  <p className="text-xs leading-relaxed mt-1">
-                    Km 4,5 Boulevard du Centenaire, Dakar (face station Total)<br />
-                    Lundi → Vendredi : 9h – 18h · Samedi : 9h – 13h
-                  </p>
-                  <p className="mt-2 text-[11px] italic">
-                    {transportMode === 'SEA' ? 'Maritime' : 'Routier'} — la collecte à domicile n'est pas disponible. Apportez le colis au dépôt à la date choisie.
-                  </p>
-                </div>
-              )}
-
-
-              {/* Sender contact (only when user is the recipient — identity already covers sender/third) */}
-              {userRole === 'recipient' && (
-                <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    Coordonnées de l'expéditeur à {originCity.city}
-                  </p>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
-                      placeholder={`Personne qui remet le colis à ${originCity.city}`}
-                      invalid={fieldErrors.senderName} />
-                    <div>
-                      <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
-                        placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                        invalid={fieldErrors.senderPhone} />
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-              {isFromDakar && (
-                <QuartierDakarPicker
-                  value={pickupQuartier}
-                  onChange={setPickupQuartier}
-                />
-              )}
-
-              <AddressField
-                label={isAir
-                  ? `Adresse de collecte à ${originCity.city} *`
-                  : `Adresse de l'expéditeur à ${originCity.city} * (réf. dossier — dépôt à l'entrepôt)`}
-                value={pickupAddress} onChange={setPickup}
-                placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
-                invalid={fieldErrors.pickupAddress}
-              />
-
-              {isFromDakar && (pickupAddress.trim() || pickupQuartier) && (
-                <ZoneBadge frais={fraisEnlevement} />
-              )}
-
-              <div className="grid sm:grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
-                    <CalendarIcon className="w-3 h-3" />
-                    {isAir ? 'Date de collecte *' : 'Date de dépôt à l\'entrepôt *'}
-                  </span>
-                  <input
-                    type="date" value={pickupDate} min={localCalendarMin} max="2099-12-31"
-                    onChange={(e) => {
-                      // CORRECTION 4 — bloque les années aberrantes (ex: 60620)
-                      const v = e.target.value;
-                      if (!v) { setPickupDate(''); return; }
-                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                      if (!m) return;
-                      const y = Number(m[1]);
-                      if (y < 2024 || y > 2099) return;
-                      setPickupDate(v);
-                    }}
-                    aria-invalid={fieldErrors.pickupDate || undefined}
-                    className={cn(
-                      'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card focus:outline-none transition-all',
-                      fieldErrors.pickupDate ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
-                    )}
-                  />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {isAir ? `Délai min ${coverage.minLeadHours}h selon votre zone.` : 'Horaires entrepôt : Lun-Ven 9h-18h, Sam 9h-13h.'}
-                  </p>
-                </label>
-                {isAir && (
-                  <div>
-                    <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
-                    <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
-                  </div>
-                )}
-              </div>
-
-              <StepSupportLink />
-            </div>
-          )
-        ) : (
-          <p className="text-sm text-muted-foreground">Sélectionnez l'itinéraire dans la barre pour activer la collecte.</p>
-        )}
-      </FlowSection>
-      </div>
-
-
-
-      {/* ─── Step 2 — Recipient ─── */}
-      {routeOk && stepIsFuture(5) ? (
-        <div className="mt-6"><LockedStep step={5} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
-      ) : (
-      <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
-      <FlowSection
-        revealed={routeOk}
-        step={5}
-        total={7}
-        title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'}
-        hint={userRole === 'recipient'
-          ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
-          : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
-      >
-        {recipientOk && editingStep !== 5 && !stepIsActive(5) ? (
-          <StepCollapsed
-            title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
-            lines={[
-              `${recipientName} · ${recipientPhone}`,
-              deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
-              recipientEmail || null,
-            ].filter(Boolean) as string[]}
-            onEdit={() => { setCurrentStep(5); setEditingStep(5); }}
-          />
-        ) : (
-          <div className="space-y-3 max-w-xl">
-            {userRole === 'recipient' && (
-              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] text-emerald-900">
-                Vos nom et téléphone ont été repris du bloc d'identité ci-dessus. Complétez juste l'adresse de livraison.
-              </p>
-            )}
-            <div className="grid sm:grid-cols-2 gap-3">
-              <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName}
-                placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`}
-                invalid={fieldErrors.recipientName} />
-              <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
-                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                invalid={fieldErrors.recipientPhone} />
-            </div>
-            {!isFromDakar && destIsSenegal && (
-              <QuartierDakarPicker
-                value={pickupQuartier}
-                onChange={setPickupQuartier}
-                label="Quartier de livraison à Dakar"
-              />
-            )}
-            <AddressField
-              label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
-              value={deliveryAddress} onChange={setDelivery}
-              placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
-              invalid={fieldErrors.deliveryAddress}
-            />
-            {!isFromDakar && destIsSenegal && (deliveryAddress.trim() || pickupQuartier) && (
-              <ZoneBadge frais={fraisEnlevement} mode="livraison" />
-            )}
-            <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
-              placeholder="ahmed@example.com" type="email" />
-
-            {/* Mode de reception finale */}
-            <div className="rounded-2xl border-2 border-border bg-card p-4 space-y-3">
-              <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
-              {(() => {
-                const hasRelays = activeRelayPoints.length > 0;
-                const options: Array<{ id: 'pickup_gp' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
-                  {
-                    id: 'pickup_gp',
-                    label: 'Récupérer chez notre partenaire',
-                    sub: 'Gratuit — adresse communiquée à l\'arrivée',
-                  },
-                  {
-                    id: 'relay_point',
-                    label: 'Livraison à un point relais',
-                    sub: destIsDakar
-                      ? (hasRelays ? 'Choisissez un relais à Dakar' : 'Points relais bientôt disponibles à Dakar. Contactez-nous.')
-                      : 'Disponible uniquement à Dakar',
-                    disabled: !destIsDakar || !hasRelays,
-                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : (!hasRelays ? 'Points relais bientôt disponibles à Dakar' : undefined),
-                    // CORRECTION 6 — masquer complètement l'option pour toute
-                    // destination hors Sénégal/Dakar. On ne propose un relais
-                    // que pour la livraison locale Dakar.
-                    hidden: !destIsDakar || (destIsDakar && !hasRelays),
-                  },
-                  {
-                    id: 'home_delivery',
-                    label: 'Livraison à domicile',
-                    sub: destIsDakar ? 'Frais selon zone et transporteur' : 'Disponible uniquement à Dakar',
-                    disabled: !destIsDakar,
-                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : undefined,
-                    hidden: !destIsDakar,
-                  },
-                ];
-                return options.filter(o => !o.hidden).map(opt => {
-                  const selected = deliveryMode === opt.id;
-                  return (
-                    <label
-                      key={opt.id}
-                      title={opt.disabledNote}
-                      className={cn(
-                        'flex items-start gap-3 rounded-xl border-2 p-3 transition-colors',
-                        opt.disabled
-                          ? 'border-border bg-muted/30 cursor-not-allowed opacity-60'
-                          : 'cursor-pointer',
-                        !opt.disabled && (selected ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40'),
-                      )}
-                    >
-                      <input
-                        type="radio" name="delivery_mode" value={opt.id}
-                        checked={selected}
-                        disabled={opt.disabled}
-                        onChange={() => { if (!opt.disabled) setDeliveryMode(opt.id); }}
-                        className="mt-1 accent-foreground"
-                      />
-                      <span className="flex-1">
-                        <span className="block text-sm font-medium text-foreground">{opt.label}</span>
-                        <span className={cn('block text-[11px]', opt.disabled ? 'text-muted-foreground/80 italic' : 'text-muted-foreground')}>{opt.sub}</span>
-                      </span>
-                    </label>
-                  );
-                });
-              })()}
-
-              {deliveryMode === 'relay_point' && destIsDakar && activeRelayPoints.length > 0 && (
-                <div className="space-y-2 pt-1">
-                  <label className="block">
-                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Point relais *</span>
-                    <select
-                      value={relayPointId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setRelayPointId(id);
-                        const rp = activeRelayPoints.find(r => r.id === id);
-                        if (rp) { setRelayPointName(rp.name); setRelayPointAddress(rp.address); }
-                      }}
-                      className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-colors"
-                    >
-                      <option value="">— Choisir un point relais —</option>
-                      {activeRelayPoints.map(rp => (
-                        <option key={rp.id} value={rp.id}>{rp.name} — {rp.quartier}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              )}
-
-              {deliveryMode === 'home_delivery' && destIsDakar && (
-                <div className="space-y-2 pt-1">
-                  <p className="text-[11px] text-muted-foreground">
-                    Choisissez un transporteur. Les tarifs seront calculés et confirmés avant le départ.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Yobbanté', 'DHL', 'FedEx'].map(c => (
-                      <button
-                        type="button" key={c}
-                        onClick={() => setDeliveryCarrier(c)}
-                        className={cn(
-                          'rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors',
-                          deliveryCarrier === c ? 'border-foreground bg-secondary/40 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground/40',
-                        )}
-                      >{c}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-
-            <StepSupportLink />
-          </div>
-        )}
-      </FlowSection>
-      </div>
-      )}
-
-
-
       {/* ─── Step 3 — Package description ─── */}
       {routeOk && stepIsFuture(1) ? (
         <div className="mt-6"><LockedStep step={1} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
@@ -2223,6 +1912,337 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
             </div>
           );
         })()}
+      </FlowSection>
+      </div>
+      )}
+
+
+
+      {/* ─── Prix calculé — banner révélé une fois colis + marchandise + transport renseignés ─── */}
+      {routeOk && packageOk && goodsOk && (
+        <div className="mt-6 rounded-2xl border-2 border-[#F5C518] bg-[rgba(245,197,24,0.06)] p-5">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-[#B8860B]">
+            Votre prix estimé
+          </p>
+          <div className="mt-2 flex items-baseline gap-3 flex-wrap">
+            <span className="text-3xl sm:text-4xl font-extrabold tabular-nums text-foreground">
+              {formatLocalAmount(toEurFcfa(pricing.total_ttc), originProfile)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              TTC · {priority === 'express' ? 'Express' : 'Standard'} · {weight} kg
+            </span>
+          </div>
+          <p className="mt-2 text-[12px] text-muted-foreground">
+            Prix bloqué pour cet envoi. Complétez les étapes suivantes (collecte, destinataire, paiement) pour confirmer.
+          </p>
+        </div>
+      )}
+
+      {/* ─── Step 1 — Collecte (incl. sender contact when user is recipient/third) ─── */}
+      <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
+      <FlowSection
+        revealed={routeOk}
+        step={4}
+        total={7}
+        title={userRole === 'sender' ? 'Collecte du colis' : `Collecte chez l'expéditeur à ${originCity?.city ?? '—'}`}
+        hint={userRole === 'sender'
+          ? 'Adresse + créneau souhaité pour la prise en charge.'
+          : "Renseignez les coordonnées de la personne qui remet le colis et l'adresse où nous le récupérons."}
+      >
+        {originCity ? (
+          collecteOk && editingStep !== 4 && !stepIsActive(4) ? (
+            <StepCollapsed
+              title="Collecte programmée"
+              lines={[
+                `${pickupDate} · ${pickupSlot === 'morning' ? 'Matin' : 'Après-midi'}`,
+                pickupAddress,
+                userRole === 'recipient' ? `Expéditeur : ${senderName || '—'} · ${senderPhone || '—'}` : null,
+              ].filter(Boolean) as string[]}
+              onEdit={() => { setCurrentStep(4); setEditingStep(4); }}
+            />
+          ) : (
+            <div className="mt-2 space-y-4 max-w-xl">
+              <CoverageBadge level={coverage.level} city={originCity.city} loading={coverage.loading} />
+
+              {/* Dépôt entrepôt — SEA / ROAD : pas de collecte à domicile */}
+              {!isAir && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-blue-900">
+                  <p className="text-[11px] uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5" /> Dépôt au point d'enlèvement
+                  </p>
+                  <p className="mt-1.5 text-sm font-semibold">
+                    Entrepôt Yobbanté — Dakar
+                  </p>
+                  <p className="text-xs leading-relaxed mt-1">
+                    Km 4,5 Boulevard du Centenaire, Dakar (face station Total)<br />
+                    Lundi → Vendredi : 9h – 18h · Samedi : 9h – 13h
+                  </p>
+                  <p className="mt-2 text-[11px] italic">
+                    {transportMode === 'SEA' ? 'Maritime' : 'Routier'} — la collecte à domicile n'est pas disponible. Apportez le colis au dépôt à la date choisie.
+                  </p>
+                </div>
+              )}
+
+
+              {/* Sender contact (only when user is the recipient — identity already covers sender/third) */}
+              {userRole === 'recipient' && (
+                <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Coordonnées de l'expéditeur à {originCity.city}
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <TextField label="Nom complet *" value={senderName} onChange={setSenderName}
+                      placeholder={`Personne qui remet le colis à ${originCity.city}`}
+                      invalid={fieldErrors.senderName} />
+                    <div>
+                      <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
+                        placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                        invalid={fieldErrors.senderPhone} />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+              {isFromDakar && (
+                <QuartierDakarPicker
+                  value={pickupQuartier}
+                  onChange={setPickupQuartier}
+                />
+              )}
+
+              <AddressField
+                label={isAir
+                  ? `Adresse de collecte à ${originCity.city} *`
+                  : `Adresse de l'expéditeur à ${originCity.city} * (réf. dossier — dépôt à l'entrepôt)`}
+                value={pickupAddress} onChange={setPickup}
+                placeholder="N°, rue, quartier (ex: Villa 45, HLM Grand Yoff)"
+                invalid={fieldErrors.pickupAddress}
+              />
+
+              {isFromDakar && (pickupAddress.trim() || pickupQuartier) && (
+                <ZoneBadge frais={fraisEnlevement} />
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-xs mb-1.5 font-medium text-muted-foreground inline-flex items-center gap-1.5">
+                    <CalendarIcon className="w-3 h-3" />
+                    {isAir ? 'Date de collecte *' : 'Date de dépôt à l\'entrepôt *'}
+                  </span>
+                  <input
+                    type="date" value={pickupDate} min={localCalendarMin} max="2099-12-31"
+                    onChange={(e) => {
+                      // CORRECTION 4 — bloque les années aberrantes (ex: 60620)
+                      const v = e.target.value;
+                      if (!v) { setPickupDate(''); return; }
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      if (!m) return;
+                      const y = Number(m[1]);
+                      if (y < 2024 || y > 2099) return;
+                      setPickupDate(v);
+                    }}
+                    aria-invalid={fieldErrors.pickupDate || undefined}
+                    className={cn(
+                      'w-full border-2 rounded-xl px-4 py-3 text-sm bg-card focus:outline-none transition-all',
+                      fieldErrors.pickupDate ? 'border-danger focus:border-danger' : 'border-border focus:border-foreground',
+                    )}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {isAir ? `Délai min ${coverage.minLeadHours}h selon votre zone.` : 'Horaires entrepôt : Lun-Ven 9h-18h, Sam 9h-13h.'}
+                  </p>
+                </label>
+                {isAir && (
+                  <div>
+                    <span className="block text-xs mb-1.5 font-medium text-muted-foreground">Créneau *</span>
+                    <ChipGroup options={TIME_SLOTS} value={pickupSlot} onChange={(v) => setPickupSlot(v)} />
+                  </div>
+                )}
+              </div>
+
+              <StepSupportLink />
+            </div>
+          )
+        ) : (
+          <p className="text-sm text-muted-foreground">Sélectionnez l'itinéraire dans la barre pour activer la collecte.</p>
+        )}
+      </FlowSection>
+      </div>
+
+
+
+      {/* ─── Step 2 — Recipient ─── */}
+      {routeOk && stepIsFuture(5) ? (
+        <div className="mt-6"><LockedStep step={5} total={7} title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'} /></div>
+      ) : (
+      <div id="section-recipient" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-recipient'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
+      <FlowSection
+        revealed={routeOk}
+        step={5}
+        total={7}
+        title={userRole === 'recipient' ? 'Vos coordonnées de livraison' : 'Informations du destinataire'}
+        hint={userRole === 'recipient'
+          ? 'C\'est vous qui recevrez — vérifiez l\'adresse de livraison.'
+          : (destIsSenegal ? 'Au Sénégal, le téléphone fait foi pour la livraison.' : 'Coordonnées complètes pour la livraison.')}
+      >
+        {recipientOk && editingStep !== 5 && !stepIsActive(5) ? (
+          <StepCollapsed
+            title={userRole === 'recipient' ? 'Vous recevrez ce colis' : 'Destinataire confirmé'}
+            lines={[
+              `${recipientName} · ${recipientPhone}`,
+              deliveryAddress || (destIsSenegal ? 'Adresse précisée par téléphone' : ''),
+              recipientEmail || null,
+            ].filter(Boolean) as string[]}
+            onEdit={() => { setCurrentStep(5); setEditingStep(5); }}
+          />
+        ) : (
+          <div className="space-y-3 max-w-xl">
+            {userRole === 'recipient' && (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] text-emerald-900">
+                Vos nom et téléphone ont été repris du bloc d'identité ci-dessus. Complétez juste l'adresse de livraison.
+              </p>
+            )}
+            <div className="grid sm:grid-cols-2 gap-3">
+              <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName}
+                placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`}
+                invalid={fieldErrors.recipientName} />
+              <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
+                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                invalid={fieldErrors.recipientPhone} />
+            </div>
+            {!isFromDakar && destIsSenegal && (
+              <QuartierDakarPicker
+                value={pickupQuartier}
+                onChange={setPickupQuartier}
+                label="Quartier de livraison à Dakar"
+              />
+            )}
+            <AddressField
+              label={destIsSenegal ? `Adresse / Quartier à ${destCity?.city ?? ''} (optionnel)` : `Adresse complète à ${destCity?.city ?? ''} *`}
+              value={deliveryAddress} onChange={setDelivery}
+              placeholder={destIsSenegal ? 'Ex. Liberté 6, près de la pharmacie…' : 'N°, rue, code postal, ville'}
+              invalid={fieldErrors.deliveryAddress}
+            />
+            {!isFromDakar && destIsSenegal && (deliveryAddress.trim() || pickupQuartier) && (
+              <ZoneBadge frais={fraisEnlevement} mode="livraison" />
+            )}
+            <TextField label="Email (notifications de livraison)" value={recipientEmail} onChange={setRecipientEmail}
+              placeholder="ahmed@example.com" type="email" />
+
+            {/* Mode de reception finale */}
+            <div className="rounded-2xl border-2 border-border bg-card p-4 space-y-3">
+              <p className="text-xs font-semibold text-foreground">Mode de réception à l'arrivée</p>
+              {(() => {
+                const hasRelays = activeRelayPoints.length > 0;
+                const options: Array<{ id: 'pickup_gp' | 'relay_point' | 'home_delivery'; label: string; sub: string; disabled?: boolean; disabledNote?: string; hidden?: boolean }> = [
+                  {
+                    id: 'pickup_gp',
+                    label: 'Récupérer chez notre partenaire',
+                    sub: 'Gratuit — adresse communiquée à l\'arrivée',
+                  },
+                  {
+                    id: 'relay_point',
+                    label: 'Livraison à un point relais',
+                    sub: destIsDakar
+                      ? (hasRelays ? 'Choisissez un relais à Dakar' : 'Points relais bientôt disponibles à Dakar. Contactez-nous.')
+                      : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar || !hasRelays,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : (!hasRelays ? 'Points relais bientôt disponibles à Dakar' : undefined),
+                    // CORRECTION 6 — masquer complètement l'option pour toute
+                    // destination hors Sénégal/Dakar. On ne propose un relais
+                    // que pour la livraison locale Dakar.
+                    hidden: !destIsDakar || (destIsDakar && !hasRelays),
+                  },
+                  {
+                    id: 'home_delivery',
+                    label: 'Livraison à domicile',
+                    sub: destIsDakar ? 'Frais selon zone et transporteur' : 'Disponible uniquement à Dakar',
+                    disabled: !destIsDakar,
+                    disabledNote: !destIsDakar ? 'Disponible uniquement à Dakar' : undefined,
+                    hidden: !destIsDakar,
+                  },
+                ];
+                return options.filter(o => !o.hidden).map(opt => {
+                  const selected = deliveryMode === opt.id;
+                  return (
+                    <label
+                      key={opt.id}
+                      title={opt.disabledNote}
+                      className={cn(
+                        'flex items-start gap-3 rounded-xl border-2 p-3 transition-colors',
+                        opt.disabled
+                          ? 'border-border bg-muted/30 cursor-not-allowed opacity-60'
+                          : 'cursor-pointer',
+                        !opt.disabled && (selected ? 'border-foreground bg-secondary/40' : 'border-border hover:border-muted-foreground/40'),
+                      )}
+                    >
+                      <input
+                        type="radio" name="delivery_mode" value={opt.id}
+                        checked={selected}
+                        disabled={opt.disabled}
+                        onChange={() => { if (!opt.disabled) setDeliveryMode(opt.id); }}
+                        className="mt-1 accent-foreground"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-medium text-foreground">{opt.label}</span>
+                        <span className={cn('block text-[11px]', opt.disabled ? 'text-muted-foreground/80 italic' : 'text-muted-foreground')}>{opt.sub}</span>
+                      </span>
+                    </label>
+                  );
+                });
+              })()}
+
+              {deliveryMode === 'relay_point' && destIsDakar && activeRelayPoints.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <label className="block">
+                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">Point relais *</span>
+                    <select
+                      value={relayPointId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setRelayPointId(id);
+                        const rp = activeRelayPoints.find(r => r.id === id);
+                        if (rp) { setRelayPointName(rp.name); setRelayPointAddress(rp.address); }
+                      }}
+                      className="w-full border-2 border-border rounded-xl px-4 py-3 text-sm bg-card focus:outline-none focus:border-foreground transition-colors"
+                    >
+                      <option value="">— Choisir un point relais —</option>
+                      {activeRelayPoints.map(rp => (
+                        <option key={rp.id} value={rp.id}>{rp.name} — {rp.quartier}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              {deliveryMode === 'home_delivery' && destIsDakar && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] text-muted-foreground">
+                    Choisissez un transporteur. Les tarifs seront calculés et confirmés avant le départ.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Yobbanté', 'DHL', 'FedEx'].map(c => (
+                      <button
+                        type="button" key={c}
+                        onClick={() => setDeliveryCarrier(c)}
+                        className={cn(
+                          'rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors',
+                          deliveryCarrier === c ? 'border-foreground bg-secondary/40 text-foreground' : 'border-border text-muted-foreground hover:border-muted-foreground/40',
+                        )}
+                      >{c}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+
+            <StepSupportLink />
+          </div>
+        )}
       </FlowSection>
       </div>
       )}
