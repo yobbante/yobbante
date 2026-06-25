@@ -2537,10 +2537,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
           : 'Continuer';
         const STEP_SECTION_ID: Record<number, string> = {
-          1: 'section-collecte',
-          2: 'section-recipient',
-          3: 'section-package',
-          4: 'section-goods',
+          1: 'section-package',
+          2: 'section-goods',
+          3: 'tarifs',
+          4: 'section-collecte',
+          5: 'section-recipient',
           7: 'section-final',
         };
         function handleSummaryAction() {
