@@ -710,8 +710,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const stepIsPast = (n: number) => currentStep > n;
   const stepIsFuture = (n: number) => currentStep < n;
   const stepValidity: Record<number, boolean> = {
-    1: collecteOk, 2: recipientOk, 3: packageOk, 4: goodsOk,
-    5: true, 6: true,
+    1: packageOk, 2: goodsOk, 3: true,
+    4: collecteOk, 5: recipientOk, 6: true,
     7: !!senderName.trim() && !!senderPhone.trim(),
   };
   function scrollToFirstError(preferredSectionId?: string) {
