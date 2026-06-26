@@ -61,6 +61,13 @@ export default function Auth() {
     return () => { cancelled = true; };
   }, [navigate, redirectTo]);
 
+  // Toast d'erreur si AuthCallback nous renvoie avec ?error=oauth_failed.
+  useEffect(() => {
+    if (params.get('error') === 'oauth_failed') {
+      toast.error('Connexion échouée. Réessayez.');
+    }
+  }, [params]);
+
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoadingProvider(provider);
     try {
