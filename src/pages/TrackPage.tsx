@@ -168,12 +168,16 @@ export default function TrackPage() {
         ) : error && !data ? (
           <EmptyState
             icon={Search}
-            title="Numéro introuvable"
-            description={`Vérifiez votre référence (YOB-XXXXXX ou YBT-AAAA-XXXX). ${error}`}
+            title={error === 'NOT_FOUND' ? 'Colis introuvable' : 'Suivi indisponible'}
+            description={
+              error === 'NOT_FOUND'
+                ? "Aucun colis ne correspond à ce numéro de suivi. Vérifiez l'identifiant (YOB-XXXXXX ou YBT-AAAA-XXXX) et réessayez."
+                : `Impossible de charger le suivi. Vérifiez votre connexion. (${error})`
+            }
             ctaLabel="Réessayer"
             onCta={() => setRetries(r => r + 1)}
-            secondaryLabel="Saisir un autre numéro"
-            onSecondary={() => navigate('/track')}
+            secondaryLabel="Retour à l'accueil"
+            onSecondary={() => navigate('/')}
           />
         ) : data ? (
           <>
