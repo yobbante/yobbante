@@ -1918,8 +1918,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
 
-      {/* ─── Prix calculé — banner révélé une fois colis + marchandise + transport renseignés ─── */}
-      {routeOk && packageOk && goodsOk && (
+      {/* ─── Prix calculé — banner révélé UNIQUEMENT après validation des étapes 1, 2 et 3
+           (colis + marchandise + transport confirmés via le bouton Continuer). ─── */}
+      {routeOk && packageOk && goodsOk && currentStep > 3 && (
         <div className="mt-6 rounded-2xl border-2 border-[#F5C518] bg-[rgba(245,197,24,0.06)] p-5">
           <p className="text-[11px] uppercase tracking-wider font-bold text-[#B8860B]">
             Votre prix estimé
