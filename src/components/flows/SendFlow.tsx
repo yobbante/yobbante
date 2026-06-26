@@ -2252,7 +2252,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       {/* ─── Step 6 — Protection colis (toggle OFF par défaut) ─── */}
       {showInsuranceStep && (
-        routeOk && stepIsFuture(6) ? (
+        <div id="section-insurance" className="scroll-mt-32">
+        {routeOk && stepIsFuture(6) ? (
           <div className="mt-6"><LockedStep step={6} total={7} title="Protection colis" /></div>
         ) : (
 
