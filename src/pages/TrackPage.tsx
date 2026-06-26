@@ -78,37 +78,61 @@ export default function TrackPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setData(null);
+
+    // Filet de sécurité : si rien ne répond après 8s, on sort du loader.
+    const hardTimeout = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      setLoading(false);
+      setError('Impossible de charger le suivi. Vérifiez votre connexion.');
+    }, 8000);
 
     const load = async (attempt = 0) => {
       try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-shipment?tracking_number=${encodeURIComponent(id)}`;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 6000);
         const r = await fetch(url, {
+          signal: ctrl.signal,
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
         });
-        const json = await r.json();
+        clearTimeout(t);
+        const json = await r.json().catch(() => ({} as any));
         if (cancelled) return;
         if (!r.ok) {
+          // 404 → colis introuvable, pas de retry inutile
+          if (r.status === 404) {
+            throw new Error('NOT_FOUND');
+          }
           if (attempt < 2) {
             setTimeout(() => load(attempt + 1), 800 * (attempt + 1));
             return;
           }
           throw new Error(json?.error || `HTTP ${r.status}`);
         }
+        if (!json || !json.tracking_number) {
+          throw new Error('NOT_FOUND');
+        }
         setData(json as TrackResponse);
         setError(null);
       } catch (e) {
         if (cancelled) return;
-        setError((e as Error).message || 'Suivi indisponible');
+        const msg = (e as Error).message || 'Suivi indisponible';
+        setError(msg === 'NOT_FOUND' ? 'NOT_FOUND' : msg);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          clearTimeout(hardTimeout);
+          setLoading(false);
+        }
       }
     };
 
     load();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(hardTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, retries]);
 
@@ -144,12 +168,16 @@ export default function TrackPage() {
         ) : error && !data ? (
           <EmptyState
             icon={Search}
-            title="Numéro introuvable"
-            description={`Vérifiez votre référence (YOB-XXXXXX ou YBT-AAAA-XXXX). ${error}`}
+            title={error === 'NOT_FOUND' ? 'Colis introuvable' : 'Suivi indisponible'}
+            description={
+              error === 'NOT_FOUND'
+                ? "Aucun colis ne correspond à ce numéro de suivi. Vérifiez l'identifiant (YOB-XXXXXX ou YBT-AAAA-XXXX) et réessayez."
+                : `Impossible de charger le suivi. Vérifiez votre connexion. (${error})`
+            }
             ctaLabel="Réessayer"
             onCta={() => setRetries(r => r + 1)}
-            secondaryLabel="Saisir un autre numéro"
-            onSecondary={() => navigate('/track')}
+            secondaryLabel="Retour à l'accueil"
+            onSecondary={() => navigate('/')}
           />
         ) : data ? (
           <>

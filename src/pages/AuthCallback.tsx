@@ -23,6 +23,14 @@ export default function AuthCallback() {
   useEffect(() => {
     let cancelled = false;
 
+    // Filet de sécurité global : au pire au bout de 10s, on retourne sur /auth
+    // avec un flag d'erreur pour éviter de rester bloqué sur le loader.
+    const failsafe = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      navigate('/auth?error=oauth_failed', { replace: true });
+    }, 10000);
+
     (async () => {
       try {
         // PKCE flow: ?code=… → on échange contre une session.
@@ -42,7 +50,8 @@ export default function AuthCallback() {
         if (cancelled) return;
 
         if (!session) {
-          navigate('/auth', { replace: true });
+          clearTimeout(failsafe);
+          navigate('/auth?error=oauth_failed', { replace: true });
           return;
         }
 
@@ -53,6 +62,7 @@ export default function AuthCallback() {
             const pending = JSON.parse(pendingRaw) as { tracking_id?: string };
             sessionStorage.removeItem('pending_order');
             if (pending?.tracking_id) {
+              clearTimeout(failsafe);
               navigate(`/confirmation/${pending.tracking_id}`, { replace: true });
               return;
             }
@@ -66,19 +76,22 @@ export default function AuthCallback() {
         if (stored) {
           sessionStorage.removeItem('post_auth_redirect');
           if (stored.startsWith('/') && !stored.startsWith('//')) {
+            clearTimeout(failsafe);
             navigate(stored, { replace: true });
             return;
           }
         }
 
         // 3) Défaut.
+        clearTimeout(failsafe);
         navigate('/app', { replace: true });
       } catch {
-        navigate('/auth', { replace: true });
+        clearTimeout(failsafe);
+        navigate('/auth?error=oauth_failed', { replace: true });
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(failsafe); };
   }, [navigate]);
 
   return (
