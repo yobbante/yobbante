@@ -80,6 +80,30 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   const { pathname } = useLocation();
   const isGuide = pathname.startsWith('/admin/guide');
   const isFlyers = pathname.startsWith('/admin/flyers');
+  const isForfaits = pathname.startsWith('/admin/tarifs/forfaits');
+  const isRelais = pathname.startsWith('/admin/relais');
+  const isPartenaires = pathname.startsWith('/admin/parametres');
+  const isDepartsSemaine = pathname.startsWith('/admin/departs-semaine');
+
+  const shortcutStyle = (active: boolean) => ({
+    borderRadius: active ? 0 : 8,
+    borderLeft: active ? '2px solid #F5C518' : '2px solid transparent',
+    background: active ? 'hsl(var(--secondary))' : 'transparent',
+    color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+    fontWeight: active ? 500 : undefined,
+  });
+  const hoverIn = (active: boolean) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!active) {
+      e.currentTarget.style.background = 'hsl(var(--secondary))';
+      e.currentTarget.style.color = 'hsl(var(--foreground))';
+    }
+  };
+  const hoverOut = (active: boolean) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!active) {
+      e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+    }
+  };
 
 
   useEffect(() => {
