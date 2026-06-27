@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
+  Tag, MapPin, CalendarDays, Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,6 +80,30 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   const { pathname } = useLocation();
   const isGuide = pathname.startsWith('/admin/guide');
   const isFlyers = pathname.startsWith('/admin/flyers');
+  const isForfaits = pathname.startsWith('/admin/tarifs/forfaits');
+  const isRelais = pathname.startsWith('/admin/relais');
+  const isPartenaires = pathname.startsWith('/admin/parametres');
+  const isDepartsSemaine = pathname.startsWith('/admin/departs-semaine');
+
+  const shortcutStyle = (active: boolean) => ({
+    borderRadius: active ? 0 : 8,
+    borderLeft: active ? '2px solid #F5C518' : '2px solid transparent',
+    background: active ? 'hsl(var(--secondary))' : 'transparent',
+    color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+    fontWeight: active ? 500 : undefined,
+  });
+  const hoverIn = (active: boolean) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!active) {
+      e.currentTarget.style.background = 'hsl(var(--secondary))';
+      e.currentTarget.style.color = 'hsl(var(--foreground))';
+    }
+  };
+  const hoverOut = (active: boolean) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!active) {
+      e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
+    }
+  };
 
 
   useEffect(() => {
@@ -171,33 +196,69 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
 
       <div className="mt-auto pt-3 flex flex-col gap-1">
         {isAdmin && (
-          <button
-            onClick={() => navigate('/admin/flyers')}
-            aria-current={isFlyers ? 'page' : undefined}
-            className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
-            style={{
-              borderRadius: isFlyers ? 0 : 8,
-              borderLeft: isFlyers ? '2px solid #F5C518' : '2px solid transparent',
-              background: isFlyers ? 'hsl(var(--secondary))' : 'transparent',
-              color: isFlyers ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-              fontWeight: isFlyers ? 500 : undefined,
-            }}
-            onMouseEnter={e => {
-              if (!isFlyers) {
-                e.currentTarget.style.background = 'hsl(var(--secondary))';
-                e.currentTarget.style.color = 'hsl(var(--foreground))';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!isFlyers) {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'hsl(var(--muted-foreground))';
-              }
-            }}
-          >
-            <ImageIcon className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 truncate">Flyers WhatsApp</span>
-          </button>
+          <>
+            <div
+              className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: 'hsl(var(--text-tertiary, var(--muted-foreground)))' }}
+            >
+              Outils admin
+            </div>
+            <button
+              onClick={() => navigate('/admin/tarifs/forfaits')}
+              aria-current={isForfaits ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isForfaits)}
+              onMouseEnter={hoverIn(isForfaits)}
+              onMouseLeave={hoverOut(isForfaits)}
+            >
+              <Tag className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Tarifs forfaitaires</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/departs-semaine')}
+              aria-current={isDepartsSemaine ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isDepartsSemaine)}
+              onMouseEnter={hoverIn(isDepartsSemaine)}
+              onMouseLeave={hoverOut(isDepartsSemaine)}
+            >
+              <CalendarDays className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Départs de la semaine</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/relais')}
+              aria-current={isRelais ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isRelais)}
+              onMouseEnter={hoverIn(isRelais)}
+              onMouseLeave={hoverOut(isRelais)}
+            >
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Relais Dakar</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/parametres')}
+              aria-current={isPartenaires ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isPartenaires)}
+              onMouseEnter={hoverIn(isPartenaires)}
+              onMouseLeave={hoverOut(isPartenaires)}
+            >
+              <Building2 className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Partenaires destination</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/flyers')}
+              aria-current={isFlyers ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isFlyers)}
+              onMouseEnter={hoverIn(isFlyers)}
+              onMouseLeave={hoverOut(isFlyers)}
+            >
+              <ImageIcon className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Flyers WhatsApp</span>
+            </button>
+          </>
         )}
         <button
           onClick={() => navigate('/admin/guide')}
