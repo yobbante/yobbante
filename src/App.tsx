@@ -119,13 +119,13 @@ const DekkRoutes = () => (
 
     {/* Admin accessible des deux côtés (session partagée) */}
     <Route path="/admin" element={<AdminPage />} />
-    <Route path="/admin/inbox/import" element={<InboxImportPage />} />
-    <Route path="/admin/departs-semaine" element={<DeparturesWeekPage />} />
-    <Route path="/admin/relais" element={<RelaisPage />} />
-    <Route path="/admin/parametres" element={<ParametresPage />} />
-    <Route path="/admin/guide" element={<GuidePage />} />
-    <Route path="/admin/flyers" element={<FlyersPage />} />
-    <Route path="/admin/tarifs/forfaits" element={<ForfaitsPage />} />
+    <Route path="/admin/inbox/import" element={<AdminShell><InboxImportPage /></AdminShell>} />
+    <Route path="/admin/departs-semaine" element={<AdminShell><DeparturesWeekPage /></AdminShell>} />
+    <Route path="/admin/relais" element={<AdminShell><RelaisPage /></AdminShell>} />
+    <Route path="/admin/parametres" element={<AdminShell><ParametresPage /></AdminShell>} />
+    <Route path="/admin/guide" element={<AdminShell><GuidePage /></AdminShell>} />
+    <Route path="/admin/flyers" element={<AdminShell><FlyersPage /></AdminShell>} />
+    <Route path="/admin/tarifs/forfaits" element={<AdminShell><ForfaitsPage /></AdminShell>} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
