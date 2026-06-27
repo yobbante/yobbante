@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
+  Tag, MapPin, CalendarDays, Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
