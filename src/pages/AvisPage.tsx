@@ -23,7 +23,12 @@ interface PublicDossier {
 
 export default function AvisPage() {
   const { trackingId } = useParams();
-  useSeo({ title: `Donner mon avis ${trackingId ?? ''} | Yobbanté`, path: `/avis/${trackingId ?? ''}` });
+  useSeo({
+    title: `Donner mon avis ${trackingId ?? ''} | Yobbanté`,
+    description: "Partagez votre expérience Yobbanté : notez la livraison de votre colis, laissez un commentaire et aidez la communauté à mieux choisir.",
+    path: `/avis/${trackingId ?? ''}`,
+    index: false,
+  });
 
   const [loading, setLoading] = useState(true);
   const [dossier, setDossier] = useState<PublicDossier | null>(null);
