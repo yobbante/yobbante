@@ -45,7 +45,7 @@ export default function GpAuthPage() {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: BG, color: 'white' }}>
       <div className="max-w-md w-full rounded-2xl p-8 text-center space-y-5"
            style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-        <img src={logoYobbante} alt="Yobbanté" className="h-8 mx-auto" />
+        <img src={logoYobbante} alt="Yobbanté logo" className="h-8 mx-auto" />
         {state === 'loading' && (
           <>
             <Loader2 className="w-6 h-6 animate-spin mx-auto" style={{ color: GOLD }} />

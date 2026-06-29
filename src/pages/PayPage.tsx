@@ -40,7 +40,12 @@ export default function PayPage() {
   const cancelFlag = params.get('cancel') === '1';
   const errorFlag = params.get('error') === '1';
 
-  useSeo({ title: `Paiement ${trackingId ?? ''} | Yobbanté`, path: `/pay/${trackingId ?? ''}` });
+  useSeo({
+    title: `Paiement sécurisé ${trackingId ?? ''} | Yobbanté`,
+    description: "Réglez votre expédition Yobbanté en toute sécurité par Wave, Orange Money ou carte bancaire. Confirmation et reçu instantanés.",
+    path: `/pay/${trackingId ?? ''}`,
+    index: false,
+  });
 
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);

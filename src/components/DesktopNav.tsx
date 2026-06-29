@@ -25,7 +25,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
       >
         <img
           src={yobbanteLogoAsset.url}
-          alt="Yobbanté"
+          alt="Yobbanté logo"
           style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
         />
       </button>

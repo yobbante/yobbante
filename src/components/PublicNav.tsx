@@ -80,7 +80,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
             >
               <img
                 src={yobbanteLogoAsset.url}
-                alt="Yobbanté"
+                alt="Yobbanté logo"
                 style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
               />
             </Link>
@@ -150,7 +150,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                 >
 
                   <div className="flex items-center justify-between px-6" style={{ height: 52, borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
-                    <img src={yobbanteLogoAsset.url} alt="Yobbanté" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
+                    <img src={yobbanteLogoAsset.url} alt="Yobbanté logo" style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }} />
                     <button
                       aria-label="Fermer le menu"
                       onClick={() => setOpen(false)}

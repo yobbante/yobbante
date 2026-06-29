@@ -148,7 +148,7 @@ export default function Auth() {
           >
             <Link to="/" className="block">
               <span className="inline-flex items-center gap-3">
-                <img src={logoYobbante} alt="Yobbanté" width={48} height={48} className="w-12 h-12 object-contain" />
+                <img src={logoYobbante} alt="Yobbanté logo" width={48} height={48} className="w-12 h-12 object-contain" />
                 <span className="text-xl font-bold tracking-tight">YOBBANTÉ</span>
               </span>
               <h1 className="mt-6 text-5xl xl:text-6xl font-bold leading-[1.05] tracking-tight">
@@ -204,7 +204,7 @@ export default function Auth() {
             className="w-full max-w-sm"
           >
             <div className="lg:hidden text-center mb-8">
-              <img src={logoYobbante} alt="Yobbanté" width={56} height={56} className="w-14 h-14 mx-auto mb-3 object-contain" />
+              <img src={logoYobbante} alt="Yobbanté logo" width={56} height={56} className="w-14 h-14 mx-auto mb-3 object-contain" />
               <p className="text-[10px] uppercase tracking-[0.3em] text-yellow-400 font-bold">Yobbanté</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">Bienvenue</h2>
             </div>

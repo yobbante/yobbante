@@ -63,7 +63,7 @@ export default function GpLoginPage() {
     <div className="min-h-screen flex flex-col" style={{ background: BG, color: 'white' }}>
       <header className="border-b" style={{ borderColor: BORDER }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/"><img src={logoYobbante} alt="Yobbanté" className="h-7" /></Link>
+          <Link to="/"><img src={logoYobbante} alt="Yobbanté logo" className="h-7" /></Link>
           <div className="text-xs" style={{ color: GOLD }}>Espace GP</div>
         </div>
       </header>

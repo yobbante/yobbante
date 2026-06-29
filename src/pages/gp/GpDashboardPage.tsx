@@ -142,7 +142,7 @@ export default function GpDashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6" style={{ background: BG }}>
         <div className="max-w-md w-full rounded-2xl p-8 text-center space-y-5" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-          <img src={logoYobbante} alt="Yobbanté" className="h-10 mx-auto" />
+          <img src={logoYobbante} alt="Yobbanté logo" className="h-10 mx-auto" />
           <h1 className="text-2xl font-bold text-white">Finalisez votre inscription d'abord</h1>
           <p className="text-sm text-white/70">
             Bonjour {p.prenom ?? ''}, votre compte GP{p.reference} est créé mais pas encore activé sur WhatsApp.
@@ -197,7 +197,7 @@ function Header({ profile }: { profile: Profile }) {
   return (
     <header className="border-b sticky top-0 z-30" style={{ background: BG, borderColor: BORDER }}>
       <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <img src={logoYobbante} alt="Yobbanté" className="h-7" />
+        <img src={logoYobbante} alt="Yobbanté logo" className="h-7" />
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-sm font-semibold">{name}</div>
