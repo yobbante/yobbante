@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Building2, ShieldCheck, Headset, Truck, FileCheck2, Globe2, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useSeo } from '@/hooks/useSeo';
+import { useJsonLd } from '@/hooks/useJsonLd';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -120,6 +121,17 @@ export default function EnterprisesPage() {
     title: 'Solutions logistiques B2B pour entreprises | Yobbanté',
     description: "Yobbanté accompagne les entreprises dans leur logistique internationale : sourcing, douane, transport multimodal et reporting.",
     path: '/entreprises',
+  });
+  useJsonLd('jsonld-enterprises-service', {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'Logistique B2B & import entreprises Yobbanté',
+    serviceType: 'B2B international logistics, customs clearance & freight',
+    provider: { '@type': 'Organization', name: 'Yobbanté', url: 'https://yobbante.com' },
+    areaServed: ['SN', 'CI', 'FR', 'CN', 'US', 'AE'],
+    description: "Sourcing, dédouanement, fret aérien/maritime/routier et reporting mensuel pour les entreprises important à Dakar.",
+    url: 'https://yobbante.com/entreprises',
+    offers: { '@type': 'Offer', priceCurrency: 'XOF', availability: 'https://schema.org/InStock' },
   });
   const navigate = useNavigate();
   const goDevis = () => navigate('/devis-entreprise');

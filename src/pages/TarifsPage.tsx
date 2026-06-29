@@ -10,12 +10,22 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useSeo } from '@/hooks/useSeo';
+import { useJsonLd } from '@/hooks/useJsonLd';
 
 export default function TarifsPage() {
   useSeo({
     title: 'Tarifs envoi colis Dakar — Paris New York Dubai | Yobbanté',
     description: 'Tarifs transparents depuis Dakar. Paris dès 12 200 FCFA, New York dès 14 600 FCFA.',
     path: '/tarifs',
+  });
+  useJsonLd('jsonld-tarifs-faq', {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
   });
   const navigate = useNavigate();
   const [tableTab, setTableTab] = useState<Mode>('air');
