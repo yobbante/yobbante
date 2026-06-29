@@ -24,16 +24,35 @@ export default function SourcingPage() {
   };
 
   return (
-    <SourcingFlow
-      key={`sourcing-${flowKey}`}
-      compactHeader={
-        <ExpedierSearchBar
-          mode="sourcing"
-          onModeChange={handleModeChange}
-          onApply={() => setFlowKey(k => k + 1)}
-          defaultExpanded
-        />
-      }
-    />
+    <>
+      <h1 className="sr-only">Sourcing produit international — Yobbanté achète et livre à Dakar</h1>
+      <SourcingFlow
+        key={`sourcing-${flowKey}`}
+        compactHeader={
+          <ExpedierSearchBar
+            mode="sourcing"
+            onModeChange={handleModeChange}
+            onApply={() => setFlowKey(k => k + 1)}
+            defaultExpanded
+          />
+        }
+      />
+      <SourcingJsonLd />
+    </>
   );
+}
+
+function SourcingJsonLd() {
+  useJsonLd('jsonld-sourcing-service', {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'Sourcing produit international Yobbanté',
+    serviceType: 'International product sourcing & import',
+    provider: { '@type': 'Organization', name: 'Yobbanté', url: 'https://yobbante.com' },
+    areaServed: ['SN', 'FR', 'CN', 'US', 'AE'],
+    description: "Recherche, achat et import de produits depuis la France, la Chine, les USA et Dubai vers Dakar avec dédouanement inclus.",
+    offers: { '@type': 'Offer', priceCurrency: 'XOF', availability: 'https://schema.org/InStock' },
+    url: 'https://yobbante.com/sourcing',
+  });
+  return null;
 }

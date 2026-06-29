@@ -91,7 +91,16 @@ export default function ExpedierPage() {
     />
   );
 
-  return mode === 'envoyer'
-    ? <SendFlow key="send" compactHeader={bar} />
-    : <ReceiveFlow key={`receive-${flowKey}`} compactHeader={bar} />;
+  const h1Text = mode === 'recevoir'
+    ? 'Recevoir un colis depuis Amazon, AliExpress ou eBay à Dakar'
+    : 'Expédier un colis depuis Dakar vers le monde';
+
+  return (
+    <>
+      <h1 className="sr-only">{h1Text}</h1>
+      {mode === 'envoyer'
+        ? <SendFlow key="send" compactHeader={bar} />
+        : <ReceiveFlow key={`receive-${flowKey}`} compactHeader={bar} />}
+    </>
+  );
 }
