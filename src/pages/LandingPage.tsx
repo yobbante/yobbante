@@ -657,7 +657,7 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
         <Link to="/" aria-label="Yobbanté — accueil" style={{ display: 'inline-flex', alignItems: 'center' }}>
           <img
             src={yobbanteLogoAsset.url}
-            alt="Yobbanté"
+            alt="Yobbanté logo"
             style={{ height: 36, width: 'auto', background: 'transparent', display: 'block' }}
           />
         </Link>
@@ -941,7 +941,7 @@ function LandingFooter() {
           <div>
             <img
               src={yobbanteLogoAsset.url}
-              alt="Yobbanté"
+              alt="Yobbanté logo"
               style={{ height: 36, width: 'auto', display: 'block', marginBottom: 16 }}
             />
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, lineHeight: 1.55, maxWidth: 220 }}>

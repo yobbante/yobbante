@@ -29,7 +29,7 @@ export function BrandLogo({ size = 28, showWordmark = true, asLink = true, to, c
     <span className={`inline-flex items-center gap-2 ${className}`}>
       <img
         src={logoYobbante}
-        alt="Yobbanté"
+        alt="Yobbanté logo"
         width={size}
         height={size}
         style={{ width: size, height: size }}
