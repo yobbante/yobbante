@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SourcingFlow } from '@/components/flows/SourcingFlow';
 import { ExpedierSearchBar, type ExpedierMode } from '@/components/expedier/ExpedierSearchBar';
 import { useSeo } from '@/hooks/useSeo';
+import { useJsonLd } from '@/hooks/useJsonLd';
 
 /**
  * /sourcing — monte la barre de recherche unifiée (tab Sourcing actif)
