@@ -71,6 +71,8 @@ export default function Auth() {
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoadingProvider(provider);
     try {
+      // CAS 2 — nettoie toute session fantôme avant de relancer OAuth.
+      try { await supabase.auth.signOut(); } catch {}
       // Mémorise la destination post-login pour AuthCallback.
       try { sessionStorage.setItem('post_auth_redirect', redirectTo); } catch {}
 
