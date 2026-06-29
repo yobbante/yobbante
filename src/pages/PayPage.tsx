@@ -187,7 +187,17 @@ export default function PayPage() {
             </div>
           </div>
         ) : !dossier ? (
-          <EmptyState icon={CreditCard} title="Lien invalide" description="Ce lien de paiement n’est pas valide." />
+          <EmptyState
+            icon={CreditCard}
+            title="Commande introuvable"
+            description={
+              loadError === 'timeout'
+                ? 'Impossible de charger. Vérifiez votre connexion.'
+                : "Aucune commande ne correspond à cet identifiant. Vérifiez le numéro et réessayez."
+            }
+            ctaLabel="Retour à l'accueil"
+            onCta={() => (window.location.href = '/')}
+          />
         ) : !amountXof ? (
           <div className="surface-card text-center py-10">
             <CreditCard className="w-12 h-12 mx-auto mb-3" style={{ color: '#F5C518' }} />
