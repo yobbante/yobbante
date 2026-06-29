@@ -1,7 +1,7 @@
 /**
  * Generate public/sitemap.xml from:
- *   - static routes (yobbante.com + dekk.yobbante.com)
- *   - published products from Supabase (dekk.yobbante.com/boutique/<id>)
+ *   - static routes on yobbante.com
+ *   - published products from Supabase (yobbante.com/boutique/<id>)
  *
  * Runs as a `predev` / `prebuild` hook. Network failures degrade gracefully:
  * the static portion is always written so build never blocks on Supabase.

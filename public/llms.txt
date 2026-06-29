@@ -1,0 +1,29 @@
+# Yobbanté
+
+> Yobbanté est une plateforme logistique sénégalaise qui aide les particuliers et les entreprises à expédier, recevoir et sourcer des colis entre Dakar et le monde (Paris, New York, Dubai, Shanghai, Abidjan…) avec un prix instantané, paiement Wave / Orange Money et suivi WhatsApp en temps réel.
+
+## Pages
+
+- [Accueil](/): Présentation, départs en direct, simulateur de tarif, témoignages.
+- [Expédier un colis](/expedier): Devis instantané pour envoyer un colis depuis Dakar vers le monde.
+- [Envoyer un colis](/expedier/envoyer): Formulaire 8 étapes pour créer une expédition (aérien, maritime, routier).
+- [Recevoir un colis](/expedier/recevoir): Adresse relais Amazon / AliExpress / eBay et livraison à Dakar.
+- [Sourcing international](/sourcing): Yobbanté achète vos produits en France, Chine, USA, Dubai et les importe à Dakar.
+- [Tarifs](/tarifs): Grille tarifaire transparente par corridor + FAQ tarifs.
+- [Demander un devis](/devis): Devis personnalisé pour un envoi spécifique.
+- [Entreprises (B2B)](/entreprises): Logistique B2B, dédouanement, conteneurs FCL, account manager dédié.
+- [Business](/business): Offres récurrentes pour PME et e-commerce.
+- [Suivre mon colis](/track): Suivi temps réel par numéro de tracking.
+- [Boutique Dëkk](/boutique): Marketplace de produits importés livrés à Dakar.
+
+## Légal
+
+- [Mentions légales](/mentions-legales)
+- [Conditions générales d'utilisation](/cgu)
+- [Conditions générales de vente](/cgv)
+- [Politique de confidentialité](/confidentialite)
+- [Politique cookies](/cookies)
+
+## Optional
+
+- [Connexion / Inscription](/auth): Connexion par e-mail ou Google.
