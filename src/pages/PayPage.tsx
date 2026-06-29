@@ -49,6 +49,7 @@ export default function PayPage() {
 
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [loadError, setLoadError] = useState<'not_found' | 'timeout' | null>(null);
   const [dossier, setDossier] = useState<PublicDossier | null>(null);
   const [busy, setBusy] = useState<'paytech' | 'cod' | null>(null);
   const [polling, setPolling] = useState(false);
@@ -66,12 +67,33 @@ export default function PayPage() {
   useEffect(() => {
     if (!trackingId) { setLoading(false); return; }
     let cancelled = false;
+    setLoadError(null);
     const slowTimer = setTimeout(() => { if (!cancelled) setSlowLoad(true); }, 5000);
+    // Hard timeout: always resolve loading within 8s.
+    const hardTimer = setTimeout(() => {
+      if (cancelled) return;
+      cancelled = true;
+      setLoading(false);
+      setSlowLoad(false);
+      setLoadError('timeout');
+    }, 8000);
     (async () => {
-      await refresh();
-      if (!cancelled) { setLoading(false); setSlowLoad(false); clearTimeout(slowTimer); }
+      try {
+        const d = await refresh();
+        if (cancelled) return;
+        if (!d) setLoadError('not_found');
+      } catch {
+        if (!cancelled) setLoadError('timeout');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setSlowLoad(false);
+          clearTimeout(slowTimer);
+          clearTimeout(hardTimer);
+        }
+      }
     })();
-    return () => { cancelled = true; clearTimeout(slowTimer); };
+    return () => { cancelled = true; clearTimeout(slowTimer); clearTimeout(hardTimer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingId]);
 
