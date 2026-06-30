@@ -1975,16 +1975,34 @@ Deno.serve(async (req) => {
       const wantsBack = !wantsMenu && reply.includes(UI_BACK);
       const cleanReply = reply.replaceAll(UI_MENU, '').replaceAll(UI_BACK, '').replace(/\n{3,}/g, '\n\n').trim();
 
+      // BUG 2 — Smart welcome: only show the full greeting if first contact
+      // in 24h OR idle > 4h. Else use a short prompt.
+      const pdNow = (session?.pending_data ?? {}) as Record<string, any>;
+      const lastWelcome = pdNow.last_welcome_at ? new Date(pdNow.last_welcome_at).getTime() : 0;
+      const lastUpd = session?.updated_at ? new Date(session.updated_at).getTime() : 0;
+      const idleMs = lastUpd ? Date.now() - lastUpd : Number.POSITIVE_INFINITY;
+      const welcomedRecently = lastWelcome && (Date.now() - lastWelcome) < 24 * 60 * 60 * 1000;
+      const showFullWelcome = !welcomedRecently || idleMs > 4 * 60 * 60 * 1000;
+      const menuPrompt = showFullWelcome ? MAIN_MENU_TEXT : SHORT_MENU_TEXT;
+
       if (wantsMenu) {
         // Liste interactive 5 options — pas d envoi texte separe pour eviter le doublon menu.
         await sendWaList(
           phone,
-          cleanReply || MAIN_MENU_TEXT,
+          stripSentinels(cleanReply || menuPrompt),
           'Voir les options',
           MAIN_MENU_SECTIONS,
           MAIN_MENU_FALLBACK,
           'bot_client_main_menu',
         );
+        if (showFullWelcome) {
+          try {
+            await saveSession(supa, phone, session?.pending_intent ?? null, {
+              ...pdNow,
+              last_welcome_at: new Date().toISOString(),
+            });
+          } catch (_) { /* noop */ }
+        }
       } else if (wantsBack) {
         await sendWaButtons(
           phone,
