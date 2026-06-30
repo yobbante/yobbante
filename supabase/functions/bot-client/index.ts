@@ -789,7 +789,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
       dossier_id: dossierId, user_id: dos?.user_id ?? null,
       rating: rating.toLowerCase(), source: 'whatsapp',
     });
-    const trk = displayTracking(dos?)
+    const trk = displayTracking(dos) || dossierId;
     if (rating === 'probleme') {
       await supa.from('admin_notifications').insert({
         event_type: 'satisfaction_problem',
@@ -814,7 +814,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
     const dossierId = revMatch[1];
     const { data: dos } = await supa.from('dossiers')
       .select('tracking_id, reference').eq('id', dossierId).maybeSingle();
-    const trk = displayTracking(dos?)
+    const trk = displayTracking(dos) || dossierId;
     await sendWaButtons(supa, phone,
       `Comment s'est passée votre expérience avec Yobbanté (colis ${trk}) ?`,
       [
@@ -831,7 +831,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
     const dossierId = confirmPickup[1];
     const { data: dos } = await supa.from('dossiers')
       .select('tracking_id, reference, pickup_date').eq('id', dossierId).maybeSingle();
-    const trk = displayTracking(dos?)
+    const trk = displayTracking(dos) || dossierId;
     await supa.from('admin_notifications').insert({
       event_type: 'client_pickup_confirmed',
       message: `Client ${phone} confirme la collecte du ${dos?.pickup_date ?? ''} pour ${trk}`,
@@ -1305,7 +1305,7 @@ async function handleModifierClient(supa: any, phone: string): Promise<string> {
   }
 
   const link = `https://yobbante.com/modifier/${tok.token}`;
-  const ref = displayTracking(dossier)
+  const ref = displayTracking(dossier);
   return `Voici votre lien de modification pour ${ref} (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`;
 }
 
@@ -1720,7 +1720,7 @@ Deno.serve(async (req) => {
           console.error('BOT_CLIENT create ship dossier err', error?.message);
           reply = withFullMenu(`Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`);
         } else {
-          const trk = displayTracking(dossier)
+          const trk = displayTracking(dossier);
           await saveSession(supa, phone, null, {});
           reply = withShortMenu(`${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`);
         }
