@@ -625,7 +625,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     .or(orExpr)
     .order('updated_at', { ascending: false })
     .limit(10);
-  const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
+  const items = (rows ?? []).filter((r: any) => displayTracking(r));
 
   // Aucun dossier → demander tracking
   if (items.length === 0) {
@@ -638,7 +638,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   // Un seul dossier → afficher directement
   if (items.length === 1) {
     const d = items[0];
-    const id = d.tracking_id || d.reference;
+    const id = displayTracking(d);
     const label = STATUS_FR[d.status] || d.status;
     const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
     await saveSession(supa, phone, null, {});
@@ -649,7 +649,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
   const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
   const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
   const toRow = (r: any) => {
-    const id = (r.tracking_id || r.reference).toString();
+    const id = (displayTracking(r)).toString();
     const label = STATUS_FR[r.status] || r.status;
     return { id, title: id.slice(0, 24), description: `${label} - ${routeFr(r)}`.slice(0, 72) };
   };
@@ -662,7 +662,7 @@ async function handleSmartTracking(supa: any, phone: string, trackingFromNlp: st
     `Vos colis recents (${items.length}) :`,
     'Choisir un colis',
     sections,
-    `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${r.tracking_id || r.reference} (${STATUS_FR[r.status] || r.status})`).join('\n')}`,
+    `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${displayTracking(r)} (${STATUS_FR[r.status] || r.status})`).join('\n')}`,
     'bot_client_my_packages',
   );
   return '';
@@ -789,7 +789,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
       dossier_id: dossierId, user_id: dos?.user_id ?? null,
       rating: rating.toLowerCase(), source: 'whatsapp',
     });
-    const trk = dos?.tracking_id || dos?.reference || dossierId;
+    const trk = displayTracking(dos?)
     if (rating === 'probleme') {
       await supa.from('admin_notifications').insert({
         event_type: 'satisfaction_problem',
@@ -814,7 +814,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
     const dossierId = revMatch[1];
     const { data: dos } = await supa.from('dossiers')
       .select('tracking_id, reference').eq('id', dossierId).maybeSingle();
-    const trk = dos?.tracking_id || dos?.reference || '';
+    const trk = displayTracking(dos?)
     await sendWaButtons(supa, phone,
       `Comment s'est passée votre expérience avec Yobbanté (colis ${trk}) ?`,
       [
@@ -831,7 +831,7 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
     const dossierId = confirmPickup[1];
     const { data: dos } = await supa.from('dossiers')
       .select('tracking_id, reference, pickup_date').eq('id', dossierId).maybeSingle();
-    const trk = dos?.tracking_id || dos?.reference || '';
+    const trk = displayTracking(dos?)
     await supa.from('admin_notifications').insert({
       event_type: 'client_pickup_confirmed',
       message: `Client ${phone} confirme la collecte du ${dos?.pickup_date ?? ''} pour ${trk}`,
@@ -1142,7 +1142,7 @@ async function handleTrackingLookup(supa: any, trackingInput: string) {
     .limit(1)
     .maybeSingle();
   if (!d) return `Numero ${trk} introuvable. Verifiez et reessayez.`;
-  const id = d.tracking_id || d.reference;
+  const id = displayTracking(d);
   const label = STATUS_FR[d.status] || d.status;
   const upd = new Date(d.updated_at).toLocaleDateString('fr-FR');
   return `Votre colis ${id} :\nStatut : ${label}\nRoute : ${routeFr(d)}\nDerniere mise a jour : ${upd}\n\nPour plus de details :\nyobbante.com/suivre/${id}`;
@@ -1203,7 +1203,7 @@ async function handleMenuChoice(
       .or(orExpr)
       .order('updated_at', { ascending: false })
       .limit(10);
-    const items = (rows ?? []).filter((r: any) => r.tracking_id || r.reference);
+    const items = (rows ?? []).filter((r: any) => displayTracking(r));
     if (items.length === 0) {
       await saveSession(supa, phone, 'await_tracking', {});
       return withBack(
@@ -1213,7 +1213,7 @@ async function handleMenuChoice(
     const active = items.filter((r: any) => !['DELIVERED', 'CANCELLED'].includes(r.status));
     const archived = items.filter((r: any) => ['DELIVERED', 'CANCELLED'].includes(r.status));
     const toRow = (r: any) => {
-      const id = (r.tracking_id || r.reference).toString();
+      const id = (displayTracking(r)).toString();
       const label = STATUS_FR[r.status] || r.status;
       return {
         id,
@@ -1230,7 +1230,7 @@ async function handleMenuChoice(
       `Vos colis recents (${items.length}) :`,
       'Choisir un colis',
       sections,
-      `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${r.tracking_id || r.reference} (${STATUS_FR[r.status] || r.status})`).join('\n')}\n\nRepondez avec le numero de suivi.`,
+      `Vos colis :\n${items.slice(0, 5).map((r: any) => `- ${displayTracking(r)} (${STATUS_FR[r.status] || r.status})`).join('\n')}\n\nRepondez avec le numero de suivi.`,
       'bot_client_my_packages',
     );
     return '';
@@ -1305,7 +1305,7 @@ async function handleModifierClient(supa: any, phone: string): Promise<string> {
   }
 
   const link = `https://yobbante.com/modifier/${tok.token}`;
-  const ref = dossier.tracking_id || dossier.reference || '';
+  const ref = displayTracking(dossier)
   return `Voici votre lien de modification pour ${ref} (valide 24h) :\n${link}\n\nSi vous avez des questions :\nTapez 5 pour parler a un agent.`;
 }
 
@@ -1364,7 +1364,7 @@ async function handleOui(supa: any, phone: string, fromName: string | null): Pro
   // 2) Dossier en attente -> confirmation
   const d = await findPendingDossier(supa, phone);
   if (d) {
-    const ref = d.tracking_id || d.reference;
+    const ref = displayTracking(d);
     await logDossierEvent(supa, d.id, 'client_confirmed', { via: 'bot_client', status: d.status });
     await sendWa(
       supa,
@@ -1384,7 +1384,7 @@ async function handleNon(supa: any, phone: string, fromName: string | null): Pro
   if (!d) {
     return withShortMenu(`Aucune action en attente trouvee. Tapez 5 pour parler a un agent.`);
   }
-  const ref = d.tracking_id || d.reference;
+  const ref = displayTracking(d);
   try {
     await supa.from('dossiers').update({ status: 'CANCELLED' }).eq('id', d.id);
   } catch (e) {
@@ -1609,7 +1609,7 @@ Deno.serve(async (req) => {
         console.error('BOT_CLIENT create reserve dossier err', error?.message);
         reply = withFullMenu(`Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`);
       } else {
-        const trk = dossier.tracking_id || dossier.reference;
+        const trk = displayTracking(dossier);
         await saveSession(supa, phone, null, {});
         reply = withShortMenu(`Parfait ! Votre dossier est enregistre.\nReference : ${trk}\nUn agent vous contactera sous 24h pour finaliser.\n\nMerci de votre confiance Yobbanté !`);
       }
@@ -1720,7 +1720,7 @@ Deno.serve(async (req) => {
           console.error('BOT_CLIENT create ship dossier err', error?.message);
           reply = withFullMenu(`Erreur lors de la creation. Reessayez ou contactez ${BOT_PHONE_DISPLAY}.`);
         } else {
-          const trk = dossier.tracking_id || dossier.reference || '';
+          const trk = displayTracking(dossier)
           await saveSession(supa, phone, null, {});
           reply = withShortMenu(`${est}\n\nDossier cree : ${trk}\nUn agent vous contactera.`);
         }
