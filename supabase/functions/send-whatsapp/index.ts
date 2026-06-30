@@ -316,8 +316,18 @@ Deno.serve(async (req) => {
     }
   } else {
     // Free text fallback (24h window or admin notif)
-    messageBody = body.message
-      ? String(body.message)
+    // BUG 1 — guard: never leak a raw template id like "weight_confirmation" or
+    // "[[UI_MENU]]" as the visible body. Render it or fall back to a generic notice.
+    let raw = body.message ? String(body.message) : '';
+    const looksLikeTemplateId = /^[a-z][a-z0-9_]{4,}(?:_v\d+)?$/i.test(raw.trim());
+    if (looksLikeTemplateId) {
+      const rendered = renderTemplateBody(raw.trim(), body.template_params ?? []);
+      console.warn('WA_RAW_TEMPLATE_NAME_INTERCEPTED', { raw: raw.trim(), rendered: !!rendered });
+      raw = rendered ?? `Notification Yobbanté — vous avez reçu un message. Ouvrez WhatsApp pour le consulter.`;
+    }
+    raw = raw.replaceAll('[[UI_MENU]]', '').replaceAll('[[UI_BACK]]', '').replace(/\n{3,}/g, '\n\n').trim();
+    messageBody = raw
+      ? raw
       : `🚀 Nouvelle demande Yobbanté
 
 Client : ${body.client_name || 'N/A'}
