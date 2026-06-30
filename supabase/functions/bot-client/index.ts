@@ -1829,7 +1829,13 @@ Deno.serve(async (req) => {
       const r = await handleTrackingLookup(supa, msg);
       reply = withShortMenu(r);
     } else if (!nMsg) {
-      reply = MAIN_MENU;
+      // BUG 6 — Document / audio / image sans texte : NE PAS sauter d'etape.
+      // Si un flow est actif, on demande de reformuler en conservant l'etat.
+      if (intent) {
+        reply = withBack(`Je n'ai pas bien compris. Pouvez-vous reformuler ?`);
+      } else {
+        reply = MAIN_MENU;
+      }
     } else if (detectFaq(msg)) {
       // ---- FAQ deterministe : reponse directe, pas de NLP ----
       const faqReply = detectFaq(msg)!;
