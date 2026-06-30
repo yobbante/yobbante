@@ -22,6 +22,40 @@ const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4h (NLP refonte)
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const NLP_MODEL = 'google/gemini-2.5-flash';
 
+// ---- BUG 5: normalize tracking id (never expose YBT- internal reference) ----
+function displayTracking(d: { tracking_id?: string | null; reference?: string | null } | null | undefined): string {
+  if (!d) return '';
+  const t = (d.tracking_id || '').trim();
+  if (t) return t;
+  const r = (d.reference || '').trim();
+  if (!r) return '';
+  // Strip the legacy YBT- prefix so clients always see YOB-style refs.
+  return /^YBT[-_]/i.test(r) ? r.replace(/^YBT[-_]/i, 'YOB-') : r;
+}
+
+// ---- BUG 3: belt-and-braces sentinel stripper before any text egress ----
+function stripSentinels(t: string): string {
+  return (t || '')
+    .replaceAll('[[UI_MENU]]', '')
+    .replaceAll('[[UI_BACK]]', '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ---- BUG 4: in-process dedup of identical outbound messages within 10s ----
+const recentOutbound = new Map<string, number>();
+function shouldDedup(phone: string, body: string): boolean {
+  const key = `${phone}::${body.slice(0, 200)}`;
+  const now = Date.now();
+  const prev = recentOutbound.get(key);
+  if (prev && now - prev < 10_000) return true;
+  recentOutbound.set(key, now);
+  if (recentOutbound.size > 500) {
+    for (const [k, ts] of recentOutbound) if (now - ts > 60_000) recentOutbound.delete(k);
+  }
+  return false;
+}
+
 // --- Weight validation rules ---
 const MAX_WEIGHT_KG = 500;
 const MIN_WEIGHT_KG = 0.1;
