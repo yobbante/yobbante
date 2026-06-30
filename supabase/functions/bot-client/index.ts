@@ -953,6 +953,12 @@ async function sendWaButtons(
   fallbackText: string,
   trigger: string,
 ) {
+  const cleanBody = stripSentinels(bodyText);
+  const cleanFb = stripSentinels(fallbackText);
+  if (shouldDedup(phone, cleanBody || cleanFb)) {
+    console.log('BOT_CLIENT dedup skip buttons', { phone: phone.slice(-4), trigger });
+    return;
+  }
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -964,9 +970,9 @@ async function sendWaButtons(
         recipient_phone: phone,
         recipient_type: 'client',
         interactive_type: 'button',
-        interactive_body: bodyText,
+        interactive_body: cleanBody,
         buttons,
-        fallback_text: fallbackText,
+        fallback_text: cleanFb,
         trigger_type: trigger,
       }),
     });
