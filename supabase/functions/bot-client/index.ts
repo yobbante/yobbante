@@ -989,6 +989,12 @@ async function sendWaList(
   fallbackText: string,
   trigger: string,
 ) {
+  const cleanBody = stripSentinels(bodyText);
+  const cleanFb = stripSentinels(fallbackText);
+  if (shouldDedup(phone, cleanBody || cleanFb)) {
+    console.log('BOT_CLIENT dedup skip list', { phone: phone.slice(-4), trigger });
+    return;
+  }
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -1000,10 +1006,10 @@ async function sendWaList(
         recipient_phone: phone,
         recipient_type: 'client',
         interactive_type: 'list',
-        interactive_body: bodyText,
+        interactive_body: cleanBody,
         list_button_label: listButtonLabel,
         sections,
-        fallback_text: fallbackText,
+        fallback_text: cleanFb,
         trigger_type: trigger,
       }),
     });
