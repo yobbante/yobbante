@@ -921,6 +921,12 @@ async function handleNotificationButton(supa: any, phone: string, raw: string): 
 
 
 async function sendWa(supa: any, phone: string, message: string, trigger: string) {
+  const clean = stripSentinels(message);
+  if (!clean) return;
+  if (shouldDedup(phone, clean)) {
+    console.log('BOT_CLIENT dedup skip', { phone: phone.slice(-4), trigger });
+    return;
+  }
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -931,7 +937,7 @@ async function sendWa(supa: any, phone: string, message: string, trigger: string
       body: JSON.stringify({
         recipient_phone: phone,
         recipient_type: 'client',
-        message,
+        message: clean,
         trigger_type: trigger,
       }),
     });
