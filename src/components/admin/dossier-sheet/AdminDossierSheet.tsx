@@ -37,6 +37,8 @@ import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartu
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 import { clarityEvent } from '@/lib/clarity';
+import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
+import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, nextReturnStatus, LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 
 import { format } from 'date-fns';
 
@@ -1553,14 +1555,7 @@ function DossierFooter({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
 
-  const { CancelDossierDialog, ReturnDossierDialog } =
-    require('./DossierLifecycleDialogs') as typeof import('./DossierLifecycleDialogs');
-  const {
-    canCancel: canCancelStatus,
-    canRequestReturn: canReturnStatus,
-    nextReturnStatus,
-    LIFECYCLE_BADGE,
-  } = require('@/lib/dossierLifecycle') as typeof import('@/lib/dossierLifecycle');
+
 
   const status = dossier.status as string;
   const displayRef = (dossier.tracking_id || dossier.reference || '') as string;
