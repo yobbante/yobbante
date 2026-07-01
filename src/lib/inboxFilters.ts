@@ -28,11 +28,13 @@ export function matchesStatus(d: InboxDossier, st: InboxStatusFilter): boolean {
     case 'to_assign': return s === 'IN_REVIEW';
     case 'gp_assigned': return s === 'ASSIGNED' || (!!d.assigned_departure_id && !paid);
     case 'awaiting_payment': return s === 'AWAITING_CLIENT' || (!paid && (s === 'CONFIRMED' || s === 'ASSIGNED'));
-    case 'paid': return paid && !['IN_TRANSIT','DELIVERED','CANCELLED'].includes(s as string);
+    case 'paid': return paid && !['IN_TRANSIT','DELIVERED','CANCELLED','RETURNED'].includes(s as string);
     case 'pickup_scheduled': return !!d.collecte_creneau && !['IN_TRANSIT','DELIVERED'].includes(s as string);
     case 'in_transit': return s === 'IN_TRANSIT';
     case 'delivered': return s === 'DELIVERED';
     case 'cancelled': return s === 'CANCELLED';
+    case 'return_requested': return s === 'RETURN_REQUESTED' || s === 'RETURN_IN_PROGRESS';
+    case 'returned': return s === 'RETURNED';
   }
 }
 
@@ -63,7 +65,7 @@ export type AgeTone = 'fresh' | 'warn' | 'late' | 'konnekt';
 export function cardTone(d: InboxDossier): AgeTone {
   if (isFromKonnekt(d)) return 'konnekt';
   const h = ageHours(d);
-  const done = ['DELIVERED', 'CANCELLED', 'IN_TRANSIT'].includes(d.status);
+  const done = ['DELIVERED', 'CANCELLED', 'RETURNED', 'IN_TRANSIT'].includes(d.status);
   if (done) return 'fresh';
   if (h > 48) return 'late';
   if (h > 24) return 'warn';

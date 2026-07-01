@@ -6,7 +6,8 @@ import { INTAKE_SOURCES, type IntakeSource } from '@/lib/intakeSources';
 
 export type InboxStatusFilter =
   | 'new' | 'to_assign' | 'gp_assigned' | 'awaiting_payment'
-  | 'paid' | 'pickup_scheduled' | 'in_transit' | 'delivered' | 'cancelled';
+  | 'paid' | 'pickup_scheduled' | 'in_transit' | 'delivered'
+  | 'cancelled' | 'return_requested' | 'returned';
 
 export type CarrierFilter = 'gp_yobbante' | 'konnekt' | 'dhl' | 'fedex' | 'other';
 export type UrgencyFilter = 'urgent' | 'normal';
@@ -34,6 +35,8 @@ const STATUSES: { id: InboxStatusFilter; label: string }[] = [
   { id: 'in_transit', label: 'En transit' },
   { id: 'delivered', label: 'Livré' },
   { id: 'cancelled', label: 'Annulé' },
+  { id: 'return_requested', label: 'Retour' },
+  { id: 'returned', label: 'Retourné' },
 ];
 
 const DESTINATIONS = [
