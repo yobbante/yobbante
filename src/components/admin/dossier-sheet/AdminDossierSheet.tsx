@@ -1569,8 +1569,7 @@ function DossierFooter({
     mutationFn: async () => {
       const next = nextReturnStatus(status);
       if (!next) return;
-      const patch: Record<string, unknown> = { status: next };
-      const { error } = await supabase.from('dossiers').update(patch).eq('id', dossier.id);
+      const { error } = await supabase.from('dossiers').update({ status: next } as any).eq('id', dossier.id);
       if (error) throw error;
     },
     onSuccess: () => {
