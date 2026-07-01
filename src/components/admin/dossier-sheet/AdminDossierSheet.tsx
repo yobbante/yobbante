@@ -1550,26 +1550,51 @@ function DossierFooter({
   apercuSave: { run: () => void; pending: boolean; dirty: boolean } | null;
 }) {
   const qc = useQueryClient();
-  const cancel = useMutation({
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+
+  const { CancelDossierDialog, ReturnDossierDialog } =
+    require('./DossierLifecycleDialogs') as typeof import('./DossierLifecycleDialogs');
+  const {
+    canCancel: canCancelStatus,
+    canRequestReturn: canReturnStatus,
+    nextReturnStatus,
+    LIFECYCLE_BADGE,
+  } = require('@/lib/dossierLifecycle') as typeof import('@/lib/dossierLifecycle');
+
+  const status = dossier.status as string;
+  const displayRef = (dossier.tracking_id || dossier.reference || '') as string;
+
+  const advanceReturn = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('dossiers')
-        .update({ status: 'CANCELLED' as DossierStatus })
-        .eq('id', dossier.id);
+      const next = nextReturnStatus(status);
+      if (!next) return;
+      const patch: Record<string, unknown> = { status: next };
+      const { error } = await supabase.from('dossiers').update(patch).eq('id', dossier.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Dossier annulé');
+      toast.success('Statut retour mis à jour');
       qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
     },
-    onError: (e: any) => toast.error(e?.message || 'Échec annulation'),
+    onError: (e: any) => toast.error(e?.message || 'Échec de la mise à jour'),
   });
 
+  const badge = LIFECYCLE_BADGE[status];
+  const nextRet = nextReturnStatus(status);
+
   return (
-    <div className="border-t border-border px-6 py-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-      <span>MAJ : {format(new Date(dossier.updated_at), 'dd/MM/yyyy HH:mm')}</span>
-      <div className="flex items-center gap-1">
+    <div className="border-t border-border px-6 py-3 flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
+      <div className="flex items-center gap-2">
+        <span>MAJ : {format(new Date(dossier.updated_at), 'dd/MM/yyyy HH:mm')}</span>
+        {badge && (
+          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-medium ${badge.tone}`}>
+            {badge.label}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 flex-wrap justify-end">
         {apercuSave && (
           <Button
             size="sm"
@@ -1583,21 +1608,67 @@ function DossierFooter({
               : <CheckCircle2 className="w-4 h-4" />}
           </Button>
         )}
-        {dossier.status !== 'CANCELLED' && dossier.status !== 'DELIVERED' && (
+        {nextRet && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            disabled={advanceReturn.isPending}
+            onClick={() => advanceReturn.mutate()}
+          >
+            → {nextRet === 'RETURN_IN_PROGRESS' ? 'Retour en cours' : 'Retourné'}
+          </Button>
+        )}
+        {canReturnStatus(status) && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+            onClick={() => setReturnOpen(true)}
+          >
+            Démarrer un retour
+          </Button>
+        )}
+        {canCancelStatus(status) && (
           <Button
             size="sm"
             variant="ghost"
             className="text-destructive hover:text-destructive h-8 text-xs"
-            onClick={() => { if (confirm('Annuler ce dossier ?')) cancel.mutate(); }}
-            disabled={cancel.isPending}
+            onClick={() => setCancelOpen(true)}
           >
-            Annuler le dossier
+            Annuler ce dossier
+          </Button>
+        )}
+        {!canCancelStatus(status) && !canReturnStatus(status) && status !== 'CANCELLED' && !nextRet && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground h-8 text-xs cursor-not-allowed"
+            onClick={() => toast.info("Impossible d'annuler un colis déjà en transit. Utilisez le retour.")}
+          >
+            Annuler ce dossier
           </Button>
         )}
       </div>
+
+      <CancelDossierDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        dossierId={dossier.id}
+        currentStatus={status}
+        displayRef={displayRef}
+      />
+      <ReturnDossierDialog
+        open={returnOpen}
+        onOpenChange={setReturnOpen}
+        dossierId={dossier.id}
+        currentStatus={status}
+        displayRef={displayRef}
+      />
     </div>
   );
 }
+
 
 /* ---------------- Colis & poids ---------------- */
 
