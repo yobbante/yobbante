@@ -956,6 +956,7 @@ export type Database = {
           buyer_country: string | null
           buyer_name: string | null
           cancellation_reason: string | null
+          cancellation_source: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           cash_on_delivery: boolean
@@ -1069,6 +1070,10 @@ export type Database = {
           relay_point_name: string | null
           reminder_count: number
           reminder_sent_at: string | null
+          return_completed_at: string | null
+          return_reason: string | null
+          return_reason_category: string | null
+          return_requested_at: string | null
           sender_address: string | null
           sender_name: string | null
           sender_phone: string | null
@@ -1107,6 +1112,7 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cancellation_reason?: string | null
+          cancellation_source?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           cash_on_delivery?: boolean
@@ -1220,6 +1226,10 @@ export type Database = {
           relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
+          return_completed_at?: string | null
+          return_reason?: string | null
+          return_reason_category?: string | null
+          return_requested_at?: string | null
           sender_address?: string | null
           sender_name?: string | null
           sender_phone?: string | null
@@ -1258,6 +1268,7 @@ export type Database = {
           buyer_country?: string | null
           buyer_name?: string | null
           cancellation_reason?: string | null
+          cancellation_source?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           cash_on_delivery?: boolean
@@ -1371,6 +1382,10 @@ export type Database = {
           relay_point_name?: string | null
           reminder_count?: number
           reminder_sent_at?: string | null
+          return_completed_at?: string | null
+          return_reason?: string | null
+          return_reason_category?: string | null
+          return_requested_at?: string | null
           sender_address?: string | null
           sender_name?: string | null
           sender_phone?: string | null
@@ -4117,6 +4132,9 @@ export type Database = {
         | "ARCHIVED"
         | "DEPARTURE_CONFIRMED"
         | "QUOTE_REQUESTED"
+        | "RETURN_REQUESTED"
+        | "RETURN_IN_PROGRESS"
+        | "RETURNED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -4322,6 +4340,9 @@ export const Constants = {
         "ARCHIVED",
         "DEPARTURE_CONFIRMED",
         "QUOTE_REQUESTED",
+        "RETURN_REQUESTED",
+        "RETURN_IN_PROGRESS",
+        "RETURNED",
       ],
       dossier_type: [
         "individual",
