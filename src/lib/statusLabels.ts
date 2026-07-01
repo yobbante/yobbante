@@ -45,6 +45,9 @@ const STATUS_FR: Record<string, string> = {
   STALE: 'Sans réponse',
   ARCHIVED: 'Archivé',
   NEW: 'Nouveau',
+  RETURN_REQUESTED: 'Retour demandé',
+  RETURN_IN_PROGRESS: 'Retour en cours',
+  RETURNED: 'Retourné',
 };
 
 const EVENT_FR: Record<string, string> = {
