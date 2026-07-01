@@ -43,7 +43,13 @@ const STATUS_BADGE: Record<string, string> = {
   DELIVERED: 'badge-success',
   ON_HOLD: 'badge-warning',
   CANCELLED: 'badge-danger',
+  RETURN_REQUESTED: 'badge-warning',
+  RETURN_IN_PROGRESS: 'badge-warning',
+  RETURNED: 'badge-danger',
 };
+
+const IS_LIFECYCLE_END = (s: string) =>
+  s === 'CANCELLED' || s === 'RETURNED' || s === 'RETURN_REQUESTED' || s === 'RETURN_IN_PROGRESS';
 
 export default function TrackPage() {
   useSeo({
