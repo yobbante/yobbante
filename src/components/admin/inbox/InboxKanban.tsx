@@ -62,7 +62,7 @@ export function InboxKanban({ dossiers, onView, onConfirm, onWhatsApp, onStatusC
     const m: Record<ColId, InboxDossier[]> = {
       nouveau: [], to_assign: [], gp_assigned: [], ready: [], in_transit: [],
     };
-    for (const d of dossiers) m[colOf(d)].push(d);
+    for (const d of dossiers) { const c = colOf(d); if (c) m[c].push(d); }
     return m;
   }, [dossiers]);
 
