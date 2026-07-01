@@ -25,9 +25,11 @@ const COLS: ColDef[] = [
   { id: 'in_transit',  title: 'En transit',      accent: 'bg-primary',     droppable: true },
 ];
 
-function colOf(d: InboxDossier): ColId {
+function colOf(d: InboxDossier): ColId | null {
   const s = d.status;
   const paid = d.payment_status === 'paid';
+  // Terminal / retour statuses ne s'affichent pas dans le kanban actif
+  if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED', 'RETURN_IN_PROGRESS'].includes(s)) return null;
   if (s === 'IN_TRANSIT') return 'in_transit';
   if (paid && !['DELIVERED', 'CANCELLED'].includes(s)) return 'ready';
   if (d.assigned_departure_id) return 'gp_assigned';
