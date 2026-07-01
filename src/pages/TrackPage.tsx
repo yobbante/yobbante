@@ -43,7 +43,13 @@ const STATUS_BADGE: Record<string, string> = {
   DELIVERED: 'badge-success',
   ON_HOLD: 'badge-warning',
   CANCELLED: 'badge-danger',
+  RETURN_REQUESTED: 'badge-warning',
+  RETURN_IN_PROGRESS: 'badge-warning',
+  RETURNED: 'badge-danger',
 };
+
+const IS_LIFECYCLE_END = (s: string) =>
+  s === 'CANCELLED' || s === 'RETURNED' || s === 'RETURN_REQUESTED' || s === 'RETURN_IN_PROGRESS';
 
 export default function TrackPage() {
   useSeo({
@@ -243,7 +249,29 @@ export default function TrackPage() {
               </div>
             </div>
 
+            {IS_LIFECYCLE_END(data.status) ? (
+              <div className="rounded-[12px] border p-5 mb-5"
+                   style={{
+                     borderColor: data.status === 'CANCELLED' || data.status === 'RETURNED' ? '#ef4444' : '#F59E0B',
+                     background: 'hsl(var(--card))',
+                   }}>
+                <div className="text-sm font-semibold mb-1">
+                  {data.status === 'CANCELLED' && 'Envoi annulé'}
+                  {data.status === 'RETURN_REQUESTED' && 'Retour demandé'}
+                  {data.status === 'RETURN_IN_PROGRESS' && 'Retour en cours'}
+                  {data.status === 'RETURNED' && 'Colis retourné à l\'expéditeur'}
+                </div>
+                <p className="text-[13px] text-muted-foreground">
+                  {data.status === 'CANCELLED'
+                    ? 'Ce dossier a été annulé. Si vous aviez déjà réglé, un remboursement est en cours de traitement.'
+                    : data.status === 'RETURNED'
+                      ? 'Le colis a été retourné. Contactez-nous pour organiser un nouvel envoi.'
+                      : 'Nous organisons le retour du colis. Vous serez notifié à chaque étape.'}
+                </p>
+              </div>
+            ) : (
             <ol>
+
               {data.timeline.map((e, i) => {
                 const isLast = i === data.timeline.length - 1;
                 const dotStyle =
@@ -281,7 +309,9 @@ export default function TrackPage() {
                 );
               })}
             </ol>
+            )}
           </>
+
         ) : null}
       </main>
 

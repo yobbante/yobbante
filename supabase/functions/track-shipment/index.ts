@@ -27,6 +27,9 @@ const STATUS_LABEL: Record<string, string> = {
   DELIVERED: 'Livré',
   ON_HOLD: 'En attente',
   CANCELLED: 'Annulé',
+  RETURN_REQUESTED: 'Retour demandé',
+  RETURN_IN_PROGRESS: 'Retour en cours',
+  RETURNED: 'Retourné',
 };
 
 const PIPELINE = [

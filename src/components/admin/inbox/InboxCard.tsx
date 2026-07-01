@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
 import { cardTone, detectCarrier, isFromKonnekt } from '@/lib/inboxFilters';
+import { LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 import type { InboxDossier } from '@/hooks/useInboxDossiers';
 
 interface Props {
@@ -45,6 +46,11 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
             <span className="text-[11px] font-mono text-muted-foreground">{dossier.reference}</span>
             {isFromKonnekt(dossier) && (
               <Badge className="text-[9px] px-1 py-0 h-4 bg-sky-500/15 text-sky-500 border-0">Konnekt</Badge>
+            )}
+            {LIFECYCLE_BADGE[dossier.status] && (
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-medium ${LIFECYCLE_BADGE[dossier.status].tone}`}>
+                {LIFECYCLE_BADGE[dossier.status].label}
+              </span>
             )}
           </div>
           <div className="text-sm font-medium text-foreground truncate">{clientName}</div>
