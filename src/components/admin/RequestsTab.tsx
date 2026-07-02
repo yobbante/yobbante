@@ -391,6 +391,9 @@ export function RequestsTab() {
                       )}
                     </div>
                     <p className="text-sm text-foreground truncate mt-0.5">{d.product_description}</p>
+                    <div className="mt-1.5 hidden sm:block">
+                      <DossierLifecycleRail status={d.status} size="sm" />
+                    </div>
                   </div>
                   <div className="hidden sm:flex items-center" onClick={(e) => e.stopPropagation()}>
                     <GpAssignBadge
