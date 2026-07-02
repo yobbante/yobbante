@@ -35,7 +35,9 @@ export default function GpAuthPage() {
         ref,
         phone: r.phone,
         expires: Date.now() + 24 * 60 * 60 * 1000,
+        token,
       });
+
       navigate(`/gp/${ref}`, { replace: true });
     })();
     return () => { cancelled = true; };
