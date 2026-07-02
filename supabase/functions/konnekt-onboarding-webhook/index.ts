@@ -36,6 +36,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
+  // --- Auth: shared secret required (fail closed) ---
+  const KONNEKT_KEY = Deno.env.get('KONNEKT_SHARED_KEY') ?? '';
+  if (!KONNEKT_KEY) {
+    console.error('konnekt-onboarding-webhook: KONNEKT_SHARED_KEY missing');
+    return jsonResponse({ error: 'Webhook secret not configured' }, 500);
+  }
+  const gotKey = req.headers.get('x-konnekt-key') ?? req.headers.get('x-konnekt-signature') ?? '';
+  if (gotKey !== KONNEKT_KEY) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
   const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!SUPABASE_URL || !SERVICE_ROLE) return jsonResponse({ error: 'Server misconfigured' }, 500);
