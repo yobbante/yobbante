@@ -177,7 +177,11 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <div className="font-semibold">{departure.carrier_name ?? '—'}</div>
+                <div className="font-semibold">
+                  <GpLink reference={departure.transporteur_ref} plain>
+                    {departure.carrier_name ?? '—'}
+                  </GpLink>
+                </div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Phone className="w-3 h-3" />
                   {departure.carrier_contact ?? 'Aucun contact'}
