@@ -14,14 +14,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const expected = Deno.env.get('OM_WEBHOOK_TOKEN');
-  if (expected) {
-    const auth = req.headers.get('authorization') || '';
-    if (auth.replace(/^Bearer\s+/i, '') !== expected) {
-      return new Response('unauthorized', { status: 401, headers: corsHeaders });
-    }
-  } else {
-    console.warn('OM_WEBHOOK_TOKEN absent — webhook non vérifié');
+  if (!expected) {
+    console.error('OM_WEBHOOK_TOKEN missing — refusing webhook (fail closed)');
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
+  const auth = req.headers.get('authorization') || '';
+  if (auth.replace(/^Bearer\s+/i, '') !== expected) {
+    return new Response('unauthorized', { status: 401, headers: corsHeaders });
+  }
+
 
   let evt: any;
   try { evt = await req.json(); } catch { return new Response('bad json', { status: 400, headers: corsHeaders }); }

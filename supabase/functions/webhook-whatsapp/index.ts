@@ -44,6 +44,28 @@ Deno.serve(async (req) => {
   }
 
   // -----  POST — Meta event -----
+  // Verify Meta X-Hub-Signature-256 (HMAC-SHA256 of the raw body using
+  // WHATSAPP_APP_SECRET). Fail closed if the secret is missing so we never
+  // accept unsigned webhooks in production.
+  const rawBody = await req.text();
+  const appSecret = Deno.env.get('WHATSAPP_APP_SECRET') ?? '';
+  if (!appSecret) {
+    console.error('WA_ERROR WHATSAPP_APP_SECRET missing — refusing POST');
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const sigHeader = req.headers.get('x-hub-signature-256') ?? '';
+  {
+    const { verifyHmacSha256 } = await import('../_shared/auth.ts');
+    const valid = await verifyHmacSha256(rawBody, sigHeader, appSecret);
+    if (!valid) {
+      console.error('WA_ERROR invalid X-Hub-Signature-256');
+      return new Response('Invalid signature', { status: 401, headers: corsHeaders });
+    }
+  }
+
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -52,10 +74,11 @@ Deno.serve(async (req) => {
 
   let payload: any;
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody);
   } catch {
     return new Response('Invalid JSON', { status: 400 });
   }
+
 
   console.log('[WH] Request received:', req.method);
   console.log('[WH] Body:', JSON.stringify(payload).slice(0, 800));

@@ -17,15 +17,19 @@ Deno.serve(async (req) => {
   const sig = req.headers.get('wave-signature') || req.headers.get('Wave-Signature') || '';
   const secret = Deno.env.get('WAVE_WEBHOOK_SECRET');
 
-  if (secret) {
-    const ok = await verifyWaveSignature(raw, sig, secret);
-    if (!ok) {
-      console.error('WAVE_WEBHOOK invalid signature');
-      return new Response('invalid signature', { status: 401, headers: corsHeaders });
-    }
-  } else {
-    console.warn('WAVE_WEBHOOK_SECRET absent — signature non vérifiée');
+  if (!secret) {
+    console.error('WAVE_WEBHOOK_SECRET missing — refusing webhook (fail closed)');
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
+  const ok = await verifyWaveSignature(raw, sig, secret);
+  if (!ok) {
+    console.error('WAVE_WEBHOOK invalid signature');
+    return new Response('invalid signature', { status: 401, headers: corsHeaders });
+  }
+
 
   let evt: any;
   try { evt = JSON.parse(raw); } catch { return new Response('bad json', { status: 400, headers: corsHeaders }); }

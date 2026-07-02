@@ -152,6 +152,30 @@ function buildPdf(d: any, client: any): Uint8Array {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // --- Auth: service-role bearer OR authenticated user required ---
+  const __SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const __auth = req.headers.get('authorization') ?? '';
+  {
+    let __ok = !!__SR && __auth === `Bearer ${__SR}`;
+    if (!__ok && __auth.toLowerCase().startsWith('bearer ')) {
+      try {
+        const { createClient: __cc } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+        const __sb = __cc(Deno.env.get('SUPABASE_URL')!, __SR, {
+          global: { headers: { Authorization: __auth } },
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data: { user: __u } } = await __sb.auth.getUser();
+        __ok = !!__u;
+      } catch { /* ignore */ }
+    }
+    if (!__ok) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...(typeof corsHeaders !== 'undefined' ? corsHeaders : {}), 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const supa = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
