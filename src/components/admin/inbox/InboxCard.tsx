@@ -56,7 +56,7 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
               </span>
             )}
           </div>
-          <div className="text-sm font-medium text-foreground truncate">{clientName}</div>
+          <ClientLink name={dossier.buyer_name} phone={dossier.contact_phone} className="text-sm font-medium truncate" plain>{clientName}</ClientLink>
         </div>
         <div className="flex flex-col items-end gap-1">
           <Badge
