@@ -133,6 +133,8 @@ export default {
         "slide-up": "slide-up 0.5s ease-out",
         "scale-in": "scale-in 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "row-flash": "row-flash 2.4s ease-out",
+        "rail-fill": "rail-fill 0.9s cubic-bezier(0.65,0,0.35,1) forwards",
         marquee: "marquee 60s linear infinite",
       },
     },
