@@ -235,7 +235,7 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold">{d.reference}</span>
+                        <DossierLink id={d.id} reference={d.reference} className="font-mono text-xs font-semibold" plain />
                         <Badge variant="secondary" className="text-[10px]">{d.status}</Badge>
                       </div>
                       <div className="text-sm truncate mt-0.5">{d.product_description}</div>
