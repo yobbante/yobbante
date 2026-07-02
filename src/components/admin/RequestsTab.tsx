@@ -73,14 +73,37 @@ const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
   { id: 'DELIVERED',  label: DOSSIER_STATUS_LABELS.DELIVERED },
 ];
 
-export function RequestsTab() {
+export interface RequestsTabProps {
+  /** Preset the "kind" filter (Expédier / Recevoir / Sourcing / Tous). */
+  initialKind?: TypeFilter;
+  /** Lock the kind filter so the user cannot switch — hides the pills too. */
+  lockKind?: boolean;
+  /** Hide the top header (title + subtitle) when the parent already renders one. */
+  hideHeader?: boolean;
+  /** Hide these statuses entirely (e.g. CANCELLED / ARCHIVED in "Demandes entrantes"). */
+  excludeStatuses?: string[];
+  /** Optional override for the page title. */
+  title?: string;
+  /** Optional override for the subtitle. */
+  subtitle?: string;
+}
+
+export function RequestsTab({
+  initialKind = 'all',
+  lockKind = false,
+  hideHeader = false,
+  excludeStatuses,
+  title,
+  subtitle,
+}: RequestsTabProps = {}) {
   const sheet = useDossierSheet();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
-  const [kind, setKind] = useState<TypeFilter>('all');
+  const [kind, setKind] = useState<TypeFilter>(initialKind);
   const [statusFilter, setStatusFilter] = useState<Set<DossierStatus>>(new Set());
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const excludedSet = useMemo(() => new Set(excludeStatuses ?? []), [excludeStatuses]);
 
   const [flashId, setFlashId] = useState<string | null>(null);
 
@@ -173,13 +196,15 @@ export function RequestsTab() {
   });
 
   const counts = useMemo(() => {
-    const c: Record<TypeFilter, number> = { all: dossiers.length, send: 0, receive: 0, sourcing: 0 };
-    dossiers.forEach(d => { c[getKind(d)]++; });
+    const scope = dossiers.filter(d => !excludedSet.has(d.status));
+    const c: Record<TypeFilter, number> = { all: scope.length, send: 0, receive: 0, sourcing: 0 };
+    scope.forEach(d => { c[getKind(d)]++; });
     return c;
-  }, [dossiers]);
+  }, [dossiers, excludedSet]);
 
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
+      if (excludedSet.has(d.status)) return false;
       if (kind !== 'all' && getKind(d) !== kind) return false;
       if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false;
       if (q) {
@@ -194,7 +219,7 @@ export function RequestsTab() {
       }
       return true;
     });
-  }, [dossiers, q, kind, statusFilter]);
+  }, [dossiers, q, kind, statusFilter, excludedSet]);
 
   const statusCounts = useMemo(() => {
     const c = new Map<DossierStatus, number>();
@@ -214,12 +239,14 @@ export function RequestsTab() {
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
-          <p className="text-sm text-muted-foreground">
-            Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
-          </p>
-        </div>
+        {!hideHeader ? (
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">{title ?? 'Demandes clients'}</h1>
+            <p className="text-sm text-muted-foreground">
+              {subtitle ?? 'Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.'}
+            </p>
+          </div>
+        ) : <div />}
         <div className="inline-flex rounded-md border border-border bg-card p-0.5">
           <button
             onClick={() => setView('list')}
@@ -253,32 +280,35 @@ export function RequestsTab() {
             className="pl-9 h-9"
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
-          {TYPE_FILTERS.map(f => {
-            const active = kind === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setKind(f.id)}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1.5',
-                  active
-                    ? 'bg-foreground text-background'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {f.label}
-                <span className={cn(
-                  'tabular-nums text-[10px] px-1 rounded',
-                  active ? 'bg-background/20' : 'bg-background/40',
-                )}>
-                  {counts[f.id]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {!lockKind && (
+          <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
+            {TYPE_FILTERS.map(f => {
+              const active = kind === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setKind(f.id)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1.5',
+                    active
+                      ? 'bg-foreground text-background'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {f.label}
+                  <span className={cn(
+                    'tabular-nums text-[10px] px-1 rounded',
+                    active ? 'bg-background/20' : 'bg-background/40',
+                  )}>
+                    {counts[f.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
 
       {/* Status pill filters (multi-select) */}
       <div className="flex flex-wrap items-center gap-1.5">
