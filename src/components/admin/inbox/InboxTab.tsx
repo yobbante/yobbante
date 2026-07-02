@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Loader2, Upload, LayoutGrid, List as ListIcon, Inbox as InboxIcon, Copy } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { applyInboxFilters } from '@/lib/inboxFilters';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
+import { NextActionsSheet } from '@/components/admin/dossiers/NextActionsSheet';
 
 function buildClientRecap(d: InboxDossier) {
   const kind = detectServiceKind(d);
