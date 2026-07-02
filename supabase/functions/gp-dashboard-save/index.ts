@@ -35,6 +35,35 @@ Deno.serve(async (req) => {
 
     const supa = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // --- Auth: require a server-verifiable session token that was minted for
+    //     this GP via gp_request_auth() (magic link) and stored client-side. ---
+    const sessionToken =
+      String(body?.session_token ?? '') ||
+      String(req.headers.get('x-gp-token') ?? '');
+    if (!sessionToken || sessionToken.length < 32) {
+      return bad('Unauthorized: missing GP session token', 401);
+    }
+    const { data: tok } = await supa
+      .from('gp_auth_tokens')
+      .select('ref_gp, expires_at, used_at, created_at')
+      .eq('token', sessionToken)
+      .eq('ref_gp', ref)
+      .maybeSingle();
+    if (!tok) {
+      return bad('Unauthorized: invalid GP session token', 401);
+    }
+    // Accept either an unused token still within its expiry window, or a
+    // previously consumed magic-link token used within the last 30 days.
+    const now = Date.now();
+    const expiresAt = tok.expires_at ? new Date(tok.expires_at).getTime() : 0;
+    const usedAt = tok.used_at ? new Date(tok.used_at).getTime() : 0;
+    const stillValid =
+      (usedAt === 0 && expiresAt > now) ||
+      (usedAt > 0 && now - usedAt < 30 * 24 * 60 * 60 * 1000);
+    if (!stillValid) {
+      return bad('Unauthorized: GP session expired', 401);
+    }
+
     const { data: gp, error: gpErr } = await supa
       .from('transporteurs')
       .select('id, reference')
@@ -42,6 +71,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (gpErr) throw gpErr;
     if (!gp) return bad('GP introuvable', 404);
+
 
     switch (op) {
       case 'update_profile': {
