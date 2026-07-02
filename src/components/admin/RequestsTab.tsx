@@ -82,21 +82,45 @@ export function RequestsTab() {
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  // Highlight + scroll helper — used both by the deep-link and lifecycle events.
+  const focusRow = (id: string) => {
+    setExpandedId(id);
+    setFlashId(id);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-dossier-id="${id}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+    // Clear the flash class after the animation duration so it can retrigger.
+    setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 2600);
+  };
+
   // Open + scroll to a row from dashboard "Activité récente" deep-link
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { service?: string; id?: string };
       if (detail?.service !== 'expedier' || !detail.id) return;
       setView('list');
-      setExpandedId(detail.id);
-      setTimeout(() => {
-        const el = document.querySelector(`[data-dossier-id="${detail.id}"]`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+      focusRow(detail.id);
     };
     window.addEventListener('admin:focus', handler);
     return () => window.removeEventListener('admin:focus', handler);
   }, []);
+
+  // Auto-scroll + flash a row after a lifecycle action so the admin sees
+  // exactly where it moved in the list.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { dossierId?: string };
+      if (!detail?.dossierId) return;
+      setView('list');
+      focusRow(detail.dossierId);
+    };
+    window.addEventListener('dossier:lifecycle-action', handler);
+    return () => window.removeEventListener('dossier:lifecycle-action', handler);
+  }, []);
+
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   const { data: dossiers = [], isLoading } = useQuery({
