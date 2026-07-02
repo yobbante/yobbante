@@ -8,6 +8,7 @@ import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
 import { cardTone, detectCarrier, isFromKonnekt } from '@/lib/inboxFilters';
 import { LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 import type { InboxDossier } from '@/hooks/useInboxDossiers';
+import { DossierLink, ClientLink, DepartureLink, GpLink } from '@/components/admin/links/EntityLink';
 
 interface Props {
   dossier: InboxDossier;
