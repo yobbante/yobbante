@@ -87,11 +87,19 @@ function normalizeRef(raw: string | undefined): string {
 }
 
 async function callSave(payload: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('gp-dashboard-save', { body: payload });
+  // Inject the GP session token so the edge function can verify authenticity.
+  let sessionToken: string | undefined;
+  try {
+    const raw = localStorage.getItem('gp_session');
+    if (raw) sessionToken = (JSON.parse(raw) as { token?: string }).token;
+  } catch { /* ignore */ }
+  const body = sessionToken ? { ...payload, session_token: sessionToken } : payload;
+  const { data, error } = await supabase.functions.invoke('gp-dashboard-save', { body });
   if (error) throw error;
   if ((data as any)?.error) throw new Error((data as any).error);
   return data;
 }
+
 
 // ────────────────────────────────────────────────────────────────────────────
 // Page
