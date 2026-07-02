@@ -219,7 +219,10 @@ Deno.serve(async (req) => {
     const pdf = buildPdf(dossierForPdf, { name: clientName, phone: clientPhone, email: clientEmail });
 
     const ref = dossier.tracking_id || dossier.reference || dossier.id;
-    const path = `${ref}.pdf`;
+    // Scope path by owner to prevent tracking-id enumeration in storage
+    const ownerFolder = dossier.user_id || 'anonymous';
+    const path = `${ownerFolder}/${ref}.pdf`;
+
 
     const { error: upErr } = await supa.storage.from('invoices').upload(path, pdf, {
       contentType: 'application/pdf', upsert: true,
