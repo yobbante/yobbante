@@ -50,6 +50,33 @@ export function InboxTab() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('view') === 'history' ? 'history' : 'pipeline';
 
+  // Flash + scroll a row after a lifecycle transition (cancel/return/etc.).
+  useEffect(() => {
+    const focusRow = (id: string) => {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-dossier-id="${id}"]`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('animate-row-flash');
+        setTimeout(() => el.classList.remove('animate-row-flash'), 2600);
+      }, 80);
+    };
+    const onLifecycle = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { dossierId?: string };
+      if (detail?.dossierId) focusRow(detail.dossierId);
+    };
+    const onFocus = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { service?: string; id?: string };
+      if (detail?.service === 'expedier' && detail.id) focusRow(detail.id);
+    };
+    window.addEventListener('dossier:lifecycle-action', onLifecycle);
+    window.addEventListener('admin:focus', onFocus);
+    return () => {
+      window.removeEventListener('dossier:lifecycle-action', onLifecycle);
+      window.removeEventListener('admin:focus', onFocus);
+    };
+  }, []);
+
   const filtered = useMemo(() => applyInboxFilters(dossiers, filters), [dossiers, filters]);
 
   const handleConfirm = (d: InboxDossier) => {
