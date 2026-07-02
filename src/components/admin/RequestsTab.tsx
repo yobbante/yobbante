@@ -342,7 +342,7 @@ export function RequestsTab() {
               departure_date: (d as any).estimated_delivery_date,
             });
             return (
-              <li key={d.id} data-dossier-id={d.id}>
+              <li key={d.id} data-dossier-id={d.id} className={cn(flashId === d.id && 'animate-row-flash')}>
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}
