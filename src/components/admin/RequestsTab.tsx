@@ -21,6 +21,8 @@ import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
 import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
+import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
+import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 
