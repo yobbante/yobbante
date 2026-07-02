@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import type { ManualDeparture } from '@/hooks/useManualDepartures';
 import { toast } from 'sonner';
+import { DossierLink, GpLink } from '@/components/admin/links/EntityLink';
 
 interface Props {
   departure: ManualDeparture | null;
@@ -176,7 +177,11 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                 <User className="w-4 h-4" />
               </div>
               <div>
-                <div className="font-semibold">{departure.carrier_name ?? '—'}</div>
+                <div className="font-semibold">
+                  <GpLink reference={departure.transporteur_ref} plain>
+                    {departure.carrier_name ?? '—'}
+                  </GpLink>
+                </div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Phone className="w-3 h-3" />
                   {departure.carrier_contact ?? 'Aucun contact'}
@@ -230,7 +235,7 @@ export function DepartureDetailDrawer({ departure, onClose }: Props) {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-semibold">{d.reference}</span>
+                        <DossierLink id={d.id} reference={d.reference} className="font-mono text-xs font-semibold" plain />
                         <Badge variant="secondary" className="text-[10px]">{d.status}</Badge>
                       </div>
                       <div className="text-sm truncate mt-0.5">{d.product_description}</div>

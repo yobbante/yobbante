@@ -8,6 +8,7 @@ import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
 import { cardTone, detectCarrier, isFromKonnekt } from '@/lib/inboxFilters';
 import { LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 import type { InboxDossier } from '@/hooks/useInboxDossiers';
+import { DossierLink, ClientLink, DepartureLink, GpLink } from '@/components/admin/links/EntityLink';
 
 interface Props {
   dossier: InboxDossier;
@@ -43,7 +44,9 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-mono text-muted-foreground">{dossier.reference}</span>
+            <DossierLink id={dossier.id} reference={dossier.reference} className="text-[11px] font-mono" plain>
+              {dossier.reference}
+            </DossierLink>
             {isFromKonnekt(dossier) && (
               <Badge className="text-[9px] px-1 py-0 h-4 bg-sky-500/15 text-sky-500 border-0">Konnekt</Badge>
             )}
@@ -53,7 +56,7 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
               </span>
             )}
           </div>
-          <div className="text-sm font-medium text-foreground truncate">{clientName}</div>
+          <ClientLink name={dossier.buyer_name} phone={dossier.contact_phone} className="text-sm font-medium truncate" plain>{clientName}</ClientLink>
         </div>
         <div className="flex flex-col items-end gap-1">
           <Badge
@@ -86,7 +89,9 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
       </div>
 
       <div className="text-[11px] text-muted-foreground">
-        Départ : {dossier.assigned_departure_id ? <span className="text-foreground">assigné</span> : 'à choisir'}
+        Départ : {dossier.assigned_departure_id
+          ? <DepartureLink id={dossier.assigned_departure_id} plain className="text-foreground">assigné</DepartureLink>
+          : 'à choisir'}
       </div>
 
       <div className="flex gap-1 pt-1">
