@@ -176,8 +176,11 @@ export function MessagesTab() {
   const [clientFreeText, setClientFreeText] = useState('');
   const [clientComposerTab, setClientComposerTab] = useState<'free' | 'templates'>('free');
   const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
+  const [clientBotPausedUntil, setClientBotPausedUntil] = useState<string | null>(null);
+  const [clientPauseDuration, setClientPauseDuration] = useState<number>(60); // minutes
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
+  const clientPauseTypingRef = useRef<number | null>(null);
 
   // ---------- Initial load + realtime subscriptions ----------
   const [reloading, setReloading] = useState(false);
@@ -492,6 +495,72 @@ export function MessagesTab() {
     toast.success('Bot GP reactive');
   };
 
+  // ---------- Pause/resume Client bot (607) ----------
+  // Load current pause state whenever we open a client conversation
+  useEffect(() => {
+    if (!openPhone || activeConv?.channel !== 'client') {
+      setClientBotPausedUntil(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from('client_bot_sessions' as any)
+        .select('bot_paused_until')
+        .eq('from_phone', openPhone)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setClientBotPausedUntil((data as any)?.bot_paused_until ?? null);
+    })();
+  }, [openPhone, activeConv?.channel]);
+
+  const upsertClientSession = async (phone: string, patch: Record<string, unknown>) => {
+    const { data: existing } = await supabase
+      .from('client_bot_sessions' as any)
+      .select('id')
+      .eq('from_phone', phone)
+      .limit(1)
+      .maybeSingle();
+    const payload: any = { from_phone: phone, updated_at: new Date().toISOString(), ...patch };
+    if ((existing as any)?.id) {
+      await supabase.from('client_bot_sessions' as any).update(payload).eq('id', (existing as any).id);
+    } else {
+      await supabase.from('client_bot_sessions' as any).insert(payload);
+    }
+  };
+
+  const pauseClientBot = useCallback(async (minutes: number, silent = false) => {
+    if (!openPhone) return;
+    const until = new Date(Date.now() + minutes * 60_000).toISOString();
+    await upsertClientSession(openPhone, { bot_paused_until: until });
+    setClientBotPausedUntil(until);
+    if (!silent) {
+      const label = minutes >= 60 ? `${Math.round(minutes / 60)}h` : `${minutes}min`;
+      toast.success(`Bot client en pause (${label})`);
+    }
+  }, [openPhone]);
+
+  const resumeClientBot = useCallback(async () => {
+    if (!openPhone) return;
+    await upsertClientSession(openPhone, { bot_paused_until: null });
+    setClientBotPausedUntil(null);
+    toast.success('Bot client réactivé');
+  }, [openPhone]);
+
+  const onClientTyping = (v: string) => {
+    setClientFreeText(v);
+    // Auto-pause preventif dès qu'on tape (comme pour le GP)
+    if (clientPauseTypingRef.current) window.clearTimeout(clientPauseTypingRef.current);
+    clientPauseTypingRef.current = window.setTimeout(() => {
+      // Petite pause de sécurité (5 min) pendant la frappe si aucune pause active
+      if (!clientBotPausedUntil || new Date(clientBotPausedUntil) < new Date()) {
+        pauseClientBot(5, true);
+      }
+    }, 500);
+  };
+
+  const clientBotPaused = !!(clientBotPausedUntil && new Date(clientBotPausedUntil) > new Date());
+
   async function sendGpFree(text: string) {
     if (!openPhone || !text.trim()) return;
     setSending(true);
@@ -559,6 +628,8 @@ export function MessagesTab() {
     }
     setSending(true);
     try {
+      // Auto-pause le bot client pour éviter tout chevauchement (durée choisie, défaut 1h)
+      await pauseClientBot(clientPauseDuration, true);
       const { error } = await supabase.functions.invoke('send-whatsapp', {
         body: {
           recipient_phone: openPhone,
@@ -568,7 +639,8 @@ export function MessagesTab() {
         },
       });
       if (error) throw error;
-      toast.success('Message envoyé');
+      const label = clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration / 60)}h` : `${clientPauseDuration}min`;
+      toast.success(`Message envoyé · Bot en pause ${label}`);
       setClientFreeText('');
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
@@ -941,6 +1013,37 @@ export function MessagesTab() {
               {/* Composer */}
               {activeConv.channel === 'client' ? (
                 <div className="border-t border-border bg-card">
+                  {/* Bot client status bar */}
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2 flex-wrap">
+                    <span className={cn('flex items-center gap-1 font-semibold', clientBotPaused ? 'text-amber-400' : 'text-emerald-400')}>
+                      {clientBotPaused
+                        ? <>⏸️ Bot client en pause jusqu'à {formatTime(clientBotPausedUntil!)}</>
+                        : <>🤖 Bot client actif</>}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={clientPauseDuration}
+                        onChange={(e) => setClientPauseDuration(Number(e.target.value))}
+                        className="h-6 text-[10px] bg-background border border-border rounded px-1 text-foreground"
+                        title="Durée de pause auto lors de l'envoi d'un message libre"
+                      >
+                        <option value={15}>15 min</option>
+                        <option value={60}>1 h</option>
+                        <option value={240}>4 h</option>
+                        <option value={1440}>24 h</option>
+                      </select>
+                      {clientBotPaused ? (
+                        <button onClick={resumeClientBot} className="text-primary hover:underline font-medium">Réactiver</button>
+                      ) : (
+                        <button
+                          onClick={() => pauseClientBot(clientPauseDuration)}
+                          className="text-[#F5C518] hover:underline font-medium flex items-center gap-1"
+                        >
+                          <PauseCircle className="w-3 h-3" /> Prendre le relais
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {/* Tabs */}
                   <div className="flex gap-1 p-2 border-b border-border/50">
                     {(['free', 'templates'] as const).map((t) => (
@@ -983,12 +1086,15 @@ export function MessagesTab() {
                         <>
                           <Textarea
                             value={clientFreeText}
-                            onChange={(e) => setClientFreeText(e.target.value)}
-                            placeholder="Écrire un message..."
+                            onChange={(e) => onClientTyping(e.target.value)}
+                            placeholder="Écrire un message... (le bot sera automatiquement mis en pause)"
                             rows={2}
                             className="text-xs resize-none"
                           />
-                          <div className="flex justify-end">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] text-muted-foreground italic">
+                              Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
+                            </span>
                             <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
                               {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
                               Envoyer
@@ -1001,6 +1107,7 @@ export function MessagesTab() {
                         </p>
                       )}
                     </div>
+
                   ) : (
                     <div className="p-3 space-y-2">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
