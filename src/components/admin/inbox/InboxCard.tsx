@@ -44,7 +44,9 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-mono text-muted-foreground">{dossier.reference}</span>
+            <DossierLink id={dossier.id} reference={dossier.reference} className="text-[11px] font-mono" plain>
+              {dossier.reference}
+            </DossierLink>
             {isFromKonnekt(dossier) && (
               <Badge className="text-[9px] px-1 py-0 h-4 bg-sky-500/15 text-sky-500 border-0">Konnekt</Badge>
             )}
