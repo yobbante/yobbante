@@ -422,8 +422,15 @@ export function RequestsTab() {
 
                 {/* Expandable details */}
                 {isOpen && (
-                  <div className="px-4 pb-4 pt-1 bg-secondary/20 border-t border-border space-y-3">
+                  <div className="px-4 pb-4 pt-2 bg-secondary/20 border-t border-border space-y-3">
+                    <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Cycle de vie du dossier
+                      </div>
+                      <DossierLifecycleRail status={d.status} />
+                    </div>
                     <ExpandedKindBody dossier={d} kind={k} />
+
 
                     {(d.contact_email || d.contact_phone) && (
                       <div className="flex flex-wrap gap-3 text-xs">
