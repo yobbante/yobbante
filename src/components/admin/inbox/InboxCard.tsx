@@ -7,6 +7,7 @@ import { fr } from 'date-fns/locale';
 import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
 import { cardTone, detectCarrier, isFromKonnekt } from '@/lib/inboxFilters';
 import { LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
+import { DossierLifecycleRail } from '@/components/admin/dossiers/DossierLifecycleRail';
 import type { InboxDossier } from '@/hooks/useInboxDossiers';
 import { DossierLink, ClientLink, DepartureLink, GpLink } from '@/components/admin/links/EntityLink';
 
