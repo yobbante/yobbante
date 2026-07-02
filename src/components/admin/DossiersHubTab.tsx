@@ -68,15 +68,26 @@ export function DossiersHubTab() {
 
           <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
           <TabsContent value="demandes"  className="mt-4">
+            <div className="mb-3 flex items-center justify-end gap-2">
+              <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer">
+                Voir archivés / annulés
+              </Label>
+              <Switch
+                id="show-archived"
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+              />
+            </div>
             <RequestsTab
               initialKind="send"
               lockKind
               hideHeader
               title="Demandes entrantes"
               subtitle="Flow expédition — clients ayant envoyé une demande."
-              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+              excludeStatuses={showArchived ? [] : ['CANCELLED', 'ARCHIVED']}
             />
           </TabsContent>
+
           <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
           <TabsContent value="audit"     className="mt-4"><ClientAuditPanel /></TabsContent>
