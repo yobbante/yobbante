@@ -7,6 +7,7 @@ import { fr } from 'date-fns/locale';
 import { SOURCE_BY_ID, type IntakeSource } from '@/lib/intakeSources';
 import { cardTone, detectCarrier, isFromKonnekt } from '@/lib/inboxFilters';
 import { LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
+import { DossierLifecycleRail } from '@/components/admin/dossiers/DossierLifecycleRail';
 import type { InboxDossier } from '@/hooks/useInboxDossiers';
 import { DossierLink, ClientLink, DepartureLink, GpLink } from '@/components/admin/links/EntityLink';
 
@@ -40,7 +41,7 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
   const amount = dossier.final_amount_xof ?? (dossier.estimated_cost != null ? Math.round(dossier.estimated_cost * 655.957) : null);
 
   return (
-    <Card className={`p-3 space-y-2 bg-card border-border border-l-4 hover:border-primary/40 transition-colors ${TONE_CLASS[tone]}`}>
+    <Card data-dossier-id={dossier.id} className={`p-3 space-y-2 bg-card border-border border-l-4 hover:border-primary/40 transition-colors ${TONE_CLASS[tone]}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -93,6 +94,8 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
           ? <DepartureLink id={dossier.assigned_departure_id} plain className="text-foreground">assigné</DepartureLink>
           : 'à choisir'}
       </div>
+
+      <DossierLifecycleRail status={dossier.status} size="sm" />
 
       <div className="flex gap-1 pt-1">
         <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] flex-1" onClick={() => onView(dossier)}>

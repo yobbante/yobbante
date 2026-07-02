@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, Loader2, Upload, LayoutGrid, List as ListIcon, Inbox as InboxIcon, Copy } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { detectServiceKind, SERVICE_KINDS } from '@/lib/intakeSources';
 import { applyInboxFilters } from '@/lib/inboxFilters';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useDossierSheet } from '../dossier-sheet/useDossierSheet';
+import { NextActionsSheet } from '@/components/admin/dossiers/NextActionsSheet';
 
 function buildClientRecap(d: InboxDossier) {
   const kind = detectServiceKind(d);
@@ -48,6 +49,33 @@ export function InboxTab() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('view') === 'history' ? 'history' : 'pipeline';
+
+  // Flash + scroll a row after a lifecycle transition (cancel/return/etc.).
+  useEffect(() => {
+    const focusRow = (id: string) => {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-dossier-id="${id}"]`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('animate-row-flash');
+        setTimeout(() => el.classList.remove('animate-row-flash'), 2600);
+      }, 80);
+    };
+    const onLifecycle = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { dossierId?: string };
+      if (detail?.dossierId) focusRow(detail.dossierId);
+    };
+    const onFocus = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { service?: string; id?: string };
+      if (detail?.service === 'expedier' && detail.id) focusRow(detail.id);
+    };
+    window.addEventListener('dossier:lifecycle-action', onLifecycle);
+    window.addEventListener('admin:focus', onFocus);
+    return () => {
+      window.removeEventListener('dossier:lifecycle-action', onLifecycle);
+      window.removeEventListener('admin:focus', onFocus);
+    };
+  }, []);
 
   const filtered = useMemo(() => applyInboxFilters(dossiers, filters), [dossiers, filters]);
 
@@ -144,6 +172,9 @@ export function InboxTab() {
       </Tabs>
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
+
+      {/* Contextual "next actions" panel — auto-opens after a lifecycle transition. */}
+      <NextActionsSheet />
     </div>
   );
 }
