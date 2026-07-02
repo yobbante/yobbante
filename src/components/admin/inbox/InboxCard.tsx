@@ -95,6 +95,8 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
           : 'à choisir'}
       </div>
 
+      <DossierLifecycleRail status={dossier.status} size="sm" />
+
       <div className="flex gap-1 pt-1">
         <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] flex-1" onClick={() => onView(dossier)}>
           <Eye className="w-3 h-3 mr-1" /> Détail
