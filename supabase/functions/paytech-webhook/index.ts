@@ -32,6 +32,31 @@ Deno.serve(async (req) => {
 
   console.log('paytech-webhook payload', payload);
 
+  // --- IPN authenticity check (fail closed) ---
+  // PayTech sends api_key_sha256 / api_secret_sha256 = SHA256 of our credentials.
+  const PT_KEY = Deno.env.get('PAYTECH_API_KEY') ?? '';
+  const PT_SECRET = Deno.env.get('PAYTECH_API_SECRET') ?? '';
+  if (!PT_KEY || !PT_SECRET) {
+    console.error('paytech-webhook: PAYTECH_API_KEY/SECRET missing — refusing IPN');
+    return new Response(JSON.stringify({ error: 'Webhook credentials not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  async function sha256Hex(input: string): Promise<string> {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  const expectedKey = await sha256Hex(PT_KEY);
+  const expectedSecret = await sha256Hex(PT_SECRET);
+  const gotKey = String(payload.api_key_sha256 ?? '').toLowerCase();
+  const gotSecret = String(payload.api_secret_sha256 ?? '').toLowerCase();
+  if (gotKey !== expectedKey || gotSecret !== expectedSecret) {
+    console.error('paytech-webhook: invalid IPN signature');
+    return new Response('Invalid signature', { status: 401, headers: corsHeaders });
+  }
+
+
   const typeEvent = (payload.type_event ?? '').toLowerCase();
   const refCommand = payload.ref_command ?? '';
   const amount = payload.item_price ?? '';
