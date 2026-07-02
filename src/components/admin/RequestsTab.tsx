@@ -81,7 +81,7 @@ export interface RequestsTabProps {
   /** Hide the top header (title + subtitle) when the parent already renders one. */
   hideHeader?: boolean;
   /** Hide these statuses entirely (e.g. CANCELLED / ARCHIVED in "Demandes entrantes"). */
-  excludeStatuses?: DossierStatus[];
+  excludeStatuses?: string[];
   /** Optional override for the page title. */
   title?: string;
   /** Optional override for the subtitle. */
