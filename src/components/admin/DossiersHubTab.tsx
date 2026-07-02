@@ -27,6 +27,8 @@ export function DossiersHubTab() {
   const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : DEFAULT_TAB;
   const [intakeOpen, setIntakeOpen] = useState(false);
   const { data: unassignedCount = 0 } = useInboxUnassignedCount();
+  const [showArchived, setShowArchived] = useState(false);
+
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
