@@ -196,13 +196,15 @@ export function RequestsTab({
   });
 
   const counts = useMemo(() => {
-    const c: Record<TypeFilter, number> = { all: dossiers.length, send: 0, receive: 0, sourcing: 0 };
-    dossiers.forEach(d => { c[getKind(d)]++; });
+    const scope = dossiers.filter(d => !excludedSet.has(d.status));
+    const c: Record<TypeFilter, number> = { all: scope.length, send: 0, receive: 0, sourcing: 0 };
+    scope.forEach(d => { c[getKind(d)]++; });
     return c;
-  }, [dossiers]);
+  }, [dossiers, excludedSet]);
 
   const filtered = useMemo(() => {
     return dossiers.filter(d => {
+      if (excludedSet.has(d.status)) return false;
       if (kind !== 'all' && getKind(d) !== kind) return false;
       if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false;
       if (q) {
@@ -217,7 +219,7 @@ export function RequestsTab({
       }
       return true;
     });
-  }, [dossiers, q, kind, statusFilter]);
+  }, [dossiers, q, kind, statusFilter, excludedSet]);
 
   const statusCounts = useMemo(() => {
     const c = new Map<DossierStatus, number>();
