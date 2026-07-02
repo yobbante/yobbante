@@ -1,5 +1,6 @@
 // GP session helpers (localStorage based magic-link auth)
-export type GpSession = { ref: string; phone: string; expires: number };
+export type GpSession = { ref: string; phone: string; expires: number; token?: string };
+
 
 const KEY = 'gp_session';
 
