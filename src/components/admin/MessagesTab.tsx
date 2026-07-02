@@ -495,6 +495,72 @@ export function MessagesTab() {
     toast.success('Bot GP reactive');
   };
 
+  // ---------- Pause/resume Client bot (607) ----------
+  // Load current pause state whenever we open a client conversation
+  useEffect(() => {
+    if (!openPhone || activeConv?.channel !== 'client') {
+      setClientBotPausedUntil(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from('client_bot_sessions' as any)
+        .select('bot_paused_until')
+        .eq('from_phone', openPhone)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setClientBotPausedUntil((data as any)?.bot_paused_until ?? null);
+    })();
+  }, [openPhone, activeConv?.channel]);
+
+  const upsertClientSession = async (phone: string, patch: Record<string, unknown>) => {
+    const { data: existing } = await supabase
+      .from('client_bot_sessions' as any)
+      .select('id')
+      .eq('from_phone', phone)
+      .limit(1)
+      .maybeSingle();
+    const payload: any = { from_phone: phone, updated_at: new Date().toISOString(), ...patch };
+    if ((existing as any)?.id) {
+      await supabase.from('client_bot_sessions' as any).update(payload).eq('id', (existing as any).id);
+    } else {
+      await supabase.from('client_bot_sessions' as any).insert(payload);
+    }
+  };
+
+  const pauseClientBot = useCallback(async (minutes: number, silent = false) => {
+    if (!openPhone) return;
+    const until = new Date(Date.now() + minutes * 60_000).toISOString();
+    await upsertClientSession(openPhone, { bot_paused_until: until });
+    setClientBotPausedUntil(until);
+    if (!silent) {
+      const label = minutes >= 60 ? `${Math.round(minutes / 60)}h` : `${minutes}min`;
+      toast.success(`Bot client en pause (${label})`);
+    }
+  }, [openPhone]);
+
+  const resumeClientBot = useCallback(async () => {
+    if (!openPhone) return;
+    await upsertClientSession(openPhone, { bot_paused_until: null });
+    setClientBotPausedUntil(null);
+    toast.success('Bot client réactivé');
+  }, [openPhone]);
+
+  const onClientTyping = (v: string) => {
+    setClientFreeText(v);
+    // Auto-pause preventif dès qu'on tape (comme pour le GP)
+    if (clientPauseTypingRef.current) window.clearTimeout(clientPauseTypingRef.current);
+    clientPauseTypingRef.current = window.setTimeout(() => {
+      // Petite pause de sécurité (5 min) pendant la frappe si aucune pause active
+      if (!clientBotPausedUntil || new Date(clientBotPausedUntil) < new Date()) {
+        pauseClientBot(5, true);
+      }
+    }, 500);
+  };
+
+  const clientBotPaused = !!(clientBotPausedUntil && new Date(clientBotPausedUntil) > new Date());
+
   async function sendGpFree(text: string) {
     if (!openPhone || !text.trim()) return;
     setSending(true);
