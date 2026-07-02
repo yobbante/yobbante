@@ -136,7 +136,7 @@ export function InboxListView({ dossiers, onView }: Props) {
               const src = SOURCE_BY_ID[(d.source as IntakeSource) || 'site_web'] || SOURCE_BY_ID.autre;
               const amount = d.final_amount_xof ?? (d.estimated_cost != null ? Math.round(d.estimated_cost * 655.957) : null);
               return (
-                <tr key={d.id} className="border-t border-border hover:bg-muted/20 cursor-pointer" onClick={() => onView(d)}>
+                <tr key={d.id} data-dossier-id={d.id} className="border-t border-border hover:bg-muted/20 cursor-pointer" onClick={() => onView(d)}>
                   <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                     <Checkbox checked={selected.has(d.id)} onCheckedChange={() => toggleOne(d.id)} />
                   </td>
