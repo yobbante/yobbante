@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import type { ManualDeparture } from '@/hooks/useManualDepartures';
 import { toast } from 'sonner';
+import { DossierLink, GpLink } from '@/components/admin/links/EntityLink';
 
 interface Props {
   departure: ManualDeparture | null;
