@@ -239,12 +239,14 @@ export function RequestsTab({
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Demandes clients</h1>
-          <p className="text-sm text-muted-foreground">
-            Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.
-          </p>
-        </div>
+        {!hideHeader ? (
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">{title ?? 'Demandes clients'}</h1>
+            <p className="text-sm text-muted-foreground">
+              {subtitle ?? 'Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.'}
+            </p>
+          </div>
+        ) : <div />}
         <div className="inline-flex rounded-md border border-border bg-card p-0.5">
           <button
             onClick={() => setView('list')}
@@ -278,32 +280,35 @@ export function RequestsTab({
             className="pl-9 h-9"
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
-          {TYPE_FILTERS.map(f => {
-            const active = kind === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setKind(f.id)}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1.5',
-                  active
-                    ? 'bg-foreground text-background'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {f.label}
-                <span className={cn(
-                  'tabular-nums text-[10px] px-1 rounded',
-                  active ? 'bg-background/20' : 'bg-background/40',
-                )}>
-                  {counts[f.id]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {!lockKind && (
+          <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
+            {TYPE_FILTERS.map(f => {
+              const active = kind === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setKind(f.id)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1.5',
+                    active
+                      ? 'bg-foreground text-background'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {f.label}
+                  <span className={cn(
+                    'tabular-nums text-[10px] px-1 rounded',
+                    active ? 'bg-background/20' : 'bg-background/40',
+                  )}>
+                    {counts[f.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
 
       {/* Status pill filters (multi-select) */}
       <div className="flex flex-wrap items-center gap-1.5">
