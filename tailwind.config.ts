@@ -117,6 +117,14 @@ export default {
           "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.5)" },
           "50%": { boxShadow: "0 0 0 12px hsl(var(--primary) / 0)" },
         },
+        "row-flash": {
+          "0%": { backgroundColor: "hsl(var(--primary) / 0.28)", boxShadow: "inset 3px 0 0 hsl(var(--primary))" },
+          "100%": { backgroundColor: "transparent", boxShadow: "inset 0 0 0 transparent" },
+        },
+        "rail-fill": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
