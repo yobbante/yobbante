@@ -136,6 +136,15 @@ export function ReturnDossierDialog({ open, onOpenChange, dossierId, currentStat
       qc.invalidateQueries({ queryKey: ['dossiers'] });
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
       qc.invalidateQueries({ queryKey: ['departure-dossiers'] });
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      window.dispatchEvent(new CustomEvent('dossier:lifecycle-action', {
+        detail: {
+          dossierId,
+          action: 'return_requested',
+          newStatus: 'RETURN_REQUESTED',
+          reason: reason.trim() || category,
+        },
+      }));
       onOpenChange(false);
       setReason('');
       onDone?.();
