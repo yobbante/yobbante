@@ -49,9 +49,11 @@ export function GpAssignBadge({ transporteurRef, onAssignClick }: Props) {
     : '..';
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
-      title={`GP ${transporteurRef}`}
+    <GpLink
+      reference={transporteurRef}
+      plain
+      className="inline-flex items-center gap-1.5 text-[11px]"
+      title={`Ouvrir fiche GP ${transporteurRef}`}
     >
       {gp?.photo_url ? (
         <img
@@ -67,6 +69,6 @@ export function GpAssignBadge({ transporteurRef, onAssignClick }: Props) {
       <span className="truncate max-w-[80px]">
         {gp?.prenom || `GP ${transporteurRef}`}
       </span>
-    </span>
+    </GpLink>
   );
 }
