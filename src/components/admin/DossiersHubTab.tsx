@@ -62,7 +62,16 @@ export function DossiersHubTab() {
           </TabsList>
 
           <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
-          <TabsContent value="demandes"  className="mt-4"><InboxTab /></TabsContent>
+          <TabsContent value="demandes"  className="mt-4">
+            <RequestsTab
+              initialKind="send"
+              lockKind
+              hideHeader
+              title="Demandes entrantes"
+              subtitle="Flow expédition — clients ayant envoyé une demande."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
           <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
           <TabsContent value="audit"     className="mt-4"><ClientAuditPanel /></TabsContent>
