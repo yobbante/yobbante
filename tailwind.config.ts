@@ -117,6 +117,14 @@ export default {
           "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.5)" },
           "50%": { boxShadow: "0 0 0 12px hsl(var(--primary) / 0)" },
         },
+        "row-flash": {
+          "0%": { backgroundColor: "hsl(var(--primary) / 0.28)", boxShadow: "inset 3px 0 0 hsl(var(--primary))" },
+          "100%": { backgroundColor: "transparent", boxShadow: "inset 0 0 0 transparent" },
+        },
+        "rail-fill": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -125,6 +133,8 @@ export default {
         "slide-up": "slide-up 0.5s ease-out",
         "scale-in": "scale-in 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "row-flash": "row-flash 2.4s ease-out",
+        "rail-fill": "rail-fill 0.9s cubic-bezier(0.65,0,0.35,1) forwards",
         marquee: "marquee 60s linear infinite",
       },
     },

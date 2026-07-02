@@ -21,6 +21,8 @@ import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
 import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
+import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
+import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 
@@ -80,21 +82,45 @@ export function RequestsTab() {
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  // Highlight + scroll helper — used both by the deep-link and lifecycle events.
+  const focusRow = (id: string) => {
+    setExpandedId(id);
+    setFlashId(id);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-dossier-id="${id}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+    // Clear the flash class after the animation duration so it can retrigger.
+    setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 2600);
+  };
+
   // Open + scroll to a row from dashboard "Activité récente" deep-link
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { service?: string; id?: string };
       if (detail?.service !== 'expedier' || !detail.id) return;
       setView('list');
-      setExpandedId(detail.id);
-      setTimeout(() => {
-        const el = document.querySelector(`[data-dossier-id="${detail.id}"]`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+      focusRow(detail.id);
     };
     window.addEventListener('admin:focus', handler);
     return () => window.removeEventListener('admin:focus', handler);
   }, []);
+
+  // Auto-scroll + flash a row after a lifecycle action so the admin sees
+  // exactly where it moved in the list.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { dossierId?: string };
+      if (!detail?.dossierId) return;
+      setView('list');
+      focusRow(detail.dossierId);
+    };
+    window.addEventListener('dossier:lifecycle-action', handler);
+    return () => window.removeEventListener('dossier:lifecycle-action', handler);
+  }, []);
+
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   const { data: dossiers = [], isLoading } = useQuery({
@@ -113,6 +139,23 @@ export function RequestsTab() {
   });
 
   const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
+
+  // Programmatic quick-assign trigger (fired from NextActionsSheet).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { id?: string; destCountry?: string | null; destCity?: string | null };
+      if (!detail?.id) return;
+      setQuickAssign({
+        id: detail.id,
+        destCountry: detail.destCountry ?? null,
+        destCity: detail.destCity ?? null,
+        weight: null,
+      });
+    };
+    window.addEventListener('admin:quick-assign', handler);
+    return () => window.removeEventListener('admin:quick-assign', handler);
+  }, []);
+
 
 
 
@@ -299,7 +342,7 @@ export function RequestsTab() {
               departure_date: (d as any).estimated_delivery_date,
             });
             return (
-              <li key={d.id} data-dossier-id={d.id}>
+              <li key={d.id} data-dossier-id={d.id} className={cn(flashId === d.id && 'animate-row-flash')}>
                 {/* Header — click to toggle */}
                 <button
                   onClick={() => setExpandedId(isOpen ? null : d.id)}
@@ -348,6 +391,9 @@ export function RequestsTab() {
                       )}
                     </div>
                     <p className="text-sm text-foreground truncate mt-0.5">{d.product_description}</p>
+                    <div className="mt-1.5 hidden sm:block">
+                      <DossierLifecycleRail status={d.status} size="sm" />
+                    </div>
                   </div>
                   <div className="hidden sm:flex items-center" onClick={(e) => e.stopPropagation()}>
                     <GpAssignBadge
@@ -376,8 +422,15 @@ export function RequestsTab() {
 
                 {/* Expandable details */}
                 {isOpen && (
-                  <div className="px-4 pb-4 pt-1 bg-secondary/20 border-t border-border space-y-3">
+                  <div className="px-4 pb-4 pt-2 bg-secondary/20 border-t border-border space-y-3">
+                    <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Cycle de vie du dossier
+                      </div>
+                      <DossierLifecycleRail status={d.status} />
+                    </div>
                     <ExpandedKindBody dossier={d} kind={k} />
+
 
                     {(d.contact_email || d.contact_phone) && (
                       <div className="flex flex-wrap gap-3 text-xs">
@@ -460,6 +513,9 @@ export function RequestsTab() {
           weightKg={quickAssign.weight}
         />
       )}
+
+      {/* Contextual "next actions" panel — auto-opens after a lifecycle transition. */}
+      <NextActionsSheet />
     </div>
   );
 }
