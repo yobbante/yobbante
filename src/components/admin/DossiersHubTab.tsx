@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
-import { InboxTab } from './inbox/InboxTab';
+
 import { RequestsTab } from './RequestsTab';
 import { ReceptionKanbanTab } from './ReceptionKanbanTab';
 import { SourcingTab } from './SourcingTab';
