@@ -628,6 +628,8 @@ export function MessagesTab() {
     }
     setSending(true);
     try {
+      // Auto-pause le bot client pour éviter tout chevauchement (durée choisie, défaut 1h)
+      await pauseClientBot(clientPauseDuration, true);
       const { error } = await supabase.functions.invoke('send-whatsapp', {
         body: {
           recipient_phone: openPhone,
@@ -637,7 +639,8 @@ export function MessagesTab() {
         },
       });
       if (error) throw error;
-      toast.success('Message envoyé');
+      const label = clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration / 60)}h` : `${clientPauseDuration}min`;
+      toast.success(`Message envoyé · Bot en pause ${label}`);
       setClientFreeText('');
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
