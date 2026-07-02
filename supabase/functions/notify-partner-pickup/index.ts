@@ -12,6 +12,16 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // --- Auth: service-role bearer required (internal call only) ---
+  const __SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const __auth = req.headers.get('authorization') ?? '';
+  if (!__SR || __auth !== `Bearer ${__SR}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...(typeof corsHeaders !== 'undefined' ? corsHeaders : {}), 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { dossier_id } = await req.json();
     if (!dossier_id) {
