@@ -172,6 +172,9 @@ export function InboxTab() {
       </Tabs>
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
+
+      {/* Contextual "next actions" panel — auto-opens after a lifecycle transition. */}
+      <NextActionsSheet />
     </div>
   );
 }
