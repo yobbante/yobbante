@@ -1013,6 +1013,37 @@ export function MessagesTab() {
               {/* Composer */}
               {activeConv.channel === 'client' ? (
                 <div className="border-t border-border bg-card">
+                  {/* Bot client status bar */}
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2 flex-wrap">
+                    <span className={cn('flex items-center gap-1 font-semibold', clientBotPaused ? 'text-amber-400' : 'text-emerald-400')}>
+                      {clientBotPaused
+                        ? <>⏸️ Bot client en pause jusqu'à {formatTime(clientBotPausedUntil!)}</>
+                        : <>🤖 Bot client actif</>}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={clientPauseDuration}
+                        onChange={(e) => setClientPauseDuration(Number(e.target.value))}
+                        className="h-6 text-[10px] bg-background border border-border rounded px-1 text-foreground"
+                        title="Durée de pause auto lors de l'envoi d'un message libre"
+                      >
+                        <option value={15}>15 min</option>
+                        <option value={60}>1 h</option>
+                        <option value={240}>4 h</option>
+                        <option value={1440}>24 h</option>
+                      </select>
+                      {clientBotPaused ? (
+                        <button onClick={resumeClientBot} className="text-primary hover:underline font-medium">Réactiver</button>
+                      ) : (
+                        <button
+                          onClick={() => pauseClientBot(clientPauseDuration)}
+                          className="text-[#F5C518] hover:underline font-medium flex items-center gap-1"
+                        >
+                          <PauseCircle className="w-3 h-3" /> Prendre le relais
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {/* Tabs */}
                   <div className="flex gap-1 p-2 border-b border-border/50">
                     {(['free', 'templates'] as const).map((t) => (
@@ -1055,12 +1086,15 @@ export function MessagesTab() {
                         <>
                           <Textarea
                             value={clientFreeText}
-                            onChange={(e) => setClientFreeText(e.target.value)}
-                            placeholder="Écrire un message..."
+                            onChange={(e) => onClientTyping(e.target.value)}
+                            placeholder="Écrire un message... (le bot sera automatiquement mis en pause)"
                             rows={2}
                             className="text-xs resize-none"
                           />
-                          <div className="flex justify-end">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] text-muted-foreground italic">
+                              Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
+                            </span>
                             <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
                               {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
                               Envoyer
@@ -1073,6 +1107,7 @@ export function MessagesTab() {
                         </p>
                       )}
                     </div>
+
                   ) : (
                     <div className="p-3 space-y-2">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
