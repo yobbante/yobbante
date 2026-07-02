@@ -89,7 +89,9 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
       </div>
 
       <div className="text-[11px] text-muted-foreground">
-        Départ : {dossier.assigned_departure_id ? <span className="text-foreground">assigné</span> : 'à choisir'}
+        Départ : {dossier.assigned_departure_id
+          ? <DepartureLink id={dossier.assigned_departure_id} plain className="text-foreground">assigné</DepartureLink>
+          : 'à choisir'}
       </div>
 
       <div className="flex gap-1 pt-1">
