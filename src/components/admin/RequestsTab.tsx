@@ -140,6 +140,23 @@ export function RequestsTab() {
 
   const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
 
+  // Programmatic quick-assign trigger (fired from NextActionsSheet).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { id?: string; destCountry?: string | null; destCity?: string | null };
+      if (!detail?.id) return;
+      setQuickAssign({
+        id: detail.id,
+        destCountry: detail.destCountry ?? null,
+        destCity: detail.destCity ?? null,
+        weight: null,
+      });
+    };
+    window.addEventListener('admin:quick-assign', handler);
+    return () => window.removeEventListener('admin:quick-assign', handler);
+  }, []);
+
+
 
 
   const updateStatus = useMutation({
