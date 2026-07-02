@@ -16,17 +16,18 @@ import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
 const TABS = ['tous', 'demandes', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
+const DEFAULT_TAB: TabId = 'demandes';
 
 export function DossiersHubTab() {
   const [sp, setSp] = useSearchParams();
   const tabParam = sp.get('tab') as TabId | null;
-  const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : 'tous';
+  const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : DEFAULT_TAB;
   const [intakeOpen, setIntakeOpen] = useState(false);
   const { data: unassignedCount = 0 } = useInboxUnassignedCount();
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
-    if (v === 'tous') next.delete('tab');
+    if (v === DEFAULT_TAB) next.delete('tab');
     else next.set('tab', v);
     setSp(next, { replace: true });
   };
