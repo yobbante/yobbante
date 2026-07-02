@@ -41,7 +41,7 @@ export function InboxCard({ dossier, onView, onConfirm, onWhatsApp }: Props) {
   const amount = dossier.final_amount_xof ?? (dossier.estimated_cost != null ? Math.round(dossier.estimated_cost * 655.957) : null);
 
   return (
-    <Card className={`p-3 space-y-2 bg-card border-border border-l-4 hover:border-primary/40 transition-colors ${TONE_CLASS[tone]}`}>
+    <Card data-dossier-id={dossier.id} className={`p-3 space-y-2 bg-card border-border border-l-4 hover:border-primary/40 transition-colors ${TONE_CLASS[tone]}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
