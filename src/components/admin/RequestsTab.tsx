@@ -73,14 +73,37 @@ const KANBAN_COLUMNS: { id: DossierStatus; label: string }[] = [
   { id: 'DELIVERED',  label: DOSSIER_STATUS_LABELS.DELIVERED },
 ];
 
-export function RequestsTab() {
+export interface RequestsTabProps {
+  /** Preset the "kind" filter (Expédier / Recevoir / Sourcing / Tous). */
+  initialKind?: TypeFilter;
+  /** Lock the kind filter so the user cannot switch — hides the pills too. */
+  lockKind?: boolean;
+  /** Hide the top header (title + subtitle) when the parent already renders one. */
+  hideHeader?: boolean;
+  /** Hide these statuses entirely (e.g. CANCELLED / ARCHIVED in "Demandes entrantes"). */
+  excludeStatuses?: DossierStatus[];
+  /** Optional override for the page title. */
+  title?: string;
+  /** Optional override for the subtitle. */
+  subtitle?: string;
+}
+
+export function RequestsTab({
+  initialKind = 'all',
+  lockKind = false,
+  hideHeader = false,
+  excludeStatuses,
+  title,
+  subtitle,
+}: RequestsTabProps = {}) {
   const sheet = useDossierSheet();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
-  const [kind, setKind] = useState<TypeFilter>('all');
+  const [kind, setKind] = useState<TypeFilter>(initialKind);
   const [statusFilter, setStatusFilter] = useState<Set<DossierStatus>>(new Set());
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const excludedSet = useMemo(() => new Set(excludeStatuses ?? []), [excludeStatuses]);
 
   const [flashId, setFlashId] = useState<string | null>(null);
 
