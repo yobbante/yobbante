@@ -506,6 +506,9 @@ export function RequestsTab() {
           weightKg={quickAssign.weight}
         />
       )}
+
+      {/* Contextual "next actions" panel — auto-opens after a lifecycle transition. */}
+      <NextActionsSheet />
     </div>
   );
 }
