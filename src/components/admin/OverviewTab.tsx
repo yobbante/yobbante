@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
 import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
+import { MorningBrief } from './MorningBrief';
+import { FinancesKpis } from './FinancesKpis';
 import type { AdminSection } from './AdminSidebar';
 
 
@@ -213,6 +215,8 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      <MorningBrief onJump={onJump} />
+      <FinancesKpis onJump={onJump} />
       <DossierAlertsBar onJump={(s) => onJump(s)} />
 
       {/* ── Header ─────────────────────────────────────────── */}
