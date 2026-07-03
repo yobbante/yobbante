@@ -47,14 +47,12 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'clients',  label: 'Clients',        icon: Users },
       { id: 'messages', label: 'Messages',       icon: MessageCircle },
-      { id: 'leads',    label: 'Leads & devis',  icon: ClipboardList },
     ],
   },
   {
     label: 'Finances',
     items: [
-      { id: 'revenus',  label: 'Revenus',        icon: Wallet,      adminOnly: true },
-      { id: 'finances', label: 'Paiements GP',   icon: CreditCard,  adminOnly: true },
+      { id: 'finances', label: 'Finances',       icon: Wallet,      adminOnly: true },
     ],
   },
   {
