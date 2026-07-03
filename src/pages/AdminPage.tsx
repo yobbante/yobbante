@@ -16,8 +16,7 @@ import { ClientsTab } from '@/components/admin/ClientsTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
-import { FinancesTab } from '@/components/admin/FinancesTab';
-import { RevenusTab } from '@/components/admin/RevenusTab';
+import { FinancesHubTab } from '@/components/admin/FinancesHubTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
@@ -55,6 +54,10 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   // Leads
   'manual-quotes': { section: 'leads', tab: 'particuliers' },
   enterprise:      { section: 'leads', tab: 'b2b' },
+
+  // Finances — fusion Revenus + Paiements GP
+  revenus:         { section: 'finances', tab: 'revenus' },
+  'paiements-gp':  { section: 'finances', tab: 'paiements-gp' },
 };
 
 function resolveSlug(slug: string | undefined): { section: AdminSection; tab?: string; unknown: boolean } {
@@ -242,8 +245,7 @@ export default function AdminPage() {
               {section === 'clients'  && <ClientsTab />}
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
-              {section === 'revenus'  && isAdmin && <RevenusTab />}
-              {section === 'finances' && isAdmin && <FinancesTab />}
+              {section === 'finances' && isAdmin && <FinancesHubTab />}
               {section === 'boutique' && <BoutiqueTab />}
               {section === 'hubs'     && <HubsHubTab />}
               {section === 'settings' && <SettingsTab />}
