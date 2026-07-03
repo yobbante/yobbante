@@ -65,8 +65,13 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-// Flat list (kept for AdminPage validation of allowed sections)
-export const ADMIN_NAV: NavItem[] = NAV_GROUPS.flatMap(g => g.items);
+// Sections cachées de la sidebar mais toujours accessibles via URL / deep-link.
+const HIDDEN_SECTIONS: NavItem[] = [
+  { id: 'leads', label: 'Leads & devis', icon: ClipboardList },
+];
+
+// Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
+export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
 
 export function AdminSidebar({ active, onChange, isAdmin }: {
   active: AdminSection;
