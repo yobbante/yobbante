@@ -238,10 +238,16 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <QuickAction icon={MessageSquare} label="Inbox" badge={m.reqNew} onClick={() => onJump('inbox')} />
           <QuickAction icon={Plane} label="Départs" onClick={() => onJump('departures')} />
           <QuickAction icon={UsersIcon} label="Clients" onClick={() => onJump('clients')} />
+          <button
+            onClick={() => onJump('leads')}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-2"
+          >
+            Voir les leads →
+          </button>
         </div>
       </header>
 
