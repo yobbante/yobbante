@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useDossierSheet } from './dossier-sheet/useDossierSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -153,7 +153,7 @@ export function RequestsTab({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id')
+        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id, final_amount_xof, estimated_cost, payment_status')
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -359,165 +359,177 @@ export function RequestsTab({
           onOpen={(id) => sheet.open(id)}
         />
       ) : (
-        <ul className="divide-y divide-border border border-border rounded-xl bg-card overflow-hidden">
-          {filtered.map(d => {
-
-            const k = getKind(d);
-            const isOpen = expandedId === d.id;
-            const badges = getDossierBadges({
-              status: d.status,
-              created_at: d.created_at,
-              assigned_transporteur_ref: (d as any).assigned_transporteur_ref,
-              assigned_departure_id: (d as any).assigned_departure_id,
-              departure_date: (d as any).estimated_delivery_date,
-            });
-            return (
-              <li key={d.id} data-dossier-id={d.id} className={cn(flashId === d.id && 'animate-row-flash')}>
-                {/* Header — click to toggle */}
-                <button
-                  onClick={() => setExpandedId(isOpen ? null : d.id)}
-                  onDoubleClick={() => sheet.open(d.id)}
-                  className={cn(
-                    'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
-                    isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
-                  )}
-                  aria-expanded={isOpen}
-                >
-                  <span className="text-lg">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                      <span className="font-mono text-foreground font-semibold text-[12px]">{d.tracking_id || d.reference}</span>
-                      {d.tracking_id && (
-                        <span className="font-mono text-[10px] text-muted-foreground/70" title="Référence interne">Réf. {d.reference}</span>
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left font-medium px-3 py-2 w-[22%]">Réf</th>
+                <th className="text-left font-medium px-3 py-2 w-[26%] hidden md:table-cell">Client</th>
+                <th className="text-left font-medium px-3 py-2 w-[18%]">Statut</th>
+                <th className="text-left font-medium px-3 py-2 w-[20%]">GP</th>
+                <th className="text-right font-medium px-3 py-2 w-[14%] hidden md:table-cell">Montant</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map(d => {
+                const k = getKind(d);
+                const isOpen = expandedId === d.id;
+                const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
+                const amountXof = (d as any).final_amount_xof
+                  ?? ((d as any).estimated_cost != null ? Math.round(Number((d as any).estimated_cost) * 655.957) : null);
+                return (
+                  <Fragment key={d.id}>
+                    <tr
+                      key={d.id}
+                      data-dossier-id={d.id}
+                      onClick={() => setExpandedId(isOpen ? null : d.id)}
+                      onDoubleClick={() => sheet.open(d.id)}
+                      className={cn(
+                        'cursor-pointer transition-colors',
+                        isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
+                        flashId === d.id && 'animate-row-flash',
                       )}
-                      {badges.map(b => (
-                        <span
-                          key={b.kind}
-                          title={b.reason}
-                          className={cn(
-                            'px-1.5 py-0.5 rounded uppercase tracking-wide text-[10px] font-bold',
-                            b.className,
-                          )}
+                    >
+                      {/* Réf */}
+                      <td className="px-3 py-2.5 align-middle">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); sheet.open(d.id); }}
+                          className="font-mono text-[12px] font-semibold text-foreground hover:underline text-left inline-flex items-center gap-1.5"
                         >
-                          {b.label}
-                        </span>
-                      ))}
-                      <span className={cn(
-                        'px-1.5 py-0.5 rounded border uppercase tracking-wide text-[10px]',
-                        KIND_BADGE[k],
-                      )}>
-                        {k === 'send' ? 'Expédier' : k === 'sourcing' ? 'Sourcing' : 'Recevoir'}
-                      </span>
-                      <span className={cn(
-                        'px-1.5 py-0.5 rounded border text-[10px]',
-                        STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
-                      )}>
-                        {DOSSIER_STATUS_LABELS[d.status]}
-                      </span>
-                      {d.business_id && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[10px]">
-                          <Building2 className="w-2.5 h-2.5" /> Business
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-foreground truncate mt-0.5">{d.product_description}</p>
-                    <div className="mt-1.5 hidden sm:block">
-                      <DossierLifecycleRail status={d.status} size="sm" />
-                    </div>
-                  </div>
-                  <div className="hidden sm:flex items-center" onClick={(e) => e.stopPropagation()}>
-                    <GpAssignBadge
-                      transporteurRef={(d as any).assigned_transporteur_ref}
-                      onAssignClick={() =>
-                        setQuickAssign({
-                          id: d.id,
-                          destCountry: d.destination_country,
-                          destCity: (d as any).destination_city ?? null,
-                          weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
-                        })
-                      }
-                    />
-                  </div>
-                  <span className="text-[11px] text-muted-foreground tabular-nums hidden md:inline">
-                    {new Date(d.created_at).toLocaleDateString('fr-FR')}
-                  </span>
-                  <ChevronRight
-                    className={cn(
-                      'w-4 h-4 text-muted-foreground transition-transform',
-                      isOpen && 'rotate-90',
-                    )}
-                  />
-                </button>
-
-
-                {/* Expandable details */}
-                {isOpen && (
-                  <div className="px-4 pb-4 pt-2 bg-secondary/20 border-t border-border space-y-3">
-                    <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                        Cycle de vie du dossier
-                      </div>
-                      <DossierLifecycleRail status={d.status} />
-                    </div>
-                    <ExpandedKindBody dossier={d} kind={k} />
-
-
-                    {(d.contact_email || d.contact_phone) && (
-                      <div className="flex flex-wrap gap-3 text-xs">
-                        {d.contact_email && (
-                          <a href={`mailto:${d.contact_email}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                            <Mail className="w-3.5 h-3.5" /> {d.contact_email}
-                          </a>
-                        )}
+                          <span className="text-base leading-none">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
+                          <span className="truncate">{d.tracking_id || d.reference}</span>
+                        </button>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          {k === 'send' ? 'Expédier' : k === 'sourcing' ? 'Sourcing' : 'Recevoir'}
+                          {d.business_id && ' · B2B'}
+                        </div>
+                      </td>
+                      {/* Client */}
+                      <td className="px-3 py-2.5 align-middle hidden md:table-cell">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); sheet.open(d.id); }}
+                          className="text-foreground hover:underline text-left truncate max-w-[220px] block text-[13px]"
+                        >
+                          {clientName}
+                        </button>
                         {d.contact_phone && (
-                          <a href={`tel:${d.contact_phone}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                            <Phone className="w-3.5 h-3.5" /> {d.contact_phone}
+                          <a
+                            href={`tel:${d.contact_phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[11px] text-muted-foreground hover:text-foreground font-mono"
+                          >
+                            {d.contact_phone}
                           </a>
                         )}
-                      </div>
-                    )}
-
-
-                    {/* Actions: status + open */}
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Statut
+                      </td>
+                      {/* Statut */}
+                      <td className="px-3 py-2.5 align-middle">
+                        <span className={cn(
+                          'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
+                          STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
+                        )}>
+                          {DOSSIER_STATUS_LABELS[d.status]}
                         </span>
-                        <Select
-                          value={d.status}
-                          onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
-                        >
-                          <SelectTrigger className="h-8 w-56 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getStatutsPourDossier({
-                              app_source: d.app_source,
-                              needs_sourcing: d.needs_sourcing,
-                            }).map(s => (
-                              <SelectItem key={s.value} value={s.value} className="text-xs">
-                                {s.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => sheet.open(d.id)}
-                        className="text-xs h-8"
-                      >
-                        Ouvrir la fiche
-                        <ChevronRight className="w-3 h-3 ml-1.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                      </td>
+                      {/* GP */}
+                      <td className="px-3 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                        <GpAssignBadge
+                          transporteurRef={(d as any).assigned_transporteur_ref}
+                          onAssignClick={() =>
+                            setQuickAssign({
+                              id: d.id,
+                              destCountry: d.destination_country,
+                              destCity: (d as any).destination_city ?? null,
+                              weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
+                            })
+                          }
+                        />
+                      </td>
+                      {/* Montant */}
+                      <td className="px-3 py-2.5 align-middle text-right tabular-nums hidden md:table-cell">
+                        {amountXof != null ? (
+                          <span className="text-foreground font-medium text-[13px]">
+                            {new Intl.NumberFormat('fr-FR').format(amountXof)} <span className="text-muted-foreground text-[10px]">FCFA</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Ligne dépliée */}
+                    {isOpen && (
+                      <tr key={`${d.id}-expanded`} className="bg-secondary/20">
+                        <td colSpan={5} className="px-4 py-3 border-t border-border">
+                          <div className="space-y-3">
+                            <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                                Cycle de vie du dossier
+                              </div>
+                              <DossierLifecycleRail status={d.status} />
+                            </div>
+                            <ExpandedKindBody dossier={d} kind={k} />
+
+                            {(d.contact_email || d.contact_phone) && (
+                              <div className="flex flex-wrap gap-3 text-xs">
+                                {d.contact_email && (
+                                  <a href={`mailto:${d.contact_email}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+                                    <Mail className="w-3.5 h-3.5" /> {d.contact_email}
+                                  </a>
+                                )}
+                                {d.contact_phone && (
+                                  <a href={`tel:${d.contact_phone}`} className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+                                    <Phone className="w-3.5 h-3.5" /> {d.contact_phone}
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  Statut
+                                </span>
+                                <Select
+                                  value={d.status}
+                                  onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
+                                >
+                                  <SelectTrigger className="h-8 w-56 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {getStatutsPourDossier({
+                                      app_source: d.app_source,
+                                      needs_sourcing: d.needs_sourcing,
+                                    }).map(s => (
+                                      <SelectItem key={s.value} value={s.value} className="text-xs">
+                                        {s.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => sheet.open(d.id)}
+                                className="text-xs h-8"
+                              >
+                                Ouvrir la fiche
+                                <ChevronRight className="w-3 h-3 ml-1.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {!isLoading && dossiers.length >= limit && (

@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
 import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
+import { MorningBrief } from './MorningBrief';
+import { FinancesKpis } from './FinancesKpis';
 import type { AdminSection } from './AdminSidebar';
 
 
@@ -213,6 +215,8 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      <MorningBrief onJump={onJump} />
+      <FinancesKpis onJump={onJump} />
       <DossierAlertsBar onJump={(s) => onJump(s)} />
 
       {/* ── Header ─────────────────────────────────────────── */}
@@ -234,10 +238,16 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <QuickAction icon={MessageSquare} label="Inbox" badge={m.reqNew} onClick={() => onJump('inbox')} />
           <QuickAction icon={Plane} label="Départs" onClick={() => onJump('departures')} />
           <QuickAction icon={UsersIcon} label="Clients" onClick={() => onJump('clients')} />
+          <button
+            onClick={() => onJump('leads')}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2 py-2"
+          >
+            Voir les leads →
+          </button>
         </div>
       </header>
 
