@@ -153,7 +153,7 @@ export function RequestsTab({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id')
+        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id, final_amount_xof, estimated_cost, payment_status')
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
