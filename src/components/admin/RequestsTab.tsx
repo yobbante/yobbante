@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useDossierSheet } from './dossier-sheet/useDossierSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -378,7 +378,7 @@ export function RequestsTab({
                 const amountXof = (d as any).final_amount_xof
                   ?? ((d as any).estimated_cost != null ? Math.round(Number((d as any).estimated_cost) * 655.957) : null);
                 return (
-                  <>
+                  <Fragment key={d.id}>
                     <tr
                       key={d.id}
                       data-dossier-id={d.id}
