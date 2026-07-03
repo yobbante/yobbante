@@ -524,7 +524,7 @@ export function RequestsTab({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
