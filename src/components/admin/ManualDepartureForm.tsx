@@ -78,7 +78,19 @@ const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Toub
 export function ManualDepartureForm({ open, onClose, departure, prefill }: Props) {
   const { create, update } = useManualDepartures();
   const { upsert: upsertTransporteur } = useTransporteurs();
+  const { cities: customCities, addCustomCity } = useCustomCities();
   const isEdit = !!departure;
+
+  // Merged catalog: 36 predefined + admin-added custom cities. Dakar exclu (hub).
+  const cityCatalog = [...ALL_CITIES, ...customCities]
+    .filter((c) => c.id !== HUB_DAKAR.id)
+    .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
+
+  // Direction: Dakar ↔ ville étrangère
+  const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
+  const [foreignCityId, setForeignCityId] = useState<string>('');
+
+  function _unusedInit() {
 
   // Departure fields
   const [originCountry, setOriginCountry] = useState('');
