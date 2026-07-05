@@ -150,6 +150,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setOriginCity(departure.origin_city);
       setDestCountry(departure.destination_country ?? '');
       setDestCity(departure.destination_city);
+      // Derive direction from cities
+      const isFromDakar = departure.origin_city.toLowerCase() === 'dakar';
+      setDirection(isFromDakar ? 'from_dakar' : 'to_dakar');
+      const foreignCity = isFromDakar ? departure.destination_city : departure.origin_city;
+      const foreignCountry = isFromDakar ? departure.destination_country : departure.origin_country;
+      const match = [...ALL_CITIES, ...customCities].find(
+        (c) => c.city.toLowerCase() === foreignCity.toLowerCase() && (!foreignCountry || c.country === foreignCountry),
+      );
+      setForeignCityId(match?.id ?? '');
       setMode(departure.transport_mode);
       setDepartureDate(new Date(departure.departure_date));
       setArrivalEstimate(departure.arrival_estimate ? new Date(departure.arrival_estimate) : undefined);
