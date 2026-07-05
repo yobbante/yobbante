@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "yobbante-mcp",
+      "version": "0.1.0",
+      "title": "Yobbanté"
+    },
+    "tools": [
+      {
+        "name": "track_dossier",
+        "title": "Track a Yobbanté shipment",
+        "description": "Look up the current status and public timeline of a Yobbanté shipment by its tracking ID (e.g. 'GDBR62').",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "tracking_id": {
+              "type": "string",
+              "minLength": 3,
+              "description": "Public tracking ID of the dossier / shipment."
+            }
+          },
+          "required": [
+            "tracking_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_upcoming_departures",
+        "title": "List upcoming Yobbanté departures",
+        "description": "List upcoming scheduled shipment departures on the Yobbanté network (route, date, capacity).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 10,
+              "description": "Maximum number of departures to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_shipping_rate",
+        "title": "Estimate a Yobbanté shipping rate",
+        "description": "Estimate shipping cost and ETA for a parcel to a given destination country/city, based on weight in kg.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "destination_country": {
+              "type": "string",
+              "minLength": 2,
+              "description": "Destination country name or ISO code (e.g. 'France', 'FR')."
+            },
+            "destination_city": {
+              "description": "Destination city (optional).",
+              "type": "string"
+            },
+            "weight_kg": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Parcel weight in kilograms."
+            }
+          },
+          "required": [
+            "destination_country",
+            "weight_kg"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
