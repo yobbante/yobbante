@@ -90,8 +90,6 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
   const [foreignCityId, setForeignCityId] = useState<string>('');
 
-  function _unusedInit() {
-
   // Departure fields
   const [originCountry, setOriginCountry] = useState('');
   const [originCity, setOriginCity] = useState('');
