@@ -23,8 +23,11 @@ import {
 import { useTransporteurs, fetchTransporteurByRef, type Transporteur } from '@/hooks/useTransporteurs';
 import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
-import { ALL_CITIES } from '@/lib/worldCities';
+import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { useCustomCities } from '@/hooks/useCustomCities';
+import { estimateArrivalDate } from '@/lib/deliveryEta';
 import { cn } from '@/lib/utils';
+import { Sparkles } from 'lucide-react';
 
 /** CORRECTION #4 — Auto-resolve country ISO from a city name (best-effort). */
 function resolveCountryFromCity(city: string | null | undefined): string {
