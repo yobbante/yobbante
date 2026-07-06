@@ -241,6 +241,13 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCreatingDeparture(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-foreground text-background text-xs font-medium hover:bg-foreground/90 transition-colors"
+            title="Nouveau départ manuel"
+          >
+            <Plus className="w-3.5 h-3.5" /> Départ
+          </button>
           <QuickAction icon={MessageSquare} label="Inbox" badge={m.reqNew} onClick={() => onJump('inbox')} />
           <QuickAction icon={Plane} label="Départs" onClick={() => onJump('departures')} />
           <QuickAction icon={UsersIcon} label="Clients" onClick={() => onJump('clients')} />
