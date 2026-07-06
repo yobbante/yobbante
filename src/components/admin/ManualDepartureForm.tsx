@@ -404,19 +404,91 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
           {/* Section 2: Route */}
           <Section title="Route">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-1"><Label>Pays orig.</Label><Input value={originCountry} onChange={(e) => setOriginCountry(e.target.value)} placeholder="FR" maxLength={3} /></div>
-              <div className="col-span-2"><Label>Ville origine *</Label><Input value={originCity} onChange={(e) => setOriginCity(e.target.value)} placeholder="Paris" /></div>
-              <div className="col-span-1"><Label>Pays dest.</Label><Input value={destCountry} onChange={(e) => setDestCountry(e.target.value)} placeholder="SN" maxLength={3} /></div>
-              <div className="col-span-2"><Label>Ville destination *</Label><Input value={destCity} onChange={(e) => {
-                const v = e.target.value;
-                setDestCity(v);
-                // Auto-déduire le pays destination si vide
-                if (!destCountry.trim()) {
-                  const c = resolveCountryFromCity(v);
-                  if (c) setDestCountry(c);
-                }
-              }} placeholder="Paris" /></div>
+            <p className="text-[11px] text-muted-foreground">
+              Yobbanté opère uniquement entre Dakar et l'une des 36 villes (+ villes personnalisées).
+            </p>
+            <div>
+              <Label>Sens *</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Button
+                  type="button"
+                  variant={direction === 'from_dakar' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setDirection('from_dakar');
+                    setOriginCountry('SN'); setOriginCity('Dakar');
+                    const c = cityCatalog.find((x) => x.id === foreignCityId);
+                    setDestCountry(c?.country ?? ''); setDestCity(c?.city ?? '');
+                  }}
+                  className="justify-center"
+                >
+                  🇸🇳 Dakar → étranger
+                </Button>
+                <Button
+                  type="button"
+                  variant={direction === 'to_dakar' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setDirection('to_dakar');
+                    setDestCountry('SN'); setDestCity('Dakar');
+                    const c = cityCatalog.find((x) => x.id === foreignCityId);
+                    setOriginCountry(c?.country ?? ''); setOriginCity(c?.city ?? '');
+                  }}
+                  className="justify-center"
+                >
+                  étranger → Dakar 🇸🇳
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label>{direction === 'from_dakar' ? 'Ville de destination *' : 'Ville d\'origine *'}</Label>
+              <Select
+                value={foreignCityId}
+                onValueChange={(id) => {
+                  setForeignCityId(id);
+                  const c = cityCatalog.find((x) => x.id === id);
+                  if (!c) return;
+                  if (direction === 'from_dakar') {
+                    setDestCountry(c.country); setDestCity(c.city);
+                  } else {
+                    setOriginCountry(c.country); setOriginCity(c.city);
+                  }
+                  // Auto-remplir arrivée estimée si départ connu et arrivée vide
+                  if (departureDate && !arrivalEstimate) {
+                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, departureDate }));
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Choisir une ville…" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {cityCatalog.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.flag} {c.city} <span className="text-muted-foreground">· {c.countryLabel}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button
+                type="button"
+                className="mt-2 text-[11px] text-primary hover:underline"
+                onClick={async () => {
+                  const city = prompt('Nom de la ville à ajouter au catalogue ?')?.trim();
+                  if (!city) return;
+                  const code = prompt('Code pays ISO (2 lettres, ex: FR) ?')?.trim().toUpperCase();
+                  if (!code || code.length !== 2) { toast.error('Code pays invalide'); return; }
+                  const label = prompt('Nom du pays (ex: France) ?')?.trim();
+                  if (!label) return;
+                  try {
+                    const added = await addCustomCity({ city, country_code: code, country_label: label });
+                    setForeignCityId(added.id);
+                    if (direction === 'from_dakar') { setDestCountry(added.country); setDestCity(added.city); }
+                    else { setOriginCountry(added.country); setOriginCity(added.city); }
+                    toast.success(`Ville ajoutée : ${added.city}`);
+                  } catch (e: any) {
+                    toast.error(e?.message ?? 'Erreur');
+                  }
+                }}
+              >
+                + Ajouter une ville hors liste
+              </button>
             </div>
             <div>
               <Label>Mode de transport *</Label>
