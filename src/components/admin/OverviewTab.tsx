@@ -327,6 +327,15 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
               <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                 Gérer <ArrowUpRight className="w-3 h-3" />
               </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCreatingDeparture(true)}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                title="Nouveau départ"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </header>
             <div className="space-y-2.5">
               <DepartureBar label="Konnekt" value={depSummary.konnekt} total={Math.max(depSummary.total, 1)} tone="bg-[hsl(var(--success))]" />
