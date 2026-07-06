@@ -506,9 +506,32 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           {/* Section 3: Dates */}
           <Section title="Dates">
             <div className="grid grid-cols-2 gap-2">
-              <DateField label="Date de départ *" value={departureDate} onChange={setDepartureDate} />
+              <DateField
+                label="Date de départ *"
+                value={departureDate}
+                onChange={(d) => {
+                  setDepartureDate(d);
+                  // Auto-remplir arrivée si vide et destination connue
+                  if (d && !arrivalEstimate) {
+                    const country = direction === 'from_dakar' ? destCountry : 'SN';
+                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, departureDate: d }));
+                  }
+                }}
+              />
               <DateField label="Arrivée estimée" value={arrivalEstimate} onChange={setArrivalEstimate} />
             </div>
+            {departureDate && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                onClick={() => {
+                  const country = direction === 'from_dakar' ? destCountry : 'SN';
+                  setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, departureDate }));
+                }}
+              >
+                <Sparkles className="w-3 h-3" /> Recalculer l'arrivée estimée
+              </button>
+            )}
           </Section>
 
           {/* Section 4: Capacity */}
