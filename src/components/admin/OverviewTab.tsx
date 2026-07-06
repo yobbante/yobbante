@@ -487,6 +487,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           )}
         </div>
       </section>
+      <ManualDepartureForm
+        open={creatingDeparture}
+        departure={null}
+        onClose={() => setCreatingDeparture(false)}
+      />
     </div>
   );
 }
