@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -198,6 +198,13 @@ export default function DeparturesWeekPage() {
           <Button onClick={() => setCreating(true)} className="gap-2">
             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nouveau départ</span>
           </Button>
+          <Link
+            to="/admin/villes"
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-input text-sm hover:bg-secondary"
+            title="Gérer les villes personnalisées"
+          >
+            <Globe className="w-4 h-4" /> <span className="hidden sm:inline">Villes</span>
+          </Link>
           <Button onClick={() => setImportOpen(true)} variant="outline" className="gap-2">
             <MessageSquarePlus className="w-4 h-4" /> <span className="hidden sm:inline">Importer depuis WhatsApp</span>
           </Button>
