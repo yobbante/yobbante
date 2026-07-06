@@ -31,6 +31,7 @@ const TERMINAL = new Set(['DELIVERED', 'CLOSED', 'CANCELLED', 'delivered', 'canc
 
 /* ───────────────────────── component ─────────────────────── */
 export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
+  const [creatingDeparture, setCreatingDeparture] = useState(false);
   const { data: depSummary } = useDeparturesSummary();
 
   const { data, isLoading } = useQuery({
