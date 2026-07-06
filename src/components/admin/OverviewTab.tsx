@@ -1,15 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Inbox, Truck, ShoppingCart, ArrowUpRight, Plane, AlertTriangle,
   MessageSquare, Building2, CreditCard, Star, Package, PackageOpen,
-  TrendingUp, TrendingDown, Clock, Users as UsersIcon, ShieldAlert, Hourglass,
+  TrendingUp, TrendingDown, Clock, Users as UsersIcon, ShieldAlert, Hourglass, Plus,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
+import { ManualDepartureForm } from './ManualDepartureForm';
 import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
 import { MorningBrief } from './MorningBrief';
 import { FinancesKpis } from './FinancesKpis';
@@ -30,6 +31,7 @@ const TERMINAL = new Set(['DELIVERED', 'CLOSED', 'CANCELLED', 'delivered', 'canc
 
 /* ───────────────────────── component ─────────────────────── */
 export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
+  const [creatingDeparture, setCreatingDeparture] = useState(false);
   const { data: depSummary } = useDeparturesSummary();
 
   const { data, isLoading } = useQuery({
@@ -322,9 +324,18 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
                 <h2 className="text-sm font-semibold">Départs actifs</h2>
                 <span className="text-xs text-muted-foreground">· {depSummary.total} départ{depSummary.total > 1 ? 's' : ''}</span>
               </div>
-              <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-                Gérer <ArrowUpRight className="w-3 h-3" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCreatingDeparture(true)}
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                  title="Nouveau départ"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                  Gérer <ArrowUpRight className="w-3 h-3" />
+                </button>
+              </div>
             </header>
             <div className="space-y-2.5">
               <DepartureBar label="Konnekt" value={depSummary.konnekt} total={Math.max(depSummary.total, 1)} tone="bg-[hsl(var(--success))]" />
@@ -476,6 +487,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           )}
         </div>
       </section>
+      <ManualDepartureForm
+        open={creatingDeparture}
+        departure={null}
+        onClose={() => setCreatingDeparture(false)}
+      />
     </div>
   );
 }
