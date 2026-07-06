@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Inbox, Truck, ShoppingCart, ArrowUpRight, Plane, AlertTriangle,
   MessageSquare, Building2, CreditCard, Star, Package, PackageOpen,
-  TrendingUp, TrendingDown, Clock, Users as UsersIcon, ShieldAlert, Hourglass,
+  TrendingUp, TrendingDown, Clock, Users as UsersIcon, ShieldAlert, Hourglass, Plus,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
