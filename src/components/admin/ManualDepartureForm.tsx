@@ -418,6 +418,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                     setOriginCountry('SN'); setOriginCity('Dakar');
                     const c = cityCatalog.find((x) => x.id === foreignCityId);
                     setDestCountry(c?.country ?? ''); setDestCity(c?.city ?? '');
+                    // Recalcule l'arrivée si départ connu
+                    if (departureDate && c) {
+                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, departureDate }));
+                    }
                   }}
                   className="justify-center"
                 >
@@ -431,6 +435,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                     setDestCountry('SN'); setDestCity('Dakar');
                     const c = cityCatalog.find((x) => x.id === foreignCityId);
                     setOriginCountry(c?.country ?? ''); setOriginCity(c?.city ?? '');
+                    // Recalcule l'arrivée : destination = Dakar (SN)
+                    if (departureDate) {
+                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: 'SN', departureDate }));
+                    }
                   }}
                   className="justify-center"
                 >
@@ -466,29 +474,39 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   ))}
                 </SelectContent>
               </Select>
-              <button
-                type="button"
-                className="mt-2 text-[11px] text-primary hover:underline"
-                onClick={async () => {
-                  const city = prompt('Nom de la ville à ajouter au catalogue ?')?.trim();
-                  if (!city) return;
-                  const code = prompt('Code pays ISO (2 lettres, ex: FR) ?')?.trim().toUpperCase();
-                  if (!code || code.length !== 2) { toast.error('Code pays invalide'); return; }
-                  const label = prompt('Nom du pays (ex: France) ?')?.trim();
-                  if (!label) return;
-                  try {
-                    const added = await addCustomCity({ city, country_code: code, country_label: label });
-                    setForeignCityId(added.id);
-                    if (direction === 'from_dakar') { setDestCountry(added.country); setDestCity(added.city); }
-                    else { setOriginCountry(added.country); setOriginCity(added.city); }
-                    toast.success(`Ville ajoutée : ${added.city}`);
-                  } catch (e: any) {
-                    toast.error(e?.message ?? 'Erreur');
-                  }
-                }}
-              >
-                + Ajouter une ville hors liste
-              </button>
+              <div className="mt-2 flex items-center gap-3 text-[11px]">
+                <button
+                  type="button"
+                  className="text-primary hover:underline"
+                  onClick={async () => {
+                    const city = prompt('Nom de la ville à ajouter au catalogue ?')?.trim();
+                    if (!city) return;
+                    const code = prompt('Code pays ISO (2 lettres, ex: FR) ?')?.trim().toUpperCase();
+                    if (!code || code.length !== 2) { toast.error('Code pays invalide'); return; }
+                    const label = prompt('Nom du pays (ex: France) ?')?.trim();
+                    if (!label) return;
+                    try {
+                      const added = await addCustomCity({ city, country_code: code, country_label: label });
+                      setForeignCityId(added.id);
+                      if (direction === 'from_dakar') { setDestCountry(added.country); setDestCity(added.city); }
+                      else { setOriginCountry(added.country); setOriginCity(added.city); }
+                      toast.success(`Ville ajoutée : ${added.city}`);
+                    } catch (e: any) {
+                      toast.error(e?.message ?? 'Erreur');
+                    }
+                  }}
+                >
+                  + Ajouter une ville hors liste
+                </button>
+                <a
+                  href="/admin/villes"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  Gérer les villes →
+                </a>
+              </div>
             </div>
             <div>
               <Label>Mode de transport *</Label>
