@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
-  Tag, MapPin, CalendarDays, Building2,
+  Tag, MapPin, CalendarDays, Building2, Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,6 +87,7 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
   const isRelais = pathname.startsWith('/admin/relais');
   const isPartenaires = pathname.startsWith('/admin/parametres');
   const isDepartsSemaine = pathname.startsWith('/admin/departs-semaine');
+  const isVilles = pathname.startsWith('/admin/villes');
 
   const shortcutStyle = (active: boolean) => ({
     borderRadius: active ? 0 : 8,
@@ -227,6 +228,17 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
             >
               <CalendarDays className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 truncate">Départs de la semaine</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/villes')}
+              aria-current={isVilles ? 'page' : undefined}
+              className="group flex w-full items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors"
+              style={shortcutStyle(isVilles)}
+              onMouseEnter={hoverIn(isVilles)}
+              onMouseLeave={hoverOut(isVilles)}
+            >
+              <Globe className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 truncate">Villes personnalisées</span>
             </button>
             <button
               onClick={() => navigate('/admin/relais')}
