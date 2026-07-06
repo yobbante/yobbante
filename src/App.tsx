@@ -35,6 +35,7 @@ import ParametresPage from "./pages/admin/ParametresPage";
 import GuidePage from "./pages/admin/GuidePage";
 import FlyersPage from "./pages/admin/FlyersPage";
 import ForfaitsPage from "./pages/admin/ForfaitsPage";
+import CustomCitiesPage from "./pages/admin/CustomCitiesPage";
 import { AdminShell } from "@/components/admin/AdminShell";
 import SuivreEntry from "./pages/SuivreEntry";
 import AvisPage from "./pages/AvisPage";
@@ -126,6 +127,7 @@ const DekkRoutes = () => (
     <Route path="/admin/guide" element={<AdminShell><GuidePage /></AdminShell>} />
     <Route path="/admin/flyers" element={<AdminShell><FlyersPage /></AdminShell>} />
     <Route path="/admin/tarifs/forfaits" element={<AdminShell><ForfaitsPage /></AdminShell>} />
+    <Route path="/admin/villes" element={<AdminShell><CustomCitiesPage /></AdminShell>} />
     <Route path="/admin/:section" element={<AdminPage />} />
 
     {/* Pages légales mutualisées */}
@@ -191,6 +193,7 @@ const MainRoutes = () => (
     <Route path="/admin/guide" element={<AdminShell><GuidePage /></AdminShell>} />
     <Route path="/admin/flyers" element={<AdminShell><FlyersPage /></AdminShell>} />
     <Route path="/admin/tarifs/forfaits" element={<AdminShell><ForfaitsPage /></AdminShell>} />
+    <Route path="/admin/villes" element={<AdminShell><CustomCitiesPage /></AdminShell>} />
     <Route path="/admin/:section" element={<AdminPage />} />
     {/* Canonical tracking URL — /suivre redirects to /track */}
     <Route path="/suivre" element={<SuivreEntry />} />

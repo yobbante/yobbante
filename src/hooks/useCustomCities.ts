@@ -11,6 +11,11 @@ interface CustomCityRow {
   active: boolean;
 }
 
+export interface CustomCityAdmin extends CityOption {
+  rowId: string;
+  active: boolean;
+}
+
 const STATE: { list: CityOption[]; loaded: boolean; listeners: Set<() => void> } = {
   list: [],
   loaded: false,
@@ -65,6 +70,7 @@ export function useCustomCities() {
         country_code: opts.country_code.trim().toUpperCase().slice(0, 2),
         country_label: opts.country_label.trim(),
         flag: opts.flag?.trim() || '🏳️',
+        active: true,
       };
       if (!payload.city || !payload.country_code || !payload.country_label) {
         throw new Error('Ville, code pays et libellé pays sont obligatoires');
@@ -76,12 +82,36 @@ export function useCustomCities() {
         .single();
       if (error) throw error;
       await refresh();
-      return rowToOption(data as CustomCityRow);
+      return { ...rowToOption(data as CustomCityRow), rowId: (data as CustomCityRow).id };
     },
     [],
   );
 
-  return { cities: STATE.list, loaded: STATE.loaded, addCustomCity, refresh };
+  const deleteCustomCity = useCallback(async (rowId: string) => {
+    // Soft delete → keeps historical departures referencing the label safe.
+    const { error } = await supabase
+      .from('custom_cities')
+      .update({ active: false })
+      .eq('id', rowId);
+    if (error) throw error;
+    await refresh();
+  }, []);
+
+  const listAll = useCallback(async (): Promise<CustomCityAdmin[]> => {
+    const { data, error } = await supabase
+      .from('custom_cities')
+      .select('id, city, country_code, country_label, flag, active')
+      .order('active', { ascending: false })
+      .order('city', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+      ...rowToOption(r as CustomCityRow),
+      rowId: (r as CustomCityRow).id,
+      active: (r as CustomCityRow).active,
+    }));
+  }, []);
+
+  return { cities: STATE.list, loaded: STATE.loaded, addCustomCity, deleteCustomCity, listAll, refresh };
 }
 
 /** Lookup helper that searches both the static 36-city list and the custom list. */
