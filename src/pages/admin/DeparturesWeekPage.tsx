@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { CapacityBar } from '@/components/ui/capacity-bar';
 import { useQuery } from '@tanstack/react-query';
 import { Package } from 'lucide-react';
 import { WhatsAppImportDepartureDialog } from '@/components/admin/WhatsAppImportDepartureDialog';
+import { ManualDepartureForm } from '@/components/admin/ManualDepartureForm';
 
 const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
@@ -59,6 +60,7 @@ export default function DeparturesWeekPage() {
   const [exportFormat, setExportFormat] = useState<'square' | 'story' | null>(null);
   const [selected, setSelected] = useState<ManualDeparture | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Realtime — refetch on any change to manual_departures
@@ -193,18 +195,21 @@ export default function DeparturesWeekPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={() => setCreating(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nouveau départ</span>
+          </Button>
           <Button onClick={() => setImportOpen(true)} variant="outline" className="gap-2">
-            <MessageSquarePlus className="w-4 h-4" /> Importer depuis WhatsApp
+            <MessageSquarePlus className="w-4 h-4" /> <span className="hidden sm:inline">Importer depuis WhatsApp</span>
           </Button>
           <Button onClick={copyWhatsApp} variant="outline" className="gap-2" disabled={upcoming.length === 0}>
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            Copier texte WhatsApp
+            <span className="hidden sm:inline">Copier texte WhatsApp</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="gap-2" disabled={upcoming.length === 0 || exportFormat !== null}>
                 <ImageIcon className="w-4 h-4" />
-                {exportFormat ? 'Génération…' : 'Exporter image'}
+                <span className="hidden sm:inline">{exportFormat ? 'Génération…' : 'Exporter image'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -336,6 +341,11 @@ export default function DeparturesWeekPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         onCreated={() => qc.invalidateQueries({ queryKey: ['manual_departures'] })}
+      />
+      <ManualDepartureForm
+        open={creating}
+        departure={null}
+        onClose={() => setCreating(false)}
       />
     </div>
   );
