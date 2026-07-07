@@ -23,7 +23,7 @@ import {
 import { useTransporteurs, fetchTransporteurByRef, type Transporteur } from '@/hooks/useTransporteurs';
 import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
-import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateArrivalDate } from '@/lib/deliveryEta';
 import { uniqueCitiesFromNavettes } from '@/lib/dakarZones';
@@ -110,13 +110,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [tNotes, setTNotes] = useState('');
   const [edited, setEdited] = useState(false);
 
-  // Catalog: 36 predefined + custom cities. Dakar exclu (hub).
-  const fullCityCatalog = [...ALL_CITIES, ...customCities]
-    .filter((c) => c.id !== HUB_DAKAR.id)
+  // Catalog: uniquement les villes actives dans la base (table `custom_cities`).
+  // Les 36 villes historiques ont été seedées via migration ; l'admin peut
+  // activer/désactiver/ajouter des villes depuis /admin/villes.
+  const fullCityCatalog = [...customCities]
+    .filter((c) => c.city.toLowerCase() !== 'dakar') // hub exclu
     .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
 
   // Si un GP est identifié et a des villes desservies (via navettes),
-  // restreindre le sélecteur à ces villes. Sinon, catalogue complet.
+  // restreindre le sélecteur à ces villes. Sinon, catalogue DB complet.
   const gpCities = uniqueCitiesFromNavettes(matched?.navettes);
   const gpCityKeys = new Set(gpCities.map((c) => c.toLowerCase()));
   const cityCatalog =
@@ -125,17 +127,20 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       : fullCityCatalog;
 
 
-  // Snapshot values when matched, to detect edits
+  // Snapshot values when matched, to detect edits.
+  // NOTE: every setter is null-guarded — historical transporteur rows can have
+  // NULL values on any string field, and later `.trim()` calls would crash with
+  // "null is not an object (evaluating 'x.trim')".
   function applyTransporteur(t: Transporteur | null) {
     setMatched(t);
     setEdited(false);
     if (t) {
-      setTNom(t.nom);
-      setTTel1(t.telephone_1);
+      setTNom(t.nom ?? '');
+      setTTel1(t.telephone_1 ?? '');
       setTTel2(t.telephone_2 ?? '');
-      setTAdr1(t.adresse_1);
+      setTAdr1(t.adresse_1 ?? '');
       setTAdr2(t.adresse_2 ?? '');
-      setTVille(t.ville);
+      setTVille(t.ville ?? 'Dakar');
       setTZone(t.zone ?? '');
       setTNotes(t.notes ?? '');
     } else {
@@ -153,13 +158,14 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
     if (!open) return;
     if (departure) {
       setOriginCountry(departure.origin_country ?? '');
-      setOriginCity(departure.origin_city);
+      setOriginCity(departure.origin_city ?? '');
       setDestCountry(departure.destination_country ?? '');
-      setDestCity(departure.destination_city);
-      // Derive direction from cities
-      const isFromDakar = departure.origin_city.toLowerCase() === 'dakar';
+      setDestCity(departure.destination_city ?? '');
+      // Derive direction from cities (null-safe)
+      const originLower = (departure.origin_city ?? '').toLowerCase();
+      const isFromDakar = originLower === 'dakar';
       setDirection(isFromDakar ? 'from_dakar' : 'to_dakar');
-      const foreignCity = isFromDakar ? departure.destination_city : departure.origin_city;
+      const foreignCity = (isFromDakar ? departure.destination_city : departure.origin_city) ?? '';
       const foreignCountry = isFromDakar ? departure.destination_country : departure.origin_country;
       const match = [...ALL_CITIES, ...customCities].find(
         (c) => c.city.toLowerCase() === foreignCity.toLowerCase() && (!foreignCountry || c.country === foreignCountry),
@@ -348,7 +354,27 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
       }
 
-      onClose();
+      // Feature: après publication d'un NOUVEAU départ, on garde la fiche ouverte
+      // et on remet à zéro pour saisir un autre départ immédiatement.
+      if (!isEdit && publish) {
+        setTRef(''); setMatched(null); setEdited(false);
+        setTNom(''); setTTel1(''); setTTel2('');
+        setTAdr1(''); setTAdr2('');
+        setTVille('Dakar'); setTZone(''); setTNotes('');
+        setForeignCityId('');
+        setOriginCountry('SN'); setOriginCity('Dakar');
+        setDestCountry(''); setDestCity('');
+        setDirection('from_dakar');
+        setMode('air');
+        setDepartureDate(undefined);
+        setArrivalEstimate(undefined);
+        setUseFixedPrice(false); setPriceOverride('');
+        setNotes('');
+        // Ne pas fermer — l'admin peut enchaîner un autre départ.
+        toast.info('Fiche prête pour un nouveau départ.');
+      } else {
+        onClose();
+      }
     } catch (e: any) {
       toast.error(e.message ?? 'Erreur');
     } finally {
