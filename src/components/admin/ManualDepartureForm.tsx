@@ -66,10 +66,10 @@ interface Props {
 }
 
 const Schema = z.object({
-  origin_city: z.string().trim().min(2, 'Origine requise'),
-  destination_city: z.string().trim().min(2, 'Destination requise'),
-  transport_mode: z.enum(['air', 'sea_lcl', 'road']),
-  departure_date: z.string().min(1, 'Date de départ requise'),
+  origin_city: z.string().optional(),
+  destination_city: z.string().optional(),
+  transport_mode: z.enum(['air', 'sea_lcl', 'road']).optional(),
+  departure_date: z.string().optional(),
 });
 
 const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Touba', 'Autre'];
@@ -240,22 +240,19 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
 
   async function save(publish: boolean) {
-    // Transporter validation
-    if (!/^[0-9]{4}$/.test(tRef)) {
-      toast.error('Référence transporteur : 4 chiffres requis');
-      return;
-    }
-    if (!tNom.trim() || !tTel1.trim() || !tAdr1.trim() || !tVille.trim()) {
-      toast.error('Champs transporteur requis : Nom, Téléphone principal, Adresse, Ville');
-      return;
-    }
-
     const finalStatus: DepartureStatus = 'active';
+
+    // Fallbacks so the admin can save without filling anything.
+    const today = new Date();
+    const safeDepartureDate = departureDate ?? today;
+    const safeOriginCity = originCity.trim() || 'Dakar';
+    const safeDestCity = destCity.trim() || 'Dakar';
+
     const payload = {
-      origin_city: originCity.trim(),
-      destination_city: destCity.trim(),
+      origin_city: safeOriginCity,
+      destination_city: safeDestCity,
       transport_mode: mode,
-      departure_date: departureDate ? format(departureDate, 'yyyy-MM-dd') : '',
+      departure_date: format(safeDepartureDate, 'yyyy-MM-dd'),
     };
     const parsed = Schema.safeParse(payload);
     if (!parsed.success) {
@@ -265,29 +262,32 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
     setSubmitting(true);
     try {
-      // 1) Upsert transporteur
-      const wasNew = !matched;
-      const wasEdited = matched && edited;
-      await upsertTransporteur.mutateAsync({
-        reference: tRef,
-        nom: tNom.trim(),
-        telephone_1: tTel1.trim(),
-        telephone_2: tTel2.trim() || null,
-        adresse_1: tAdr1.trim(),
-        adresse_2: tAdr2.trim() || null,
-        ville: tVille.trim(),
-        zone: tZone.trim() || null,
-        notes: tNotes.trim() || null,
-      });
+      // 1) Upsert transporteur only if a reference is provided
+      const hasTransporter = /^[0-9]{4}$/.test(tRef);
+      const wasNew = hasTransporter && !matched;
+      const wasEdited = hasTransporter && matched && edited;
+      if (hasTransporter) {
+        await upsertTransporteur.mutateAsync({
+          reference: tRef,
+          nom: tNom.trim() || '',
+          telephone_1: tTel1.trim() || '',
+          telephone_2: tTel2.trim() || null,
+          adresse_1: tAdr1.trim() || '',
+          adresse_2: tAdr2.trim() || null,
+          ville: tVille.trim() || 'Dakar',
+          zone: tZone.trim() || null,
+          notes: tNotes.trim() || null,
+        });
+      }
 
       // 2) Save departure
       const input: ManualDepartureInput = {
         origin_country: originCountry.trim() || null,
-        origin_city: originCity.trim(),
+        origin_city: safeOriginCity,
         destination_country: destCountry.trim() || null,
-        destination_city: destCity.trim(),
+        destination_city: safeDestCity,
         transport_mode: mode,
-        departure_date: format(departureDate!, 'yyyy-MM-dd'),
+        departure_date: format(safeDepartureDate, 'yyyy-MM-dd'),
         arrival_estimate: arrivalEstimate ? format(arrivalEstimate, 'yyyy-MM-dd') : null,
         total_capacity_kg: DEFAULT_CAPACITY_KG,
         available_capacity_kg: DEFAULT_CAPACITY_KG,
@@ -296,7 +296,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         carrier_contact: tTel1.trim() || null,
         notes: notes.trim() || null,
         status: finalStatus,
-        transporteur_ref: tRef,
+        transporteur_ref: hasTransporter ? tRef : null,
       };
 
       let savedDeparture: ManualDeparture;
@@ -306,41 +306,43 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         savedDeparture = await create.mutateAsync(input);
       }
 
-      // 3) Fire-and-forget WhatsApp notification
-      const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
-      const dossierRef = `MAN-${savedDeparture.id.slice(0, 8).toUpperCase()}`;
-      try {
-        const { data: notifyData } = await supabase.functions.invoke('notify-transporter', {
-          body: {
-            transporteur_ref: tRef,
-            telephone: tTel1.trim(),
-            prenom,
-            dossierRef,
-            collecteAddress: tAdr1.trim(),
-            destinationCity: destCity.trim(),
-            dateDepart: format(departureDate!, 'dd/MM/yyyy'),
-            poids: DEFAULT_CAPACITY_KG,
-          },
-        });
-        if (notifyData && notifyData.sent === false) {
+      // 3) Fire-and-forget WhatsApp notification only when transporter info exists
+      if (hasTransporter && tTel1.trim() && tNom.trim()) {
+        const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
+        const dossierRef = `MAN-${savedDeparture.id.slice(0, 8).toUpperCase()}`;
+        try {
+          const { data: notifyData } = await supabase.functions.invoke('notify-transporter', {
+            body: {
+              transporteur_ref: tRef,
+              telephone: tTel1.trim(),
+              prenom,
+              dossierRef,
+              collecteAddress: tAdr1.trim(),
+              destinationCity: destCity.trim() || safeDestCity,
+              dateDepart: format(safeDepartureDate, 'dd/MM/yyyy'),
+              poids: DEFAULT_CAPACITY_KG,
+            },
+          });
+          if (notifyData && notifyData.sent === false) {
+            toast.warning(
+              `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+              { duration: 8000 },
+            );
+          }
+        } catch {
           toast.warning(
             `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
             { duration: 8000 },
           );
         }
-      } catch {
-        toast.warning(
-          `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
-          { duration: 8000 },
-        );
       }
 
       // 4) Confirmation feedback
-      if (wasNew) {
+      if (hasTransporter && wasNew) {
         toast.success(
           `Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
         );
-      } else if (wasEdited) {
+      } else if (hasTransporter && wasEdited) {
         toast.success(`Infos transporteur Réf. ${tRef} mises à jour.`);
       } else {
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
@@ -381,11 +383,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 </p>
               )}
               <div>
-                <Label>Nom / Prénom *</Label>
+                <Label>Nom / Prénom</Label>
                 <Input value={tNom} onChange={(e) => { setTNom(e.target.value); markEditedIf(matched?.nom, e.target.value); }} placeholder="Ibrahima Fall" />
               </div>
               <div>
-                <Label>Téléphone principal *</Label>
+                <Label>Téléphone principal</Label>
                 <Input value={tTel1} onChange={(e) => { setTTel1(e.target.value); markEditedIf(matched?.telephone_1, e.target.value); }} placeholder="+221 77 ..." />
                 <p className="text-[11px] text-muted-foreground mt-1">Utilisé pour la notification WhatsApp automatique</p>
               </div>
@@ -394,7 +396,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <Input value={tTel2} onChange={(e) => { setTTel2(e.target.value); markEditedIf(matched?.telephone_2, e.target.value); }} placeholder="+221 76 ..." />
               </div>
               <div>
-                <Label>Adresse principale *</Label>
+                <Label>Adresse principale</Label>
                 <Input value={tAdr1} onChange={(e) => { setTAdr1(e.target.value); markEditedIf(matched?.adresse_1, e.target.value); }} placeholder="Liberté 6, Dakar" />
               </div>
               <div>
@@ -402,7 +404,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <Input value={tAdr2} onChange={(e) => { setTAdr2(e.target.value); markEditedIf(matched?.adresse_2, e.target.value); }} placeholder="Point de dépôt habituel" />
               </div>
               <div>
-                <Label>Ville *</Label>
+                <Label>Ville</Label>
                 <Select value={tVille} onValueChange={(v) => { setTVille(v); markEditedIf(matched?.ville, v); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -427,7 +429,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               Yobbanté opère uniquement entre Dakar et l'une des 36 villes (+ villes personnalisées).
             </p>
             <div>
-              <Label>Sens *</Label>
+              <Label>Sens</Label>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <Button
                   type="button"
@@ -466,7 +468,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </div>
             </div>
             <div>
-              <Label>{direction === 'from_dakar' ? 'Ville de destination *' : 'Ville d\'origine *'}</Label>
+              <Label>{direction === 'from_dakar' ? 'Ville de destination' : "Ville d'origine"}</Label>
               <Select
                 value={foreignCityId}
                 onValueChange={(id) => {
@@ -533,7 +535,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </div>
             </div>
             <div>
-              <Label>Mode de transport *</Label>
+              <Label>Mode de transport</Label>
               <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -549,7 +551,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           <Section title="Dates">
             <div className="grid grid-cols-2 gap-2">
               <DateField
-                label="Date de départ *"
+                label="Date de départ"
                 value={departureDate}
                 onChange={(d) => {
                   setDepartureDate(d);
