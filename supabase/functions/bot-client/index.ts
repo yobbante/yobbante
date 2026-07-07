@@ -2013,8 +2013,14 @@ Deno.serve(async (req) => {
         );
         if (showFullWelcome) {
           try {
-            await saveSession(supa, phone, session?.pending_intent ?? null, {
-              ...pdNow,
+            // BUG FIX: re-read session (it may have been cleared by the flow above,
+            // e.g. after a completed devis). Using the stale `session` variable here
+            // would resurrect a completed pending_intent (e.g. quote_weight) and
+            // trap the next user message in the wrong branch (see 221781221891 audit).
+            const { session: freshSession } = await getSession(supa, phone);
+            const freshPd = (freshSession?.pending_data ?? {}) as Record<string, any>;
+            await saveSession(supa, phone, freshSession?.pending_intent ?? null, {
+              ...freshPd,
               last_welcome_at: new Date().toISOString(),
             });
           } catch (_) { /* noop */ }
