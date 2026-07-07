@@ -383,11 +383,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 </p>
               )}
               <div>
-                <Label>Nom / Prénom *</Label>
+                <Label>Nom / Prénom</Label>
                 <Input value={tNom} onChange={(e) => { setTNom(e.target.value); markEditedIf(matched?.nom, e.target.value); }} placeholder="Ibrahima Fall" />
               </div>
               <div>
-                <Label>Téléphone principal *</Label>
+                <Label>Téléphone principal</Label>
                 <Input value={tTel1} onChange={(e) => { setTTel1(e.target.value); markEditedIf(matched?.telephone_1, e.target.value); }} placeholder="+221 77 ..." />
                 <p className="text-[11px] text-muted-foreground mt-1">Utilisé pour la notification WhatsApp automatique</p>
               </div>
@@ -396,7 +396,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <Input value={tTel2} onChange={(e) => { setTTel2(e.target.value); markEditedIf(matched?.telephone_2, e.target.value); }} placeholder="+221 76 ..." />
               </div>
               <div>
-                <Label>Adresse principale *</Label>
+                <Label>Adresse principale</Label>
                 <Input value={tAdr1} onChange={(e) => { setTAdr1(e.target.value); markEditedIf(matched?.adresse_1, e.target.value); }} placeholder="Liberté 6, Dakar" />
               </div>
               <div>
@@ -404,7 +404,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <Input value={tAdr2} onChange={(e) => { setTAdr2(e.target.value); markEditedIf(matched?.adresse_2, e.target.value); }} placeholder="Point de dépôt habituel" />
               </div>
               <div>
-                <Label>Ville *</Label>
+                <Label>Ville</Label>
                 <Select value={tVille} onValueChange={(v) => { setTVille(v); markEditedIf(matched?.ville, v); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
