@@ -167,7 +167,11 @@ Deno.serve(async (req) => {
 
   // SAFETY: si un numero "client" appartient en fait a un GP (numero present dans les deux tables),
   // forcer le routage GP → 926. Toute notif GP doit partir du 926, jamais du 607.
-  if (recipientType === 'client') {
+  // EXCEPTION: les reponses de bot-client (canal 607) et les envois avec channel=client explicite
+  // doivent TOUJOURS rester sur la ligne client, sinon Meta bloque avec 131047 (24h window).
+  const trigger = (body.trigger_type ?? '').toLowerCase();
+  const isBotClientReply = trigger.startsWith('bot_client_') || (body as any).channel === 'client';
+  if (recipientType === 'client' && !isBotClientReply) {
     try {
       const tail = recipient.slice(-9);
       const { data: gpHit } = await supa
@@ -184,6 +188,8 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error('WA_ROUTE gp lookup failed', e instanceof Error ? e.message : String(e));
     }
+  } else if (recipientType === 'client' && isBotClientReply) {
+    console.log('WA_ROUTE keep client for bot_client reply', recipient.slice(-4), trigger);
   }
 
   const resolved = resolvePhoneId(recipientType);
