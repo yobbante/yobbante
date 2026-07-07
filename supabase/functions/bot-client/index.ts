@@ -745,11 +745,15 @@ const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam
 const BACK_TO_MENU = /^(0|menu|retour|annuler|\?)$/;
 
 // Append interactive menu list (5 options) after info replies.
+// The interactive list itself renders the reply as body text, so we only need
+// to add the UI_MENU sentinel — repeating MAIN_MENU_TEXT here duplicates any
+// greeting already in the reply (e.g. "Salam Yobbanté ! ..." then
+// "Bonjour ! Je suis l'assistant Yobbanté ..."). See 1891 audit.
 function withShortMenu(reply: string): string {
-  return `${reply}\n\n${SHORT_MENU_TEXT}\n${UI_MENU}`;
+  return `${reply}\n${UI_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\n${MAIN_MENU_TEXT}\n${UI_MENU}`;
+  return `${reply}\n${UI_MENU}`;
 }
 // Used while a session attend une saisie precise (tracking, poids, etc.)
 function withBack(reply: string): string {
