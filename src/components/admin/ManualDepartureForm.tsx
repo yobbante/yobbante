@@ -306,41 +306,43 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         savedDeparture = await create.mutateAsync(input);
       }
 
-      // 3) Fire-and-forget WhatsApp notification
-      const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
-      const dossierRef = `MAN-${savedDeparture.id.slice(0, 8).toUpperCase()}`;
-      try {
-        const { data: notifyData } = await supabase.functions.invoke('notify-transporter', {
-          body: {
-            transporteur_ref: tRef,
-            telephone: tTel1.trim(),
-            prenom,
-            dossierRef,
-            collecteAddress: tAdr1.trim(),
-            destinationCity: destCity.trim(),
-            dateDepart: format(departureDate!, 'dd/MM/yyyy'),
-            poids: DEFAULT_CAPACITY_KG,
-          },
-        });
-        if (notifyData && notifyData.sent === false) {
+      // 3) Fire-and-forget WhatsApp notification only when transporter info exists
+      if (hasTransporter && tTel1.trim() && tNom.trim()) {
+        const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
+        const dossierRef = `MAN-${savedDeparture.id.slice(0, 8).toUpperCase()}`;
+        try {
+          const { data: notifyData } = await supabase.functions.invoke('notify-transporter', {
+            body: {
+              transporteur_ref: tRef,
+              telephone: tTel1.trim(),
+              prenom,
+              dossierRef,
+              collecteAddress: tAdr1.trim(),
+              destinationCity: destCity.trim() || safeDestCity,
+              dateDepart: format(safeDepartureDate, 'dd/MM/yyyy'),
+              poids: DEFAULT_CAPACITY_KG,
+            },
+          });
+          if (notifyData && notifyData.sent === false) {
+            toast.warning(
+              `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
+              { duration: 8000 },
+            );
+          }
+        } catch {
           toast.warning(
             `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
             { duration: 8000 },
           );
         }
-      } catch {
-        toast.warning(
-          `Notification WhatsApp non envoyée. Contact manuel : ${tTel1}${tTel2 ? ' · ' + tTel2 : ''}`,
-          { duration: 8000 },
-        );
       }
 
       // 4) Confirmation feedback
-      if (wasNew) {
+      if (hasTransporter && wasNew) {
         toast.success(
           `Transporteur Réf. ${tRef} enregistré. Il sera pré-rempli automatiquement à votre prochain départ.`,
         );
-      } else if (wasEdited) {
+      } else if (hasTransporter && wasEdited) {
         toast.success(`Infos transporteur Réf. ${tRef} mises à jour.`);
       } else {
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
