@@ -125,17 +125,20 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       : fullCityCatalog;
 
 
-  // Snapshot values when matched, to detect edits
+  // Snapshot values when matched, to detect edits.
+  // NOTE: every setter is null-guarded — historical transporteur rows can have
+  // NULL values on any string field, and later `.trim()` calls would crash with
+  // "null is not an object (evaluating 'x.trim')".
   function applyTransporteur(t: Transporteur | null) {
     setMatched(t);
     setEdited(false);
     if (t) {
-      setTNom(t.nom);
-      setTTel1(t.telephone_1);
+      setTNom(t.nom ?? '');
+      setTTel1(t.telephone_1 ?? '');
       setTTel2(t.telephone_2 ?? '');
-      setTAdr1(t.adresse_1);
+      setTAdr1(t.adresse_1 ?? '');
       setTAdr2(t.adresse_2 ?? '');
-      setTVille(t.ville);
+      setTVille(t.ville ?? 'Dakar');
       setTZone(t.zone ?? '');
       setTNotes(t.notes ?? '');
     } else {
