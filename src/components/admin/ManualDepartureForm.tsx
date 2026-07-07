@@ -66,10 +66,10 @@ interface Props {
 }
 
 const Schema = z.object({
-  origin_city: z.string().trim().min(2, 'Origine requise'),
-  destination_city: z.string().trim().min(2, 'Destination requise'),
-  transport_mode: z.enum(['air', 'sea_lcl', 'road']),
-  departure_date: z.string().min(1, 'Date de départ requise'),
+  origin_city: z.string().optional(),
+  destination_city: z.string().optional(),
+  transport_mode: z.enum(['air', 'sea_lcl', 'road']).optional(),
+  departure_date: z.string().optional(),
 });
 
 const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Touba', 'Autre'];
