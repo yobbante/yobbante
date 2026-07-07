@@ -269,10 +269,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       if (hasTransporter) {
         await upsertTransporteur.mutateAsync({
           reference: tRef,
-          nom: tNom.trim() || null,
-          telephone_1: tTel1.trim() || null,
+          nom: tNom.trim() || '',
+          telephone_1: tTel1.trim() || '',
           telephone_2: tTel2.trim() || null,
-          adresse_1: tAdr1.trim() || null,
+          adresse_1: tAdr1.trim() || '',
           adresse_2: tAdr2.trim() || null,
           ville: tVille.trim() || 'Dakar',
           zone: tZone.trim() || null,
