@@ -240,22 +240,19 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
 
   async function save(publish: boolean) {
-    // Transporter validation
-    if (!/^[0-9]{4}$/.test(tRef)) {
-      toast.error('Référence transporteur : 4 chiffres requis');
-      return;
-    }
-    if (!tNom.trim() || !tTel1.trim() || !tAdr1.trim() || !tVille.trim()) {
-      toast.error('Champs transporteur requis : Nom, Téléphone principal, Adresse, Ville');
-      return;
-    }
-
     const finalStatus: DepartureStatus = 'active';
+
+    // Fallbacks so the admin can save without filling anything.
+    const today = new Date();
+    const safeDepartureDate = departureDate ?? today;
+    const safeOriginCity = originCity.trim() || 'Dakar';
+    const safeDestCity = destCity.trim() || 'Dakar';
+
     const payload = {
-      origin_city: originCity.trim(),
-      destination_city: destCity.trim(),
+      origin_city: safeOriginCity,
+      destination_city: safeDestCity,
       transport_mode: mode,
-      departure_date: departureDate ? format(departureDate, 'yyyy-MM-dd') : '',
+      departure_date: format(safeDepartureDate, 'yyyy-MM-dd'),
     };
     const parsed = Schema.safeParse(payload);
     if (!parsed.success) {
