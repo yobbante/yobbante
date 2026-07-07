@@ -468,7 +468,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </div>
             </div>
             <div>
-              <Label>{direction === 'from_dakar' ? 'Ville de destination *' : 'Ville d\'origine *'}</Label>
+              <Label>{direction === 'from_dakar' ? 'Ville de destination' : "Ville d'origine"}</Label>
               <Select
                 value={foreignCityId}
                 onValueChange={(id) => {
