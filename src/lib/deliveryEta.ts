@@ -1,33 +1,33 @@
-// Estimation de la date d'arrivée par pays (jours calendaires depuis le départ).
-// Valeurs indicatives — toujours afficher "(estimation)" à côté de la date.
+// Estimation de la date d'arrivée par continent (jours calendaires depuis le départ).
+// Règles Yobbanté :
+//   - Paris (FR) : J+1
+//   - Reste Europe : J+2
+//   - Amériques : J+3
+//   - Afrique : J+1
+//   - Asie / Moyen-Orient : J+4
 
-const DELAI_PAR_PAYS: Record<string, number> = {
-  // Europe Schengen
-  FR: 5, BE: 5, ES: 5, IT: 5, DE: 5, NL: 5, PT: 5, CH: 5, LU: 5, AT: 5,
-  // UK & Irlande
-  GB: 6, IE: 6,
-  // Amérique du Nord
-  US: 8, CA: 8,
-  // Afrique de l'Ouest
-  SN: 1, ML: 3, CI: 3, BF: 3, GN: 3, GW: 3, MR: 3, GM: 3, NE: 4, TG: 4, BJ: 4,
-  // Moyen-Orient
-  AE: 7, SA: 7, QA: 7, KW: 7, BH: 7, OM: 7, TR: 7,
-  // Asie
-  CN: 10, HK: 10, JP: 10, KR: 10, SG: 10, MY: 10, TH: 10, IN: 10, VN: 10, ID: 10,
-  // Maghreb
-  MA: 4, DZ: 4, TN: 4,
-};
+const EUROPE = new Set(['FR', 'BE', 'ES', 'IT', 'DE', 'NL', 'PT', 'CH', 'LU', 'AT', 'GB', 'IE']);
+const AMERICAS = new Set(['US', 'CA', 'MX', 'BR', 'AR', 'CL', 'CO', 'PE']);
+const AFRICA = new Set(['SN', 'ML', 'CI', 'BF', 'GN', 'GW', 'MR', 'GM', 'NE', 'TG', 'BJ', 'MA', 'DZ', 'TN', 'CM', 'GA', 'CD', 'CG', 'NG', 'GH']);
+const ASIA_ME = new Set(['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'TR', 'CN', 'HK', 'JP', 'KR', 'SG', 'MY', 'TH', 'IN', 'VN', 'ID', 'PH']);
 
-export function getDelaiJours(country?: string | null): number {
-  if (!country) return 7;
-  return DELAI_PAR_PAYS[country.toUpperCase()] ?? 7;
+export function getDelaiJours(country?: string | null, city?: string | null): number {
+  const c = (country ?? '').toUpperCase();
+  const v = (city ?? '').trim().toLowerCase();
+  if (c === 'FR' && v === 'paris') return 1;
+  if (EUROPE.has(c)) return 2;
+  if (AMERICAS.has(c)) return 3;
+  if (AFRICA.has(c)) return 1;
+  if (ASIA_ME.has(c)) return 4;
+  return 3;
 }
 
 export function estimateArrivalDate(opts: {
   destinationCountry?: string | null;
+  destinationCity?: string | null;
   departureDate?: string | Date | null;
 }): Date {
-  const days = getDelaiJours(opts.destinationCountry);
+  const days = getDelaiJours(opts.destinationCountry, opts.destinationCity);
   const base = opts.departureDate ? new Date(opts.departureDate) : new Date();
   if (isNaN(base.getTime())) return new Date(Date.now() + days * 86400000);
   const d = new Date(base);
