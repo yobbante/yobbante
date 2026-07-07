@@ -262,29 +262,32 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
     setSubmitting(true);
     try {
-      // 1) Upsert transporteur
-      const wasNew = !matched;
-      const wasEdited = matched && edited;
-      await upsertTransporteur.mutateAsync({
-        reference: tRef,
-        nom: tNom.trim(),
-        telephone_1: tTel1.trim(),
-        telephone_2: tTel2.trim() || null,
-        adresse_1: tAdr1.trim(),
-        adresse_2: tAdr2.trim() || null,
-        ville: tVille.trim(),
-        zone: tZone.trim() || null,
-        notes: tNotes.trim() || null,
-      });
+      // 1) Upsert transporteur only if a reference is provided
+      const hasTransporter = /^[0-9]{4}$/.test(tRef);
+      const wasNew = hasTransporter && !matched;
+      const wasEdited = hasTransporter && matched && edited;
+      if (hasTransporter) {
+        await upsertTransporteur.mutateAsync({
+          reference: tRef,
+          nom: tNom.trim() || null,
+          telephone_1: tTel1.trim() || null,
+          telephone_2: tTel2.trim() || null,
+          adresse_1: tAdr1.trim() || null,
+          adresse_2: tAdr2.trim() || null,
+          ville: tVille.trim() || 'Dakar',
+          zone: tZone.trim() || null,
+          notes: tNotes.trim() || null,
+        });
+      }
 
       // 2) Save departure
       const input: ManualDepartureInput = {
         origin_country: originCountry.trim() || null,
-        origin_city: originCity.trim(),
+        origin_city: safeOriginCity,
         destination_country: destCountry.trim() || null,
-        destination_city: destCity.trim(),
+        destination_city: safeDestCity,
         transport_mode: mode,
-        departure_date: format(departureDate!, 'yyyy-MM-dd'),
+        departure_date: format(safeDepartureDate, 'yyyy-MM-dd'),
         arrival_estimate: arrivalEstimate ? format(arrivalEstimate, 'yyyy-MM-dd') : null,
         total_capacity_kg: DEFAULT_CAPACITY_KG,
         available_capacity_kg: DEFAULT_CAPACITY_KG,
@@ -293,7 +296,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         carrier_contact: tTel1.trim() || null,
         notes: notes.trim() || null,
         status: finalStatus,
-        transporteur_ref: tRef,
+        transporteur_ref: hasTransporter ? tRef : null,
       };
 
       let savedDeparture: ManualDeparture;
