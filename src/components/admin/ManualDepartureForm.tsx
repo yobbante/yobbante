@@ -551,7 +551,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           <Section title="Dates">
             <div className="grid grid-cols-2 gap-2">
               <DateField
-                label="Date de départ *"
+                label="Date de départ"
                 value={departureDate}
                 onChange={(d) => {
                   setDepartureDate(d);
