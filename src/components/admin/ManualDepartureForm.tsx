@@ -352,7 +352,27 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         toast.success(isEdit ? 'Départ mis à jour' : (publish ? 'Départ publié' : 'Brouillon enregistré'));
       }
 
-      onClose();
+      // Feature: après publication d'un NOUVEAU départ, on garde la fiche ouverte
+      // et on remet à zéro pour saisir un autre départ immédiatement.
+      if (!isEdit && publish) {
+        setTRef(''); setMatched(null); setEdited(false);
+        setTNom(''); setTTel1(''); setTTel2('');
+        setTAdr1(''); setTAdr2('');
+        setTVille('Dakar'); setTZone(''); setTNotes('');
+        setForeignCityId('');
+        setOriginCountry('SN'); setOriginCity('Dakar');
+        setDestCountry(''); setDestCity('');
+        setDirection('from_dakar');
+        setMode('air');
+        setDepartureDate(undefined);
+        setArrivalEstimate(undefined);
+        setUseFixedPrice(false); setPriceOverride('');
+        setNotes('');
+        // Ne pas fermer — l'admin peut enchaîner un autre départ.
+        toast.info('Fiche prête pour un nouveau départ.');
+      } else {
+        onClose();
+      }
     } catch (e: any) {
       toast.error(e.message ?? 'Erreur');
     } finally {
