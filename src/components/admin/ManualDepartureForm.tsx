@@ -26,8 +26,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateArrivalDate } from '@/lib/deliveryEta';
+import { uniqueCitiesFromNavettes } from '@/lib/dakarZones';
 import { cn } from '@/lib/utils';
 import { Sparkles } from 'lucide-react';
+
+/** Yobbanté fixe la capacité par GP à 25 kg. */
+const DEFAULT_CAPACITY_KG = 25;
 
 /** CORRECTION #4 — Auto-resolve country ISO from a city name (best-effort). */
 function resolveCountryFromCity(city: string | null | undefined): string {
@@ -66,11 +70,6 @@ const Schema = z.object({
   destination_city: z.string().trim().min(2, 'Destination requise'),
   transport_mode: z.enum(['air', 'sea_lcl', 'road']),
   departure_date: z.string().min(1, 'Date de départ requise'),
-  total_capacity_kg: z.number().int().min(0),
-  available_capacity_kg: z.number().int().min(0),
-}).refine(d => d.available_capacity_kg <= d.total_capacity_kg, {
-  message: 'La capacité disponible ne peut pas dépasser la capacité totale',
-  path: ['available_capacity_kg'],
 });
 
 const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Touba', 'Autre'];
@@ -80,11 +79,6 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const { upsert: upsertTransporteur } = useTransporteurs();
   const { cities: customCities, addCustomCity } = useCustomCities();
   const isEdit = !!departure;
-
-  // Merged catalog: 36 predefined + admin-added custom cities. Dakar exclu (hub).
-  const cityCatalog = [...ALL_CITIES, ...customCities]
-    .filter((c) => c.id !== HUB_DAKAR.id)
-    .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
 
   // Direction: Dakar ↔ ville étrangère
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
@@ -98,12 +92,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [mode, setMode] = useState<TransportMode>('air');
   const [departureDate, setDepartureDate] = useState<Date | undefined>();
   const [arrivalEstimate, setArrivalEstimate] = useState<Date | undefined>();
-  const [totalCapacity, setTotalCapacity] = useState(0);
-  const [availableCapacity, setAvailableCapacity] = useState(0);
   const [useFixedPrice, setUseFixedPrice] = useState(false);
   const [priceOverride, setPriceOverride] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState<DepartureStatus>('draft');
   const [submitting, setSubmitting] = useState(false);
 
   // Transporter fields
@@ -118,6 +109,21 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [tZone, setTZone] = useState('');
   const [tNotes, setTNotes] = useState('');
   const [edited, setEdited] = useState(false);
+
+  // Catalog: 36 predefined + custom cities. Dakar exclu (hub).
+  const fullCityCatalog = [...ALL_CITIES, ...customCities]
+    .filter((c) => c.id !== HUB_DAKAR.id)
+    .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
+
+  // Si un GP est identifié et a des villes desservies (via navettes),
+  // restreindre le sélecteur à ces villes. Sinon, catalogue complet.
+  const gpCities = uniqueCitiesFromNavettes(matched?.navettes);
+  const gpCityKeys = new Set(gpCities.map((c) => c.toLowerCase()));
+  const cityCatalog =
+    gpCityKeys.size > 0
+      ? fullCityCatalog.filter((c) => gpCityKeys.has(c.city.toLowerCase()))
+      : fullCityCatalog;
+
 
   // Snapshot values when matched, to detect edits
   function applyTransporteur(t: Transporteur | null) {
@@ -162,12 +168,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setMode(departure.transport_mode);
       setDepartureDate(new Date(departure.departure_date));
       setArrivalEstimate(departure.arrival_estimate ? new Date(departure.arrival_estimate) : undefined);
-      setTotalCapacity(departure.total_capacity_kg);
-      setAvailableCapacity(departure.available_capacity_kg);
       setUseFixedPrice(departure.price_override_xof != null);
       setPriceOverride(departure.price_override_xof ?? '');
       setNotes(departure.notes ?? '');
-      setStatus(departure.status);
 
       const ref = (departure as any).transporteur_ref ?? '';
       setTRef(ref);
@@ -197,11 +200,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setMode('air');
       setDepartureDate(prefill?.departureDate ? new Date(prefill.departureDate) : undefined);
       setArrivalEstimate(undefined);
-      setTotalCapacity(prefill?.totalCapacityKg ?? 0);
-      setAvailableCapacity(prefill?.totalCapacityKg ?? 0);
       setUseFixedPrice(false); setPriceOverride('');
       setNotes(prefill?.notes ?? '');
-      setStatus('draft');
       const pref = prefill?.transporteurRef ?? '';
       setTRef(pref);
       if (pref && /^[0-9]{4}$/.test(pref)) {
@@ -218,6 +218,27 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, departure, prefill]);
 
+  // Quand le GP est identifié : si une seule ville desservie, la pré-remplir.
+  useEffect(() => {
+    if (!matched || cityCatalog.length !== 1) return;
+    if (foreignCityId) return; // déjà choisie
+    const c = cityCatalog[0];
+    setForeignCityId(c.id);
+    if (direction === 'from_dakar') {
+      setDestCountry(c.country); setDestCity(c.city);
+    } else {
+      setOriginCountry(c.country); setOriginCity(c.city);
+    }
+    if (departureDate) {
+      const country = direction === 'from_dakar' ? c.country : 'SN';
+      const cityName = direction === 'from_dakar' ? c.city : 'Dakar';
+      setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, destinationCity: cityName, departureDate }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matched?.id, cityCatalog.length]);
+
+
+
   async function save(publish: boolean) {
     // Transporter validation
     if (!/^[0-9]{4}$/.test(tRef)) {
@@ -229,14 +250,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       return;
     }
 
-    const finalStatus: DepartureStatus = publish ? 'active' : status === 'active' ? 'active' : 'draft';
+    const finalStatus: DepartureStatus = 'active';
     const payload = {
       origin_city: originCity.trim(),
       destination_city: destCity.trim(),
       transport_mode: mode,
       departure_date: departureDate ? format(departureDate, 'yyyy-MM-dd') : '',
-      total_capacity_kg: Number(totalCapacity) || 0,
-      available_capacity_kg: Number(availableCapacity) || 0,
     };
     const parsed = Schema.safeParse(payload);
     if (!parsed.success) {
@@ -270,8 +289,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         transport_mode: mode,
         departure_date: format(departureDate!, 'yyyy-MM-dd'),
         arrival_estimate: arrivalEstimate ? format(arrivalEstimate, 'yyyy-MM-dd') : null,
-        total_capacity_kg: Number(totalCapacity) || 0,
-        available_capacity_kg: Number(availableCapacity) || 0,
+        total_capacity_kg: DEFAULT_CAPACITY_KG,
+        available_capacity_kg: DEFAULT_CAPACITY_KG,
         price_override_xof: useFixedPrice && priceOverride !== '' ? Number(priceOverride) : null,
         carrier_name: tNom.trim() || null,
         carrier_contact: tTel1.trim() || null,
@@ -300,7 +319,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             collecteAddress: tAdr1.trim(),
             destinationCity: destCity.trim(),
             dateDepart: format(departureDate!, 'dd/MM/yyyy'),
-            poids: totalCapacity,
+            poids: DEFAULT_CAPACITY_KG,
           },
         });
         if (notifyData && notifyData.sent === false) {
@@ -420,7 +439,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                     setDestCountry(c?.country ?? ''); setDestCity(c?.city ?? '');
                     // Recalcule l'arrivée si départ connu
                     if (departureDate && c) {
-                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, departureDate }));
+                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, destinationCity: c.city, departureDate }));
                     }
                   }}
                   className="justify-center"
@@ -437,7 +456,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                     setOriginCountry(c?.country ?? ''); setOriginCity(c?.city ?? '');
                     // Recalcule l'arrivée : destination = Dakar (SN)
                     if (departureDate) {
-                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: 'SN', departureDate }));
+                      setArrivalEstimate(estimateArrivalDate({ destinationCountry: 'SN', destinationCity: 'Dakar', departureDate }));
                     }
                   }}
                   className="justify-center"
@@ -459,9 +478,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   } else {
                     setOriginCountry(c.country); setOriginCity(c.city);
                   }
-                  // Auto-remplir arrivée estimée si départ connu et arrivée vide
-                  if (departureDate && !arrivalEstimate) {
-                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, departureDate }));
+                  // Auto-remplir arrivée estimée si départ connu (recalcul si direction change)
+                  if (departureDate) {
+                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: c.country, destinationCity: c.city, departureDate }));
                   }
                 }}
               >
@@ -474,6 +493,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   ))}
                 </SelectContent>
               </Select>
+              {matched && gpCityKeys.size > 0 && (
+                <p className="text-[11px] text-primary/80 mt-1">
+                  Villes filtrées selon les navettes de ce GP ({gpCityKeys.size}{gpCityKeys.size > 1 ? ' villes' : ' ville'}).
+                </p>
+              )}
               <div className="mt-2 flex items-center gap-3 text-[11px]">
                 <button
                   type="button"
@@ -532,7 +556,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   // Auto-remplir arrivée si vide et destination connue
                   if (d && !arrivalEstimate) {
                     const country = direction === 'from_dakar' ? destCountry : 'SN';
-                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, departureDate: d }));
+                    const city = direction === 'from_dakar' ? destCity : 'Dakar';
+                    setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, destinationCity: city, departureDate: d }));
                   }
                 }}
               />
@@ -544,7 +569,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
                 onClick={() => {
                   const country = direction === 'from_dakar' ? destCountry : 'SN';
-                  setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, departureDate }));
+                  const city = direction === 'from_dakar' ? destCity : 'Dakar';
+                  setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, destinationCity: city, departureDate }));
                 }}
               >
                 <Sparkles className="w-3 h-3" /> Recalculer l'arrivée estimée
@@ -552,26 +578,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             )}
           </Section>
 
-          {/* Section 4: Capacity */}
+          {/* Capacité — fixée à 25 kg par GP */}
           <Section title="Capacité">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Capacité totale (kg) *</Label>
-                <Input type="number" min={0} value={totalCapacity} onChange={(e) => {
-                  const n = Number(e.target.value) || 0;
-                  setTotalCapacity(n);
-                  if (availableCapacity > n) setAvailableCapacity(n);
-                }} />
-              </div>
-              <div>
-                <Label>Capacité disponible (kg) *</Label>
-                <Input type="number" min={0} max={totalCapacity} value={availableCapacity} onChange={(e) => setAvailableCapacity(Math.min(Number(e.target.value) || 0, totalCapacity))} />
-              </div>
+            <div className="rounded-lg border border-border p-3 text-sm">
+              <span className="font-medium">25 kg</span>
+              <span className="text-muted-foreground"> · capacité standard par GP</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">La capacité disponible ne peut pas dépasser la capacité totale.</p>
           </Section>
 
-          {/* Section 5: Price */}
+          {/* Price */}
           <Section title="Prix">
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
               <div className="space-y-0.5">
@@ -588,32 +603,17 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             )}
           </Section>
 
-          {/* Section 6: Notes */}
+          {/* Notes */}
           <Section title="Note interne (départ)">
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Visible uniquement par l'équipe ops" />
           </Section>
 
-          {/* Section 7: Status */}
-          <Section title="Statut">
-            <Select value={status} onValueChange={(v) => setStatus(v as DepartureStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Brouillon</SelectItem>
-                <SelectItem value="active">Actif</SelectItem>
-                <SelectItem value="full">Complet</SelectItem>
-                <SelectItem value="cancelled">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-          </Section>
-
-          <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-border sticky bottom-0 bg-background pb-4 -mx-6 px-6">
-            <Button variant="outline" disabled={submitting} onClick={() => save(false)} className="flex-1">
-              Enregistrer en brouillon
-            </Button>
+          <div className="flex pt-4 border-t border-border sticky bottom-0 bg-background pb-4 -mx-6 px-6">
             <Button disabled={submitting} onClick={() => save(true)} className="flex-1">
               {isEdit ? 'Mettre à jour' : 'Publier le départ'}
             </Button>
           </div>
+
         </div>
       </SheetContent>
     </Sheet>
