@@ -23,7 +23,7 @@ import {
 import { useTransporteurs, fetchTransporteurByRef, type Transporteur } from '@/hooks/useTransporteurs';
 import { TransporteurReferenceLookup } from './TransporteurReferenceLookup';
 import { supabase } from '@/integrations/supabase/client';
-import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
+import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateArrivalDate } from '@/lib/deliveryEta';
 import { uniqueCitiesFromNavettes } from '@/lib/dakarZones';
