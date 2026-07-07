@@ -110,13 +110,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [tNotes, setTNotes] = useState('');
   const [edited, setEdited] = useState(false);
 
-  // Catalog: 36 predefined + custom cities. Dakar exclu (hub).
-  const fullCityCatalog = [...ALL_CITIES, ...customCities]
-    .filter((c) => c.id !== HUB_DAKAR.id)
+  // Catalog: uniquement les villes actives dans la base (table `custom_cities`).
+  // Les 36 villes historiques ont été seedées via migration ; l'admin peut
+  // activer/désactiver/ajouter des villes depuis /admin/villes.
+  const fullCityCatalog = [...customCities]
+    .filter((c) => c.city.toLowerCase() !== 'dakar') // hub exclu
     .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
 
   // Si un GP est identifié et a des villes desservies (via navettes),
-  // restreindre le sélecteur à ces villes. Sinon, catalogue complet.
+  // restreindre le sélecteur à ces villes. Sinon, catalogue DB complet.
   const gpCities = uniqueCitiesFromNavettes(matched?.navettes);
   const gpCityKeys = new Set(gpCities.map((c) => c.toLowerCase()));
   const cityCatalog =
