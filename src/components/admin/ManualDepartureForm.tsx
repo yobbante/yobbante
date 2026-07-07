@@ -429,7 +429,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               Yobbanté opère uniquement entre Dakar et l'une des 36 villes (+ villes personnalisées).
             </p>
             <div>
-              <Label>Sens *</Label>
+              <Label>Sens</Label>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <Button
                   type="button"
@@ -535,7 +535,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </div>
             </div>
             <div>
-              <Label>Mode de transport *</Label>
+              <Label>Mode de transport</Label>
               <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
