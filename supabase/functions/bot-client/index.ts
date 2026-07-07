@@ -1699,13 +1699,36 @@ Deno.serve(async (req) => {
     }
     // ---- Shipment flow ----
     else if (intent === 'ship_origin' && msg) {
-      data.origin = msg;
-      await saveSession(supa, phone, 'ship_dest', data);
-      reply = withBack(`Vers quelle ville ?`);
+      const originResolved = resolveDestination(msg);
+      const originCity = originResolved?.city || 'Dakar';
+      data.origin = originCity;
+
+      const nMsgNorm = (msg || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      let inlineDest: { city: string; country: string } | null = null;
+      for (const d of VALID_DESTINATIONS) {
+        if (d.city === originCity) continue;
+        if (d.aliases.some((a) => nMsgNorm.includes(a))) {
+          inlineDest = { city: d.city, country: d.country };
+          break;
+        }
+      }
+      if (inlineDest) {
+        data.dest = inlineDest.city;
+        await saveSession(supa, phone, 'ship_weight', data);
+        reply = withBack(`Poids estime (kg) ?`);
+      } else {
+        await saveSession(supa, phone, 'ship_dest', data);
+        reply = withBack(`Vers quelle ville ?`);
+      }
     } else if (intent === 'ship_dest' && msg) {
-      data.dest = msg;
-      await saveSession(supa, phone, 'ship_weight', data);
-      reply = withBack(`Poids estime (kg) ?`);
+      const destResolved = resolveDestination(msg);
+      if (!destResolved) {
+        reply = withBack(INVALID_DESTINATION_MSG);
+      } else {
+        data.dest = destResolved.city;
+        await saveSession(supa, phone, 'ship_weight', data);
+        reply = withBack(`Poids estime (kg) ?`);
+      }
     } else if (intent === 'ship_weight' && msg) {
       const v = validateWeight(nMsg);
       if (!v.ok) {
