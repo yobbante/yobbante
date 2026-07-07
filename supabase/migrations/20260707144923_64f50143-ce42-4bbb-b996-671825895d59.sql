@@ -1,0 +1,1 @@
+UPDATE public.client_bot_sessions SET pending_intent=NULL, pending_data='{}'::jsonb, updated_at=NOW() WHERE from_phone='221781221891';

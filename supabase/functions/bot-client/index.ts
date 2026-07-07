@@ -745,11 +745,15 @@ const MENU_TRIGGERS = /^(aide|bonjour|bonsoir|salut|hello|hi|hey|menu|help|salam
 const BACK_TO_MENU = /^(0|menu|retour|annuler|\?)$/;
 
 // Append interactive menu list (5 options) after info replies.
+// The interactive list itself renders the reply as body text, so we only need
+// to add the UI_MENU sentinel — repeating MAIN_MENU_TEXT here duplicates any
+// greeting already in the reply (e.g. "Salam Yobbanté ! ..." then
+// "Bonjour ! Je suis l'assistant Yobbanté ..."). See 1891 audit.
 function withShortMenu(reply: string): string {
-  return `${reply}\n\n${SHORT_MENU_TEXT}\n${UI_MENU}`;
+  return `${reply}\n${UI_MENU}`;
 }
 function withFullMenu(reply: string): string {
-  return `${reply}\n\n${MAIN_MENU_TEXT}\n${UI_MENU}`;
+  return `${reply}\n${UI_MENU}`;
 }
 // Used while a session attend une saisie precise (tracking, poids, etc.)
 function withBack(reply: string): string {
@@ -1626,13 +1630,42 @@ Deno.serve(async (req) => {
     }
     // ---- Quote flow ----
     else if (intent === 'quote_origin' && msg) {
-      data.origin = msg;
-      await saveSession(supa, phone, 'quote_dest', data);
-      reply = withBack(`Vers quelle ville ?`);
+      // Extract known city from the origin text; also detect if the user typed
+      // BOTH cities in one line (e.g. "dakar abidjan" or "de dakar vers paris").
+      // Yobbanté always ships from Dakar, so we accept it as origin and if we
+      // additionally detect a distinct destination in the same message, we skip
+      // straight to the weight step.
+      const originResolved = resolveDestination(msg);
+      const originCity = originResolved?.city || 'Dakar';
+      data.origin = originCity;
+
+      // Try to find a destination city in the same message (different from origin).
+      const nMsgNorm = (msg || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      let inlineDest: { city: string; country: string } | null = null;
+      for (const d of VALID_DESTINATIONS) {
+        if (d.city === originCity) continue;
+        if (d.aliases.some((a) => nMsgNorm.includes(a))) {
+          inlineDest = { city: d.city, country: d.country };
+          break;
+        }
+      }
+      if (inlineDest) {
+        data.dest = inlineDest.city;
+        await saveSession(supa, phone, 'quote_weight', data);
+        reply = withBack(`Poids (kg) ?`);
+      } else {
+        await saveSession(supa, phone, 'quote_dest', data);
+        reply = withBack(`Vers quelle ville ?`);
+      }
     } else if (intent === 'quote_dest' && msg) {
-      data.dest = msg;
-      await saveSession(supa, phone, 'quote_weight', data);
-      reply = withBack(`Poids (kg) ?`);
+      const destResolved = resolveDestination(msg);
+      if (!destResolved) {
+        reply = withBack(INVALID_DESTINATION_MSG);
+      } else {
+        data.dest = destResolved.city;
+        await saveSession(supa, phone, 'quote_weight', data);
+        reply = withBack(`Poids (kg) ?`);
+      }
     } else if (intent === 'quote_weight' && msg) {
       const v = validateWeight(nMsg);
       if (!v.ok) {
@@ -1666,13 +1699,36 @@ Deno.serve(async (req) => {
     }
     // ---- Shipment flow ----
     else if (intent === 'ship_origin' && msg) {
-      data.origin = msg;
-      await saveSession(supa, phone, 'ship_dest', data);
-      reply = withBack(`Vers quelle ville ?`);
+      const originResolved = resolveDestination(msg);
+      const originCity = originResolved?.city || 'Dakar';
+      data.origin = originCity;
+
+      const nMsgNorm = (msg || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      let inlineDest: { city: string; country: string } | null = null;
+      for (const d of VALID_DESTINATIONS) {
+        if (d.city === originCity) continue;
+        if (d.aliases.some((a) => nMsgNorm.includes(a))) {
+          inlineDest = { city: d.city, country: d.country };
+          break;
+        }
+      }
+      if (inlineDest) {
+        data.dest = inlineDest.city;
+        await saveSession(supa, phone, 'ship_weight', data);
+        reply = withBack(`Poids estime (kg) ?`);
+      } else {
+        await saveSession(supa, phone, 'ship_dest', data);
+        reply = withBack(`Vers quelle ville ?`);
+      }
     } else if (intent === 'ship_dest' && msg) {
-      data.dest = msg;
-      await saveSession(supa, phone, 'ship_weight', data);
-      reply = withBack(`Poids estime (kg) ?`);
+      const destResolved = resolveDestination(msg);
+      if (!destResolved) {
+        reply = withBack(INVALID_DESTINATION_MSG);
+      } else {
+        data.dest = destResolved.city;
+        await saveSession(supa, phone, 'ship_weight', data);
+        reply = withBack(`Poids estime (kg) ?`);
+      }
     } else if (intent === 'ship_weight' && msg) {
       const v = validateWeight(nMsg);
       if (!v.ok) {
@@ -2013,8 +2069,14 @@ Deno.serve(async (req) => {
         );
         if (showFullWelcome) {
           try {
-            await saveSession(supa, phone, session?.pending_intent ?? null, {
-              ...pdNow,
+            // BUG FIX: re-read session (it may have been cleared by the flow above,
+            // e.g. after a completed devis). Using the stale `session` variable here
+            // would resurrect a completed pending_intent (e.g. quote_weight) and
+            // trap the next user message in the wrong branch (see 221781221891 audit).
+            const { session: freshSession } = await getSession(supa, phone);
+            const freshPd = (freshSession?.pending_data ?? {}) as Record<string, any>;
+            await saveSession(supa, phone, freshSession?.pending_intent ?? null, {
+              ...freshPd,
               last_welcome_at: new Date().toISOString(),
             });
           } catch (_) { /* noop */ }
