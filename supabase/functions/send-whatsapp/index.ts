@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
   const supaUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supa = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
-  const token = Deno.env.get('WHATSAPP_TOKEN');
+  const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN');
 
   let body: SendPayload;
   try {
@@ -148,8 +148,8 @@ Deno.serve(async (req) => {
   }));
 
   if (!token) {
-    console.error('WA_ERROR: missing WHATSAPP_TOKEN');
-    return new Response(JSON.stringify({ error: 'Missing WHATSAPP_TOKEN' }), {
+    console.error('WA_ERROR: missing WHATSAPP_ACCESS_TOKEN/WHATSAPP_TOKEN');
+    return new Response(JSON.stringify({ error: 'Missing WHATSAPP_ACCESS_TOKEN' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
