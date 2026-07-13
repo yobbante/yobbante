@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { useSeo } from '@/hooks/useSeo';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
+import { normalizeTrackingId } from '@/lib/trackingId';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
