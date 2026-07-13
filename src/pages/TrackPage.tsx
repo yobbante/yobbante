@@ -58,7 +58,13 @@ export default function TrackPage() {
     description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
     path: '/track',
   });
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = normalizeTrackingId(rawId);
+  // If the URL param wasn't already normalised, redirect to the canonical form
+  // so refresh/share links stay consistent (e.g. /track/yob-abc → /track/YOB-ABC).
+  if (rawId && id && rawId !== id) {
+    return <Navigate to={`/track/${id}`} replace />;
+  }
   const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [data, setData] = useState<TrackResponse | null>(null);
