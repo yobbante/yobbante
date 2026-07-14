@@ -1,14 +1,82 @@
 import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { TimelineEvent } from '@/lib/types';
 
 /**
  * Timeline — stream-first.
- * Initial fetch loads the last 50 events; a Supabase Realtime channel
- * then mutates the cache directly (insert/update/delete) so the timeline
- * stays in chronological order without polling glitches or full re-fetches.
+ * Initial fetch loads the last 50 events; a single app-wide Supabase Realtime
+ * channel mutates the cache directly (insert/update/delete). We ref-count
+ * consumers so multiple mounts (StrictMode, sibling components) share ONE
+ * subscription — no reconnection loop, no duplicate events.
  */
+
+// Module-level singleton — one channel per app instance, ref-counted.
+let sharedChannel: RealtimeChannel | null = null;
+let refCount = 0;
+let boundQc: QueryClient | null = null;
+
+function attachChannel(qc: QueryClient) {
+  refCount += 1;
+  if (sharedChannel) return;
+  boundQc = qc;
+  sharedChannel = supabase
+    .channel('timeline-stream')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'timeline_events' },
+      (payload) => {
+        const incoming = payload.new as TimelineEvent;
+        boundQc?.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) => {
+          if (prev.some(e => e.id === incoming.id)) return prev;
+          return [incoming, ...prev].slice(0, 50);
+        });
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'timeline_events' },
+      (payload) => {
+        const updated = payload.new as TimelineEvent;
+        boundQc?.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) =>
+          prev.map(e => (e.id === updated.id ? updated : e))
+        );
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'timeline_events' },
+      (payload) => {
+        const oldId = (payload.old as { id?: string })?.id;
+        if (!oldId) return;
+        boundQc?.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) =>
+          prev.filter(e => e.id !== oldId)
+        );
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'packages' },
+      () => boundQc?.invalidateQueries({ queryKey: ['packages'] })
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'shipments' },
+      () => boundQc?.invalidateQueries({ queryKey: ['shipments'] })
+    )
+    .subscribe();
+}
+
+function detachChannel() {
+  refCount = Math.max(0, refCount - 1);
+  if (refCount === 0 && sharedChannel) {
+    supabase.removeChannel(sharedChannel);
+    sharedChannel = null;
+    boundQc = null;
+  }
+}
+
 export function useTimeline() {
   const queryClient = useQueryClient();
 
@@ -25,62 +93,9 @@ export function useTimeline() {
     },
   });
 
-  // True realtime: mutate the cache in place, in-order.
-  // Use a fresh channel name per-mount so React StrictMode's double-mount
-  // (or a quick remount) never tries to .on() a channel already SUBSCRIBED.
   useEffect(() => {
-    const channel = supabase
-      .channel(`timeline-stream-${crypto.randomUUID()}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'timeline_events' },
-        (payload) => {
-          const incoming = payload.new as TimelineEvent;
-          queryClient.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) => {
-            if (prev.some(e => e.id === incoming.id)) return prev;
-            // Newest first, capped at 50.
-            return [incoming, ...prev].slice(0, 50);
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'timeline_events' },
-        (payload) => {
-          const updated = payload.new as TimelineEvent;
-          queryClient.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) =>
-            prev.map(e => (e.id === updated.id ? updated : e))
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'timeline_events' },
-        (payload) => {
-          const oldId = (payload.old as { id?: string })?.id;
-          if (!oldId) return;
-          queryClient.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) =>
-            prev.filter(e => e.id !== oldId)
-          );
-        }
-      )
-      // Package / shipment state changes can affect the timeline indirectly
-      // (server-side triggers may insert events). We refresh those caches too.
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'packages' },
-        () => queryClient.invalidateQueries({ queryKey: ['packages'] })
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'shipments' },
-        () => queryClient.invalidateQueries({ queryKey: ['shipments'] })
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    attachChannel(queryClient);
+    return () => { detachChannel(); };
   }, [queryClient]);
 
   const addEvent = useMutation({
@@ -100,8 +115,8 @@ export function useTimeline() {
         });
       if (error) throw error;
     },
-    // No invalidate — realtime delivers the new row.
   });
 
   return { events, isLoading, addEvent };
 }
+
