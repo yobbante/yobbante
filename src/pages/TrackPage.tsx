@@ -169,7 +169,7 @@ export default function TrackPage() {
             </p>
             <button
               className="btn-cta w-full"
-              onClick={() => input.trim() && navigate(`/track/${input.trim()}`)}
+              onClick={() => { const n = normalizeTrackingId(input); if (n) navigate(`/track/${n}`); }}
             >
               Suivre →
             </button>
