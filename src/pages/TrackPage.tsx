@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { useSeo } from '@/hooks/useSeo';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
+import { normalizeTrackingId } from '@/lib/trackingId';
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
@@ -57,7 +58,13 @@ export default function TrackPage() {
     description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
     path: '/track',
   });
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = normalizeTrackingId(rawId);
+  // If the URL param wasn't already normalised, redirect to the canonical form
+  // so refresh/share links stay consistent (e.g. /track/yob-abc → /track/YOB-ABC).
+  if (rawId && id && rawId !== id) {
+    return <Navigate to={`/track/${id}`} replace />;
+  }
   const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [data, setData] = useState<TrackResponse | null>(null);
@@ -162,7 +169,7 @@ export default function TrackPage() {
             </p>
             <button
               className="btn-cta w-full"
-              onClick={() => input.trim() && navigate(`/track/${input.trim()}`)}
+              onClick={() => { const n = normalizeTrackingId(input); if (n) navigate(`/track/${n}`); }}
             >
               Suivre →
             </button>
