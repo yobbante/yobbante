@@ -21,19 +21,48 @@ export default function ExpedierPage() {
 
   // Hydrate sessionStorage preset from URL params so deep-links from WhatsApp
   // (ex: /expedier?destination=FR&destination_city=Paris&weight=5&type=docs)
-  // pre-fill SendFlow on mount.
+  // pre-fill SendFlow on mount. All params are validated to avoid injecting
+  // garbage from a copy-pasted / tampered link.
   useEffect(() => {
     if ((urlMode ?? 'envoyer') !== 'envoyer') return;
     try {
       const sp = new URLSearchParams(window.location.search);
-      const dest = sp.get('destination') || sp.get('country');
-      const destCity = sp.get('destination_city') || sp.get('dest_city') || sp.get('dest');
-      const origin = sp.get('origin') || (dest || destCity ? 'SN' : null);
-      const originCity = sp.get('origin_city') || (origin === 'SN' ? 'Dakar' : undefined);
-      const weight = sp.get('weight');
-      const transport = (sp.get('transport') || 'AIR').toUpperCase();
-      const contentType = sp.get('type') || sp.get('content_type');
+
+      // ISO-2 country code: exactly two A-Z letters (uppercased).
+      const isCountry = (v: string | null): v is string =>
+        !!v && /^[A-Za-z]{2}$/.test(v);
+      const asCountry = (v: string | null) => (isCountry(v) ? v!.toUpperCase() : null);
+
+      // City / content_type: keep human-readable but strip control chars,
+      // trim, cap to reasonable length.
+      const asText = (v: string | null, max = 60) => {
+        if (!v) return null;
+        const cleaned = v.replace(/[\x00-\x1F<>]/g, '').trim().slice(0, max);
+        return cleaned || null;
+      };
+
+      // Weight: 0.1 – 100 kg, otherwise ignore.
+      const asWeight = (v: string | null) => {
+        if (!v) return null;
+        const n = Number(v.replace(',', '.'));
+        if (!Number.isFinite(n) || n < 0.1 || n > 100) return null;
+        return n;
+      };
+
+      const dest = asCountry(sp.get('destination') || sp.get('country'));
+      const destCity = asText(sp.get('destination_city') || sp.get('dest_city') || sp.get('dest'));
+      const origin = asCountry(sp.get('origin')) ?? (dest || destCity ? 'SN' : null);
+      const originCity = asText(sp.get('origin_city')) ?? (origin === 'SN' ? 'Dakar' : null);
+      const weight = asWeight(sp.get('weight'));
+      const transportRaw = (sp.get('transport') || 'AIR').toUpperCase();
+      const transport = (['AIR', 'SEA', 'ROAD'] as const).includes(transportRaw as never)
+        ? (transportRaw as 'AIR' | 'SEA' | 'ROAD')
+        : null;
+      const contentType = asText(sp.get('type') || sp.get('content_type'), 40);
+      const source = asText(sp.get('source'), 40) || 'whatsapp-bot';
+
       if (!dest && !destCity && !weight && !contentType) return;
+
       const existing = (() => {
         try { return JSON.parse(sessionStorage.getItem('send-flow:preset') || 'null') || {}; } catch { return {}; }
       })();
@@ -43,14 +72,15 @@ export default function ExpedierPage() {
         ...(originCity ? { origin_city: originCity } : {}),
         ...(dest ? { destination: dest } : {}),
         ...(destCity ? { destination_city: destCity } : {}),
-        ...(weight ? { weight: Number(weight) || undefined } : {}),
-        ...(['AIR', 'SEA', 'ROAD'].includes(transport) ? { transport: transport as 'AIR' | 'SEA' | 'ROAD' } : {}),
+        ...(weight !== null ? { weight } : {}),
+        ...(transport ? { transport } : {}),
         ...(contentType ? { content_type: contentType } : {}),
-        source: sp.get('source') || 'whatsapp-bot',
+        source,
       };
       sessionStorage.setItem('send-flow:preset', JSON.stringify(preset));
     } catch {}
   }, [urlMode]);
+
 
   useSeo(
     mode === 'recevoir'
