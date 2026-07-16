@@ -1,45 +1,56 @@
-# Prochaine étape : extraire `useSendPricing`
+# M1 · M2 · M3 — Plan d'exécution
 
-## Contexte
-`SendFlow.tsx` est à 2 480 lignes. Les 3 hooks métier candidats — `useSendPreset`, `useStepMachine`, `useSendPricing` — sont les plus sensibles car ils touchent la logique commerciale (prix, machine à états, préréglages). Je propose de commencer par le plus **isolé** : `useSendPricing`.
+## M1 — Route de suivi unique : `/suivre` canonique
 
-## Pourquoi celui-ci en premier
-- Bloc contigu (lignes ~440-560) : ~120 lignes
-- **Entrées pures** : state déjà défini plus haut (weight, goodsType, priority, transportMode, insurance, declaredLocal, adresses, ville origine/dest, forfaitId, forfaitQty)
-- **Sorties dérivées** consommées plus bas dans le JSX/submit : `pricing`, `totalEur`, `fraisEnlevement`, `surchargeEur`, `insuranceCostFcfa/Eur`, `transportPriceEur`, `effectiveTarifGP`, `declaredEur`, `selectedForfait`, `forfaits`
-- Aucune interaction avec le stepper ou les side-effects navigation
-- Facile à valider : type-check + comparaison visuelle du prix affiché
+**Décision** : `/suivre` devient canonique (déjà utilisé par WhatsApp bot, footer public, templates client, ManualQuoteDialog, SendConfirmation, admin sheets). `/track` devient un alias redirigé.
 
-## Ce que je ferai
+Changements :
+- `src/pages/SuivreEntry.tsx` → devient le composant qui **rend** TrackPage (au lieu de rediriger vers /track). Renommer interne : `SuivreEntry` continue à normaliser puis rend `<TrackPage />`.
+- `src/pages/TrackPage.tsx` :
+  - `useSeo({ path: '/suivre/…' })` avec canonical dynamique par ID.
+  - Normalisation redirect cible `/suivre/:id` au lieu de `/track/:id`.
+  - Form vide redirige vers `/suivre/:id`.
+- `src/App.tsx` : `/suivre` et `/suivre/:trackingNumber` rendent `<TrackPage />`. `/track` et `/track/:id` → `<Navigate to="/suivre…" replace />` (301-like côté client). Retirer les doublons de blocs (lignes 106-109 vs 159-160 vs 199-200).
+- `src/components/PublicNav.tsx` : lien Suivre → `/suivre`.
+- `src/pages/LandingPage.tsx` (2 refs) : `/track` → `/suivre`.
+- `src/pages/OrderConfirmationPage.tsx` : `/track` → `/suivre`.
+- `src/pages/DevisConfirmerPage.tsx` : `navigate('/track/…')` → `/suivre/…`.
+- `public/sitemap.xml` + `scripts/generate-sitemap.ts` : entrée `/track` → `/suivre` (garder une seule URL indexable).
+- `public/robots.txt` : rien à changer (aucun disallow sur ces routes).
 
-1. **Créer `src/components/flows/send/useSendPricing.ts`** :
-   - Signature : `useSendPricing(input) => output`
-   - `input` = objet regroupant tous les state values nécessaires (weight, goodsType, priority, transportMode, insurance, declaredLocal, originProfile, originCity, destCity, direction, pickupAddress, pickupQuartier, deliveryAddress, forfaitId, forfaitQty, chosen, rawTransportEur)
-   - Encapsule à l'intérieur :
-     - `useState` local pour `forfaits` (chargées via `useEffect` sur destCountry+mode)
-     - Le `useMemo` `priceVolatilityCoeff` (stable session)
-     - Tous les `useMemo` de prix : `selectedForfait`, `effectiveTarifGP`, `pricing`
-     - Le `useEffect` dev de garde-fou `assertPriceCoherence`
-     - Le `useEffect` de reset forfait
-   - Retourne l'objet complet des valeurs dérivées
+## M2 — Draft DB persisté AVANT auth (SendFlow)
 
-2. **Mettre à jour `SendFlow.tsx`** :
-   - Supprimer le bloc ~440-560
-   - Retirer l'import de `calculatePricing`, `assertPriceCoherence`, `ratePerKgForCorridor`, `calculerFraisEnlevement` (déplacés dans le hook)
-   - Retirer `useState<Forfait[]>` local (encapsulé)
-   - Appeler `const { pricing, totalEur, fraisEnlevement, ... } = useSendPricing({ ... })`
-   - Conserver `forfaitId`/`setForfaitId` dans `SendFlow` (utilisé aussi par la sélection UI) → le hook prend `forfaitId` en entrée, expose `forfaits` en sortie
+Objectif : si l'utilisateur ferme la modale auth interstitielle, il retrouve son intake au retour et n'a pas à tout re-saisir.
 
-3. **Vérification** :
-   - `tsgo` type-check
-   - Vérif visuelle rapide via Playwright sur `/expedier/envoyer` : ouvrir un devis (Dakar→Paris, 5 kg) et confirmer que le prix affiché est identique à avant
+Changements dans `src/components/flows/SendFlow.tsx` :
+- Juste avant d'ouvrir `AuthInterstitialModal` (ligne 2380), appeler un helper `saveIntakeDraftForAuth(formState)` qui :
+  1. tente `supabase.auth.getUser()` — si déjà connecté, skip modale.
+  2. sinon, écrit dans `intake_drafts` avec `user_id = null` + un **claim token** UUID stocké en `localStorage` (`yob.intake.claim`) + le `draft_data`. (nouveau champ `claim_token uuid nullable` si absent — sinon on stocke dans `draft_data.__claim`).
+  3. la modale d'auth affiche un texte : « Vos infos sont sauvegardées, connectez-vous pour finaliser ».
+- Après auth réussie (retour sur SendFlow via `useEffect` de restauration existant), si `localStorage.yob.intake.claim` est présent :
+  - `select` sur `intake_drafts` par claim, `update` `user_id = auth.uid()`, restaurer le state, effacer le claim local.
+- Ajouter le hook `useIntakeDraft` déjà existant côté SendFlow s'il ne l'est pas (auto-save 10s en plus du snapshot pré-auth).
 
-## Risques et parade
-- **Risque principal** : oublier une valeur dérivée utilisée plus bas dans le JSX (`declaredEur` p.ex.) → je fais un `rg` sur chaque nom retourné avant/après pour m'assurer que tout est branché.
-- **Non-régression prix** : le hook contient exactement les mêmes calculs, dans le même ordre, avec les mêmes deps `useMemo`/`useEffect`. Le garde-fou `assertPriceCoherence` reste actif en dev.
-- **Étapes suivantes** (non incluses ici) : `useStepMachine` (validation/gates/goToStep/advanceFromStep) puis `useSendPreset` (restauration depuis location.state / draft).
+Note DB : `intake_drafts.user_id` doit accepter `null` OU on stocke le pré-auth via une table dédiée. **Vérification à faire à l'exécution** : lire la migration existante. Si `user_id` est NOT NULL, on utilise `localStorage` seul comme fallback pré-auth (pas d'écriture DB), et on écrit en DB juste après auth. Plus simple, moins de surface RLS → **c'est l'option retenue par défaut**.
 
-## Résultat attendu
-- `SendFlow.tsx` : ~2 480 → **~2 360 lignes** (–120)
-- Nouveau `useSendPricing.ts` : ~140 lignes, testable en isolation plus tard
-- Zéro changement visuel, zéro changement de prix
+**Approche retenue (simple)** :
+- Pré-auth : `localStorage.setItem('yob.intake.pending', JSON.stringify(state))` juste avant d'ouvrir la modale.
+- Post-auth : dans le `useEffect` de restauration, si `yob.intake.pending` existe, l'hydrater en priorité, puis appeler l'auto-save `useIntakeDraft` normalement, puis `removeItem`.
+
+Aucune migration nécessaire. Aucun risque RLS. Compat totale.
+
+## M3 — `buildClientRecap` robuste (InboxTab)
+
+`src/components/admin/inbox/InboxTab.tsx` :
+- Remplacer `Math.round(d.estimated_cost * 655.957)` par : `d.final_amount_xof ?? Math.round((d.estimated_cost ?? 0) * 655.957)` — priorité au montant final déjà ajusté (inclut `pricing_adjustments`).
+- Guard cities : si `origin_city` ou `destination_city` est null, ligne trajet omise (au lieu de `"null -> Paris"`).
+- URL suivi : `https://yobbante.com/suivre/${d.reference}` (chemin, plus `?ref=`), aligné sur la canonique M1 + templates existants.
+- Guard `d.reference` : si absent, pas de ligne « Suivi ».
+
+## Technique — ordre d'exécution
+
+1. M1 routes + liens (bas risque, purement navigation).
+2. M3 recap (isolé, 1 fichier).
+3. M2 draft pré-auth (le plus délicat — teste flux complet).
+
+Type-check après chaque étape. Pas de changement de schéma DB.
