@@ -21,10 +21,7 @@ import { useFlowDraft, clearDraft, saveDraft } from '@/hooks/useFlowDraft';
 import { useCoverageZone } from '@/hooks/useCoverageZone';
 import { checkDoorToDoor, INCLUDED_PERKS } from '@/lib/doorToDoor';
 import { formatFcfa } from '@/lib/yobbantePricing';
-import { ratePerKgForCorridor } from '@/lib/startingPrice';
-import { calculatePricing, fcfaToEur, assertPriceCoherence, type PricingOutput } from '@/lib/pricingEngine';
 import { getDeliveryDelay } from '@/lib/deliveryDelays';
-import { calculerFraisEnlevement, QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
 
 import { getDepartureCountdown, formatDepartureDate } from '@/lib/departureTime';
 import { DoorToDoorBanner } from '@/components/flows/DoorToDoorBanner';
@@ -52,6 +49,7 @@ import {
   AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge,
 } from './send/pieces';
 import { SendConfirmation } from './send/SendConfirmation';
+import { useSendPricing } from './send/useSendPricing';
 
 
 // ─────────────────────────── Main component ───────────────────────────
@@ -149,10 +147,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Forfait produit (optionnel) — remplace le calcul au poids quand sélectionné.
   const [forfaitId, setForfaitId]   = useState<string | null>(null);
   const [forfaitQty, setForfaitQty] = useState<number>(1);
-  const [forfaits, setForfaits]     = useState<Array<{
-    id: string; nom: string; description: string | null;
-    destination: string; mode: string; prix_fcfa: number;
-  }>>([]);
+  // ↳ `forfaits` state est encapsulé dans useSendPricing (chargé selon destination + mode).
   // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
@@ -433,122 +428,35 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return () => window.removeEventListener('send-preset-updated', refreshFromStorage);
   }, []);
 
-  // ── Pricing breakdown (in EUR for internal math)
-  // Le moteur gère TOUT (zone, poids, urgency, supply, marge) → pas de majoration locale.
-  const rawTransportEur = quote ? Math.round(quote.price_eur) : chosen ? Math.round(chosen.price_eur) : 0;
-  // Volatilité ±3 % appliquée UNIQUEMENT quand aucun GP n'est assigné (chosen=null).
-  // Coefficient stable pour la session (useMemo sans deps) — tracé en BDD à la création.
-  const priceVolatilityCoeff = useMemo(() => Math.random() * 0.06 + 0.97, []);
-  const transportPriceEur = chosen
-    ? rawTransportEur
-    : Math.round(rawTransportEur * priceVolatilityCoeff);
-  // Coût d'assurance basé sur la valeur déclarée (en FCFA) :
-  //  - Standard : 0,5 % avec minimum 500 FCFA
-  //  - Premium  : 1 %   avec minimum 1 000 FCFA
-  const declaredFcfaForInsurance = Math.max(0, Math.round(((declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0)) * 655));
-  const insuranceCostFcfa = insurance === 'standard'
-    ? Math.max(Math.round(declaredFcfaForInsurance * 0.005), 500)
-    : insurance === 'premium'
-      ? Math.max(Math.round(declaredFcfaForInsurance * 0.01), 1000)
-      : 0;
-  const insuranceCostEur = Math.round(insuranceCostFcfa / 655);
-  const priorityCostEur  = 0; // déprécié — urgency_mult appliqué côté moteur
+  // ── Pricing (extrait dans useSendPricing) — source unique de vérité.
+  // Le hook encapsule : chargement forfaits, coefficient volatilité, frais
+  // Dakar, coût assurance, pricing engine v3, garde-fou dev.
+  const {
+    pricing,
+    totalEur,
+    toEurFcfa,
+    fraisEnlevement,
+    priceVolatilityCoeff,
+    forfaits,
+    selectedForfait,
+  } = useSendPricing({
+    originCity, destCity, originProfile, direction,
+    pickupAddress, pickupQuartier, deliveryAddress,
+    weight, goodsType, declaredLocal,
+    transportMode, priority, insurance,
+    forfaitId, forfaitQty, setForfaitId,
+    chosen, quote,
+  });
 
-  // ── Surcoût enlèvement / livraison à Dakar (zone-based, only when one side is Dakar)
+  // Dérivés simples réutilisés dans le JSX (identiques à l'ancienne version inline).
   const isFromDakar = direction === 'from_dakar';
-  const dakarAddress = isFromDakar
-    ? (pickupQuartier || pickupAddress)
-    : (pickupQuartier || deliveryAddress); // to_dakar : livraison à Dakar
-  const fraisEnlevement = (isFromDakar ? pickupAddress.trim() || pickupQuartier
-                                       : deliveryAddress.trim() || pickupQuartier)
-    ? calculerFraisEnlevement(dakarAddress)
-    : { montant: 5000, surcharge: 0, gratuit: true, zone: 'dakar_centre' as DakarZoneCategory, message: '' };
-  // Surcharge en EUR (655 FCFA / €)
-  const surchargeEur = Math.round(fraisEnlevement.surcharge / 655);
-
-  // ── Forfaits produits — fetch les forfaits actifs correspondant à destination+mode.
-  useEffect(() => {
-    const destCountry = destCity?.country;
-    if (!destCountry) { setForfaits([]); return; }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from('product_forfaits' as never)
-        .select('id, nom, description, destination, mode, prix_fcfa')
-        .eq('actif', true)
-        .in('destination', [destCountry, 'ALL'])
-        .in('mode', [transportMode, 'ALL']);
-      if (cancelled || error) return;
-      setForfaits((data as unknown as typeof forfaits) || []);
-    })();
-    return () => { cancelled = true; };
-  }, [destCity?.country, transportMode]);
-
-  // Reset forfait si plus dispo
-  const selectedForfait = useMemo(
-    () => forfaits.find(f => f.id === forfaitId) ?? null,
-    [forfaits, forfaitId],
+  const declaredFcfaForInsurance = Math.max(
+    0,
+    Math.round(
+      (declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0) * 655,
+    ),
   );
-  useEffect(() => {
-    if (forfaitId && !forfaits.find(f => f.id === forfaitId)) setForfaitId(null);
-  }, [forfaits, forfaitId]);
 
-  // Coefficient marchandise (pour calculer le tarif synthétique)
-  const _goodsCoef = (() => {
-    // MARCHANDISE_COEF importé indirectement via getMarchandiseCoef — calcule à part.
-    const map: Record<string, number> = {
-      standard: 1, electronics: 1.08, fragile: 1.10, fashion: 1.02,
-      cosmetics: 1.02, food: 0.98, high_value: 1.12, documents: 0.95, auto_parts: 1.07,
-    };
-    return goodsType ? (map[goodsType] ?? 1) : 1;
-  })();
-
-  // ── SOURCE UNIQUE DE VÉRITÉ — pricing engine v3 (FCFA).
-  // Si un forfait produit est sélectionné, on injecte un tarif/kg synthétique :
-  //   fret_cible = prix_fcfa × qty × MARGE(1.20)
-  //   et fret_moteur = w × rate × 1.20 × coef  → rate = (prix_fcfa × qty) / (w × coef)
-  // Toutes les autres lignes (billet, agence, dossier, tva) sont calculées normalement.
-  const effectiveTarifGP = useMemo(() => {
-    if (selectedForfait) {
-      const w = Math.max(0.5, weight);
-      const qty = Math.max(1, forfaitQty);
-      return Math.max(1, (selectedForfait.prix_fcfa * qty) / (w * _goodsCoef));
-    }
-    return ratePerKgForCorridor(originCity?.country, destCity?.country);
-  }, [selectedForfait, forfaitQty, weight, _goodsCoef, originCity?.country, destCity?.country]);
-
-  const pricing: PricingOutput = useMemo(() => calculatePricing({
-    tarifGPFcfa: effectiveTarifGP,
-    weightKg: weight,
-    marchandise: goodsType,
-    enlevementFcfa: fraisEnlevement.surcharge,
-    assuranceFcfa: insuranceCostFcfa,
-    transportMode: transportMode,
-  }, priority === 'express' ? 'express' : 'standard'),
-    [effectiveTarifGP, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority, transportMode]);
-
-  const toEurFcfa = (fcfa: number) => fcfaToEur(fcfa);
-  const totalEur = toEurFcfa(pricing.total_ttc);
-
-  // ── DEV : garde-fou anti-divergence. Recalcule la pricing engine côté
-  // affichage et compare au TTC mémoïsé. Bloque silencieusement (warn) si
-  // une UI commençait à composer le prix à partir d'une autre source.
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const check = calculatePricing({
-      tarifGPFcfa: effectiveTarifGP,
-      weightKg: weight,
-      marchandise: goodsType,
-      enlevementFcfa: fraisEnlevement.surcharge,
-      assuranceFcfa: insuranceCostFcfa,
-      transportMode: transportMode,
-    }, priority === 'express' ? 'express' : 'standard');
-    assertPriceCoherence('SendFlow.pricing', check.total_ttc, pricing.total_ttc);
-    assertPriceCoherence('SendFlow.prix_standard', check.prix_standard, pricing.prix_standard);
-    assertPriceCoherence('SendFlow.prix_express', check.prix_express, pricing.prix_express);
-  }, [pricing, originCity?.country, destCity?.country, weight, goodsType, fraisEnlevement.surcharge, insuranceCostFcfa, priority]);
-
-  const declaredEur = declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0;
   // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
   const showInsuranceStep = true;
 
