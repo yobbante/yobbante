@@ -300,13 +300,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // hydrate l'état complet ET on relance automatiquement submit() une fois
   // que tous les champs sont à nouveau valides. Plus de "retour au step 1".
   const autoSubmitRef = useRef(false);
-  // Restore once on mount when ?resume=1 is present in the URL.
+  // Persistent (localStorage) mirror keys — survive tab close / cold reload,
+  // unlike sessionStorage. Used pre-auth so the intake is never lost if the
+  // user drops off during the Google/Apple round-trip.
+  const LS_RESUME_KEY = 'yob.send.pending.resume';
+  const LS_DRAFT_KEY = 'yob.send.pending.draft';
+  // Restore on mount when ?resume=1 is present OR when a persistent snapshot
+  // is available (post-auth cold reload).
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('resume') !== '1') return;
+    const isResume = params.get('resume') === '1';
     try {
-      const raw = sessionStorage.getItem(RESUME_KEY);
-      if (raw) {
+      let raw = sessionStorage.getItem(RESUME_KEY);
+      if (!raw) raw = localStorage.getItem(LS_RESUME_KEY);
+      if (raw && (isResume || localStorage.getItem(LS_RESUME_KEY))) {
         const r = JSON.parse(raw);
         if (r.direction) setDirection(r.direction);
         if (r.originCountry) setOriginCountry(r.originCountry);
@@ -314,14 +321,11 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         if (r.destCityId) setDestCity(r.destCityId);
       }
     } catch {}
-    // Marqueur pour auto-submit dès que la session + le formulaire sont prêts.
+    if (!isResume) return;
     autoSubmitRef.current = true;
-    // Scroll to the sticky CTA so the user just confirms — they don't
-    // need to scroll up and re-check anything.
     const t = window.setTimeout(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }, 600);
-    // Strip ?resume=1 so a manual reload doesn't keep re-triggering.
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete('resume');
@@ -629,10 +633,13 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         if (preset) { try { sessionStorage.setItem(PRESET_KEY, JSON.stringify(preset)); } catch {} }
         // Snapshot complet (cities + direction) pour retrouver le devis
         // pré-rempli après le round-trip Google/Apple → /auth → /expedier?resume=1.
+        const resumePayload = JSON.stringify({ direction, originCountry, originCityId, destCityId });
+        try { sessionStorage.setItem(RESUME_KEY, resumePayload); } catch {}
+        // Persistent mirror — survives tab close / cold reload so the user's
+        // 8 étapes ne sont jamais perdues même s'il ferme l'onglet en cours d'auth.
         try {
-          sessionStorage.setItem(RESUME_KEY, JSON.stringify({
-            direction, originCountry, originCityId, destCityId,
-          }));
+          localStorage.setItem(LS_RESUME_KEY, resumePayload);
+          localStorage.setItem(LS_DRAFT_KEY, JSON.stringify({ value: draftSnapshot, ts: Date.now() }));
         } catch {}
         setSubmitting(false);
         setAuthModalOpen(true);
@@ -738,6 +745,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       try { sessionStorage.removeItem(RESUME_KEY); } catch {}
+      try { localStorage.removeItem(LS_RESUME_KEY); } catch {}
+      try { localStorage.removeItem(LS_DRAFT_KEY); } catch {}
       toast.success(`Commande créée — ${trackingId}`);
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).

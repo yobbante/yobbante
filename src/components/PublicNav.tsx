@@ -23,7 +23,7 @@ const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadg
   { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
   { label: 'Réception',    to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
   // Secondaires
-  { label: 'Suivre',       to: '/track',             match: p => p.startsWith('/track') },
+  { label: 'Suivre',       to: '/suivre',            match: p => p.startsWith('/suivre') || p.startsWith('/track') },
   { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },
   { label: 'Boutique Dëkk', to: '/boutique',         match: p => p.startsWith('/boutique') },
 ];

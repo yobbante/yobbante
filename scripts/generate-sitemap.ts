@@ -36,7 +36,7 @@ const STATIC_ENTRIES: Entry[] = [
   { loc: `${YOB_BASE}/devis`, changefreq: "monthly", priority: "0.7" },
   { loc: `${YOB_BASE}/entreprises`, changefreq: "monthly", priority: "0.7" },
   { loc: `${YOB_BASE}/business`, changefreq: "monthly", priority: "0.7" },
-  { loc: `${YOB_BASE}/track`, changefreq: "never", priority: "0.5" },
+  { loc: `${YOB_BASE}/suivre`, changefreq: "never", priority: "0.5" },
   { loc: `${YOB_BASE}/auth`, changefreq: "yearly", priority: "0.2" },
   { loc: `${YOB_BASE}/confidentialite`, changefreq: "yearly", priority: "0.3" },
   { loc: `${YOB_BASE}/mentions-legales`, changefreq: "yearly", priority: "0.3" },

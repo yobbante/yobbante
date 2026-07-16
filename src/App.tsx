@@ -102,11 +102,11 @@ const DekkRoutes = () => (
     <Route path="/app/profil" element={<Navigate to="/app?view=profile" replace />} />
     <Route path="/app/dossier/:id" element={<DossierDetail />} />
 
-    {/* Suivi colis partagé */}
-    <Route path="/suivre" element={<SuivreEntry />} />
-    <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
-    <Route path="/track" element={<TrackPage />} />
-    <Route path="/track/:id" element={<TrackPage />} />
+    {/* Suivi colis partagé — /suivre est la route canonique */}
+    <Route path="/suivre" element={<TrackPage />} />
+    <Route path="/suivre/:trackingNumber" element={<TrackPage />} />
+    <Route path="/track" element={<Navigate to="/suivre" replace />} />
+    <Route path="/track/:id" element={<SuivreEntry />} />
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
@@ -156,8 +156,8 @@ const MainRoutes = () => (
     <Route path="/tarifs" element={<TarifsPage />} />
     <Route path="/devis" element={<DevisPage />} />
     <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
-    <Route path="/track" element={<TrackPage />} />
-    <Route path="/track/:id" element={<TrackPage />} />
+    <Route path="/track" element={<Navigate to="/suivre" replace />} />
+    <Route path="/track/:id" element={<SuivreEntry />} />
     {/* Boutique : en prod redirige vers dekk.yobbante.com, sinon rend en local */}
     <Route path="/boutique" element={<DekkBoutiqueRedirect><DekkLayout><BoutiquePage /></DekkLayout></DekkBoutiqueRedirect>} />
     <Route path="/boutique/:id" element={<DekkBoutiqueRedirect><DekkLayout><ProductDetailPage /></DekkLayout></DekkBoutiqueRedirect>} />
@@ -195,9 +195,9 @@ const MainRoutes = () => (
     <Route path="/admin/tarifs/forfaits" element={<AdminShell><ForfaitsPage /></AdminShell>} />
     <Route path="/admin/villes" element={<AdminShell><CustomCitiesPage /></AdminShell>} />
     <Route path="/admin/:section" element={<AdminPage />} />
-    {/* Canonical tracking URL — /suivre redirects to /track */}
-    <Route path="/suivre" element={<SuivreEntry />} />
-    <Route path="/suivre/:trackingNumber" element={<SuivreEntry />} />
+    {/* Canonical tracking URL — /suivre */}
+    <Route path="/suivre" element={<TrackPage />} />
+    <Route path="/suivre/:trackingNumber" element={<TrackPage />} />
     {/* Public review + payment pages (WhatsApp deep links) */}
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />

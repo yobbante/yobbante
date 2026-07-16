@@ -190,7 +190,7 @@ export default function OrderConfirmationPage() {
           <Link to="/boutique" style={{ flex: 1, minHeight: 50, background: DEKK.ink, color: '#fff', borderRadius: 12, fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
             Continuer mes achats
           </Link>
-          <Link to="/track" style={{ flex: 1, minHeight: 50, background: '#fff', color: DEKK.ink, border: `1px solid ${DEKK.line}`, borderRadius: 12, fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+          <Link to="/suivre" style={{ flex: 1, minHeight: 50, background: '#fff', color: DEKK.ink, border: `1px solid ${DEKK.line}`, borderRadius: 12, fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
             Suivre ma commande
           </Link>
         </div>

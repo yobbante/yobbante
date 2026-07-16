@@ -73,7 +73,7 @@ export default function DevisConfirmerPage() {
       const tn = (data as any)?.tracking_number || (data as any)?.id;
       if (!tn) throw new Error('Numéro de suivi manquant');
       toast.success('Envoi confirmé · paiement à venir');
-      navigate(`/track/${tn}`);
+      navigate(`/suivre/${tn}`);
     } catch (e) {
       toast.error((e as Error).message || 'Échec de la création de l\'envoi');
     } finally {

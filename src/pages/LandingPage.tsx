@@ -18,7 +18,7 @@ const BODY_FONT = '"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif
 const NAV_LINKS: { label: string; to: string }[] = [
   { label: 'Expédier', to: '/expedier' },
   { label: 'Tarifs', to: '/tarifs' },
-  { label: 'Suivre mon colis', to: '/track' },
+  { label: 'Suivre mon colis', to: '/suivre' },
   { label: 'Boutique Dëkk', to: '/boutique' },
 ];
 
@@ -913,7 +913,7 @@ function LandingFooter() {
       items: [
         { label: 'Expédier un colis', to: '/expedier' },
         { label: 'Tarifs', to: '/tarifs' },
-        { label: 'Suivre mon colis', to: '/track' },
+        { label: 'Suivre mon colis', to: '/suivre' },
         { label: 'Boutique Dëkk', to: '/boutique' },
       ],
     },

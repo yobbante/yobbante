@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { PublicNav } from '@/components/PublicNav';
@@ -53,17 +53,19 @@ const IS_LIFECYCLE_END = (s: string) =>
   s === 'CANCELLED' || s === 'RETURNED' || s === 'RETURN_REQUESTED' || s === 'RETURN_IN_PROGRESS';
 
 export default function TrackPage() {
-  useSeo({
-    title: 'Suivre mon colis | Yobbanté',
-    description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
-    path: '/track',
-  });
-  const { id: rawId } = useParams();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  // Route may be /suivre/:trackingNumber, /track/:id, or /suivre?ref=…
+  const rawId = params.trackingNumber || params.id || searchParams.get('ref') || searchParams.get('tracking') || '';
   const id = normalizeTrackingId(rawId);
-  // If the URL param wasn't already normalised, redirect to the canonical form
-  // so refresh/share links stay consistent (e.g. /track/yob-abc → /track/YOB-ABC).
-  if (rawId && id && rawId !== id) {
-    return <Navigate to={`/track/${id}`} replace />;
+  useSeo({
+    title: id ? `Suivi ${id} | Yobbanté` : 'Suivre mon colis | Yobbanté',
+    description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
+    path: id ? `/suivre/${id}` : '/suivre',
+  });
+  // Normalise URL to canonical /suivre/:id form
+  if (rawId && id && (rawId !== id || !params.trackingNumber)) {
+    return <Navigate to={`/suivre/${id}`} replace />;
   }
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -169,7 +171,7 @@ export default function TrackPage() {
             </p>
             <button
               className="btn-cta w-full"
-              onClick={() => { const n = normalizeTrackingId(input); if (n) navigate(`/track/${n}`); }}
+              onClick={() => { const n = normalizeTrackingId(input); if (n) navigate(`/suivre/${n}`); }}
             >
               Suivre →
             </button>

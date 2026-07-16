@@ -20,17 +20,31 @@ import { NextActionsSheet } from '@/components/admin/dossiers/NextActionsSheet';
 function buildClientRecap(d: InboxDossier) {
   const kind = detectServiceKind(d);
   const serviceLabel = SERVICE_KINDS.find(s => s.id === kind)?.label || 'Demande';
-  const tracking = `https://yobbante.com/suivre?ref=${d.reference}`;
+  // Prefer the final XOF amount (includes pricing_adjustments) over the raw EUR estimate.
+  const anyD = d as any;
+  const amountXof: number | null =
+    anyD.final_amount_xof != null
+      ? Number(anyD.final_amount_xof)
+      : d.estimated_cost != null
+        ? Math.round(Number(d.estimated_cost) * 655.957)
+        : null;
+  // Guard cities: skip the route line if either endpoint is unknown to avoid
+  // "null -> Paris" leaks in the WhatsApp recap.
+  const origin = d.origin_city || d.origin_country || '';
+  const dest = d.destination_city || d.destination_country || '';
+  const routeLine = origin && dest ? `${origin} -> ${dest}\n` : '';
+  const trackingLine = d.reference
+    ? `Numéro de suivi : ${d.reference}\nSuivre : https://yobbante.com/suivre/${d.reference}\n`
+    : '';
   return (
     `Bonjour ${d.buyer_name || ''}, ici Yobbanté.\n\n` +
     `Suite à notre échange, voici le récap de votre demande :\n` +
     `${serviceLabel}\n` +
-    `${d.origin_city || d.origin_country} -> ${d.destination_city || d.destination_country}\n` +
+    routeLine +
     (d.estimated_weight ? `${d.estimated_weight} kg\n` : '') +
-    (d.estimated_cost ? `Estimation : ${Math.round(d.estimated_cost * 655.957)} XOF\n` : '') +
-    `Numéro de suivi : ${d.reference}\n` +
-    `Suivre : ${tracking}\n\n` +
-    `Pour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.\n` +
+    (amountXof != null ? `Estimation : ${amountXof.toLocaleString('fr-FR')} XOF\n` : '') +
+    trackingLine +
+    `\nPour confirmer, répondez OUI ou cliquez sur le lien ci-dessus.\n` +
     `Merci de votre confiance.`
   );
 }
