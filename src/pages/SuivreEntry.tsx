@@ -1,17 +1,12 @@
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { normalizeTrackingId } from '@/lib/trackingId';
 
 /**
- * Canonical public tracking entry point.
- *  - /suivre/:trackingNumber → redirects to /track/:trackingNumber
- *  - /suivre?ref=XYZ        → redirects to /track/XYZ
- *  - /suivre                → redirects to /track (search form)
- * Tracking IDs are normalised (trim, strip #, uppercase) before redirect.
+ * Legacy /track/:id alias → redirect to canonical /suivre/:id.
+ * The naked /suivre?ref=… case is now handled directly by TrackPage.
  */
 export default function SuivreEntry() {
-  const { trackingNumber } = useParams();
-  const [sp] = useSearchParams();
-  const raw = trackingNumber || sp.get('ref') || sp.get('tracking') || '';
-  const ref = normalizeTrackingId(raw);
-  return <Navigate to={ref ? `/track/${ref}` : '/track'} replace />;
+  const { id, trackingNumber } = useParams();
+  const ref = normalizeTrackingId(id || trackingNumber || '');
+  return <Navigate to={ref ? `/suivre/${ref}` : '/suivre'} replace />;
 }
