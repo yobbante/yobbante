@@ -49,6 +49,8 @@ import {
   AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge,
 } from './send/pieces';
 import { SendConfirmation } from './send/SendConfirmation';
+import { useSendPricing } from './send/useSendPricing';
+import { eurFromLocal as _eurFromLocal } from '@/lib/countryProfile';
 
 
 // ─────────────────────────── Main component ───────────────────────────
