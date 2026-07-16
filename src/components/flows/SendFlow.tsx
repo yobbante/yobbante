@@ -51,6 +51,7 @@ import {
   RecapRow, RecapGroup, EmailRecapCard, StepCollapsed, LockedStep, StepSupportLink,
   AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge,
 } from './send/pieces';
+import { SendConfirmation } from './send/SendConfirmation';
 
 
 // ─────────────────────────── Main component ───────────────────────────
