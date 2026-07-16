@@ -50,7 +50,7 @@ export function AuthInterstitialModal({ open, onOpenChange, resumePath }: AuthIn
             <DialogTitle className="text-xl font-bold tracking-tight">Dernière étape !</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               Créez votre espace Yobbanté gratuit pour confirmer.<br />
-              Votre devis est sauvegardé.
+              <span className="text-foreground font-medium">Toutes vos infos sont sauvegardées</span> — vous reviendrez exactement ici après la connexion.
             </DialogDescription>
           </DialogHeader>
         </div>
