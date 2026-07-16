@@ -448,6 +448,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     chosen, quote,
   });
 
+  // Dérivés simples réutilisés dans le JSX (identiques à l'ancienne version inline).
+  const isFromDakar = direction === 'from_dakar';
+  const declaredFcfaForInsurance = Math.max(
+    0,
+    Math.round(
+      (declaredLocal ? eurFromLocal(Number(declaredLocal) || 0, originProfile) : 0) * 655,
+    ),
+  );
+
   // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
   const showInsuranceStep = true;
 
