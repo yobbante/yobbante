@@ -309,8 +309,9 @@ interface ChipGroupProps<T2 extends string> {
 export function ChipGroup<T2 extends string>({ options, value, onChange }: ChipGroupProps<T2>) {
   const theme = useFlowTheme();
   const t = T[theme];
+  const cols = options.length <= 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3';
   return (
-    <div className="grid sm:grid-cols-3 gap-2.5">
+    <div className={cn('grid gap-2.5', cols)}>
       {options.map(o => {
         const active = value === o.id;
         return (
