@@ -175,7 +175,11 @@ export default function PayPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
       <main className="flex-1 max-w-xl w-full mx-auto px-6 py-8">
-        {loading ? (
+        {loading && successFlag ? (
+          // F5 — ?success=1 : afficher immédiatement l'état "paiement reçu, mise à jour en cours"
+          // sans attendre le fetch complet du dossier. Rassure le client dès la redirection PayTech.
+          <SuccessCard trackingId={trackingId ?? ''} pending />
+        ) : loading ? (
           <div className="surface-card">
             <div className="space-y-3">
               <div className="h-3 w-32 rounded bg-secondary animate-pulse" />
@@ -189,6 +193,7 @@ export default function PayPage() {
               </p>
             </div>
           </div>
+
         ) : !dossier ? (
           <EmptyState
             icon={CreditCard}
