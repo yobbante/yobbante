@@ -97,7 +97,9 @@ export default function PayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingId]);
 
-  // Polling on ?success=1 (max 5s, every 1s) waiting for IPN
+  // F5 — Polling optimiste après ?success=1 : jusqu'à 30 s (2 s d'intervalle)
+  // pour laisser au webhook PayTech le temps de basculer payment_status=paid.
+  // La page reste rassurante même si le webhook tarde — pas d'attente infinie.
   useEffect(() => {
     if (!successFlag || !dossier || dossier.payment_status === 'paid') return;
     setPolling(true);
@@ -105,14 +107,15 @@ export default function PayPage() {
     const id = setInterval(async () => {
       tries++;
       const d = await refresh();
-      if (d?.payment_status === 'paid' || tries >= 5) {
+      if (d?.payment_status === 'paid' || tries >= 15) {
         clearInterval(id);
         setPolling(false);
       }
-    }, 1000);
+    }, 2000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [successFlag, dossier?.id]);
+
 
   const amountXof = dossier?.final_amount_xof
     ?? (dossier?.estimated_cost ? Math.round(dossier.estimated_cost * 655.957) : null);
@@ -172,7 +175,11 @@ export default function PayPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
       <main className="flex-1 max-w-xl w-full mx-auto px-6 py-8">
-        {loading ? (
+        {loading && successFlag ? (
+          // F5 — ?success=1 : afficher immédiatement l'état "paiement reçu, mise à jour en cours"
+          // sans attendre le fetch complet du dossier. Rassure le client dès la redirection PayTech.
+          <SuccessCard trackingId={trackingId ?? ''} pending />
+        ) : loading ? (
           <div className="surface-card">
             <div className="space-y-3">
               <div className="h-3 w-32 rounded bg-secondary animate-pulse" />
@@ -186,6 +193,7 @@ export default function PayPage() {
               </p>
             </div>
           </div>
+
         ) : !dossier ? (
           <EmptyState
             icon={CreditCard}

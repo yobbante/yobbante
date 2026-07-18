@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { formatFcfa } from '@/lib/yobbantePricing';
 import { QUARTIER_GROUPS, type DakarZoneCategory } from '@/lib/dakarZones';
+import { normalizePhone, isValidPhone } from '@/lib/phone';
 
 export function RecapRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -16,6 +17,33 @@ export function RecapRow({ label, value, strong }: { label: string; value: strin
     </div>
   );
 }
+
+/**
+ * F2 — Hint sous un champ téléphone. Silencieux tant que < 5 caractères,
+ * puis affiche le numéro normalisé (E.164) ou un message d'erreur inline.
+ * Ne bloque jamais la saisie — c'est un signal, pas un verrou.
+ */
+export function PhoneHint({ value, expectedPrefix }: { value: string; expectedPrefix?: string }) {
+  const raw = (value || '').trim();
+  if (raw.length < 5) {
+    return (
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Format international attendu (ex. {expectedPrefix ?? '+221'} 77 123 45 67).
+      </p>
+    );
+  }
+  const n = normalizePhone(raw);
+  const ok = isValidPhone(n);
+  return (
+    <p
+      className={cn('mt-1 text-[11px]', ok ? 'text-emerald-600' : 'text-amber-600')}
+      aria-live="polite"
+    >
+      {ok ? `✓ ${n}` : `⚠︎ Numéro international incomplet — vérifiez (ex. ${expectedPrefix ?? '+221'} 6 12 34 56 78).`}
+    </p>
+  );
+}
+
 
 export function RecapGroup({
   icon, title, children, onEdit, incomplete, missingLabel,

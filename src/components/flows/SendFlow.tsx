@@ -46,8 +46,9 @@ import {
 import { PriorityCarousel } from './send/PriorityCarousel';
 import {
   RecapRow, RecapGroup, EmailRecapCard, StepCollapsed, LockedStep, StepSupportLink,
-  AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge,
+  AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge, PhoneHint,
 } from './send/pieces';
+
 import { SendConfirmation } from './send/SendConfirmation';
 import { useSendPricing } from './send/useSendPricing';
 
@@ -152,8 +153,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
-  // Step 8 — insurance (jamais pré-sélectionnée)
-  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('none');
+  // Step 8 — insurance (auto-pré-sélectionnée "standard" si valeur > 50 000 FCFA
+  // et que l'utilisateur n'a pas encore choisi manuellement — F3).
+  const [insurance, setInsuranceState]    = useState<'none' | 'standard' | 'premium'>('none');
+  const insuranceTouchedRef               = useRef(false);
+  const setInsurance = (v: 'none' | 'standard' | 'premium') => { insuranceTouchedRef.current = true; setInsuranceState(v); };
+
   // Step 9 — payment (Wave par défaut)
   const [paymentMethod, setPaymentMethod] = useState<string>('wave');
   // Modale interstitielle d'authentification (pas de redirect brutal vers /auth)
@@ -464,6 +469,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
   const showInsuranceStep = true;
 
+  // F3 — Auto-pré-sélection "Standard" si la valeur déclarée dépasse 50 000 FCFA
+  // et que l'utilisateur n'a pas encore choisi manuellement.
+  useEffect(() => {
+    if (insuranceTouchedRef.current) return;
+    if (declaredFcfaForInsurance > 50000 && insurance === 'none') {
+      setInsuranceState('standard');
+    }
+  }, [declaredFcfaForInsurance, insurance]);
+
+
   // Auto-suggest mode based on weight
   useEffect(() => {
     if (weightTouched && weight >= 30 && transportMode === 'AIR' && goodsType !== 'documents') {
@@ -742,6 +757,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         dossierId: (dossier as any).id,
         arrivalDate: arrivalLabel,
       });
+      // Persist last dossier for recovery if the client closes the tab before payment.
+      try { localStorage.setItem('last_dossier_tracking_id', trackingId); } catch {}
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       try { sessionStorage.removeItem(RESUME_KEY); } catch {}
@@ -749,15 +766,18 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       try { localStorage.removeItem(LS_DRAFT_KEY); } catch {}
       toast.success(`Commande créée — ${trackingId}`);
 
+
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
       const prenom = (senderName || 'Client').split(' ')[0];
-      const waPhone = (senderPhone || '').trim();
-      if (waPhone) {
-        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\n\nQuestions : +221786078080`;
+      const { normalizePhone, isValidPhone } = await import('@/lib/phone');
+      const waPhone = normalizePhone(senderPhone);
+      if (waPhone && isValidPhone(waPhone)) {
+        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\nPayer : yobbante.com/pay/${trackingId}\n\nQuestions : +221786078080`;
         supabase.functions.invoke('send-whatsapp', {
           body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
         }).catch((e) => console.error('WA recap error', e));
       }
+
 
       // Récap email automatique si demandé
       if (wantRecapEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recapEmail) && (dossier as any)?.id) {
@@ -1712,10 +1732,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
                         placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
                         invalid={fieldErrors.senderPhone} />
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
-                      </p>
+                      <PhoneHint value={senderPhone} expectedPrefix={originProfile.phonePrefix} />
                     </div>
+
                   </div>
                 </div>
               )}
@@ -1823,10 +1842,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName}
                 placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`}
                 invalid={fieldErrors.recipientName} />
-              <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
-                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                invalid={fieldErrors.recipientPhone} />
+              <div>
+                <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
+                  placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                  invalid={fieldErrors.recipientPhone} />
+                <PhoneHint value={recipientPhone} expectedPrefix={destProfile.phonePrefix} />
+              </div>
             </div>
+
             {!isFromDakar && destIsSenegal && (
               <QuartierDakarPicker
                 value={pickupQuartier}

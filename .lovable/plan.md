@@ -1,56 +1,61 @@
-# M1 · M2 · M3 — Plan d'exécution
+ns## Objectif
+Traiter les 5 fuites de conversion identifiées dans le funnel `/expedier` → paiement → suivi.
 
-## M1 — Route de suivi unique : `/suivre` canonique
+## F1 — Step 3 · Destination (ÉLEVÉ)
+**Symptôme** : si la ville n'est pas dans les 36 standards, l'utilisateur bloque (aucun fallback exposé).
+**Fix** :
+- Dans `CityPicker.tsx` / le sélecteur Step 3 de `SendFlow`, fusionner `worldCities` (36) + `custom_cities` (via `useCustomCities`) dans la même liste.
+- Ajouter un état "Aucun résultat → demander un devis manuel" avec un CTA qui pré-remplit `ManualQuoteDialog` avec la saisie libre.
+- Autoriser saisie libre stockée dans preset (`destination_city_freeform`) si aucune option ne correspond, en fallback pour ne jamais bloquer.
 
-**Décision** : `/suivre` devient canonique (déjà utilisé par WhatsApp bot, footer public, templates client, ManualQuoteDialog, SendConfirmation, admin sheets). `/track` devient un alias redirigé.
+## F2 — Step 4 · Destinataire (MOYEN)
+**Symptôme** : format téléphone international non validé côté UI (silencieux, warn console seulement).
+**Fix** :
+- Utiliser `normalizePhone` + `isValidPhone` (`src/lib/phone.ts`) sur les champs "téléphone destinataire" et "téléphone expéditeur" dans `SendFlow` Step 4.
+- Message d'erreur inline sous le champ (`aria-live`) : "Numéro international requis (ex: +33 6 12 34 56 78)".
+- Bouton "Suivant" reste actif mais toast d'avertissement doux si numéro invalide (ne bloque pas l'admin, warn le client).
+- Auto-préfixer `+221` si l'utilisateur tape 9 chiffres commençant par 7/3.
 
-Changements :
-- `src/pages/SuivreEntry.tsx` → devient le composant qui **rend** TrackPage (au lieu de rediriger vers /track). Renommer interne : `SuivreEntry` continue à normaliser puis rend `<TrackPage />`.
-- `src/pages/TrackPage.tsx` :
-  - `useSeo({ path: '/suivre/…' })` avec canonical dynamique par ID.
-  - Normalisation redirect cible `/suivre/:id` au lieu de `/track/:id`.
-  - Form vide redirige vers `/suivre/:id`.
-- `src/App.tsx` : `/suivre` et `/suivre/:trackingNumber` rendent `<TrackPage />`. `/track` et `/track/:id` → `<Navigate to="/suivre…" replace />` (301-like côté client). Retirer les doublons de blocs (lignes 106-109 vs 159-160 vs 199-200).
-- `src/components/PublicNav.tsx` : lien Suivre → `/suivre`.
-- `src/pages/LandingPage.tsx` (2 refs) : `/track` → `/suivre`.
-- `src/pages/OrderConfirmationPage.tsx` : `/track` → `/suivre`.
-- `src/pages/DevisConfirmerPage.tsx` : `navigate('/track/…')` → `/suivre/…`.
-- `public/sitemap.xml` + `scripts/generate-sitemap.ts` : entrée `/track` → `/suivre` (garder une seule URL indexable).
-- `public/robots.txt` : rien à changer (aucun disallow sur ces routes).
+## F3 — Step 8 · Assurance (MOYEN)
+**Symptôme** : jamais pré-sélectionnée, pas de rappel bénéfice → skip mécanique.
+**Fix** :
+- Pré-sélectionner "Standard" par défaut si `declared_value > 50 000 XOF` ou `content_type` sensible (electronics, docs).
+- Ajouter un micro-rappel bénéfice sous l'option ("Remboursé jusqu'à X XOF en cas de perte").
+- Bandeau discret si l'utilisateur désélectionne : "Sans assurance, aucun remboursement possible."
 
-## M2 — Draft DB persisté AVANT auth (SendFlow)
+## F4 — Step 9 · Paiement · WhatsApp OK (CRITIQUE)
+**Symptôme** : après clic "Payer", aucun accusé visible → clients paient puis paniquent, appellent le support.
+**Fix** :
+- Dans `SendConfirmation.tsx` (ou juste avant la redirection PayTech), afficher un écran intermédiaire "Confirmation envoyée" avec :
+  - ✅ "Reçu WhatsApp envoyé au +221 XX XX XX XX"
+  - ✅ "Numéro de suivi : YOB-XXXXX"
+  - CTA "Continuer vers le paiement" (redirection PayTech au clic, pas auto).
+- Envoyer un message WhatsApp `send-whatsapp` immédiatement (avant redirection PayTech) avec le tracking_id + lien /suivre + lien /pay.
+- Persister le tracking_id en `localStorage` (`last_dossier_tracking_id`) pour récupération si PayTech échoue.
 
-Objectif : si l'utilisateur ferme la modale auth interstitielle, il retrouve son intake au retour et n'a pas à tout re-saisir.
+## F5 — Post-paiement `/pay` (CRITIQUE — C2)
+**Symptôme** : la page `/pay/:tracking_id` bloque la confirmation (webhook PayTech tardif, UI en attente infinie).
+**Fix** :
+- Sur `PayPage.tsx`, si `?success=1` dans l'URL : afficher immédiatement un état "Paiement reçu, mise à jour en cours" (optimiste) sans attendre le webhook.
+- Poll `dossiers.payment_status` toutes les 2s pendant 30s max, puis passer en état "Nous confirmons votre paiement — vous recevrez un WhatsApp sous 2 min" (rassurant, non bloquant).
+- Bouton "Ouvrir mon suivi" toujours actif → `/suivre/:tracking_id`.
+- Si `?cancel=1` : CTA "Réessayer le paiement" qui rappelle `paytech-payment`.
 
-Changements dans `src/components/flows/SendFlow.tsx` :
-- Juste avant d'ouvrir `AuthInterstitialModal` (ligne 2380), appeler un helper `saveIntakeDraftForAuth(formState)` qui :
-  1. tente `supabase.auth.getUser()` — si déjà connecté, skip modale.
-  2. sinon, écrit dans `intake_drafts` avec `user_id = null` + un **claim token** UUID stocké en `localStorage` (`yob.intake.claim`) + le `draft_data`. (nouveau champ `claim_token uuid nullable` si absent — sinon on stocke dans `draft_data.__claim`).
-  3. la modale d'auth affiche un texte : « Vos infos sont sauvegardées, connectez-vous pour finaliser ».
-- Après auth réussie (retour sur SendFlow via `useEffect` de restauration existant), si `localStorage.yob.intake.claim` est présent :
-  - `select` sur `intake_drafts` par claim, `update` `user_id = auth.uid()`, restaurer le state, effacer le claim local.
-- Ajouter le hook `useIntakeDraft` déjà existant côté SendFlow s'il ne l'est pas (auto-save 10s en plus du snapshot pré-auth).
+## F6 — Suivi `/track` (MOYEN)
+**Symptôme** : M1+M4 partiellement traités, mais lookup fragile si l'utilisateur tape avec `#` ou espaces.
+**Fix** :
+- `normalizeTrackingId` déjà en place → étendre pour retirer préfixes `YOB-`, `#`, espaces, casse.
+- Sur `/suivre/:id`, si non trouvé, proposer un fallback : "Recherche par numéro WhatsApp" (input tel qui appelle une edge function `find-dossier-by-phone`).
 
-Note DB : `intake_drafts.user_id` doit accepter `null` OU on stocke le pré-auth via une table dédiée. **Vérification à faire à l'exécution** : lire la migration existante. Si `user_id` est NOT NULL, on utilise `localStorage` seul comme fallback pré-auth (pas d'écriture DB), et on écrit en DB juste après auth. Plus simple, moins de surface RLS → **c'est l'option retenue par défaut**.
+## Fichiers touchés
+- `src/components/flows/SendFlow.tsx` (Step 3/4/8 UX + validation tel)
+- `src/components/flows/send/SendConfirmation.tsx` (écran d'accusé WhatsApp avant PayTech)
+- `src/components/quote/CityPicker.tsx` (fusion custom_cities + fallback)
+- `src/pages/PayPage.tsx` (état optimiste + polling)
+- `src/lib/trackingId.ts` (normalisation étendue)
+- `supabase/functions/send-whatsapp/index.ts` (accusé pré-paiement — vérifier template)
 
-**Approche retenue (simple)** :
-- Pré-auth : `localStorage.setItem('yob.intake.pending', JSON.stringify(state))` juste avant d'ouvrir la modale.
-- Post-auth : dans le `useEffect` de restauration, si `yob.intake.pending` existe, l'hydrater en priorité, puis appeler l'auto-save `useIntakeDraft` normalement, puis `removeItem`.
-
-Aucune migration nécessaire. Aucun risque RLS. Compat totale.
-
-## M3 — `buildClientRecap` robuste (InboxTab)
-
-`src/components/admin/inbox/InboxTab.tsx` :
-- Remplacer `Math.round(d.estimated_cost * 655.957)` par : `d.final_amount_xof ?? Math.round((d.estimated_cost ?? 0) * 655.957)` — priorité au montant final déjà ajusté (inclut `pricing_adjustments`).
-- Guard cities : si `origin_city` ou `destination_city` est null, ligne trajet omise (au lieu de `"null -> Paris"`).
-- URL suivi : `https://yobbante.com/suivre/${d.reference}` (chemin, plus `?ref=`), aligné sur la canonique M1 + templates existants.
-- Guard `d.reference` : si absent, pas de ligne « Suivi ».
-
-## Technique — ordre d'exécution
-
-1. M1 routes + liens (bas risque, purement navigation).
-2. M3 recap (isolé, 1 fichier).
-3. M2 draft pré-auth (le plus délicat — teste flux complet).
-
-Type-check après chaque étape. Pas de changement de schéma DB.
+## Ordre d'exécution
+1. F4 + F5 (critiques : impact revenu direct)
+2. F1 (élevé : blocage flow)
+3. F2, F3, F6 (moyens : polish)
