@@ -6,11 +6,14 @@ import type { TimelineEvent } from '@/lib/types';
 
 /**
  * Timeline — stream-first.
- * Initial fetch loads the last 50 events; a single app-wide Supabase Realtime
- * channel mutates the cache directly (insert/update/delete). We ref-count
- * consumers so multiple mounts (StrictMode, sibling components) share ONE
- * subscription — no reconnection loop, no duplicate events.
+ * Initial fetch loads the last TIMELINE_LIMIT events (bumped to 200 so power
+ * users don't lose their history); a single app-wide Supabase Realtime channel
+ * mutates the cache directly (insert/update/delete). We ref-count consumers so
+ * multiple mounts (StrictMode, sibling components) share ONE subscription —
+ * no reconnection loop, no duplicate events.
  */
+
+const TIMELINE_LIMIT = 200;
 
 // Module-level singleton — one channel per app instance, ref-counted.
 let sharedChannel: RealtimeChannel | null = null;
@@ -30,7 +33,7 @@ function attachChannel(qc: QueryClient) {
         const incoming = payload.new as TimelineEvent;
         boundQc?.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) => {
           if (prev.some(e => e.id === incoming.id)) return prev;
-          return [incoming, ...prev].slice(0, 50);
+          return [incoming, ...prev].slice(0, TIMELINE_LIMIT);
         });
       }
     )
@@ -87,7 +90,7 @@ export function useTimeline() {
         .from('timeline_events')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(TIMELINE_LIMIT);
       if (error) throw error;
       return data as TimelineEvent[];
     },

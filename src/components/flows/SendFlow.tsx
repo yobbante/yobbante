@@ -794,6 +794,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // ── Render ────────────────────────────────────────────────────────
   return (
     <FlowShell theme="light" compactHeader={compactHeader}>
+      {/* A11y : annonce à voix haute l'étape courante pour les lecteurs d'écran */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        Étape {currentStep} sur 7
+      </div>
       {!compactHeader && (
         <FlowHero
           eyebrow="Expédier · Envoyer"

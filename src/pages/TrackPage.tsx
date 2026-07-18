@@ -6,6 +6,7 @@ import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
 import { EmptyState } from '@/components/EmptyState';
 import { useSeo } from '@/hooks/useSeo';
+import { useJsonLd } from '@/hooks/useJsonLd';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 import { normalizeTrackingId } from '@/lib/trackingId';
@@ -63,6 +64,27 @@ export default function TrackPage() {
     description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
     path: id ? `/suivre/${id}` : '/suivre',
   });
+  useJsonLd('jsonld-track-service', id
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ParcelDelivery',
+        trackingNumber: id,
+        trackingUrl: `https://yobbante.com/suivre/${id}`,
+        carrier: { '@type': 'Organization', name: 'Yobbanté', url: 'https://yobbante.com' },
+      }
+    : {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'Suivre mon colis Yobbanté',
+        url: 'https://yobbante.com/suivre',
+        description: 'Suivez votre colis Yobbanté en temps réel avec votre numéro de suivi (YOB-XXXXXX ou YBT-AAAA-XXXX).',
+        potentialAction: {
+          '@type': 'TrackAction',
+          target: 'https://yobbante.com/suivre/{tracking_number}',
+          'query-input': 'required name=tracking_number',
+        },
+      }
+  );
   // Normalise URL to canonical /suivre/:id form
   if (rawId && id && (rawId !== id || !params.trackingNumber)) {
     return <Navigate to={`/suivre/${id}`} replace />;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, MapPin, CreditCard, FileEdit, UserCheck, PackageCheck, Star } from 'lucide-react';
-import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+import type { HubId } from '@/components/HubsWorldMap';
 import { LandingWorldMap } from '@/components/LandingWorldMap';
 import { QuoteForm } from '@/components/quote/QuoteForm';
 import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
@@ -15,21 +15,17 @@ const DISPLAY_FONT =
   '"Anton","Bebas Neue",-apple-system,BlinkMacSystemFont,sans-serif';
 const BODY_FONT = '"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-const NAV_LINKS: { label: string; to: string }[] = [
+const NAV_LINKS: { label: string; to: string; external?: boolean }[] = [
   { label: 'Expédier', to: '/expedier' },
   { label: 'Tarifs', to: '/tarifs' },
   { label: 'Suivre mon colis', to: '/suivre' },
-  { label: 'Boutique Dëkk', to: '/boutique' },
+  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
 ];
 
-const DESTINATIONS: { flag: string; name: string; hub: HubId | null }[] = [
-  { flag: '🇫🇷', name: 'Paris', hub: 'FR' },
-  { flag: '🇺🇸', name: 'New York', hub: 'US' },
-  { flag: '🇨🇦', name: 'Montréal', hub: null },
-  { flag: '🇦🇪', name: 'Dubai', hub: 'AE' },
-  { flag: '🇨🇳', name: 'Shanghai', hub: 'CN' },
-  { flag: '🇨🇮', name: 'Abidjan', hub: null },
-];
+// Note: la liste des destinations affichée sur la landing provient
+// dynamiquement du catalogue `custom_cities` via les composants qui en ont
+// besoin (SendFlow, CityPicker, LiveDeparturesTicker…). Aucune liste figée
+// ici — évite toute désynchronisation avec l'admin des villes.
 
 const STEPS = [
   {
@@ -666,26 +662,31 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
           className="hidden md:flex"
           style={{ alignItems: 'center', gap: 28 }}
         >
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: NAVY,
-                transition: 'opacity 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.opacity = '0.6';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
-              }}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((l) => {
+            const commonStyle = {
+              fontSize: 14,
+              fontWeight: 500,
+              color: NAVY,
+              transition: 'opacity 0.15s ease',
+            } as const;
+            const hoverIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = '0.6';
+            };
+            const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
+            };
+            return l.external ? (
+              <a key={l.to} href={l.to} target="_blank" rel="noopener noreferrer"
+                 style={commonStyle} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {l.label}
+              </a>
+            ) : (
+              <Link key={l.to} to={l.to} style={commonStyle}
+                    onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -841,36 +842,41 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
         }}
       >
         <nav style={{ display: 'flex', flexDirection: 'column' }}>
-          {allLinks.map((l, i) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 14px',
-                borderRadius: 12,
-                fontSize: 16,
-                fontWeight: 600,
-                color: NAVY,
-                letterSpacing: '-0.01em',
-                transform: menuOpen ? 'translateY(0)' : 'translateY(6px)',
-                opacity: menuOpen ? 1 : 0,
-                transition: `opacity 0.4s ease ${80 + i * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + i * 50}ms, background 0.15s ease`,
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = '#F6F6F8';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-              }}
-            >
-              <span>{l.label}</span>
-              <ArrowRight size={16} style={{ opacity: 0.4 }} />
-            </Link>
-          ))}
+          {allLinks.map((l, i) => {
+            const style = {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 14px',
+              borderRadius: 12,
+              fontSize: 16,
+              fontWeight: 600,
+              color: NAVY,
+              letterSpacing: '-0.01em',
+              transform: menuOpen ? 'translateY(0)' : 'translateY(6px)',
+              opacity: menuOpen ? 1 : 0,
+              transition: `opacity 0.4s ease ${80 + i * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + i * 50}ms, background 0.15s ease`,
+            } as const;
+            const hoverIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = '#F6F6F8';
+            };
+            const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+            };
+            const body = (<><span>{l.label}</span><ArrowRight size={16} style={{ opacity: 0.4 }} /></>);
+            return l.external ? (
+              <a key={l.to} href={l.to} target="_blank" rel="noopener noreferrer"
+                 onClick={() => setMenuOpen(false)} style={style}
+                 onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {body}
+              </a>
+            ) : (
+              <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={style}
+                    onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {body}
+              </Link>
+            );
+          })}
 
           <button
             type="button"
@@ -914,7 +920,7 @@ function LandingFooter() {
         { label: 'Expédier un colis', to: '/expedier' },
         { label: 'Tarifs', to: '/tarifs' },
         { label: 'Suivre mon colis', to: '/suivre' },
-        { label: 'Boutique Dëkk', to: '/boutique' },
+        { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
       ],
     },
     {
@@ -965,12 +971,16 @@ function LandingFooter() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {c.items.map((i) => (
                   <li key={i.label}>
-                    <Link
-                      to={i.to}
-                      style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}
-                    >
-                      {i.label}
-                    </Link>
+                    {i.external ? (
+                      <a href={i.to} target="_blank" rel="noopener noreferrer"
+                         style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                        {i.label}
+                      </a>
+                    ) : (
+                      <Link to={i.to} style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                        {i.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
