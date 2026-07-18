@@ -22,14 +22,10 @@ const NAV_LINKS: { label: string; to: string; external?: boolean }[] = [
   { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
 ];
 
-const DESTINATIONS: { flag: string; name: string; hub: HubId | null }[] = [
-  { flag: '🇫🇷', name: 'Paris', hub: 'FR' },
-  { flag: '🇺🇸', name: 'New York', hub: 'US' },
-  { flag: '🇨🇦', name: 'Montréal', hub: null },
-  { flag: '🇦🇪', name: 'Dubai', hub: 'AE' },
-  { flag: '🇨🇳', name: 'Shanghai', hub: 'CN' },
-  { flag: '🇨🇮', name: 'Abidjan', hub: null },
-];
+// Note: la liste des destinations affichée sur la landing provient
+// dynamiquement du catalogue `custom_cities` via les composants qui en ont
+// besoin (SendFlow, CityPicker, LiveDeparturesTicker…). Aucune liste figée
+// ici — évite toute désynchronisation avec l'admin des villes.
 
 const STEPS = [
   {
