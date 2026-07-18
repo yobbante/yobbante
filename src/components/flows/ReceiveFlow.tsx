@@ -416,6 +416,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     try {
       const { data, error } = await supabase.functions.invoke('parse-product', { body: { input: v } });
       if (error) throw error;
+      const parsedOk = !!(data?.title || data?.platform);
       const item: ParsedItem = {
         id: crypto.randomUUID(),
         source: v,
@@ -429,7 +430,13 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       setTrackingEntries(prev => [...prev, tk]);
       setTrackingInput('');
       const detected = tk.trackingNumber ? `· suivi ${tk.carrier}` : '';
-      toast.success(`Commande ajoutée ${detected}`);
+      if (parsedOk) {
+        toast.success(`Commande ajoutée ${detected}`);
+      } else {
+        toast.warning('Ajouté — pensez à préciser le contenu', {
+          description: 'On n\'a pas pu identifier le produit automatiquement (lien raccourci ou site non reconnu). Vous pourrez le compléter à l\'étape suivante.',
+        });
+      }
     } catch {
       // Fallback: store the raw entry with whatever we extracted locally.
       const item: ParsedItem = {
