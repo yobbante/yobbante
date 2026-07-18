@@ -846,36 +846,41 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
         }}
       >
         <nav style={{ display: 'flex', flexDirection: 'column' }}>
-          {allLinks.map((l, i) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 14px',
-                borderRadius: 12,
-                fontSize: 16,
-                fontWeight: 600,
-                color: NAVY,
-                letterSpacing: '-0.01em',
-                transform: menuOpen ? 'translateY(0)' : 'translateY(6px)',
-                opacity: menuOpen ? 1 : 0,
-                transition: `opacity 0.4s ease ${80 + i * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + i * 50}ms, background 0.15s ease`,
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = '#F6F6F8';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-              }}
-            >
-              <span>{l.label}</span>
-              <ArrowRight size={16} style={{ opacity: 0.4 }} />
-            </Link>
-          ))}
+          {allLinks.map((l, i) => {
+            const style = {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 14px',
+              borderRadius: 12,
+              fontSize: 16,
+              fontWeight: 600,
+              color: NAVY,
+              letterSpacing: '-0.01em',
+              transform: menuOpen ? 'translateY(0)' : 'translateY(6px)',
+              opacity: menuOpen ? 1 : 0,
+              transition: `opacity 0.4s ease ${80 + i * 50}ms, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${80 + i * 50}ms, background 0.15s ease`,
+            } as const;
+            const hoverIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = '#F6F6F8';
+            };
+            const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+            };
+            const body = (<><span>{l.label}</span><ArrowRight size={16} style={{ opacity: 0.4 }} /></>);
+            return l.external ? (
+              <a key={l.to} href={l.to} target="_blank" rel="noopener noreferrer"
+                 onClick={() => setMenuOpen(false)} style={style}
+                 onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {body}
+              </a>
+            ) : (
+              <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} style={style}
+                    onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {body}
+              </Link>
+            );
+          })}
 
           <button
             type="button"
