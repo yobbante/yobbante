@@ -4,6 +4,7 @@ import { SendFlow } from '@/components/flows/SendFlow';
 import { ReceiveFlow } from '@/components/flows/ReceiveFlow';
 import { ExpedierSearchBar, type ExpedierMode } from '@/components/expedier/ExpedierSearchBar';
 import { useSeo } from '@/hooks/useSeo';
+import { useJsonLd } from '@/hooks/useJsonLd';
 
 /**
  * /expedier — barre de recherche unifiée (Envoyer / Sourcing / Réception)
