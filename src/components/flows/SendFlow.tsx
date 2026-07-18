@@ -152,8 +152,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Step 7 — transport
   const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
-  // Step 8 — insurance (jamais pré-sélectionnée)
-  const [insurance, setInsurance]         = useState<'none' | 'standard' | 'premium'>('none');
+  // Step 8 — insurance (auto-pré-sélectionnée "standard" si valeur > 50 000 FCFA
+  // et que l'utilisateur n'a pas encore choisi manuellement — F3).
+  const [insurance, setInsuranceState]    = useState<'none' | 'standard' | 'premium'>('none');
+  const insuranceTouchedRef               = useRef(false);
+  const setInsurance = (v: 'none' | 'standard' | 'premium') => { insuranceTouchedRef.current = true; setInsuranceState(v); };
+
   // Step 9 — payment (Wave par défaut)
   const [paymentMethod, setPaymentMethod] = useState<string>('wave');
   // Modale interstitielle d'authentification (pas de redirect brutal vers /auth)
