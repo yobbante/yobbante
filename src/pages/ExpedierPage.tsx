@@ -132,6 +132,36 @@ export default function ExpedierPage() {
       {mode === 'envoyer'
         ? <SendFlow key="send" compactHeader={bar} />
         : <ReceiveFlow key={`receive-${flowKey}`} compactHeader={bar} />}
+      <ExpedierJsonLd mode={mode} />
     </>
   );
+}
+
+function ExpedierJsonLd({ mode }: { mode: 'envoyer' | 'recevoir' }) {
+  useJsonLd(
+    mode === 'envoyer' ? 'jsonld-expedier-service' : 'jsonld-reception-service',
+    mode === 'envoyer'
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'Expédition de colis Yobbanté depuis Dakar',
+          serviceType: 'International parcel shipping',
+          provider: { '@type': 'Organization', name: 'Yobbanté', url: 'https://yobbante.com' },
+          areaServed: ['SN', 'FR', 'US', 'CA', 'CN', 'AE'],
+          description: "Expédition de colis depuis Dakar vers Paris, New York, Dubai, Shanghai et plus. Collecte gratuite, paiement Wave/Orange Money, suivi WhatsApp.",
+          offers: { '@type': 'Offer', priceCurrency: 'XOF', availability: 'https://schema.org/InStock' },
+          url: 'https://yobbante.com/expedier',
+        }
+      : {
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'Réception Amazon / AliExpress / eBay à Dakar',
+          serviceType: 'Package reception & last-mile delivery',
+          provider: { '@type': 'Organization', name: 'Yobbanté', url: 'https://yobbante.com' },
+          areaServed: 'SN',
+          description: "Adresse relais à Paris, New York et Dubai pour recevoir vos commandes Amazon, AliExpress, eBay puis livraison à Dakar.",
+          url: 'https://yobbante.com/reception',
+        }
+  );
+  return null;
 }
