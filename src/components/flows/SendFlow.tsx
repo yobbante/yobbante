@@ -468,6 +468,16 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // Étape « Protection colis » TOUJOURS affichée entre Transport et Récapitulatif.
   const showInsuranceStep = true;
 
+  // F3 — Auto-pré-sélection "Standard" si la valeur déclarée dépasse 50 000 FCFA
+  // et que l'utilisateur n'a pas encore choisi manuellement.
+  useEffect(() => {
+    if (insuranceTouchedRef.current) return;
+    if (declaredFcfaForInsurance > 50000 && insurance === 'none') {
+      setInsuranceState('standard');
+    }
+  }, [declaredFcfaForInsurance, insurance]);
+
+
   // Auto-suggest mode based on weight
   useEffect(() => {
     if (weightTouched && weight >= 30 && transportMode === 'AIR' && goodsType !== 'documents') {
