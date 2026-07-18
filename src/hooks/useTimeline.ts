@@ -33,7 +33,7 @@ function attachChannel(qc: QueryClient) {
         const incoming = payload.new as TimelineEvent;
         boundQc?.setQueryData<TimelineEvent[]>(['timeline'], (prev = []) => {
           if (prev.some(e => e.id === incoming.id)) return prev;
-          return [incoming, ...prev].slice(0, 50);
+          return [incoming, ...prev].slice(0, TIMELINE_LIMIT);
         });
       }
     )
