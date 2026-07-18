@@ -975,12 +975,16 @@ function LandingFooter() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {c.items.map((i) => (
                   <li key={i.label}>
-                    <Link
-                      to={i.to}
-                      style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}
-                    >
-                      {i.label}
-                    </Link>
+                    {i.external ? (
+                      <a href={i.to} target="_blank" rel="noopener noreferrer"
+                         style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                        {i.label}
+                      </a>
+                    ) : (
+                      <Link to={i.to} style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                        {i.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
