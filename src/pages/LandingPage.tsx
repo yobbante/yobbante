@@ -666,26 +666,31 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
           className="hidden md:flex"
           style={{ alignItems: 'center', gap: 28 }}
         >
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: NAVY,
-                transition: 'opacity 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.opacity = '0.6';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
-              }}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((l) => {
+            const commonStyle = {
+              fontSize: 14,
+              fontWeight: 500,
+              color: NAVY,
+              transition: 'opacity 0.15s ease',
+            } as const;
+            const hoverIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = '0.6';
+            };
+            const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              (e.currentTarget as HTMLAnchorElement).style.opacity = '1';
+            };
+            return l.external ? (
+              <a key={l.to} href={l.to} target="_blank" rel="noopener noreferrer"
+                 style={commonStyle} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {l.label}
+              </a>
+            ) : (
+              <Link key={l.to} to={l.to} style={commonStyle}
+                    onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
