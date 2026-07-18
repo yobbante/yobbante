@@ -1732,10 +1732,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                       <TextField label={`Téléphone * (${originProfile.phonePrefix})`} value={senderPhone} onChange={setSenderPhone}
                         placeholder="771234567" type="tel" icon={<Phone className="w-3.5 h-3.5" />}
                         invalid={fieldErrors.senderPhone} />
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        Saisissez les 9 chiffres sans le 0 (ex. 771234567).
-                      </p>
+                      <PhoneHint value={senderPhone} expectedPrefix={originProfile.phonePrefix} />
                     </div>
+
                   </div>
                 </div>
               )}
