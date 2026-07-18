@@ -185,12 +185,13 @@ const TRACKING_PATTERNS: Array<{ carrier: string; re: RegExp }> = [
 ];
 
 const MERCHANT_HINTS: Array<{ name: string; re: RegExp }> = [
-  { name: 'Amazon',     re: /amazon\.[a-z.]+/i },
+  // Amazon (long + shortlinks amzn.to / amzn.eu / a.co)
+  { name: 'Amazon',     re: /(amazon\.[a-z.]+|amzn\.(?:to|eu|asia)|\ba\.co\b)/i },
   { name: 'Alibaba',    re: /alibaba\.com/i },
-  { name: 'AliExpress', re: /aliexpress\.[a-z.]+/i },
+  { name: 'AliExpress', re: /(aliexpress\.[a-z.]+|\ba\.aliexpress\b|\bs\.click\.aliexpress\b)/i },
   { name: 'Shein',      re: /shein\.[a-z]+/i },
   { name: 'Temu',       re: /temu\.com/i },
-  { name: 'eBay',       re: /ebay\.[a-z.]+/i },
+  { name: 'eBay',       re: /(ebay\.[a-z.]+|\bebay\.us\b)/i },
   { name: 'Cdiscount',  re: /cdiscount\.com/i },
 ];
 
