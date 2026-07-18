@@ -46,8 +46,9 @@ import {
 import { PriorityCarousel } from './send/PriorityCarousel';
 import {
   RecapRow, RecapGroup, EmailRecapCard, StepCollapsed, LockedStep, StepSupportLink,
-  AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge,
+  AddressField, CoverageBadge, QuartierDakarPicker, ZoneBadge, PhoneHint,
 } from './send/pieces';
+
 import { SendConfirmation } from './send/SendConfirmation';
 import { useSendPricing } from './send/useSendPricing';
 
