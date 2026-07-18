@@ -97,7 +97,9 @@ export default function PayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingId]);
 
-  // Polling on ?success=1 (max 5s, every 1s) waiting for IPN
+  // F5 — Polling optimiste après ?success=1 : jusqu'à 30 s (2 s d'intervalle)
+  // pour laisser au webhook PayTech le temps de basculer payment_status=paid.
+  // La page reste rassurante même si le webhook tarde — pas d'attente infinie.
   useEffect(() => {
     if (!successFlag || !dossier || dossier.payment_status === 'paid') return;
     setPolling(true);
@@ -105,14 +107,15 @@ export default function PayPage() {
     const id = setInterval(async () => {
       tries++;
       const d = await refresh();
-      if (d?.payment_status === 'paid' || tries >= 5) {
+      if (d?.payment_status === 'paid' || tries >= 15) {
         clearInterval(id);
         setPolling(false);
       }
-    }, 1000);
+    }, 2000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [successFlag, dossier?.id]);
+
 
   const amountXof = dossier?.final_amount_xof
     ?? (dossier?.estimated_cost ? Math.round(dossier.estimated_cost * 655.957) : null);
