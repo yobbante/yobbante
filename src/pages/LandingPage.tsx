@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, MapPin, CreditCard, FileEdit, UserCheck, PackageCheck, Star } from 'lucide-react';
-import { HubsWorldMap, type HubId } from '@/components/HubsWorldMap';
+// HubsWorldMap import removed — no longer used after DESTINATIONS cleanup.
 import { LandingWorldMap } from '@/components/LandingWorldMap';
 import { QuoteForm } from '@/components/quote/QuoteForm';
 import { LiveDeparturesTicker } from '@/components/LiveDeparturesTicker';
