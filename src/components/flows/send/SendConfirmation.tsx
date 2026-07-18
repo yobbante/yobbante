@@ -76,6 +76,8 @@ export function SendConfirmation({
     },
   ];
 
+  const payHref = `/pay/${confirmed.trackingId}`;
+
   return (
     <FlowShell theme="light" compactHeader={compactHeader}>
       <FlowSuccess
@@ -84,6 +86,33 @@ export function SendConfirmation({
         subtitle="Votre commande est enregistrée. Notre équipe vous contacte sous 24h pour organiser la collecte."
         ctaHref="/app" ctaLabel="Suivre ma commande →"
       />
+
+      {/* F4 — Accusé WhatsApp + CTA paiement (évite les paniques post-clic) */}
+      <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-4 h-4 text-emerald-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-emerald-900">
+              Récapitulatif WhatsApp envoyé{senderPhone ? ` au ${senderPhone}` : ''}
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-800/80">
+              Vous recevez le lien de suivi et le lien de paiement sur WhatsApp dans quelques secondes.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a href={payHref}
+             className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium px-3.5 py-2 transition-colors">
+            Payer maintenant →
+          </a>
+          <a href={`/suivre/${confirmed.trackingId}`}
+             className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-white text-emerald-800 text-sm font-medium px-3.5 py-2 hover:bg-emerald-50 transition-colors">
+            <Search className="w-3.5 h-3.5" /> Suivre l'envoi
+          </a>
+        </div>
+      </div>
 
       {/* Dual reference block */}
       <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5">
@@ -127,6 +156,7 @@ export function SendConfirmation({
           <Search className="w-4 h-4 text-primary" /> Suivre l'envoi
         </button>
       </div>
+
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
