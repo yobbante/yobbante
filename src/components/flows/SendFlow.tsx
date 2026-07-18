@@ -1842,10 +1842,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               <TextField label="Nom complet *" value={recipientName} onChange={setRecipientName}
                 placeholder={`Ex. destinataire à ${destCity?.city ?? '—'}`}
                 invalid={fieldErrors.recipientName} />
-              <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
-                placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
-                invalid={fieldErrors.recipientPhone} />
+              <div>
+                <TextField label={`Téléphone * (${destProfile.phonePrefix})`} value={recipientPhone} onChange={setRecipientPhone}
+                  placeholder={`${destProfile.phonePrefix} 6 · · · · · ·`} type="tel" icon={<Phone className="w-3.5 h-3.5" />}
+                  invalid={fieldErrors.recipientPhone} />
+                <PhoneHint value={recipientPhone} expectedPrefix={destProfile.phonePrefix} />
+              </div>
             </div>
+
             {!isFromDakar && destIsSenegal && (
               <QuartierDakarPicker
                 value={pickupQuartier}
