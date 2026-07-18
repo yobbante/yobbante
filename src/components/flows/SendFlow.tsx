@@ -754,13 +754,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
       const prenom = (senderName || 'Client').split(' ')[0];
-      const waPhone = (senderPhone || '').trim();
-      if (waPhone) {
-        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\n\nQuestions : +221786078080`;
+      const { normalizePhone, isValidPhone } = await import('@/lib/phone');
+      const waPhone = normalizePhone(senderPhone);
+      if (waPhone && isValidPhone(waPhone)) {
+        const recap = `Bonjour ${prenom},\nVotre expedition Yobbante est enregistree !\n\nRef suivi : ${trackingId}\nTrajet : ${originCity?.city ?? '?'} -> ${destCity?.city ?? '?'}\nPoids : ${weight}kg\nPrix : ${formatLocalAmount(totalEur, originProfile)}\n\nSuivez votre colis :\nyobbante.com/suivre/${trackingId}\nPayer : yobbante.com/pay/${trackingId}\n\nQuestions : +221786078080`;
         supabase.functions.invoke('send-whatsapp', {
           body: { recipient_phone: waPhone, message: recap, template: 'free_text' },
         }).catch((e) => console.error('WA recap error', e));
       }
+
 
       // Récap email automatique si demandé
       if (wantRecapEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recapEmail) && (dossier as any)?.id) {
