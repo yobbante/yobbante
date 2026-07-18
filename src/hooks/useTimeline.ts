@@ -90,7 +90,7 @@ export function useTimeline() {
         .from('timeline_events')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(TIMELINE_LIMIT);
       if (error) throw error;
       return data as TimelineEvent[];
     },
