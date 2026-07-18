@@ -185,12 +185,13 @@ const TRACKING_PATTERNS: Array<{ carrier: string; re: RegExp }> = [
 ];
 
 const MERCHANT_HINTS: Array<{ name: string; re: RegExp }> = [
-  { name: 'Amazon',     re: /amazon\.[a-z.]+/i },
+  // Amazon (long + shortlinks amzn.to / amzn.eu / a.co)
+  { name: 'Amazon',     re: /(amazon\.[a-z.]+|amzn\.(?:to|eu|asia)|\ba\.co\b)/i },
   { name: 'Alibaba',    re: /alibaba\.com/i },
-  { name: 'AliExpress', re: /aliexpress\.[a-z.]+/i },
+  { name: 'AliExpress', re: /(aliexpress\.[a-z.]+|\ba\.aliexpress\b|\bs\.click\.aliexpress\b)/i },
   { name: 'Shein',      re: /shein\.[a-z]+/i },
   { name: 'Temu',       re: /temu\.com/i },
-  { name: 'eBay',       re: /ebay\.[a-z.]+/i },
+  { name: 'eBay',       re: /(ebay\.[a-z.]+|\bebay\.us\b)/i },
   { name: 'Cdiscount',  re: /cdiscount\.com/i },
 ];
 
@@ -415,6 +416,7 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     try {
       const { data, error } = await supabase.functions.invoke('parse-product', { body: { input: v } });
       if (error) throw error;
+      const parsedOk = !!(data?.title || data?.platform);
       const item: ParsedItem = {
         id: crypto.randomUUID(),
         source: v,
@@ -428,7 +430,13 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
       setTrackingEntries(prev => [...prev, tk]);
       setTrackingInput('');
       const detected = tk.trackingNumber ? `· suivi ${tk.carrier}` : '';
-      toast.success(`Commande ajoutée ${detected}`);
+      if (parsedOk) {
+        toast.success(`Commande ajoutée ${detected}`);
+      } else {
+        toast.warning('Ajouté — pensez à préciser le contenu', {
+          description: 'On n\'a pas pu identifier le produit automatiquement (lien raccourci ou site non reconnu). Vous pourrez le compléter à l\'étape suivante.',
+        });
+      }
     } catch {
       // Fallback: store the raw entry with whatever we extracted locally.
       const item: ParsedItem = {
@@ -497,11 +505,14 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     }
   }
 
-  // Auto-parse pasted URL
+  // Auto-parse pasted URL (long form + shortlinks amzn.to/eu, a.co, aliexpress s.click…)
   useEffect(() => {
     const v = trackingInput.trim();
     if (v.length < 8) return;
-    if (!/^https?:\/\//i.test(v)) return;
+    const looksLikeUrl =
+      /^https?:\/\//i.test(v) ||
+      /\b(amazon|amzn|a\.co|aliexpress|ebay|shein|temu|cdiscount)\b/i.test(v);
+    if (!looksLikeUrl) return;
     const t = setTimeout(() => runParse(v), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

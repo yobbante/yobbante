@@ -157,25 +157,35 @@ export default function TrackPage() {
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-6">
         {!id ? (
-          <div className="surface-card max-w-[480px] mx-auto">
+          <form
+            className="surface-card max-w-[480px] mx-auto"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const n = normalizeTrackingId(input);
+              if (!n) { toast.error('Entrez un numéro de suivi'); return; }
+              if (n.length < 6) { toast.error('Numéro trop court'); return; }
+              navigate(`/suivre/${n}`);
+            }}
+          >
             <h2 className="mb-3">Suivre mon colis</h2>
             <input
               className="input-base w-full mb-3"
               placeholder="YOB-XXXXXX ou YBT-AAAA-XXXX"
               value={input}
               onChange={e => setInput(e.target.value)}
-              style={{ height: 40 }}
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              style={{ height: 40, textTransform: 'uppercase' }}
             />
             <p className="text-[11px] text-muted-foreground mb-3">
-              Les deux formats sont acceptés : référence suivi (YOB-…) ou référence commande (YBT-…).
+              Espaces, minuscules et « # » sont acceptés — on normalise automatiquement.
             </p>
-            <button
-              className="btn-cta w-full"
-              onClick={() => { const n = normalizeTrackingId(input); if (n) navigate(`/suivre/${n}`); }}
-            >
+            <button type="submit" className="btn-cta w-full">
               Suivre →
             </button>
-          </div>
+          </form>
         ) : loading && !data ? (
           <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…

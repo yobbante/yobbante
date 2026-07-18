@@ -26,7 +26,11 @@ export function AuthInterstitialModal({ open, onOpenChange, resumePath }: AuthIn
     try {
       const sep = resumePath.includes('?') ? '&' : '?';
       const fullResume = `${resumePath}${sep}resume=1`;
-      const redirectAfterAuth = `${window.location.origin}/auth?redirect=${encodeURIComponent(fullResume)}`;
+      // Mémorise la destination post-login pour AuthCallback (source de vérité
+      // unique — indépendante des query params que certains providers OAuth
+      // n'acceptent pas dans redirect_uri).
+      try { sessionStorage.setItem('post_auth_redirect', fullResume); } catch {}
+      const redirectAfterAuth = `${window.location.origin}/auth/callback`;
       const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: redirectAfterAuth });
       if (result.error) {
         toast.error(result.error.message || `Connexion ${provider === 'google' ? 'Google' : 'Apple'} échouée`);
