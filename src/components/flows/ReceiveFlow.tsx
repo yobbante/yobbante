@@ -505,11 +505,14 @@ export function ReceiveFlow({ compactHeader }: { compactHeader?: React.ReactNode
     }
   }
 
-  // Auto-parse pasted URL
+  // Auto-parse pasted URL (long form + shortlinks amzn.to/eu, a.co, aliexpress s.click…)
   useEffect(() => {
     const v = trackingInput.trim();
     if (v.length < 8) return;
-    if (!/^https?:\/\//i.test(v)) return;
+    const looksLikeUrl =
+      /^https?:\/\//i.test(v) ||
+      /\b(amazon|amzn|a\.co|aliexpress|ebay|shein|temu|cdiscount)\b/i.test(v);
+    if (!looksLikeUrl) return;
     const t = setTimeout(() => runParse(v), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
