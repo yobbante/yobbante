@@ -742,12 +742,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         dossierId: (dossier as any).id,
         arrivalDate: arrivalLabel,
       });
+      // Persist last dossier for recovery if the client closes the tab before payment.
+      try { localStorage.setItem('last_dossier_tracking_id', trackingId); } catch {}
       clearDraft(DRAFT_KEY);
       try { sessionStorage.removeItem(PRESET_KEY); } catch {}
       try { sessionStorage.removeItem(RESUME_KEY); } catch {}
       try { localStorage.removeItem(LS_RESUME_KEY); } catch {}
       try { localStorage.removeItem(LS_DRAFT_KEY); } catch {}
       toast.success(`Commande créée — ${trackingId}`);
+
 
       // Auto WhatsApp récap au numéro de l'expéditeur (sans accents).
       const prenom = (senderName || 'Client').split(' ')[0];
