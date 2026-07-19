@@ -1675,6 +1675,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       )}
 
+      {/* ─── Steps 4-7 : uniquement si un départ actif existe. Sinon → devis sur mesure à l'étape 3. ─── */}
+      {hasActiveDeparture && (<>
       {/* ─── Step 1 — Collecte (incl. sender contact when user is recipient/third) ─── */}
       <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
