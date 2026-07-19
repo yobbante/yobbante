@@ -361,6 +361,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
+  // Un trajet a un départ actif dès qu'il existe au moins une option "match" (GP/vol) confirmée.
+  // Sans départ actif, on masque les étapes 4-7 et on propose un devis sur mesure à l'étape 3.
+  const hasActiveDeparture = options.length > 0;
 
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
