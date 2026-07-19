@@ -38,6 +38,7 @@ export function ClientSpaceView() {
   }, [profile?.full_name]);
 
   const active = dossiers.filter(ACTIVE_FILTER);
+  const quotes = dossiers.filter(QUOTE_FILTER);
   const history = dossiers.filter(HISTORY_FILTER).slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
   const isEmpty = !isLoading && dossiers.length === 0;
