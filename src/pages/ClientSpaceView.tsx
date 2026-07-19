@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox } from 'lucide-react';
+import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox, Search, Check } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useDossiersRealtime } from '@/hooks/useDossiersRealtime';
