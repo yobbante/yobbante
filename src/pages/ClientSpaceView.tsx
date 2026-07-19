@@ -8,8 +8,13 @@ import { useDossiersRealtime } from '@/hooks/useDossiersRealtime';
 import { ClientDossierCard } from '@/components/client/ClientDossierCard';
 import type { Dossier } from '@/lib/types';
 
+const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
+
+const QUOTE_FILTER = (d: Dossier) =>
+  QUOTE_STATUSES.has((d as any).status);
+
 const ACTIVE_FILTER = (d: Dossier) =>
-  d.status !== 'DELIVERED' && d.status !== 'CLOSED';
+  d.status !== 'DELIVERED' && d.status !== 'CLOSED' && !QUOTE_STATUSES.has(d.status as any);
 
 const HISTORY_FILTER = (d: Dossier) =>
   d.status === 'DELIVERED' || d.status === 'CLOSED';
