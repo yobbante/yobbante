@@ -151,6 +151,63 @@ export function ClientSpaceView() {
         </section>
       )}
 
+      {/* Mes devis sur mesure */}
+      {quotes.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Search className="w-4 h-4" /> Mes devis
+          </h2>
+          <div className="space-y-2">
+            {quotes.map((d) => {
+              const status = (d as any).status;
+              const amt = (d as any).quote_amount_xof as number | null | undefined;
+              const validUntil = (d as any).quote_valid_until as string | null | undefined;
+              const label =
+                status === 'QUOTE_REQUESTED' ? 'Demande envoyée · en attente de réponse'
+                : status === 'QUOTE_SENT' ? 'Devis reçu — à valider'
+                : status === 'QUOTE_ACCEPTED' ? 'Devis accepté'
+                : 'Devis refusé';
+              const color =
+                status === 'QUOTE_REQUESTED' ? 'text-amber-500'
+                : status === 'QUOTE_SENT' ? 'text-[#F5C518]'
+                : status === 'QUOTE_ACCEPTED' ? 'text-emerald-500'
+                : 'text-rose-500';
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => navigate(`/app/dossier/${d.id}`)}
+                  className="w-full text-left rounded-2xl border border-border bg-card p-3.5 hover:border-foreground/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-muted-foreground">{d.reference}</p>
+                      <p className="font-semibold text-foreground truncate">
+                        {d.origin_city ?? d.origin_country} → {d.destination_city ?? d.destination_country}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${color}`}>{label}</p>
+                    </div>
+                    {amt ? (
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold tabular-nums">{new Intl.NumberFormat('fr-FR').format(amt)} FCFA</p>
+                        {validUntil && <p className="text-[10px] text-muted-foreground">valide → {fmtShort(validUntil)}</p>}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground shrink-0">…</span>
+                    )}
+                  </div>
+                  {status === 'QUOTE_SENT' && (
+                    <div className="mt-2.5 flex items-center gap-1.5 text-xs text-[#F5C518] font-semibold">
+                      <Check className="w-3 h-3" /> Ouvrir pour compléter et accepter
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Historique */}
       {history.length > 0 && (
         <section>
