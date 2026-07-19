@@ -1061,6 +1061,13 @@ export type Database = {
           price_volatility_coefficient: number | null
           product_description: string
           quantity: number | null
+          quote_amount_xof: number | null
+          quote_currency: string | null
+          quote_notes_admin: string | null
+          quote_responded_at: string | null
+          quote_response: string | null
+          quote_sent_at: string | null
+          quote_valid_until: string | null
           recipient_address: string | null
           recipient_name: string | null
           recipient_phone: string | null
@@ -1217,6 +1224,13 @@ export type Database = {
           price_volatility_coefficient?: number | null
           product_description: string
           quantity?: number | null
+          quote_amount_xof?: number | null
+          quote_currency?: string | null
+          quote_notes_admin?: string | null
+          quote_responded_at?: string | null
+          quote_response?: string | null
+          quote_sent_at?: string | null
+          quote_valid_until?: string | null
           recipient_address?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null
@@ -1373,6 +1387,13 @@ export type Database = {
           price_volatility_coefficient?: number | null
           product_description?: string
           quantity?: number | null
+          quote_amount_xof?: number | null
+          quote_currency?: string | null
+          quote_notes_admin?: string | null
+          quote_responded_at?: string | null
+          quote_response?: string | null
+          quote_sent_at?: string | null
+          quote_valid_until?: string | null
           recipient_address?: string | null
           recipient_name?: string | null
           recipient_phone?: string | null

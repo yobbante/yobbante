@@ -1,15 +1,20 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox } from 'lucide-react';
+import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox, Search, Check } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useDossiersRealtime } from '@/hooks/useDossiersRealtime';
 import { ClientDossierCard } from '@/components/client/ClientDossierCard';
 import type { Dossier } from '@/lib/types';
 
+const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
+
+const QUOTE_FILTER = (d: Dossier) =>
+  QUOTE_STATUSES.has((d as any).status);
+
 const ACTIVE_FILTER = (d: Dossier) =>
-  d.status !== 'DELIVERED' && d.status !== 'CLOSED';
+  d.status !== 'DELIVERED' && d.status !== 'CLOSED' && !QUOTE_STATUSES.has(d.status as any);
 
 const HISTORY_FILTER = (d: Dossier) =>
   d.status === 'DELIVERED' || d.status === 'CLOSED';
@@ -33,6 +38,7 @@ export function ClientSpaceView() {
   }, [profile?.full_name]);
 
   const active = dossiers.filter(ACTIVE_FILTER);
+  const quotes = dossiers.filter(QUOTE_FILTER);
   const history = dossiers.filter(HISTORY_FILTER).slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
   const isEmpty = !isLoading && dossiers.length === 0;
@@ -141,6 +147,63 @@ export function ClientSpaceView() {
               onClick={() => navigate('/app?view=envois&filter=pending')}
             />
             <QuickAction icon={FileText} label="Mes factures" onClick={() => navigate('/app?view=envois&filter=invoices')} />
+          </div>
+        </section>
+      )}
+
+      {/* Mes devis sur mesure */}
+      {quotes.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Search className="w-4 h-4" /> Mes devis
+          </h2>
+          <div className="space-y-2">
+            {quotes.map((d) => {
+              const status = (d as any).status;
+              const amt = (d as any).quote_amount_xof as number | null | undefined;
+              const validUntil = (d as any).quote_valid_until as string | null | undefined;
+              const label =
+                status === 'QUOTE_REQUESTED' ? 'Demande envoyée · en attente de réponse'
+                : status === 'QUOTE_SENT' ? 'Devis reçu — à valider'
+                : status === 'QUOTE_ACCEPTED' ? 'Devis accepté'
+                : 'Devis refusé';
+              const color =
+                status === 'QUOTE_REQUESTED' ? 'text-amber-500'
+                : status === 'QUOTE_SENT' ? 'text-[#F5C518]'
+                : status === 'QUOTE_ACCEPTED' ? 'text-emerald-500'
+                : 'text-rose-500';
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => navigate(`/app/dossier/${d.id}`)}
+                  className="w-full text-left rounded-2xl border border-border bg-card p-3.5 hover:border-foreground/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-muted-foreground">{d.reference}</p>
+                      <p className="font-semibold text-foreground truncate">
+                        {d.origin_city ?? d.origin_country} → {d.destination_city ?? d.destination_country}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${color}`}>{label}</p>
+                    </div>
+                    {amt ? (
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold tabular-nums">{new Intl.NumberFormat('fr-FR').format(amt)} FCFA</p>
+                        {validUntil && <p className="text-[10px] text-muted-foreground">valide → {fmtShort(validUntil)}</p>}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground shrink-0">…</span>
+                    )}
+                  </div>
+                  {status === 'QUOTE_SENT' && (
+                    <div className="mt-2.5 flex items-center gap-1.5 text-xs text-[#F5C518] font-semibold">
+                      <Check className="w-3 h-3" /> Ouvrir pour compléter et accepter
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </section>
       )}

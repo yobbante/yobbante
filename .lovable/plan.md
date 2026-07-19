@@ -1,61 +1,60 @@
-ns## Objectif
-Traiter les 5 fuites de conversion identifiées dans le funnel `/expedier` → paiement → suivi.
+## Plan — Devis sur mesure + gating étapes SendFlow
 
-## F1 — Step 3 · Destination (ÉLEVÉ)
-**Symptôme** : si la ville n'est pas dans les 36 standards, l'utilisateur bloque (aucun fallback exposé).
-**Fix** :
-- Dans `CityPicker.tsx` / le sélecteur Step 3 de `SendFlow`, fusionner `worldCities` (36) + `custom_cities` (via `useCustomCities`) dans la même liste.
-- Ajouter un état "Aucun résultat → demander un devis manuel" avec un CTA qui pré-remplit `ManualQuoteDialog` avec la saisie libre.
-- Autoriser saisie libre stockée dans preset (`destination_city_freeform`) si aucune option ne correspond, en fallback pour ne jamais bloquer.
+### 1. Séquencement strict des étapes (SendFlow)
+- Aujourd'hui après étape 2 (Type marchandise), l'utilisateur peut sauter à l'étape 7. Cause : `advanceFromStep(2)` scrolle vers l'étape 3 mais rien n'empêche le bouton "Continuer" des étapes suivantes de sauter au récap.
+- Ajouter dans `advanceFromStep()` un `next = step + 1` strict, désactiver les boutons "Continuer" tant que `stepValidity[currentStep]` est faux, et forcer le focus/scroll sur l'étape N+1 uniquement (pas 7).
+- Vérifier que le bouton "Continuer" de chaque étape appelle bien `advanceFromStep(N)` — corriger ceux qui appellent `submit()` ou sautent directement.
 
-## F2 — Step 4 · Destinataire (MOYEN)
-**Symptôme** : format téléphone international non validé côté UI (silencieux, warn console seulement).
-**Fix** :
-- Utiliser `normalizePhone` + `isValidPhone` (`src/lib/phone.ts`) sur les champs "téléphone destinataire" et "téléphone expéditeur" dans `SendFlow` Step 4.
-- Message d'erreur inline sous le champ (`aria-live`) : "Numéro international requis (ex: +33 6 12 34 56 78)".
-- Bouton "Suivant" reste actif mais toast d'avertissement doux si numéro invalide (ne bloque pas l'admin, warn le client).
-- Auto-préfixer `+221` si l'utilisateur tape 9 chiffres commençant par 7/3.
+### 2. Popup devis "new generation"
+- Étape 3, quand `noInstant = true` : le bouton "Demander un devis sur mesure" ouvre aujourd'hui `ManualQuoteDialog` très basique (nom + tel + note).
+- Refonte visuelle du composant `ManualQuoteDialog` en gardant la table `dossiers` (statut `QUOTE_REQUESTED`, `source: devis_sur_mesure`) :
+  - Reprendre exactement le langage visuel de `SendFlow` (FlowSection, TextField, ChipGroup, radios pastilles jaune #F5C518, arrondis `rounded-2xl`, boutons `bg-foreground text-background rounded-full`).
+  - Pré-remplir automatiquement TOUS les champs déjà saisis (trajet, poids, valeur déclarée, type marchandise, transport, urgence, collecte, destinataire, assurance…).
+  - Sections repliables :
+    1. Trajet & colis (résumé lecture seule, éditable via "Modifier").
+    2. Coordonnées client : nom, téléphone WhatsApp (validation phone), email optionnel.
+    3. Précisions : contenu détaillé, contraintes (fragile, urgence, budget max, date souhaitée), photos (upload multi via `dossier_documents`).
+  - Confirmation : référence + tracking ID + CTA "Suivre ma demande" + "Compléter mon dossier" (renvoie vers `/app/dossiers/:id` où il pourra ajouter étapes 4-7).
 
-## F3 — Step 8 · Assurance (MOYEN)
-**Symptôme** : jamais pré-sélectionnée, pas de rappel bénéfice → skip mécanique.
-**Fix** :
-- Pré-sélectionner "Standard" par défaut si `declared_value > 50 000 XOF` ou `content_type` sensible (electronics, docs).
-- Ajouter un micro-rappel bénéfice sous l'option ("Remboursé jusqu'à X XOF en cas de perte").
-- Bandeau discret si l'utilisateur désélectionne : "Sans assurance, aucun remboursement possible."
+### 3. Masquer étapes 4-7 tant qu'aucun départ actif
+- Nouvelle constante `hasActiveDeparture = options.length > 0` (déjà calculée = `hasInstantDeparture`).
+- Conditionner le rendu des blocs étapes 4, 5, 6, 7 : ne rendre que si `hasActiveDeparture` OU si le dossier a déjà été créé via devis (mode "compléter mon dossier").
+- Adapter la numérotation totale (`total={7}` → `total={hasActiveDeparture ? 7 : 3}`) et le stepper `aria-live`.
 
-## F4 — Step 9 · Paiement · WhatsApp OK (CRITIQUE)
-**Symptôme** : après clic "Payer", aucun accusé visible → clients paient puis paniquent, appellent le support.
-**Fix** :
-- Dans `SendConfirmation.tsx` (ou juste avant la redirection PayTech), afficher un écran intermédiaire "Confirmation envoyée" avec :
-  - ✅ "Reçu WhatsApp envoyé au +221 XX XX XX XX"
-  - ✅ "Numéro de suivi : YOB-XXXXX"
-  - CTA "Continuer vers le paiement" (redirection PayTech au clic, pas auto).
-- Envoyer un message WhatsApp `send-whatsapp` immédiatement (avant redirection PayTech) avec le tracking_id + lien /suivre + lien /pay.
-- Persister le tracking_id en `localStorage` (`last_dossier_tracking_id`) pour récupération si PayTech échoue.
+### 4. Module Devis — Admin + Client
 
-## F5 — Post-paiement `/pay` (CRITIQUE — C2)
-**Symptôme** : la page `/pay/:tracking_id` bloque la confirmation (webhook PayTech tardif, UI en attente infinie).
-**Fix** :
-- Sur `PayPage.tsx`, si `?success=1` dans l'URL : afficher immédiatement un état "Paiement reçu, mise à jour en cours" (optimiste) sans attendre le webhook.
-- Poll `dossiers.payment_status` toutes les 2s pendant 30s max, puis passer en état "Nous confirmons votre paiement — vous recevrez un WhatsApp sous 2 min" (rassurant, non bloquant).
-- Bouton "Ouvrir mon suivi" toujours actif → `/suivre/:tracking_id`.
-- Si `?cancel=1` : CTA "Réessayer le paiement" qui rappelle `paytech-payment`.
+**Backend :** conserver `dossiers` avec `status='QUOTE_REQUESTED'` (déjà utilisé par ManualQuoteDialog). Ajouter colonnes migration si absentes : `quote_amount_xof`, `quote_currency`, `quote_valid_until`, `quote_notes_admin`. Vérifier RLS existante.
 
-## F6 — Suivi `/track` (MOYEN)
-**Symptôme** : M1+M4 partiellement traités, mais lookup fragile si l'utilisateur tape avec `#` ou espaces.
-**Fix** :
-- `normalizeTrackingId` déjà en place → étendre pour retirer préfixes `YOB-`, `#`, espaces, casse.
-- Sur `/suivre/:id`, si non trouvé, proposer un fallback : "Recherche par numéro WhatsApp" (input tel qui appelle une edge function `find-dossier-by-phone`).
+**Admin — nouvelle vue `/admin/leads?tab=devis-mesure` (ou refonte `ManualQuotesTab`) :**
+- Liste responsive (table desktop, cartes mobile) filtrable par statut : `pending / quoted / accepted / expired`.
+- Drawer détail avec :
+  - Résumé complet du dossier (trajet, poids, valeur, contenu, photos, urgence).
+  - Coordonnées client + boutons WhatsApp/Téléphone.
+  - Formulaire "Envoyer un devis" : montant XOF, validité (date), notes, → passe status à `quoted` + envoi WhatsApp template au client avec lien `/app/devis/:id`.
+  - Historique des messages / événements.
 
-## Fichiers touchés
-- `src/components/flows/SendFlow.tsx` (Step 3/4/8 UX + validation tel)
-- `src/components/flows/send/SendConfirmation.tsx` (écran d'accusé WhatsApp avant PayTech)
-- `src/components/quote/CityPicker.tsx` (fusion custom_cities + fallback)
-- `src/pages/PayPage.tsx` (état optimiste + polling)
-- `src/lib/trackingId.ts` (normalisation étendue)
-- `supabase/functions/send-whatsapp/index.ts` (accusé pré-paiement — vérifier template)
+**Client — dashboard `/app` :**
+- Nouvelle section `MesDevis` dans `ClientSpaceView.tsx` listant les dossiers `status='QUOTE_REQUESTED'` de l'utilisateur.
+- Carte devis : trajet, poids, statut (En attente / Devis reçu / Accepté), CTA :
+  - `pending` → "Compléter ma demande" (rouvre popup pour ajouter infos manquantes 4-7).
+  - `quoted` → "Voir le devis" (page détail avec montant, valide jusqu'au, boutons Accepter/Refuser).
+  - `accepted` → devient un dossier standard, rejoint `useDossiers`.
+- Page détail `/app/devis/:id` responsive avec toutes les infos + timeline.
 
-## Ordre d'exécution
-1. F4 + F5 (critiques : impact revenu direct)
-2. F1 (élevé : blocage flow)
-3. F2, F3, F6 (moyens : polish)
+### Détails techniques
+- Fichiers à créer :
+  - `supabase/migrations/xxx_quote_columns.sql` (colonnes quote_amount_xof, etc.)
+  - `src/hooks/useMyQuotes.ts`
+  - `src/pages/QuoteDetailPage.tsx` (client)
+  - `src/components/admin/QuoteDetailDrawer.tsx`
+- Fichiers à modifier :
+  - `src/components/flows/SendFlow.tsx` (gating, masquage 4-7)
+  - `src/components/flows/ManualQuoteDialog.tsx` (refonte UI + prefill étendu)
+  - `src/components/admin/ManualQuotesTab.tsx` (refonte responsive + drawer)
+  - `src/pages/ClientSpaceView.tsx` (section MesDevis)
+  - `src/App.tsx` (route /app/devis/:id)
+
+### Validation
+- Test manuel : trajet sans départ → seules étapes 1-3 visibles → popup devis prérempli → soumission → apparition dans admin + espace client.
+- Test manuel : trajet avec départ → toutes étapes visibles séquentiellement.
+- Build + typecheck.

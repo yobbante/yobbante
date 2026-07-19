@@ -361,6 +361,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     };
   }, [originCity, destCity, weight, weightTouched, priority]);
   const { options, next_departure_in_days, next_departure_date, loading: matching } = useMatchOptions(matchInput);
+  // Un trajet a un départ actif dès qu'il existe au moins une option "match" (GP/vol) confirmée.
+  // Sans départ actif, on masque les étapes 4-7 et on propose un devis sur mesure à l'étape 3.
+  const hasActiveDeparture = options.length > 0;
 
   // Standard quote (priority=standard) — toujours demandée
   const quoteInputStandard = useMemo(() => {
@@ -1198,7 +1201,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                   return (
                     <button key={g.id} type="button"
                       title={g.desc}
-                      onClick={() => { setGoodsType(g.id); advanceFromStep(4); }}
+                      onClick={() => { setGoodsType(g.id); advanceFromStep(2); }}
                       className={cn(
                         'group relative text-left rounded-lg border px-2.5 py-2 transition-all',
                         active
@@ -1672,6 +1675,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         </div>
       )}
 
+      {/* ─── Steps 4-7 : uniquement si un départ actif existe. Sinon → devis sur mesure à l'étape 3. ─── */}
+      {hasActiveDeparture && (<>
       {/* ─── Step 1 — Collecte (incl. sender contact when user is recipient/third) ─── */}
       <div id="section-collecte" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-collecte'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection
@@ -2284,14 +2289,20 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
       </div>
       )}
+      </>)}
+      {/* Fin steps 4-7 conditionnels */}
+
+
 
 
 
       {(() => {
-        const LAST_STEP = 7;
+        const LAST_STEP = hasActiveDeparture ? 7 : 3;
         const isLastStep = currentStep >= LAST_STEP;
         const smartCtaLabel = isLastStep
-          ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
+          ? (hasActiveDeparture
+              ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
+              : 'Demander un devis sur mesure')
           : 'Continuer';
         const STEP_SECTION_ID: Record<number, string> = {
           1: 'section-package',
@@ -2313,6 +2324,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               return;
             }
             advanceFromStep(currentStep);
+          } else if (!hasActiveDeparture) {
+            // Pas de départ actif → ouvrir le popup devis sur mesure.
+            setManualQuoteOpen(true);
           } else if (allReady) {
             submit();
           } else {
