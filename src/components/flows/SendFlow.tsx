@@ -2289,6 +2289,10 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       </FlowSection>
       </div>
       )}
+      </>)}
+      {/* Fin steps 4-7 conditionnels */}
+
+
 
 
 
