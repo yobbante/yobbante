@@ -2324,6 +2324,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
               return;
             }
             advanceFromStep(currentStep);
+          } else if (!hasActiveDeparture) {
+            // Pas de départ actif → ouvrir le popup devis sur mesure.
+            setManualQuoteOpen(true);
           } else if (allReady) {
             submit();
           } else {
