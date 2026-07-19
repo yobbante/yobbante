@@ -2297,10 +2297,12 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {(() => {
-        const LAST_STEP = 7;
+        const LAST_STEP = hasActiveDeparture ? 7 : 3;
         const isLastStep = currentStep >= LAST_STEP;
         const smartCtaLabel = isLastStep
-          ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
+          ? (hasActiveDeparture
+              ? (allReady ? 'Confirmer ma commande' : 'Compléter les coordonnées')
+              : 'Demander un devis sur mesure')
           : 'Continuer';
         const STEP_SECTION_ID: Record<number, string> = {
           1: 'section-package',
