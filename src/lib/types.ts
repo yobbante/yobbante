@@ -126,12 +126,6 @@ export interface Shipment {
   payment_status?: string | null;
   origin_city?: string | null;
   destination_city?: string | null;
-  quote_amount_xof?: number | null;
-  quote_currency?: string | null;
-  quote_valid_until?: string | null;
-  quote_notes_admin?: string | null;
-  quote_sent_at?: string | null;
-  quote_response?: string | null;
   weight_kg?: number | null;
   priority?: string | null;
   pending_assignment?: boolean | null;
@@ -199,6 +193,12 @@ export interface Dossier {
   pickup_date?: string | null;
   origin_city?: string | null;
   destination_city?: string | null;
+  quote_amount_xof?: number | null;
+  quote_currency?: string | null;
+  quote_valid_until?: string | null;
+  quote_notes_admin?: string | null;
+  quote_sent_at?: string | null;
+  quote_response?: string | null;
   assigned_transporteur_ref?: string | null;
   assigned_departure_id?: string | null;
   payment_status?: 'pending' | 'paid' | 'refunded' | string | null;
