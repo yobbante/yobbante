@@ -95,6 +95,7 @@ const DekkRoutes = () => (
     <Route path="/auth" element={<Auth />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/mon-compte" element={<Index />} />
+    <Route path="/compte" element={<Navigate to="/app" replace />} />
     <Route path="/app" element={<Index />} />
     <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
     <Route path="/app/mes-receptions" element={<Navigate to="/app?view=receptions" replace />} />
@@ -168,6 +169,7 @@ const MainRoutes = () => (
     <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
     <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
     <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
+    <Route path="/compte" element={<Navigate to="/app" replace />} />
     <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
     {/* Legacy public URLs → folded into the 2 user-facing flows */}
     <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
