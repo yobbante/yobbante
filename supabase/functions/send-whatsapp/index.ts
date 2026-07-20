@@ -101,11 +101,16 @@ function resolvePhoneId(recipientType: RecipientType): { phoneId?: string; fromN
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // --- Auth: service-role bearer OR authenticated user required ---
+  // --- Auth: service-role bearer, authenticated user, OR anon/publishable key ---
   const __SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const __ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
   const __auth = req.headers.get('authorization') ?? '';
+  const __apikey = req.headers.get('apikey') ?? '';
   {
     let __ok = !!__SR && __auth === `Bearer ${__SR}`;
+    if (!__ok && !!__ANON && (__auth === `Bearer ${__ANON}` || __apikey === __ANON)) {
+      __ok = true; // public caller with project anon key
+    }
     if (!__ok && __auth.toLowerCase().startsWith('bearer ')) {
       try {
         const { createClient: __cc } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
@@ -124,6 +129,7 @@ Deno.serve(async (req) => {
       });
     }
   }
+
 
   const supaUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
