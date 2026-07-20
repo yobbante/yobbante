@@ -4077,6 +4077,14 @@ export type Database = {
       }
       rematch_waiting_shipments: { Args: never; Returns: number }
       resolve_zone_for_country: { Args: { p_country: string }; Returns: string }
+      respond_to_quote_public: {
+        Args: { p_response: string; p_tracking: string }
+        Returns: {
+          reference: string
+          status: Database["public"]["Enums"]["dossier_status"]
+          tracking_id: string
+        }[]
+      }
       review_exists_for_tracking: {
         Args: { p_tracking: string }
         Returns: boolean
@@ -4104,6 +4112,31 @@ export type Database = {
       shipment_status_message: {
         Args: { _status: string; _tracking: string }
         Returns: string
+      }
+      submit_quote_request: {
+        Args: {
+          p_client_name: string
+          p_contact_phone: string
+          p_destination_city: string
+          p_destination_country: string
+          p_estimated_weight: number
+          p_notes?: string
+          p_origin_city: string
+          p_origin_country: Database["public"]["Enums"]["warehouse_country"]
+          p_pickup_date?: string
+          p_product_description: string
+          p_recipient_address?: string
+          p_recipient_name?: string
+          p_recipient_phone?: string
+          p_sender_address?: string
+          p_sender_name?: string
+          p_sender_phone?: string
+        }
+        Returns: {
+          id: string
+          reference: string
+          tracking_id: string
+        }[]
       }
       transporteur_serves_city: {
         Args: { p_city: string; p_transporteur_id: string }
@@ -4156,6 +4189,9 @@ export type Database = {
         | "RETURN_REQUESTED"
         | "RETURN_IN_PROGRESS"
         | "RETURNED"
+        | "QUOTE_SENT"
+        | "QUOTE_ACCEPTED"
+        | "QUOTE_REFUSED"
       dossier_type:
         | "individual"
         | "business_import"
@@ -4364,6 +4400,9 @@ export const Constants = {
         "RETURN_REQUESTED",
         "RETURN_IN_PROGRESS",
         "RETURNED",
+        "QUOTE_SENT",
+        "QUOTE_ACCEPTED",
+        "QUOTE_REFUSED",
       ],
       dossier_type: [
         "individual",
