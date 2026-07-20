@@ -48,7 +48,7 @@ export function DevisSurMesureTab() {
       const { data, error } = await supabase
         .from('dossiers')
         .select('*')
-        .or('source.eq.devis_sur_mesure,app_source.eq.expedier_devis_sur_mesure')
+        .in('status', ['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED'])
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -232,15 +232,16 @@ function QuoteDetailDrawer({ dossier, onClose, onUpdated }: { dossier: any; onCl
     if (!amt || amt <= 0) { toast.error('Montant invalide'); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from('dossiers').update({
+      const { data, error } = await supabase.from('dossiers').update({
         quote_amount_xof: amt,
         quote_currency: 'XOF',
         quote_valid_until: validUntil || null,
         quote_notes_admin: adminNotes || null,
         quote_sent_at: new Date().toISOString(),
         status: 'QUOTE_SENT',
-      } as any).eq('id', dossier.id);
+      } as any).eq('id', dossier.id).select('id').maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Mise à jour refusée : vérifiez votre rôle administrateur');
 
       // WhatsApp client
       if (phone) {
@@ -270,8 +271,9 @@ function QuoteDetailDrawer({ dossier, onClose, onUpdated }: { dossier: any; onCl
 
   async function updateStatus(status: QuoteStatus) {
     try {
-      const { error } = await supabase.from('dossiers').update({ status } as any).eq('id', dossier.id);
+      const { data, error } = await supabase.from('dossiers').update({ status } as any).eq('id', dossier.id).select('id').maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('Mise à jour refusée : vérifiez votre rôle administrateur');
       toast.success('Statut mis à jour');
       onUpdated();
     } catch (e: any) { toast.error(e?.message ?? 'Erreur'); }

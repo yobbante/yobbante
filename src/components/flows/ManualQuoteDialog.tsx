@@ -114,7 +114,6 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
     }
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const clientPhone = normalizePhone(parsed.data.client_phone);
       const desc = prefill.description?.trim() || 'Demande de devis personnalisé';
 
@@ -132,38 +131,30 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
         parsed.data.note ? `Note client: ${parsed.data.note}` : '',
       ].filter(Boolean).join('\n');
 
-      const insertPayload: Record<string, any> = {
-        user_id: user?.id ?? null,
-        status: 'QUOTE_REQUESTED',
-        product_description: desc,
-        estimated_weight: prefill.weight_kg,
-        origin_country: prefill.origin_country ?? 'SN',
-        destination_country: prefill.destination_country ?? 'SN',
-        origin_city: prefill.origin_city,
-        destination_city: prefill.destination_city,
-        app_source: 'expedier_devis_sur_mesure',
-        source: 'site_web',
-        needs_sourcing: false,
-        contact_phone: clientPhone,
-        sender_name: prefill.sender_name || parsed.data.client_name,
-        sender_phone: prefill.sender_phone ? normalizePhone(prefill.sender_phone) : clientPhone,
-        sender_address: prefill.sender_address || null,
-        recipient_name: prefill.recipient_name || null,
-        recipient_phone: prefill.recipient_phone ? normalizePhone(prefill.recipient_phone) : null,
-        recipient_address: prefill.recipient_address || null,
-        pickup_date: prefill.pickup_date || null,
-        buyer_name: parsed.data.client_name,
-        buyer_contact: clientPhone,
-        notes: notesParts,
-      };
-
-      const { data: dossier, error } = await supabase
-        .from('dossiers')
-        .insert(insertPayload as any)
-        .select('id,reference,tracking_id')
-        .single();
+      const supportedOrigins = new Set(['FR', 'CN', 'US', 'CA', 'AE', 'DE', 'SN']);
+      const originCountry = supportedOrigins.has(prefill.origin_country ?? '') ? prefill.origin_country : 'SN';
+      const { data: rows, error } = await supabase.rpc('submit_quote_request', {
+        p_product_description: desc,
+        p_estimated_weight: prefill.weight_kg,
+        p_origin_country: originCountry as 'FR' | 'CN' | 'US' | 'CA' | 'AE' | 'DE' | 'SN',
+        p_destination_country: prefill.destination_country ?? 'SN',
+        p_origin_city: prefill.origin_city,
+        p_destination_city: prefill.destination_city,
+        p_contact_phone: clientPhone,
+        p_client_name: parsed.data.client_name,
+        p_sender_name: prefill.sender_name || parsed.data.client_name,
+        p_sender_phone: prefill.sender_phone ? normalizePhone(prefill.sender_phone) : clientPhone,
+        p_sender_address: prefill.sender_address || undefined,
+        p_recipient_name: prefill.recipient_name || undefined,
+        p_recipient_phone: prefill.recipient_phone ? normalizePhone(prefill.recipient_phone) : undefined,
+        p_recipient_address: prefill.recipient_address || undefined,
+        p_pickup_date: prefill.pickup_date || undefined,
+        p_notes: notesParts,
+      });
 
       if (error) throw error;
+      const dossier = rows?.[0];
+      if (!dossier) throw new Error('La demande n’a pas pu être créée');
 
       const ref: string = dossier.reference;
       const trackingId: string = (dossier as any).tracking_id || ref;

@@ -28,7 +28,8 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
 };
 export type DossierStatus =
   | 'SUBMITTED' | 'IN_REVIEW' | 'SOURCING' | 'PROCURED'
-  | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED' | 'CLOSED';
+  | 'IN_TRANSIT' | 'CUSTOMS' | 'DELIVERED' | 'CLOSED'
+  | 'QUOTE_REQUESTED' | 'QUOTE_SENT' | 'QUOTE_ACCEPTED' | 'QUOTE_REFUSED';
 
 export const PACKAGE_STATUS_ORDER: PackageStatus[] = [
   'CREATED', 'RECEIVED', 'IN_STORAGE', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED'
@@ -51,6 +52,10 @@ export const DOSSIER_STATUS_LABELS: Record<DossierStatus, string> = {
   CUSTOMS: 'Douane',
   DELIVERED: 'Livré',
   CLOSED: 'Clôturé',
+  QUOTE_REQUESTED: 'Demande de devis reçue',
+  QUOTE_SENT: 'Devis reçu',
+  QUOTE_ACCEPTED: 'Devis accepté',
+  QUOTE_REFUSED: 'Devis refusé',
 };
 
 export const COUNTRY_FLAGS: Record<WarehouseCountry, string> = {
@@ -121,6 +126,12 @@ export interface Shipment {
   payment_status?: string | null;
   origin_city?: string | null;
   destination_city?: string | null;
+  quote_amount_xof?: number | null;
+  quote_currency?: string | null;
+  quote_valid_until?: string | null;
+  quote_notes_admin?: string | null;
+  quote_sent_at?: string | null;
+  quote_response?: string | null;
   weight_kg?: number | null;
   priority?: string | null;
   pending_assignment?: boolean | null;

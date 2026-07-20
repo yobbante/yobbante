@@ -30,6 +30,10 @@ const STATUS_LABEL: Record<string, string> = {
   RETURN_REQUESTED: 'Retour demandé',
   RETURN_IN_PROGRESS: 'Retour en cours',
   RETURNED: 'Retourné',
+  QUOTE_REQUESTED: 'Demande de devis reçue',
+  QUOTE_SENT: 'Devis prêt à valider',
+  QUOTE_ACCEPTED: 'Devis accepté',
+  QUOTE_REFUSED: 'Devis refusé',
 };
 
 const PIPELINE = [
@@ -137,7 +141,7 @@ Deno.serve(async (req) => {
     if (!shipment) {
       const { data: dossier } = await sb
         .from('dossiers')
-        .select('id, tracking_id, reference, status, origin_country, destination_country, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost')
+        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost, quote_amount_xof, quote_currency, quote_valid_until, quote_notes_admin, quote_sent_at, quote_response')
         .or(`tracking_id.eq.${ref},reference.eq.${ref}`)
         .maybeSingle();
 
@@ -153,7 +157,9 @@ Deno.serve(async (req) => {
           OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
           DELIVERED: 'DELIVERED',
         };
-        const mapped = DOSSIER_TO_PIPELINE[(dossier as any).status] || 'CONFIRMED';
+        const dossierStatus = (dossier as any).status;
+        const isQuote = ['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED'].includes(dossierStatus);
+        const mapped = isQuote ? dossierStatus : (DOSSIER_TO_PIPELINE[dossierStatus] || 'CONFIRMED');
         // Synthesize pseudo-events from dossier timestamps
         const events: any[] = [
           { event_type: 'shipment_created', to_status: 'CONFIRMED', created_at: (dossier as any).created_at, note: null },
@@ -161,19 +167,24 @@ Deno.serve(async (req) => {
           (dossier as any).weighed_at && { event_type: 'weighed', to_status: 'IN_PREPARATION', created_at: (dossier as any).weighed_at, note: null },
           (dossier as any).delivered_at && { event_type: 'delivered', to_status: 'DELIVERED', created_at: (dossier as any).delivered_at, note: null },
         ].filter(Boolean);
-        const timeline = buildTimeline(mapped, events);
+        const timeline = isQuote ? [] : buildTimeline(mapped, events);
         return new Response(JSON.stringify({
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
           status: mapped,
           status_label: STATUS_LABEL[mapped] || mapped,
-          origin_city: (dossier as any).origin_country,
-          destination_city: (dossier as any).destination_country,
+          origin_city: (dossier as any).origin_city || (dossier as any).origin_country,
+          destination_city: (dossier as any).destination_city || (dossier as any).destination_country,
           weight_kg: (dossier as any).actual_weight_kg ?? (dossier as any).estimated_weight,
           departure_date: null,
           eta: (dossier as any).estimated_delivery_date,
           transport_type: null,
           priority: null,
-          total_cost: (dossier as any).final_amount_xof ?? (dossier as any).estimated_cost,
+          total_cost: (dossier as any).quote_amount_xof ?? (dossier as any).final_amount_xof ?? (dossier as any).estimated_cost,
+          quote_amount_xof: (dossier as any).quote_amount_xof,
+          quote_currency: (dossier as any).quote_currency,
+          quote_valid_until: (dossier as any).quote_valid_until,
+          quote_notes_admin: (dossier as any).quote_notes_admin,
+          quote_response: (dossier as any).quote_response,
           timeline,
           source: 'db' as const,
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
