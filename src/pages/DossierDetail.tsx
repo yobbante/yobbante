@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageC
 
 const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,9 +32,11 @@ export default function DossierDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
+  const queryClient = useQueryClient();
   const [draft, setDraft] = useState('');
   const [internal, setInternal] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [quoteResponding, setQuoteResponding] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -82,6 +84,25 @@ export default function DossierDetail() {
       setDraft('');
     } catch {
       toast.error('Erreur lors de l\'envoi');
+    }
+  };
+
+  const respondToQuote = async (response: 'accepted' | 'refused') => {
+    if (!dossier?.tracking_id && !dossier?.reference) return;
+    setQuoteResponding(true);
+    try {
+      const { error } = await supabase.rpc('respond_to_quote_public', {
+        p_tracking: dossier.tracking_id || dossier.reference,
+        p_response: response,
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['dossier', id] });
+      await queryClient.invalidateQueries({ queryKey: ['dossiers'] });
+      toast.success(response === 'accepted' ? 'Devis accepté' : 'Devis refusé');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Impossible de valider le devis');
+    } finally {
+      setQuoteResponding(false);
     }
   };
 
@@ -164,8 +185,34 @@ export default function DossierDetail() {
           </div>
         </motion.section>
 
+        {dossier.status.startsWith('QUOTE_') && (
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Votre devis</p>
+            <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">{DOSSIER_STATUS_LABELS[dossier.status]}</h2>
+                {dossier.quote_valid_until && (
+                  <p className="text-xs text-muted-foreground mt-1">Valide jusqu’au {new Date(dossier.quote_valid_until).toLocaleDateString('fr-FR')}</p>
+                )}
+              </div>
+              {dossier.quote_amount_xof && (
+                <p className="text-xl font-bold tabular-nums">{new Intl.NumberFormat('fr-FR').format(dossier.quote_amount_xof)} FCFA</p>
+              )}
+            </div>
+            {dossier.quote_notes_admin && <p className="mt-3 text-sm text-muted-foreground whitespace-pre-wrap">{dossier.quote_notes_admin}</p>}
+            {dossier.status === 'QUOTE_SENT' && !isStaff && (
+              <div className="grid grid-cols-2 gap-2 mt-5">
+                <Button variant="outline" disabled={quoteResponding} onClick={() => respondToQuote('refused')}>Refuser</Button>
+                <Button disabled={quoteResponding} onClick={() => respondToQuote('accepted')}>
+                  {quoteResponding ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />} Accepter
+                </Button>
+              </div>
+            )}
+          </section>
+        )}
+
         {/* Timeline status */}
-        <section>
+        {!dossier.status.startsWith('QUOTE_') && <section>
           <h2 className="text-base font-semibold text-foreground mb-4">Étapes du dossier</h2>
           <div className="bg-card border border-border rounded-2xl p-6">
             <ol className="space-y-4">
@@ -191,7 +238,7 @@ export default function DossierDetail() {
               })}
             </ol>
           </div>
-        </section>
+        </section>}
 
         {/* Linked packages */}
         <section>
