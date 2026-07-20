@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, Send, CheckCircle2, ArrowRight, MapPin, Package, Shield, Zap,
   Truck, User2, Loader2, MessageCircle, LayoutDashboard,
@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { TextField } from './FlowPrimitives';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePhone } from '@/lib/phone';
 
 interface Prefill {
   origin_country?: string | null;
@@ -52,28 +53,15 @@ const Schema = z.object({
   note: z.string().trim().max(500).optional().or(z.literal('')),
 });
 
-function normalizePhone(input: string): string {
-  let v = input.replace(/[\s().\-_]/g, '');
-  if (!v) return '';
-  if (v.startsWith('+')) return v;
-  if (v.startsWith('00221')) return '+' + v.slice(2);
-  if (v.startsWith('00') && v.length > 5) return '+' + v.slice(2);
-  if (v.startsWith('221') && v.length >= 11) return '+' + v;
-  const d = v.replace(/\D/g, '');
-  if (d.length === 9 && (d.startsWith('7') || d.startsWith('3'))) return '+221' + d;
-  if (d.length === 10 && d.startsWith('0')) return '+221' + d.slice(1);
-  return d ? '+' + d : v;
-}
-
 function RecapPill({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-background/60 px-3 py-2">
-      <div className="grid place-items-center w-7 h-7 rounded-lg bg-[#F5C518]/15 shrink-0">
-        <Icon className="w-3.5 h-3.5 text-foreground" />
+    <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 min-w-0">
+      <div className="grid place-items-center w-7 h-7 rounded-lg bg-secondary shrink-0">
+        <Icon className="w-3.5 h-3.5 text-foreground" strokeWidth={1.75} />
       </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-        <p className="text-xs font-semibold text-foreground truncate">{value}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground truncate">{label}</p>
+        <p className="text-[13px] font-medium text-foreground truncate leading-tight">{value}</p>
       </div>
     </div>
   );
@@ -81,16 +69,28 @@ function RecapPill({ icon: Icon, label, value }: { icon: any; label: string; val
 
 export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, defaultPhone }: Props) {
   const navigate = useNavigate();
-  const [name, setName] = useState(defaultName ?? '');
-  const [phone, setPhone] = useState(defaultPhone ?? '');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
   const [done, setDone] = useState<{ reference: string; trackingId: string } | null>(null);
 
+  // Sync prefill defaults every time the dialog opens
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setIsAuthed(!!data.user));
-  }, [open]);
+    if (!open) return;
+    setName((prev) => prev || defaultName || prefill.sender_name || prefill.recipient_name || '');
+    setPhone((prev) => prev || defaultPhone || prefill.sender_phone || prefill.recipient_phone || '');
+    supabase.auth.getUser().then(({ data }) => {
+      setIsAuthed(!!data.user);
+      // Prefer authenticated user profile for name if empty
+      const meta: any = data.user?.user_metadata ?? {};
+      const fullName = meta.full_name || meta.name;
+      if (fullName) setName((p) => p || String(fullName));
+      const userPhone = data.user?.phone;
+      if (userPhone) setPhone((p) => p || (userPhone.startsWith('+') ? userPhone : `+${userPhone}`));
+    });
+  }, [open, defaultName, defaultPhone, prefill.sender_name, prefill.sender_phone, prefill.recipient_name, prefill.recipient_phone]);
 
   const recap = useMemo(() => {
     const items: { icon: any; label: string; value: string }[] = [
@@ -142,7 +142,7 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
         origin_city: prefill.origin_city,
         destination_city: prefill.destination_city,
         app_source: 'expedier_devis_sur_mesure',
-        source: 'devis_sur_mesure',
+        source: 'site_web',
         needs_sourcing: false,
         contact_phone: clientPhone,
         sender_name: prefill.sender_name || parsed.data.client_name,
@@ -169,7 +169,7 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
       const trackingId: string = (dossier as any).tracking_id || ref;
 
       setDone({ reference: ref, trackingId });
-      toast.success('Demande envoyée 🚀');
+      toast.success('Demande envoyée');
 
       const prenom = parsed.data.client_name.split(' ')[0];
       const clientMsg =
@@ -205,133 +205,150 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
 
   function reset() {
     setDone(null);
-    setName(defaultName ?? '');
-    setPhone(defaultPhone ?? '');
+    setName('');
+    setPhone('');
     setNote('');
     onOpenChange(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); else onOpenChange(v); }}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl border-border/70">
-        {done ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative"
-          >
-            <div className="bg-gradient-to-br from-[#25D366]/15 via-[#F5C518]/10 to-transparent px-6 pt-8 pb-6 text-center">
-              <div className="mx-auto w-16 h-16 rounded-2xl bg-[#25D366]/20 grid place-items-center shadow-sm">
-                <CheckCircle2 className="w-8 h-8 text-[#25D366]" />
-              </div>
-              <h3 className="mt-4 text-xl font-semibold tracking-tight">Demande envoyée ✅</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
-                Notre équipe revient vers vous sous <strong className="text-foreground">2 h ouvrées</strong> sur WhatsApp au <strong className="text-foreground">{BOT_DISPLAY}</strong>.
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 backdrop-blur px-3 py-1.5 text-xs font-mono">
-                Référence : <strong className="font-semibold">{done.reference}</strong>
-              </div>
-            </div>
-
-            <div className="px-6 pb-6 pt-2 space-y-2.5">
-              <Link
-                to={`/suivre/${done.trackingId}`}
-                onClick={reset}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-3 text-sm font-semibold hover:opacity-90 transition"
-              >
-                Suivre ma demande <ArrowRight className="w-4 h-4" />
-              </Link>
-              {isAuthed ? (
-                <button
-                  type="button"
-                  onClick={() => { reset(); navigate('/app'); }}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-secondary transition"
+      <DialogContent className="max-w-lg p-0 overflow-hidden rounded-3xl border border-border/70 bg-background">
+        <AnimatePresence mode="wait" initial={false}>
+          {done ? (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="relative"
+            >
+              <div className="px-7 pt-9 pb-6 text-center border-b border-border/50">
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.05, type: 'spring', stiffness: 220, damping: 18 }}
+                  className="mx-auto w-14 h-14 rounded-full bg-secondary grid place-items-center"
                 >
-                  <LayoutDashboard className="w-4 h-4" /> Voir dans mon espace
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    try { sessionStorage.setItem('post_auth_redirect', `/suivre/${done.trackingId}`); } catch {}
-                    reset();
-                    navigate('/auth');
-                  }}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:bg-secondary transition"
-                >
-                  Créer un compte pour être notifié
-                </button>
-              )}
-              <a
-                href={`https://wa.me/${BOT_DISPLAY.replace(/[^\d]/g, '')}?text=${encodeURIComponent(`Bonjour, je suis ${name}. Réf ${done.reference}.`)}`}
-                target="_blank" rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition"
-              >
-                <MessageCircle className="w-4 h-4" /> Ouvrir WhatsApp maintenant
-              </a>
-            </div>
-          </motion.div>
-        ) : (
-          <>
-            <div className="relative bg-gradient-to-br from-[#F5C518]/25 via-[#F5C518]/10 to-transparent px-6 pt-6 pb-5">
-              <div className="flex items-start gap-3">
-                <div className="grid place-items-center w-11 h-11 rounded-2xl bg-foreground text-background shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Devis sur mesure</p>
-                  <h2 className="text-lg font-semibold tracking-tight leading-tight">Un chargé de dossier vous répond sous 2 h</h2>
-                  <p className="text-xs text-muted-foreground mt-1">Sans engagement · Réponse WhatsApp · Devis chiffré et validé humain</p>
+                  <CheckCircle2 className="w-7 h-7 text-foreground" strokeWidth={1.75} />
+                </motion.div>
+                <h3 className="mt-5 text-[22px] font-semibold tracking-tight leading-tight">Demande envoyée</h3>
+                <p className="mt-2 text-[13px] text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  Notre équipe revient vers vous sous <span className="text-foreground font-medium">2 h ouvrées</span> sur WhatsApp au <span className="text-foreground font-medium">{BOT_DISPLAY}</span>.
+                </p>
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border/70 bg-secondary px-3.5 py-1.5 text-[12px] font-mono">
+                  <span className="text-muted-foreground">Réf.</span>
+                  <span className="font-semibold">{done.reference}</span>
                 </div>
               </div>
-            </div>
 
-            <div className="px-6 pb-6 pt-4 space-y-5 max-h-[70vh] overflow-y-auto">
-              {/* Mini récap */}
-              <section className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Récapitulatif</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {recap.map((it, i) => (
-                    <RecapPill key={i} icon={it.icon} label={it.label} value={it.value} />
-                  ))}
+              <div className="px-7 py-6 space-y-2">
+                <Link
+                  to={`/suivre/${done.trackingId}`}
+                  onClick={reset}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-3 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+                >
+                  Suivre ma demande <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                </Link>
+                {isAuthed ? (
+                  <button
+                    type="button"
+                    onClick={() => { reset(); navigate('/app'); }}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-[13px] font-medium hover:bg-secondary transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4" strokeWidth={1.75} /> Voir dans mon espace
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try { sessionStorage.setItem('post_auth_redirect', `/suivre/${done.trackingId}`); } catch {}
+                      reset();
+                      navigate('/auth');
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-2.5 text-[13px] font-medium hover:bg-secondary transition-colors"
+                  >
+                    Créer un compte pour être notifié
+                  </button>
+                )}
+                <a
+                  href={`https://wa.me/${BOT_DISPLAY.replace(/[^\d]/g, '')}?text=${encodeURIComponent(`Bonjour, je suis ${name}. Réf ${done.reference}.`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" strokeWidth={1.75} /> Ouvrir WhatsApp
+                </a>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="px-7 pt-7 pb-5 border-b border-border/50">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid place-items-center w-11 h-11 rounded-2xl bg-foreground text-background shrink-0">
+                    <Sparkles className="w-5 h-5" strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Devis sur mesure</p>
+                    <h2 className="text-[19px] font-semibold tracking-tight leading-snug mt-1">Un chargé de dossier vous répond sous 2 h</h2>
+                    <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-relaxed">Sans engagement · Réponse WhatsApp · Devis validé par un humain</p>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              {/* Coordonnées */}
-              <section className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Vos coordonnées</p>
-                <TextField label="Nom complet" value={name} onChange={setName} placeholder="Ex. Aïssatou Diop" />
-                <TextField label="Téléphone / WhatsApp" value={phone} onChange={setPhone} placeholder="+221 77 000 00 00" type="tel" />
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Précisions (optionnel)
-                  </label>
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                    maxLength={500}
-                    placeholder="Contenu détaillé, contraintes, date souhaitée, budget…"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-[#F5C518]/40 transition resize-none"
-                  />
+              <div className="px-7 pb-6 pt-5 space-y-6 max-h-[70vh] overflow-y-auto">
+                <section className="space-y-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Récapitulatif</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {recap.map((it, i) => (
+                      <RecapPill key={i} icon={it.icon} label={it.label} value={it.value} />
+                    ))}
+                  </div>
+                </section>
+
+                <section className="space-y-3">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Vos coordonnées</p>
+                  <TextField label="Nom complet" value={name} onChange={setName} placeholder="Ex. Aïssatou Diop" />
+                  <TextField label="Téléphone / WhatsApp" value={phone} onChange={setPhone} placeholder="+221 77 000 00 00" type="tel" />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Précisions (optionnel)
+                    </label>
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      placeholder="Contenu détaillé, contraintes, date souhaitée, budget…"
+                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-[13px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-foreground/10 focus:border-foreground/30 transition resize-none"
+                    />
+                  </div>
+                </section>
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={submit}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-3.5 text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" strokeWidth={2} />}
+                    {submitting ? 'Envoi…' : 'Envoyer ma demande'}
+                  </button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Réponse sous 2 h ouvrées · Aucun engagement
+                  </p>
                 </div>
-              </section>
-
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={submit}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-3.5 text-sm font-semibold shadow-sm hover:opacity-90 disabled:opacity-50 transition"
-              >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {submitting ? 'Envoi…' : 'Envoyer ma demande'}
-              </button>
-              <p className="text-[11px] text-muted-foreground text-center -mt-1">
-                Réponse sous 2 h ouvrées · Aucun engagement · Aucune connexion requise
-              </p>
-            </div>
-          </>
-        )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );
