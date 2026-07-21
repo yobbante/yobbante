@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { ecommerce } from '@/lib/analytics';
 
 /**
