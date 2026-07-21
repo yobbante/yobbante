@@ -165,7 +165,11 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                       <button
                         key={l.to}
                         type="button"
-                        onClick={() => { setOpen(false); navigate(l.to); }}
+                        onClick={() => {
+                          setOpen(false);
+                          if (l.external) window.location.assign(l.to);
+                          else navigate(l.to);
+                        }}
                         className="w-full text-left flex items-center"
                         style={{
                           fontSize: 16,
