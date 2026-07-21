@@ -46,10 +46,17 @@ export function CityPicker({
   }, [q]);
 
   const { cities: customCities } = useCustomCities();
-  const cities = useMemo(
-    () => [...ALL_CITIES, ...customCities].filter(c => !excludeCity || c.city !== excludeCity),
-    [excludeCity, customCities],
-  );
+  const cities = useMemo(() => {
+    const seen = new Set<string>();
+    return [...ALL_CITIES, ...customCities]
+      .filter(c => !excludeCity || c.city !== excludeCity)
+      .filter(c => {
+        const key = `${c.country}-${c.city}`.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [excludeCity, customCities]);
 
   const filtered = useMemo(() => {
     const nq = norm(debouncedQ.trim());
