@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { ecommerce } from '@/lib/analytics';
 
 /**
@@ -58,6 +59,9 @@ export function useDekkCart() {
       { id: product.id, name: product.name, category: product.category, price, quantity: qty },
       { value: price * qty, currency: 'EUR' },
     );
+    toast.success('Ajouté au panier ✓', {
+      description: product.name,
+    });
   }, [write]);
 
   const updateQty = useCallback((id: string, delta: number) => {

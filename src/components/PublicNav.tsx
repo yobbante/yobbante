@@ -17,7 +17,7 @@ interface PublicNavProps {
 }
 
 
-const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string }[] = [
+const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string; external?: boolean }[] = [
   // 3 CTAs égaux — entrée principale du site
   { label: 'Expédier',     to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
   { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
@@ -25,7 +25,7 @@ const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadg
   // Secondaires
   { label: 'Suivre',       to: '/suivre',            match: p => p.startsWith('/suivre') || p.startsWith('/track') },
   { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },
-  { label: 'Boutique Dëkk', to: '/boutique',         match: p => p.startsWith('/boutique') },
+  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', match: p => p.startsWith('/boutique'), external: true },
 ];
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
@@ -165,7 +165,11 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                       <button
                         key={l.to}
                         type="button"
-                        onClick={() => { setOpen(false); navigate(l.to); }}
+                        onClick={() => {
+                          setOpen(false);
+                          if (l.external) window.location.assign(l.to);
+                          else navigate(l.to);
+                        }}
                         className="w-full text-left flex items-center"
                         style={{
                           fontSize: 16,
