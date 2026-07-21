@@ -135,10 +135,25 @@ export default function BoutiquePage() {
     setSearchParams(sp, { replace: true });
   };
 
+  const wowProducts = useMemo(() => {
+    const wowCats = ['cachettes', 'rc-gadgets', 'gaming'];
+    return products
+      .filter(p => wowCats.includes(p.category) && ((p.stock_qty ?? 0) > 0 || p.stock_mode === 'commande'))
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+      .slice(0, 4);
+  }, [products]);
+
+  const wowIds = useMemo(() => new Set(wowProducts.map(p => p.id)), [wowProducts]);
+
   const filtered = useMemo(() => {
     let list = activeCat === 'all'
       ? products
       : products.filter(p => DB_TO_UI[p.category] === activeCat);
+    // BUG 7: exclude "Effet waouh" products from the main grid when no filter/search is active
+    // to avoid visual duplicates.
+    if (activeCat === 'all' && !search.trim() && !wishlistOnly) {
+      list = list.filter(p => !wowIds.has(p.id));
+    }
     if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -148,15 +163,7 @@ export default function BoutiquePage() {
     else if (sort === 'price_desc') list = [...list].sort((a, b) => b.price_eur - a.price_eur);
     else if (sort === 'new') list = [...list].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
     return list;
-  }, [products, activeCat, search, sort, wishlistOnly, wishlist]);
-
-  const wowProducts = useMemo(() => {
-    const wowCats = ['cachettes', 'rc-gadgets', 'gaming'];
-    return products
-      .filter(p => wowCats.includes(p.category) && ((p.stock_qty ?? 0) > 0 || p.stock_mode === 'commande'))
-      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
-      .slice(0, 4);
-  }, [products]);
+  }, [products, activeCat, search, sort, wishlistOnly, wishlist, wowIds]);
 
   const packProducts = useMemo(() => {
     return products
