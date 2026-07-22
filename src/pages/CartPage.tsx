@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct } from '@/lib/dekkRecommend';
+import { useDekkCart } from '@/hooks/useDekkCart';
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
@@ -12,26 +13,16 @@ type Product = {
   price_eur: number; price_fcfa: number; image_url: string | null;
   stock_mode: string; delivery_days: number | null; origin_country: string;
 };
-type CartItem = { product: Product; qty: number; size?: string | null; color?: string | null };
 
 const fmtEur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`;
 const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
-function writeCart(c: CartItem[]) {
-  localStorage.setItem('dekk_cart', JSON.stringify(c));
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('dekk:cart'));
-}
-function readCart(): CartItem[] {
-  try { return JSON.parse(localStorage.getItem('dekk_cart') || '[]'); } catch { return []; }
-}
-
 export default function CartPage() {
   const nav = useNavigate();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { items: cart, updateQty: cartUpdate, removeItem: cartRemove } = useDekkCart();
   const [recs, setRecs] = useState<RecProduct[]>([]);
 
   useEffect(() => {
-    setCart(readCart());
     applySeo({
       title: 'Mon panier · Dëkk by Yobbanté',
       description: 'Récapitulez votre sélection Dëkk et continuez vers la livraison incluse au Sénégal.',
@@ -48,17 +39,8 @@ export default function CartPage() {
     }).then(setRecs);
   }, [cart.length]);
 
-  const updateQty = (id: string, delta: number) => {
-    setCart(prev => {
-      const next = prev
-        .map(i => i.product.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)
-        .filter(i => i.qty > 0);
-      writeCart(next); return next;
-    });
-  };
-  const removeItem = (id: string) => {
-    setCart(prev => { const next = prev.filter(i => i.product.id !== id); writeCart(next); return next; });
-  };
+  const updateQty = (id: string, delta: number) => cartUpdate(id, delta);
+  const removeItem = (id: string) => cartRemove(id);
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);

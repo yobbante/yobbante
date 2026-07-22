@@ -149,9 +149,9 @@ export default function BoutiquePage() {
     let list = activeCat === 'all'
       ? products
       : products.filter(p => DB_TO_UI[p.category] === activeCat);
-    // BUG 7: exclude "Effet waouh" products from the main grid when no filter/search is active
-    // to avoid visual duplicates.
-    if (activeCat === 'all' && !search.trim() && !wishlistOnly) {
+    // BUG 7: exclude "Effet waouh" products from the main grid so they don't
+    // appear duplicated (they already show in the dedicated wow section above).
+    if (!wishlistOnly) {
       list = list.filter(p => !wowIds.has(p.id));
     }
     if (wishlistOnly) list = list.filter(p => wishlist.has(p.id));
