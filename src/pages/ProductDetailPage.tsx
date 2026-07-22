@@ -8,6 +8,7 @@ import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct, trackView } from '@/lib/dekkRecommend';
 import { ecommerce } from '@/lib/analytics';
 import { ArrowLeft, Heart, Share2, ShieldCheck, Truck, Check, Plus, Minus, ShoppingBag, Star, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 type Product = {
   id: string;
