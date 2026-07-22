@@ -161,31 +161,47 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                     </button>
                   </div>
                   <div className="px-6 py-2">
-                    {LINKS.map((l, i) => (
-                      <button
-                        key={l.to}
-                        type="button"
-                        onClick={() => {
-                          setOpen(false);
-                          if (l.external) window.location.assign(l.to);
-                          else navigate(l.to);
-                        }}
-                        className="w-full text-left flex items-center"
-                        style={{
-                          fontSize: 16,
-                          color: 'hsl(var(--foreground))',
-                          padding: '14px 0',
-                          borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
-                        }}
-                      >
+                    {LINKS.map((l, i) => {
+                      const commonStyle: React.CSSProperties = {
+                        fontSize: 16,
+                        color: 'hsl(var(--foreground))',
+                        padding: '14px 0',
+                        borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                        textDecoration: 'none',
+                      };
+                      const inner = (
                         <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
                           <span>{l.label}</span>
                           {l.subBadge && (
                             <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
                           )}
                         </span>
-                      </button>
-                    ))}
+                      );
+                      if (l.external) {
+                        return (
+                          <a
+                            key={l.to}
+                            href={l.to}
+                            onClick={() => setOpen(false)}
+                            className="w-full text-left flex items-center"
+                            style={commonStyle}
+                          >
+                            {inner}
+                          </a>
+                        );
+                      }
+                      return (
+                        <button
+                          key={l.to}
+                          type="button"
+                          onClick={() => { setOpen(false); navigate(l.to); }}
+                          className="w-full text-left flex items-center"
+                          style={commonStyle}
+                        >
+                          {inner}
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                     {user ? (
