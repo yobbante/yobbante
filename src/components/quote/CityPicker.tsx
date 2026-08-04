@@ -259,7 +259,6 @@ export function CityPicker({
               )}
             </div>
           </div>
-        </div>
         </div>,
         document.body,
       )}
