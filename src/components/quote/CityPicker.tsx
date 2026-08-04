@@ -140,7 +140,7 @@ export function CityPicker({
         <ChevronDown className="w-4 h-4 shrink-0 opacity-60" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center"
           role="dialog"
