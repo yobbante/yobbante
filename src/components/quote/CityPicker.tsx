@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X, MapPin } from 'lucide-react';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
@@ -139,7 +140,7 @@ export function CityPicker({
         <ChevronDown className="w-4 h-4 shrink-0 opacity-60" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center"
           role="dialog"
@@ -258,7 +259,8 @@ export function CityPicker({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
