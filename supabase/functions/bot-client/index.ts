@@ -2107,13 +2107,34 @@ Deno.serve(async (req) => {
       } else if (cleanReply) {
         await sendWa(supa, phone, cleanReply, 'bot_client_reply');
       }
+
+      // Tracabilite : on enregistre la reponse du bot sur le message entrant
+      // (auparavant bot_intent/bot_response restaient toujours NULL, ce qui
+      // rendait tout diagnostic impossible).
+      if (input.inbound_id) {
+        try {
+          await supa.from('whatsapp_inbound_messages').update({
+            bot_intent: wantsMenu ? 'main_menu' : (intent ?? 'reply'),
+            bot_response: stripSentinels(cleanReply).slice(0, 2000),
+            replied_at: new Date().toISOString(),
+          }).eq('id', input.inbound_id);
+        } catch (e) { console.error('BOT_CLIENT inbound trace err', e); }
+      }
     }
   } catch (e) {
     console.error('BOT_CLIENT error', e instanceof Error ? e.message : String(e));
+    if (input.inbound_id) {
+      try {
+        await supa.from('whatsapp_inbound_messages')
+          .update({ bot_intent: 'error', bot_response: e instanceof Error ? e.message : String(e) })
+          .eq('id', input.inbound_id);
+      } catch {}
+    }
     try {
       await sendWaList(phone, FALLBACK, 'Voir les options', MAIN_MENU_SECTIONS, MAIN_MENU_FALLBACK, 'bot_client_error');
     } catch {}
   }
+
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
