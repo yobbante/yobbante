@@ -1430,8 +1430,23 @@ Deno.serve(async (req) => {
   }
 
   const phone = input.from_phone;
-  const msg = (input.message ?? '').trim();
+  const rawIncoming = (input.message ?? '').trim();
+  // FIX 2026-08 : un message qui COMMENCE par une salutation mais qui contient
+  // une vraie demande ("Bonjour, j'ai besoin d'aide pour mon expedition")
+  // declenchait MENU_TRIGGERS et renvoyait le menu generique en boucle.
+  // On retire la salutation d'ouverture et on traite le contenu reel.
+  const strippedGreeting = rawIncoming
+    .replace(
+      /^\s*(bonjour|bonsoir|salut|salam(?:\s*al[ae]ikoum|\s*aleykoum)?|assalam[ou]?\s*alaikum|hello|hi|hey|coucou|allo|alo|nanga\s+def)\b[\s,!.;:'’\-]*(?:yobbant[eéè]?)?[\s,!.;:'’\-]*/i,
+      '',
+    )
+    .trim();
+  const msg = strippedGreeting.length >= 3 ? strippedGreeting : rawIncoming;
+  if (msg !== rawIncoming) {
+    console.log('BOT_CLIENT greeting stripped', JSON.stringify({ raw: rawIncoming.slice(0, 60), used: msg.slice(0, 60) }));
+  }
   const nMsg = norm(msg);
+
 
   if (!phone) {
     return new Response(JSON.stringify({ ok: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
