@@ -61,6 +61,67 @@ Deno.serve(async (req) => {
   const refCommand = payload.ref_command ?? '';
   const amount = payload.item_price ?? '';
 
+  async function sendWaRaw(p: Record<string, unknown>) {
+    try {
+      await fetch(`${SB_URL}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify(p),
+      });
+    } catch (e) { console.error('sendWa err', e); }
+  }
+
+  // ── Commandes boutique Dëkk : DEKK-PAY-{reference}-{ts} ──────────────
+  const dekkMatch = refCommand.match(/^DEKK-PAY-(.+)-(\d+)$/);
+  if (dekkMatch) {
+    const orderRef = dekkMatch[1];
+    const { data: order } = await supa
+      .from('dekk_orders')
+      .select('id, reference, payment_status, total_fcfa, customer_phone')
+      .eq('reference', orderRef)
+      .maybeSingle();
+
+    if (!order) {
+      console.warn('paytech-webhook: dekk_order not found for', orderRef);
+      return new Response('ok', { status: 200, headers: corsHeaders });
+    }
+
+    if (typeEvent === 'sale_complete') {
+      if (order.payment_status !== 'paid') {
+        await supa.from('dekk_orders').update({
+          payment_status: 'paid',
+          payment_method: 'paytech',
+          paid_at: new Date().toISOString(),
+          payment_external_id: refCommand,
+          status: 'paid',
+        }).eq('id', order.id);
+      }
+      if (order.customer_phone) {
+        await sendWaRaw({
+          recipient_type: 'client',
+          recipient_phone: order.customer_phone,
+          message: `✅ Paiement reçu pour votre commande Dëkk ${order.reference} (${amount} XOF). Nous préparons votre colis.`,
+          trigger_type: 'dekk_payment_confirmed',
+        });
+      }
+      await sendWaRaw({
+        recipient_type: 'admin',
+        recipient_phone: ADMIN_PHONE,
+        message: `🛍️ Commande Dëkk payée : ${order.reference} — ${amount} XOF`,
+        trigger_type: 'dekk_payment_admin_notify',
+      });
+    } else if (typeEvent === 'sale_canceled') {
+      await supa.from('dekk_orders').update({ payment_status: 'canceled' }).eq('id', order.id);
+      await sendWaRaw({
+        recipient_type: 'admin',
+        recipient_phone: ADMIN_PHONE,
+        message: `❌ Paiement Dëkk annulé : ${order.reference}`,
+        trigger_type: 'dekk_payment_admin_canceled',
+      });
+    }
+    return new Response('ok', { status: 200, headers: corsHeaders });
+  }
+
   // Extract tracking_id from ref_command: YOB-PAY-{tracking}-{ts}
   let trackingId = '';
   const m = refCommand.match(/^YOB-PAY-(.+)-(\d+)$/);
@@ -70,6 +131,7 @@ Deno.serve(async (req) => {
     console.warn('paytech-webhook: cannot extract tracking_id from', refCommand);
     return new Response('ok', { status: 200, headers: corsHeaders });
   }
+
 
   const { data: dossier } = await supa
     .from('dossiers')

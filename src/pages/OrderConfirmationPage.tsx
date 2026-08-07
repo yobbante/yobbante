@@ -7,6 +7,7 @@ import { Recommendations } from './CartPage';
 import { Check, Copy, MapPin, Package, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
+import { fcfaOf } from '@/hooks/useDekkCart';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -75,10 +76,10 @@ export default function OrderConfirmationPage() {
             id: i.product.id,
             name: i.product.name,
             category: i.product.category,
-            price: i.product.price_eur,
+            price: fcfaOf(i.product),
             quantity: i.qty,
           })),
-          { value: order.total_eur, currency: 'EUR' },
+          { value: order.total_fcfa ?? Math.round((order.total_eur ?? 0) * 655), currency: 'XOF' },
         );
         sessionStorage.setItem(flag, '1');
       }

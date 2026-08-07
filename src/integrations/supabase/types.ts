@@ -588,7 +588,11 @@ export type Database = {
           id: string
           items: Json
           note: string | null
+          paid_at: string | null
+          payment_external_id: string | null
           payment_method: string
+          payment_provider_ref: string | null
+          payment_status: string
           promo_code: string | null
           promo_id: string | null
           reference: string
@@ -610,7 +614,11 @@ export type Database = {
           id?: string
           items?: Json
           note?: string | null
+          paid_at?: string | null
+          payment_external_id?: string | null
           payment_method: string
+          payment_provider_ref?: string | null
+          payment_status?: string
           promo_code?: string | null
           promo_id?: string | null
           reference: string
@@ -632,7 +640,11 @@ export type Database = {
           id?: string
           items?: Json
           note?: string | null
+          paid_at?: string | null
+          payment_external_id?: string | null
           payment_method?: string
+          payment_provider_ref?: string | null
+          payment_status?: string
           promo_code?: string | null
           promo_id?: string | null
           reference?: string

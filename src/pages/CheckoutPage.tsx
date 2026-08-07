@@ -6,6 +6,7 @@ import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote, Tag, X
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
+import { fcfaOf } from '@/hooks/useDekkCart';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
@@ -64,10 +65,10 @@ export default function CheckoutPage() {
       type: 'website',
     });
     if (c.length > 0) {
-      const value = c.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
+      const value = c.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0);
       ecommerce.initiateCheckout(
-        c.map(i => ({ id: i.product.id, name: i.product.name, price: i.product.price_eur, quantity: i.qty })),
-        { value, currency: 'EUR' },
+        c.map(i => ({ id: i.product.id, name: i.product.name, price: fcfaOf(i.product), quantity: i.qty })),
+        { value, currency: 'XOF' },
       );
     }
   }, [nav]);
@@ -75,8 +76,8 @@ export default function CheckoutPage() {
   // Fire AddPaymentInfo once user reaches the payment step
   useEffect(() => {
     if (step === 'payment' && cart.length > 0) {
-      const value = cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
-      ecommerce.addPaymentInfo(payment, { value, currency: 'EUR' });
+      const value = cart.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0);
+      ecommerce.addPaymentInfo(payment, { value, currency: 'XOF' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, payment]);
@@ -148,7 +149,7 @@ export default function CheckoutPage() {
       promo_code: promo?.code ?? null,
       total_eur: total,
       total_fcfa: total * 655,
-      status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
+      status: 'pending',
     };
     let orderId: string | undefined;
     try {
@@ -207,8 +208,34 @@ export default function CheckoutPage() {
       setSubmitting(false);
       return;
     }
+
+    // Paiement en ligne (Wave / Orange Money / carte) → PayTech
+    if (payment !== 'cash') {
+      try {
+        const { data, error } = await supabase.functions.invoke('dekk-payment', {
+          body: { reference, origin: window.location.origin },
+        });
+        if (error) throw error;
+        if (data?.redirect_url) {
+          window.location.href = data.redirect_url as string;
+          return;
+        }
+        if (data?.available === false) {
+          toast.info('Paiement en ligne indisponible', {
+            description: 'Votre commande est enregistrée. Nous vous contactons pour le règlement.',
+          });
+        }
+      } catch (e) {
+        console.error('PayTech init failed', e);
+        toast.error('Paiement en ligne indisponible', {
+          description: 'Votre commande est enregistrée, nous vous contactons pour le règlement.',
+        });
+      }
+    }
+
     setTimeout(() => nav(`/panier/confirmation/${reference}`, { replace: true }), 600);
   };
+
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>

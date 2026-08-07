@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
-import { useDekkCart } from '@/hooks/useDekkCart';
+import { useDekkCart, fcfaOf } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { applySeo } from '@/lib/dekkSeo';
@@ -101,8 +101,8 @@ export default function ProductDetailPage() {
           },
         });
         ecommerce.viewContent(
-          { id: prod.id, name: prod.name, category: prod.category, price: prod.price_eur, quantity: 1 },
-          { value: prod.price_eur, currency: 'EUR' },
+          { id: prod.id, name: prod.name, category: prod.category, price: fcfaOf(prod as any), quantity: 1 },
+          { value: fcfaOf(prod as any), currency: 'XOF' },
         );
         const recs = await recommend({ excludeIds: [prod.id], primaryCategory: prod.category, limit: 4 });
         setRelated(recs);
