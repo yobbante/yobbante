@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       payment_external_id: refCommand,
       payment_provider_ref: pt.token ?? null,
       payment_status: 'pending',
-      status: 'awaiting_payment',
+      status: 'pending',
     }).eq('id', order.id);
 
     return new Response(JSON.stringify({ redirect_url: pt.redirect_url, token: pt.token }), {
