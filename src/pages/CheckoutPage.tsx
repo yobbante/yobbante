@@ -64,10 +64,10 @@ export default function CheckoutPage() {
       type: 'website',
     });
     if (c.length > 0) {
-      const value = c.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
+      const value = c.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0);
       ecommerce.initiateCheckout(
-        c.map(i => ({ id: i.product.id, name: i.product.name, price: i.product.price_eur, quantity: i.qty })),
-        { value, currency: 'EUR' },
+        c.map(i => ({ id: i.product.id, name: i.product.name, price: fcfaOf(i.product), quantity: i.qty })),
+        { value, currency: 'XOF' },
       );
     }
   }, [nav]);
@@ -75,8 +75,8 @@ export default function CheckoutPage() {
   // Fire AddPaymentInfo once user reaches the payment step
   useEffect(() => {
     if (step === 'payment' && cart.length > 0) {
-      const value = cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0);
-      ecommerce.addPaymentInfo(payment, { value, currency: 'EUR' });
+      const value = cart.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0);
+      ecommerce.addPaymentInfo(payment, { value, currency: 'XOF' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, payment]);

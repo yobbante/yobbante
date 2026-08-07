@@ -14,6 +14,13 @@ export type DekkCartItem = {
   color?: string | null;
 };
 
+/** Prix unitaire en FCFA (XOF) — source de verite pour l'affichage et le tracking. */
+export function fcfaOf(product: { price_fcfa?: number | null; price_eur?: number | null }): number {
+  const f = Number(product?.price_fcfa ?? 0);
+  if (f > 0) return Math.round(f);
+  return Math.round(Number(product?.price_eur ?? 0) * 655);
+}
+
 const KEY = 'dekk_cart';
 const EVT = 'dekk:cart';
 
@@ -54,10 +61,10 @@ export function useDekkCart() {
       next = [...cur, { product, qty, size: opts.size ?? null, color: opts.color ?? null }];
     }
     write(next);
-    const price = Number(product.price_eur ?? 0);
+    const price = fcfaOf(product);
     ecommerce.addToCart(
       { id: product.id, name: product.name, category: product.category, price, quantity: qty },
-      { value: price * qty, currency: 'EUR' },
+      { value: price * qty, currency: 'XOF' },
     );
     toast.success('Ajouté au panier ✓', {
       description: product.name,

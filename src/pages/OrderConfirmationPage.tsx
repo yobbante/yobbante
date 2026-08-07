@@ -75,10 +75,10 @@ export default function OrderConfirmationPage() {
             id: i.product.id,
             name: i.product.name,
             category: i.product.category,
-            price: i.product.price_eur,
+            price: fcfaOf(i.product),
             quantity: i.qty,
           })),
-          { value: order.total_eur, currency: 'EUR' },
+          { value: order.total_fcfa ?? Math.round((order.total_eur ?? 0) * 655), currency: 'XOF' },
         );
         sessionStorage.setItem(flag, '1');
       }
