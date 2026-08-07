@@ -149,7 +149,7 @@ export default function CheckoutPage() {
       promo_code: promo?.code ?? null,
       total_eur: total,
       total_fcfa: total * 655,
-      status: payment === 'cash' ? 'confirmed' : 'awaiting_payment',
+      status: 'pending',
     };
     let orderId: string | undefined;
     try {
