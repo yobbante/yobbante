@@ -208,8 +208,34 @@ export default function CheckoutPage() {
       setSubmitting(false);
       return;
     }
+
+    // Paiement en ligne (Wave / Orange Money / carte) → PayTech
+    if (payment !== 'cash') {
+      try {
+        const { data, error } = await supabase.functions.invoke('dekk-payment', {
+          body: { reference, origin: window.location.origin },
+        });
+        if (error) throw error;
+        if (data?.redirect_url) {
+          window.location.href = data.redirect_url as string;
+          return;
+        }
+        if (data?.available === false) {
+          toast.info('Paiement en ligne indisponible', {
+            description: 'Votre commande est enregistrée. Nous vous contactons pour le règlement.',
+          });
+        }
+      } catch (e) {
+        console.error('PayTech init failed', e);
+        toast.error('Paiement en ligne indisponible', {
+          description: 'Votre commande est enregistrée, nous vous contactons pour le règlement.',
+        });
+      }
+    }
+
     setTimeout(() => nav(`/panier/confirmation/${reference}`, { replace: true }), 600);
   };
+
 
   return (
     <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
