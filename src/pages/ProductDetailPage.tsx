@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
-import { useDekkCart } from '@/hooks/useDekkCart';
+import { useDekkCart, fcfaOf } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { applySeo } from '@/lib/dekkSeo';

@@ -6,6 +6,7 @@ import { ArrowLeft, Check, ShieldCheck, CreditCard, Smartphone, Banknote, Tag, X
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ecommerce } from '@/lib/analytics';
+import { fcfaOf } from '@/hooks/useDekkCart';
 
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
