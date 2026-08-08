@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
     command_name: `Commande Dëkk ${order.reference}`,
     env: PAYTECH_ENV,
     ipn_url: `${SB_URL}/functions/v1/paytech-webhook`,
-    success_url: `${origin}/panier/confirmation/${order.reference}?success=1`,
-    cancel_url: `${origin}/panier/checkout?cancel=1`,
+    success_url: `${origin}/panier/paiement/${order.reference}?success=1`,
+    cancel_url: `${origin}/panier/paiement/${order.reference}?cancel=1`,
     custom_field: JSON.stringify({ order_id: order.id, reference: order.reference }),
   });
 

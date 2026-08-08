@@ -3957,6 +3957,19 @@ export type Database = {
         }[]
       }
       dekk_order_id_by_ref: { Args: { p_reference: string }; Returns: string }
+      dekk_order_payment_status: {
+        Args: { _reference: string }
+        Returns: {
+          created_at: string
+          paid_at: string
+          payment_external_id: string
+          payment_method: string
+          payment_status: string
+          reference: string
+          status: string
+          total_fcfa: number
+        }[]
+      }
       enqueue_admin_notification: {
         Args: {
           p_dossier_id?: string
