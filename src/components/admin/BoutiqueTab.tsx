@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
 import { BoutiqueStatsPanel } from './BoutiqueStatsPanel';
 import { BoutiquePromosPanel } from './BoutiquePromosPanel';
+import { DekkPaymentsPanel } from './DekkPaymentsPanel';
 import { runDekkSeed } from '@/data/dekk-seed';
 
 
@@ -74,7 +75,7 @@ const emptyForm = {
 };
 
 export function BoutiqueTab() {
-  const [view, setView] = useState<'products' | 'orders' | 'promos' | 'stats'>('products');
+  const [view, setView] = useState<'products' | 'orders' | 'paiements' | 'promos' | 'stats'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [saleFilter, setSaleFilter] = useState<'all' | 'live' | 'waiting'>('all');
@@ -221,6 +222,7 @@ export function BoutiqueTab() {
           <h2 style={{ fontSize: 18, fontWeight: 500, marginTop: 4 }}>
             {view === 'products' ? 'Gestion des produits'
               : view === 'orders' ? 'Commandes & suivi'
+              : view === 'paiements' ? 'Paiements & PayTech'
               : view === 'promos' ? 'Codes promo'
               : 'Statistiques boutique'}
           </h2>
@@ -248,11 +250,13 @@ export function BoutiqueTab() {
       <div className="flex gap-1 mb-5" style={{ borderBottom: '0.5px solid hsl(var(--color-border-tertiary))' }}>
         <TabBtn active={view === 'products'} onClick={() => setView('products')}>Produits</TabBtn>
         <TabBtn active={view === 'orders'}   onClick={() => setView('orders')}>Commandes</TabBtn>
+        <TabBtn active={view === 'paiements'} onClick={() => setView('paiements')}>Paiements</TabBtn>
         <TabBtn active={view === 'promos'}   onClick={() => setView('promos')}>Codes promo</TabBtn>
         <TabBtn active={view === 'stats'}    onClick={() => setView('stats')}>Statistiques</TabBtn>
       </div>
 
       {view === 'orders' ? <BoutiqueOrdersPanel />
+        : view === 'paiements' ? <DekkPaymentsPanel />
         : view === 'promos' ? <BoutiquePromosPanel />
         : view === 'stats' ? <BoutiqueStatsPanel />
         : (<>

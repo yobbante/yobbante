@@ -19,6 +19,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
+import DekkPaymentStatusPage from "./pages/DekkPaymentStatusPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 
@@ -90,6 +91,7 @@ const DekkRoutes = () => (
     <Route path="/panier" element={<DekkLayout><CartPage /></DekkLayout>} />
     <Route path="/panier/checkout" element={<DekkLayout><CheckoutPage /></DekkLayout>} />
     <Route path="/panier/confirmation/:reference" element={<DekkLayout><OrderConfirmationPage /></DekkLayout>} />
+    <Route path="/panier/paiement/:reference" element={<DekkPaymentStatusPage />} />
 
     {/* Compte client mutualisé */}
     <Route path="/auth" element={<Auth />} />
@@ -165,6 +167,7 @@ const MainRoutes = () => (
     <Route path="/panier" element={<DekkBoutiqueRedirect><DekkLayout><CartPage /></DekkLayout></DekkBoutiqueRedirect>} />
     <Route path="/panier/checkout" element={<DekkBoutiqueRedirect><DekkLayout><CheckoutPage /></DekkLayout></DekkBoutiqueRedirect>} />
     <Route path="/panier/confirmation/:reference" element={<DekkBoutiqueRedirect><DekkLayout><OrderConfirmationPage /></DekkLayout></DekkBoutiqueRedirect>} />
+    <Route path="/panier/paiement/:reference" element={<DekkBoutiqueRedirect><DekkPaymentStatusPage /></DekkBoutiqueRedirect>} />
     {/* Spec route aliases → existing pages */}
     <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
     <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
