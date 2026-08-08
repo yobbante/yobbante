@@ -3956,6 +3956,7 @@ export type Database = {
           total_eur: number
         }[]
       }
+      dekk_order_id_by_ref: { Args: { p_reference: string }; Returns: string }
       enqueue_admin_notification: {
         Args: {
           p_dossier_id?: string
