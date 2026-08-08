@@ -154,7 +154,7 @@ export default function CheckoutPage() {
     let orderId: string | undefined;
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const { data: inserted, error: insertErr } = await supabase
+      const { error: insertErr } = await supabase
         .from('dekk_orders' as any)
         .insert({
           reference,
@@ -171,11 +171,12 @@ export default function CheckoutPage() {
           total_fcfa: Math.round(total * 655),
           status: order.status,
           user_id: session?.user?.id ?? null,
-        })
-        .select('id')
-        .single();
+        });
       if (insertErr) throw insertErr;
-      orderId = (inserted as any)?.id as string | undefined;
+      if (promo) {
+        const { data: oid } = await supabase.rpc('dekk_order_id_by_ref' as any, { p_reference: reference });
+        orderId = (oid as any) ?? undefined;
+      }
 
       // Atomically consume the promo (server-side: validates + decrements + records).
       // If this fails, we cancel the order to avoid charging a discount that wasn't applied.
