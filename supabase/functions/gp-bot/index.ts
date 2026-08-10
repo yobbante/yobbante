@@ -1946,7 +1946,7 @@ Voir : yobbante.com/admin`);
   if (input.message_type === 'image' && input.media_url) {
     try {
       const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-      const waToken = Deno.env.get('WHATSAPP_TOKEN');
+      const waToken = (Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN'));
       if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY missing');
 
       // Télécharger l'image (avec auth WhatsApp si nécessaire)

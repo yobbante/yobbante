@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false } },
   );
-  const waToken = Deno.env.get('WHATSAPP_TOKEN');
+  const waToken = (Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN'));
   if (!waToken) {
     return new Response(JSON.stringify({ ok: false, error: 'WHATSAPP_TOKEN missing' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
