@@ -64,7 +64,14 @@ export function AudioMessage({ mediaUrl, wamid }: Props) {
     );
   }
   if (err || !signedUrl) {
-    return <div className="text-[10px] text-destructive">Audio indisponible</div>;
+    const isRawId = !!mediaUrl && !mediaUrl.startsWith('http') && !mediaUrl.includes('.');
+    return (
+      <div className="text-[10px] text-destructive max-w-[240px]">
+        {isRawId
+          ? "Audio non récupéré : le média WhatsApp n'a pas pu être téléchargé (token Meta invalide/expiré). Il sera récupérable une fois le token renouvelé, si le média n'a pas expiré côté Meta (~5 jours)."
+          : 'Audio indisponible'}
+      </div>
+    );
   }
   return (
     <audio

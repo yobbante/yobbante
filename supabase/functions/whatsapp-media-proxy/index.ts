@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token = Deno.env.get('WHATSAPP_TOKEN');
+    const token = (Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN'));
     if (!token) {
       return new Response(JSON.stringify({ error: 'missing token' }), {
         status: 500,

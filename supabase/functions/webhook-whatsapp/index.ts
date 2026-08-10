@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
             // For audio (voice notes), download and store in Supabase Storage so admin can play them
             if (messageType === 'audio' && mediaId && wamid) {
               try {
-                const waToken = Deno.env.get('WHATSAPP_TOKEN');
+                const waToken = (Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN'));
                 if (waToken) {
                   // 1. Resolve media URL
                   const metaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
