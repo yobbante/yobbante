@@ -35,6 +35,7 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   // Old dossier-related pages → unified Dossiers hub
   inbox:           { section: 'dossiers', tab: 'demandes' },
   requests:        { section: 'dossiers' },
+  'dossiers-tous': { section: 'dossiers', tab: 'tous' },
   shipments:       { section: 'dossiers' },
   orders:          { section: 'dossiers' },
   reception:       { section: 'dossiers', tab: 'reception' },

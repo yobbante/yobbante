@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { NO_GP_STATUSES, PENDING_PAYMENT_EXCLUDED_PG } from '@/lib/adminFilters';
 
 /**
  * Compteurs "Morning Brief" — 4 KPI actionnables affichés en haut de la Vue Globale.
@@ -21,7 +22,7 @@ export function useAdminBrief() {
         // Dossiers sans GP (à assigner) — actifs, non terminaux
         supabase.from('dossiers')
           .select('id', { count: 'exact', head: true })
-          .in('status', ['SUBMITTED', 'IN_REVIEW', 'CONFIRMED', 'ASSIGNED', 'EN_RECHERCHE_DEPART'] as any)
+          .in('status', NO_GP_STATUSES as unknown as string[] as any)
           .is('assigned_transporteur_ref', null),
         // Messages WhatsApp non lus (hors staff Yobbanté)
         supabase.from('whatsapp_inbound_messages')
@@ -29,11 +30,11 @@ export function useAdminBrief() {
           .eq('is_read', false)
           .not('from_phone', 'eq', '221784604003')
           .not('from_name', 'eq', 'ANB'),
-        // Paiements en attente
+        // Paiements en attente (hors devis et dossiers terminés) — même critère que l'onglet Revenus
         supabase.from('dossiers')
           .select('id, estimated_cost, final_amount_xof', { count: 'exact' })
           .eq('payment_status', 'pending')
-          .not('status', 'in', '(DELIVERED,CLOSED,CANCELLED,ARCHIVED)' as any),
+          .not('status', 'in', PENDING_PAYMENT_EXCLUDED_PG as any),
         // Départs cette semaine — manuels
         supabase.from('manual_departures')
           .select('id', { count: 'exact', head: true })

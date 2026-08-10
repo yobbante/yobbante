@@ -66,7 +66,7 @@ export function DossierAlertsBar({ onJump }: Props) {
       label: `${data.submittedOld} dossier${data.submittedOld > 1 ? 's' : ''} soumis depuis +48h`,
       icon: AlertCircle,
       tone: 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/15',
-      onClick: () => onJump?.('dossiers'),
+      onClick: () => onJump?.('dossiers-tous'),
     },
     {
       show: data.gpMissing > 0,
