@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { NO_GP_STATUSES, PENDING_PAYMENT_EXCLUDED_PG } from '@/lib/adminFilters';
 
 /**
  * Compteurs "Morning Brief" — 4 KPI actionnables affichés en haut de la Vue Globale.
