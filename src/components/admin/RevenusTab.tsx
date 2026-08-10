@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { PaytechTransactionsPanel } from './PaytechTransactionsPanel';
+import { PENDING_PAYMENT_EXCLUDED_PG } from '@/lib/adminFilters';
 
 const YELLOW = '#F5C518';
 
@@ -39,6 +40,7 @@ type PendingDossier = {
   destination_city: string | null;
   destination_country: string | null;
   final_amount_xof: number | null;
+  status?: string | null;
   weighed_at: string | null;
   payment_reminders_count: number;
   last_payment_reminder_at: string | null;
@@ -91,7 +93,7 @@ export function RevenusTab() {
           .from('dossiers')
           .select('id', { count: 'exact', head: true })
           .eq('payment_status', 'pending')
-          .eq('status', 'WEIGHED'),
+          .not('status', 'in', PENDING_PAYMENT_EXCLUDED_PG as any),
       ]);
 
       const revenuMois = (cur ?? []).reduce((s: number, r: any) => s + Number(r.final_amount_xof ?? 0), 0);
@@ -125,10 +127,10 @@ export function RevenusTab() {
     queryFn: async (): Promise<PendingDossier[]> => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, weighed_at, payment_reminders_count, last_payment_reminder_at')
+        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, status, weighed_at, payment_reminders_count, last_payment_reminder_at')
         .eq('payment_status', 'pending')
-        .eq('status', 'WEIGHED')
-        .order('weighed_at', { ascending: true })
+        .not('status', 'in', PENDING_PAYMENT_EXCLUDED_PG as any)
+        .order('created_at', { ascending: true })
         .limit(200);
       if (error) throw error;
       return (data ?? []) as unknown as PendingDossier[];
