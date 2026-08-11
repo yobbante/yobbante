@@ -726,9 +726,21 @@ Merci de votre confiance.`;
               {data.service_kind === 'envoi' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label className="text-xs">Origine</Label>
-                    <Input value={data.origin_city} onChange={e => update({ origin_city: e.target.value })} placeholder="Paris" /></div>
+                    <CityPicker
+                      includeHub
+                      value={data.origin_city}
+                      onChange={v => update({ origin_city: v })}
+                      placeholder="Ville de départ"
+                      ariaLabel="Ville d'origine"
+                    /></div>
                   <div><Label className="text-xs">Destination</Label>
-                    <Input value={data.destination_city} onChange={e => update({ destination_city: e.target.value })} placeholder="Dakar" /></div>
+                    <CityPicker
+                      includeHub
+                      value={data.destination_city}
+                      onChange={v => update({ destination_city: v })}
+                      placeholder="Ville d'arrivée"
+                      ariaLabel="Ville de destination"
+                    /></div>
                   <div><Label className="text-xs">Poids (kg)</Label>
                     <Input type="number" value={data.weight_kg} onChange={e => update({ weight_kg: e.target.value })} /></div>
                   <div><Label className="text-xs">Mode</Label>
