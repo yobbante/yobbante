@@ -3,7 +3,7 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/track-dossier.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
@@ -115,11 +115,16 @@ var get_shipping_rate_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
+var projectRef = "tlvuextleczdsqxoguyq";
 var mcp_default = defineMcp({
   name: "yobbante-mcp",
   title: "Yobbant\xE9",
   version: "0.1.0",
   instructions: "Yobbant\xE9 is a logistics orchestration platform (shipping between Europe/Africa and worldwide). Use `track_dossier` to look up a shipment by its public tracking ID, `list_upcoming_departures` to see scheduled departures on the network, and `get_shipping_rate` to estimate cost and ETA for a parcel.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
   tools: [track_dossier_default, list_departures_default, get_shipping_rate_default]
 });
 

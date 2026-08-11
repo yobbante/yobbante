@@ -27,6 +27,7 @@ import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import OAuthConsent from "./pages/OAuthConsent";
 import DossierDetail from "./pages/DossierDetail";
 import AdminPage from "./pages/AdminPage";
 import InboxImportPage from "./pages/admin/InboxImportPage";
@@ -96,6 +97,7 @@ const DekkRoutes = () => (
     {/* Compte client mutualisé */}
     <Route path="/auth" element={<Auth />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
+    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
     <Route path="/mon-compte" element={<Index />} />
     <Route path="/compte" element={<Navigate to="/app" replace />} />
     <Route path="/app" element={<Index />} />
@@ -184,6 +186,7 @@ const MainRoutes = () => (
     <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
+    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
     <Route path="/app" element={<Index />} />
     <Route path="/app/mes-envois" element={<Navigate to="/app?view=envois" replace />} />
     <Route path="/app/mes-receptions" element={<Navigate to="/app?view=receptions" replace />} />
