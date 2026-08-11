@@ -106,6 +106,27 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_global_settings: {
+        Row: {
+          id: boolean
+          paused: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       business_account_managers: {
         Row: {
           business_id: string
