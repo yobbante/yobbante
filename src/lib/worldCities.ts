@@ -82,3 +82,15 @@ export function findCity(list: CityOption[], id: string | null): CityOption | nu
   if (!id) return null;
   return list.find(c => c.id === id) ?? null;
 }
+
+/**
+ * Code pays d'une ville (catalogue standard + Dakar).
+ * Source unique de vérité pour dériver origin_country / destination_country
+ * à partir d'un nom de ville saisi dans un CityPicker.
+ */
+export function countryForCity(city?: string | null): string | null {
+  const c = (city ?? '').trim().toLowerCase();
+  if (!c) return null;
+  if (c === 'dakar') return HUB_DAKAR.country;
+  return ALL_CITIES.find(x => x.city.toLowerCase() === c)?.country ?? null;
+}
