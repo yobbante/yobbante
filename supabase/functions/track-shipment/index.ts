@@ -14,6 +14,20 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+// Fallback lisible quand la ville n'est pas renseignée : jamais un code ISO nu.
+const COUNTRY_NAME: Record<string, string> = {
+  FR: 'France', SN: 'Sénégal', US: 'États-Unis', CA: 'Canada', AE: 'Émirats Arabes Unis',
+  DE: 'Allemagne', CN: 'Chine', ES: 'Espagne', IT: 'Italie', BE: 'Belgique', CH: 'Suisse',
+  MA: 'Maroc', CI: "Côte d'Ivoire", ML: 'Mali', GN: 'Guinée', CM: 'Cameroun', GA: 'Gabon',
+  CD: 'RD Congo', CG: 'Congo', TD: 'Tchad', GQ: 'Guinée Équatoriale', TR: 'Turquie', LB: 'Liban',
+};
+function countryName(code?: string | null): string | null {
+  if (!code) return null;
+  const c = String(code).toUpperCase();
+  return COUNTRY_NAME[c] ?? c;
+}
+
+
 const STATUS_LABEL: Record<string, string> = {
   PENDING: 'Demande reçue',
   CONFIRMED: 'Envoi confirmé',
