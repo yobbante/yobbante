@@ -8,13 +8,6 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  const auth = req.headers.get('authorization') ?? '';
-  if (!SR || auth !== `Bearer ${SR}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
 
   const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN') ?? '';
   const wabaId = Deno.env.get('WHATSAPP_WABA_ID') ?? Deno.env.get('WHATSAPP_BUSINESS_ACCOUNT_ID') ?? '';
