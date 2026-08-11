@@ -306,7 +306,7 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
         {dossier.contact_phone && (() => {
           const prenom = (dossier.sender_name || dossier.recipient_name || 'Client').toString().trim().split(/\s+/)[0];
           const ref = dossier.tracking_id || dossier.reference || '';
-          const route = `${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`;
+          const route = routeLabel(dossier as any);
           const waText = `Bonjour ${prenom},\n\nA propos de votre dossier ${ref}.\nRoute : ${route}\n\n-- Equipe Yobbante`;
           const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(waText)}`;
           return (
