@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X, MapPin } from 'lucide-react';
-import { ALL_CITIES } from '@/lib/worldCities';
+import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,8 @@ interface CityPickerProps {
   ariaLabel?: string;
   /** City to exclude from list (e.g. Dakar locked on other side) */
   excludeCity?: string;
+  /** Inclure Dakar (hub) dans la liste — utile côté admin où les 2 sens existent */
+  includeHub?: boolean;
   className?: string;
 }
 
@@ -31,7 +33,7 @@ const FOCUSABLE_SEL =
 
 export function CityPicker({
   value, onChange, placeholder = 'Choisir une ville…',
-  ariaLabel = 'Choisir une ville', excludeCity, className,
+  ariaLabel = 'Choisir une ville', excludeCity, includeHub = false, className,
 }: CityPickerProps) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -49,7 +51,7 @@ export function CityPicker({
   const { cities: customCities } = useCustomCities();
   const cities = useMemo(() => {
     const seen = new Set<string>();
-    return [...ALL_CITIES, ...customCities]
+    return [...(includeHub ? [HUB_DAKAR] : []), ...ALL_CITIES, ...customCities]
       .filter(c => !excludeCity || c.city !== excludeCity)
       .filter(c => {
         const key = `${c.country}-${c.city}`.toLowerCase();
@@ -57,7 +59,7 @@ export function CityPicker({
         seen.add(key);
         return true;
       });
-  }, [excludeCity, customCities]);
+  }, [excludeCity, customCities, includeHub]);
 
   const filtered = useMemo(() => {
     const nq = norm(debouncedQ.trim());

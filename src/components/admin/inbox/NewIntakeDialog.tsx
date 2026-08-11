@@ -17,6 +17,8 @@ import {
 } from '@/lib/intakeSources';
 import { useIntakeDraft } from '@/hooks/useIntakeDraft';
 import { calculerFraisEnlevement } from '@/lib/dakarZones';
+import { CityPicker } from '@/components/quote/CityPicker';
+import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
 
@@ -380,13 +382,20 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? 'EN_RECHERCHE_DEPART'
         : data.initial_status;
 
+      // Villes saisies (CityPicker) → source de vérité. Les pays en sont dérivés,
+      // dans le MÊME ordre : origine → origin_*, destination → destination_*.
+      const originCity = data.service_kind === 'envoi' ? (data.origin_city.trim() || null) : null;
+      const destCity = data.service_kind === 'envoi' ? (data.destination_city.trim() || null) : null;
+
       const insertRow: any = {
         user_id: user.id,
         product_description: productDescription,
+        origin_city: originCity,
+        destination_city: destCity,
         origin_country: data.service_kind === 'reception'
           ? (data.origin_country_reception?.slice(0, 2).toUpperCase() || 'FR')
-          : 'FR',
-        destination_country: 'SN',
+          : (countryForCity(originCity) || 'FR'),
+        destination_country: countryForCity(destCity) || 'SN',
         contact_phone: data.client_phone,
         contact_email: data.client_email || null,
         estimated_weight: data.weight_kg ? parseFloat(data.weight_kg) : null,
@@ -726,9 +735,21 @@ Merci de votre confiance.`;
               {data.service_kind === 'envoi' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label className="text-xs">Origine</Label>
-                    <Input value={data.origin_city} onChange={e => update({ origin_city: e.target.value })} placeholder="Paris" /></div>
+                    <CityPicker
+                      includeHub
+                      value={data.origin_city}
+                      onChange={v => update({ origin_city: v })}
+                      placeholder="Ville de départ"
+                      ariaLabel="Ville d'origine"
+                    /></div>
                   <div><Label className="text-xs">Destination</Label>
-                    <Input value={data.destination_city} onChange={e => update({ destination_city: e.target.value })} placeholder="Dakar" /></div>
+                    <CityPicker
+                      includeHub
+                      value={data.destination_city}
+                      onChange={v => update({ destination_city: v })}
+                      placeholder="Ville d'arrivée"
+                      ariaLabel="Ville de destination"
+                    /></div>
                   <div><Label className="text-xs">Poids (kg)</Label>
                     <Input type="number" value={data.weight_kg} onChange={e => update({ weight_kg: e.target.value })} /></div>
                   <div><Label className="text-xs">Mode</Label>

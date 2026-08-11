@@ -41,6 +41,7 @@ import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
 import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, nextReturnStatus, LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 
+import { routeLabel } from '@/lib/routeLabel';
 import { format } from 'date-fns';
 
 
@@ -306,7 +307,7 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
         {dossier.contact_phone && (() => {
           const prenom = (dossier.sender_name || dossier.recipient_name || 'Client').toString().trim().split(/\s+/)[0];
           const ref = dossier.tracking_id || dossier.reference || '';
-          const route = `${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`;
+          const route = routeLabel(dossier as any);
           const waText = `Bonjour ${prenom},\n\nA propos de votre dossier ${ref}.\nRoute : ${route}\n\n-- Equipe Yobbante`;
           const waHref = `https://wa.me/${dossier.contact_phone.replace(/\D/g, '')}?text=${encodeURIComponent(waText)}`;
           return (
@@ -454,7 +455,7 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     const prenom = (d.sender_name || d.recipient_name || 'Client')
       .toString().trim().split(/\s+/)[0];
     const ref = d.tracking_id || d.reference || '';
-    const route = `${d.origin_city || '-'} -> ${d.destination_city || '-'}`;
+    const route = routeLabel(d as any);
     const txt = [
       `Bonjour ${prenom},`,
       ``,
