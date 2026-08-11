@@ -478,6 +478,7 @@ export type Database = {
           flag: string
           id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           active?: boolean
@@ -489,6 +490,7 @@ export type Database = {
           flag?: string
           id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           active?: boolean
@@ -500,6 +502,7 @@ export type Database = {
           flag?: string
           id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
