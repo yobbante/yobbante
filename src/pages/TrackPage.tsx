@@ -134,6 +134,15 @@ export default function TrackPage() {
     }).catch(() => toast.error('Impossible de copier'));
   };
 
+  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setHasAccount(!!data.session);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     document.title = id ? `Yobbanté · Suivi ${id}` : 'Yobbanté · Suivre mon colis';
