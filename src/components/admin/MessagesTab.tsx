@@ -725,6 +725,35 @@ export function MessagesTab() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant={globalBot.paused ? 'default' : 'outline'}
+            size="sm"
+            disabled={globalBot.loading || globalBot.saving}
+            onClick={async () => {
+              try {
+                const next = await globalBot.toggle();
+                toast.success(next ? 'Tous les bots sont en pause' : 'Tous les bots sont réactivés');
+              } catch {
+                toast.error('Impossible de changer l\u2019état des bots');
+              }
+            }}
+            aria-label={globalBot.paused ? 'Réactiver tous les bots' : 'Mettre tous les bots en pause'}
+            title={globalBot.paused ? 'Bots en pause — cliquer pour relancer' : 'Bots actifs — cliquer pour tout mettre en pause'}
+            className={cn(
+              'h-8 px-2 md:px-3 text-xs gap-1.5',
+              globalBot.paused && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
+            )}
+          >
+            {globalBot.saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : globalBot.paused ? (
+              <PlayCircle className="w-3.5 h-3.5" />
+            ) : (
+              <PauseCircle className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden md:inline">{globalBot.paused ? 'Bots en pause' : 'Bots actifs'}</span>
+          </Button>
+
+          <Button
             size="sm"
             onClick={() => setNewMsgOpen(true)}
             aria-label="Nouveau message"
