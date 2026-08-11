@@ -17,6 +17,8 @@ import {
 } from '@/lib/intakeSources';
 import { useIntakeDraft } from '@/hooks/useIntakeDraft';
 import { calculerFraisEnlevement } from '@/lib/dakarZones';
+import { CityPicker } from '@/components/quote/CityPicker';
+import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
 
