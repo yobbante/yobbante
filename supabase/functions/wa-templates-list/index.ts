@@ -10,7 +10,23 @@ Deno.serve(async (req) => {
 
 
   const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? Deno.env.get('WHATSAPP_TOKEN') ?? '';
-  const wabaId = Deno.env.get('WHATSAPP_WABA_ID') ?? Deno.env.get('WHATSAPP_BUSINESS_ACCOUNT_ID') ?? '';
+  const phoneId = Deno.env.get('WHATSAPP_CLIENT_PHONE_ID')
+    ?? Deno.env.get('WHATSAPP_PHONE_ID_CLIENTS')
+    ?? Deno.env.get('WHATSAPP_PHONE_ID') ?? '';
+  let wabaId = Deno.env.get('WHATSAPP_WABA_ID') ?? Deno.env.get('WHATSAPP_BUSINESS_ACCOUNT_ID') ?? '';
+  if (!wabaId && phoneId) {
+    const r = await fetch(
+      `https://graph.facebook.com/v21.0/${phoneId}?fields=id,display_phone_number,whatsapp_business_account`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const j = await r.json();
+    wabaId = j?.whatsapp_business_account?.id ?? '';
+    if (!wabaId) {
+      return new Response(JSON.stringify({ step: 'phone_lookup', phoneId, result: j }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
   if (!token || !wabaId) {
     return new Response(JSON.stringify({ error: 'missing_config', has_token: !!token, has_waba: !!wabaId }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
