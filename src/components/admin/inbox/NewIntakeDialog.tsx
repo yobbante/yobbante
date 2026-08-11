@@ -382,13 +382,20 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? 'EN_RECHERCHE_DEPART'
         : data.initial_status;
 
+      // Villes saisies (CityPicker) → source de vérité. Les pays en sont dérivés,
+      // dans le MÊME ordre : origine → origin_*, destination → destination_*.
+      const originCity = data.service_kind === 'envoi' ? (data.origin_city.trim() || null) : null;
+      const destCity = data.service_kind === 'envoi' ? (data.destination_city.trim() || null) : null;
+
       const insertRow: any = {
         user_id: user.id,
         product_description: productDescription,
+        origin_city: originCity,
+        destination_city: destCity,
         origin_country: data.service_kind === 'reception'
           ? (data.origin_country_reception?.slice(0, 2).toUpperCase() || 'FR')
-          : 'FR',
-        destination_country: 'SN',
+          : (countryForCity(originCity) || 'FR'),
+        destination_country: countryForCity(destCity) || 'SN',
         contact_phone: data.client_phone,
         contact_email: data.client_email || null,
         estimated_weight: data.weight_kg ? parseFloat(data.weight_kg) : null,
