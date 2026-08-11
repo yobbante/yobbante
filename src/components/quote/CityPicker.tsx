@@ -33,7 +33,7 @@ const FOCUSABLE_SEL =
 
 export function CityPicker({
   value, onChange, placeholder = 'Choisir une ville…',
-  ariaLabel = 'Choisir une ville', excludeCity, className,
+  ariaLabel = 'Choisir une ville', excludeCity, includeHub = false, className,
 }: CityPickerProps) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -51,7 +51,7 @@ export function CityPicker({
   const { cities: customCities } = useCustomCities();
   const cities = useMemo(() => {
     const seen = new Set<string>();
-    return [...ALL_CITIES, ...customCities]
+    return [...(includeHub ? [HUB_DAKAR] : []), ...ALL_CITIES, ...customCities]
       .filter(c => !excludeCity || c.city !== excludeCity)
       .filter(c => {
         const key = `${c.country}-${c.city}`.toLowerCase();
@@ -59,7 +59,7 @@ export function CityPicker({
         seen.add(key);
         return true;
       });
-  }, [excludeCity, customCities]);
+  }, [excludeCity, customCities, includeHub]);
 
   const filtered = useMemo(() => {
     const nq = norm(debouncedQ.trim());
