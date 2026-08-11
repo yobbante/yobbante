@@ -1462,6 +1462,14 @@ Deno.serve(async (req) => {
 
 
   try {
+    {
+      const { data: gset } = await supa.from('bot_global_settings').select('paused').maybeSingle();
+      if (gset?.paused) {
+        console.log('BOT_CLIENT globally paused');
+        return new Response(JSON.stringify({ ok: true, paused: 'global' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
     const { session, expired } = await getSession(supa, phone);
 
     if (session?.bot_paused_until && new Date(session.bot_paused_until) > new Date()) {
