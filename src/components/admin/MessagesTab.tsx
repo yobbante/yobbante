@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierD
 import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
 import { MediaMessage } from './messages/MediaMessage';
+import { useGlobalBotPause } from '@/hooks/useGlobalBotPause';
 
 interface LinkedDossier {
   id: string;
@@ -184,6 +185,7 @@ export function MessagesTab() {
 
   // ---------- Initial load + realtime subscriptions ----------
   const [reloading, setReloading] = useState(false);
+  const globalBot = useGlobalBotPause();
   const mountedRef = useRef(true);
 
   const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
