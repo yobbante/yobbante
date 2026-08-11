@@ -134,6 +134,15 @@ export default function TrackPage() {
     }).catch(() => toast.error('Impossible de copier'));
   };
 
+  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setHasAccount(!!data.session);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     document.title = id ? `Yobbanté · Suivi ${id}` : 'Yobbanté · Suivre mon colis';
@@ -408,7 +417,23 @@ export default function TrackPage() {
           </>
 
         ) : null}
+
+        {data && hasAccount === false && (
+          <aside className="mt-8 rounded-xl border border-border bg-card/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Créez un compte pour retrouver tous vos envois au même endroit.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/auth?mode=signup')}
+              className="text-sm font-medium px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/70 transition-colors"
+            >
+              Créer mon compte
+            </button>
+          </aside>
+        )}
       </main>
+
 
       <PublicFooter />
     </div>

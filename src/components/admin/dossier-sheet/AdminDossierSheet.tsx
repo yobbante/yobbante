@@ -30,6 +30,7 @@ import { TransporteurReferenceLookup } from '@/components/admin/TransporteurRefe
 import { AttachPackagesDialog } from '@/components/admin/AttachPackagesDialog';
 import { WeighingDialog, type WeighingDossier } from '@/components/admin/WeighingDialog';
 import { ContactBlock } from '@/components/admin/dossiers/ContactBlock';
+import { buildWaClientMessage } from '@/lib/waClientMessage';
 import { CLIENT_TEMPLATES, buildGpAssignMessage } from '@/lib/clientTemplates';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assignGpAndNotify';
@@ -719,7 +720,16 @@ function ApercuTab({
           phone={sender.phone}
           address={sender.address}
           extra={parsed.pickupDate ? `Collecte : ${parsed.pickupDate}${parsed.pickupSlot ? ` · ${parsed.pickupSlot === 'morning' ? 'Matin' : parsed.pickupSlot === 'afternoon' ? 'Après-midi' : parsed.pickupSlot}` : ''}` : null}
-          whatsappPrefill={`Bonjour, a propos de votre dossier ${dossier.tracking_id || dossier.reference || ''} — Route : ${dossier.origin_city || '?'} -> ${dossier.destination_city || '?'}`}
+          whatsappPrefill={buildWaClientMessage({
+            name: sender.name || (dossier as any).buyer_name,
+            tracking_id: dossier.tracking_id,
+            reference: dossier.reference,
+            origin_city: dossier.origin_city,
+            origin_country: dossier.origin_country,
+            destination_city: dossier.destination_city,
+            destination_country: dossier.destination_country,
+            pickup_date: (dossier as any).pickup_date ?? parsed.pickupDate ?? null,
+          })}
         />
         <ContactBlock
           title="Destinataire"
@@ -730,6 +740,16 @@ function ApercuTab({
           extra={
             [dossier.destination_city, dossier.destination_country].filter(Boolean).join(' · ') || null
           }
+          whatsappPrefill={buildWaClientMessage({
+            name: recipient.name,
+            tracking_id: dossier.tracking_id,
+            reference: dossier.reference,
+            origin_city: dossier.origin_city,
+            origin_country: dossier.origin_country,
+            destination_city: dossier.destination_city,
+            destination_country: dossier.destination_country,
+            pickup_date: (dossier as any).pickup_date ?? parsed.pickupDate ?? null,
+          })}
         />
       </div>
 
