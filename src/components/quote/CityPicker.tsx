@@ -12,6 +12,8 @@ interface CityPickerProps {
   ariaLabel?: string;
   /** City to exclude from list (e.g. Dakar locked on other side) */
   excludeCity?: string;
+  /** Inclure Dakar (hub) dans la liste — utile côté admin où les 2 sens existent */
+  includeHub?: boolean;
   className?: string;
 }
 
