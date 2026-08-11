@@ -262,7 +262,13 @@ Deno.serve(async (req) => {
   const truncate = (s: string, n: number) => (s ?? '').toString().slice(0, n);
 
   const buildTemplateBody = (templateName: string): Record<string, unknown> => {
-    const params = (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
+    // Meta accepte des paramètres positionnels OU nommés selon le template.
+    // `template_named_params` (objet clé→valeur) prend le pas si fourni.
+    const named = (body as any).template_named_params as Record<string, string> | undefined;
+    const params = named && Object.keys(named).length > 0
+      ? Object.entries(named).map(([k, v]) => ({ type: 'text', parameter_name: k, text: String(v ?? '') }))
+      : (body.template_params || []).map((p) => ({ type: 'text', text: String(p ?? '') }));
+
     const langCode = body.template_language
       ?? (templateName === 'hello_world' ? 'en_US' : 'fr');
     return {
