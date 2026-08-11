@@ -217,10 +217,6 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
-      <MorningBrief onJump={onJump} />
-      <FinancesKpis onJump={onJump} />
-      <DossierAlertsBar onJump={(s) => onJump(s)} />
-
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-border">
 
@@ -259,6 +255,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           </button>
         </div>
       </header>
+
+      <MorningBrief onJump={onJump} />
+      <FinancesKpis onJump={onJump} />
+      <DossierAlertsBar onJump={(s) => onJump(s)} />
+
 
       {/* ── Top alerts ─────────────────────────────────────── */}
       {(m.reqNew > 0 || m.newQuotes > 0 || m.unpaidInvoices > 0 || m.reqStale > 0) && (
