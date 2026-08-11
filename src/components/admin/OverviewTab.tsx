@@ -500,6 +500,8 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
         departure={null}
         onClose={() => setCreatingDeparture(false)}
       />
+      <NewIntakeDialog open={creatingDossier} onOpenChange={setCreatingDossier} />
+
     </div>
   );
 }
