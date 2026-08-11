@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { COUNTRY_FLAGS } from '@/lib/types';
 import { useDeparturesSummary } from '@/hooks/useManualDepartures';
 import { ManualDepartureForm } from './ManualDepartureForm';
+import { NewIntakeDialog } from './inbox/NewIntakeDialog';
+
 import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
 import { MorningBrief } from './MorningBrief';
 import { FinancesKpis } from './FinancesKpis';
