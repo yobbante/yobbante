@@ -41,6 +41,7 @@ import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
 import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, nextReturnStatus, LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 
+import { routeLabel } from '@/lib/routeLabel';
 import { format } from 'date-fns';
 
 
@@ -454,7 +455,7 @@ function DepartureSummaryBanner({ dossier }: { dossier: DossierRow }) {
     const prenom = (d.sender_name || d.recipient_name || 'Client')
       .toString().trim().split(/\s+/)[0];
     const ref = d.tracking_id || d.reference || '';
-    const route = `${d.origin_city || '-'} -> ${d.destination_city || '-'}`;
+    const route = routeLabel(d as any);
     const txt = [
       `Bonjour ${prenom},`,
       ``,
