@@ -1441,6 +1441,15 @@ Voir : yobbante.com/admin`);
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // ---------- Pause globale (interrupteur admin) ----------
+  {
+    const { data: gset } = await supa.from('bot_global_settings').select('paused').maybeSingle();
+    if (gset?.paused) {
+      console.log('GP_BOT globally paused');
+      return new Response('ok', { headers: corsHeaders });
+    }
+  }
+
   // ---------- Bot en pause (admin a pris le relais) ----------
   if (transporteur.bot_paused_until && new Date(transporteur.bot_paused_until) > new Date()) {
     console.log('GP_BOT paused for', transporteur.reference);

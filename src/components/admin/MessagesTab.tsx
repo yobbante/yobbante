@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierD
 import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
 import { MediaMessage } from './messages/MediaMessage';
+import { useGlobalBotPause } from '@/hooks/useGlobalBotPause';
 
 interface LinkedDossier {
   id: string;
@@ -184,6 +185,7 @@ export function MessagesTab() {
 
   // ---------- Initial load + realtime subscriptions ----------
   const [reloading, setReloading] = useState(false);
+  const globalBot = useGlobalBotPause();
   const mountedRef = useRef(true);
 
   const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
@@ -724,6 +726,35 @@ export function MessagesTab() {
           <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 926</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={globalBot.paused ? 'default' : 'outline'}
+            size="sm"
+            disabled={globalBot.loading || globalBot.saving}
+            onClick={async () => {
+              try {
+                const next = await globalBot.toggle();
+                toast.success(next ? 'Tous les bots sont en pause' : 'Tous les bots sont réactivés');
+              } catch {
+                toast.error('Impossible de changer l\u2019état des bots');
+              }
+            }}
+            aria-label={globalBot.paused ? 'Réactiver tous les bots' : 'Mettre tous les bots en pause'}
+            title={globalBot.paused ? 'Bots en pause — cliquer pour relancer' : 'Bots actifs — cliquer pour tout mettre en pause'}
+            className={cn(
+              'h-8 px-2 md:px-3 text-xs gap-1.5',
+              globalBot.paused && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
+            )}
+          >
+            {globalBot.saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : globalBot.paused ? (
+              <PlayCircle className="w-3.5 h-3.5" />
+            ) : (
+              <PauseCircle className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden md:inline">{globalBot.paused ? 'Bots en pause' : 'Bots actifs'}</span>
+          </Button>
+
           <Button
             size="sm"
             onClick={() => setNewMsgOpen(true)}
