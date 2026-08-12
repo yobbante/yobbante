@@ -40,6 +40,8 @@ export const CURRENCY = 'XOF';
 
 let installed = false;
 let pixelInstalled = false;
+/** Le PageView initial est déjà envoyé à l'installation du pixel. */
+let pixelPageviewSent = false;
 
 function hasConsent(): boolean {
   try {
@@ -49,10 +51,17 @@ function hasConsent(): boolean {
   }
 }
 
-function gtag(...args: unknown[]) {
+/**
+ * IMPORTANT : gtag.js n'accepte QUE des objets `arguments` dans le dataLayer.
+ * Pousser un vrai Array (`dataLayer.push(args)`) fait que gtag.js ignore
+ * silencieusement les commandes `config`/`event` → aucun hit /g/collect.
+ */
+function gtag() {
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(args);
+  // eslint-disable-next-line prefer-rest-params
+  window.dataLayer.push(arguments);
 }
+
 
 /** Consent Mode v2 — doit être poussé avant le chargement des tags Google. */
 function initConsentMode(): void {
@@ -90,13 +99,20 @@ function injectGa4(): void {
   script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_ID)}`;
   document.head.appendChild(script);
   window.gtag!('js', new Date());
-  window.gtag!('config', GA4_ID, { send_page_view: true, currency: CURRENCY });
+  // send_page_view: false → la vue initiale est envoyée par ScrollToTop (SPA), évite le doublon.
+  window.gtag!('config', GA4_ID, { send_page_view: false, currency: CURRENCY });
+}
+
+/** Routes boutique servies aussi depuis le domaine principal. */
+function isShopPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /^\/(boutique|panier|checkout|commande|paiement)/.test(window.location.pathname);
 }
 
 function injectMetaPixel(): void {
   if (pixelInstalled || typeof window === 'undefined' || !META_PIXEL_ID) return;
-  // Boutique uniquement
-  if (!isDekkSubdomain()) return;
+  // Boutique uniquement (sous-domaine Dëkk ou routes boutique du domaine principal)
+  if (!isDekkSubdomain() && !isShopPath()) return;
   pixelInstalled = true;
 
   /* eslint-disable */
@@ -116,6 +132,7 @@ function injectMetaPixel(): void {
   window.fbq!('consent', hasConsent() ? 'grant' : 'revoke');
   window.fbq!('init', META_PIXEL_ID);
   window.fbq!('track', 'PageView');
+  pixelPageviewSent = true;
 }
 
 function inject(): void {
@@ -160,8 +177,10 @@ export function trackPageview(path: string): void {
   if (GA4_ID) {
     window.gtag?.('event', 'page_view', { page_path: path, page_location: window.location.href });
   }
+  injectMetaPixel();
   if (pixelInstalled && window.fbq) {
-    window.fbq('track', 'PageView');
+    if (pixelPageviewSent) window.fbq('track', 'PageView');
+    pixelPageviewSent = true;
   }
 }
 
@@ -176,7 +195,9 @@ const cur = (m: Money) => m.currency ?? CURRENCY;
 const val = (m: Money) => Math.round(Number(m.value) || 0);
 
 function fb(event: string, params: Record<string, unknown> = {}) {
-  if (typeof window === 'undefined' || !window.fbq) return;
+  if (typeof window === 'undefined') return;
+  injectMetaPixel(); // SPA : le pixel peut ne pas encore être installé au boot
+  if (!window.fbq) return;
   window.fbq('track', event, params);
 }
 
