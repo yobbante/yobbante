@@ -185,16 +185,22 @@ export default function BoutiquePage() {
         {/* ── CATÉGORIES ─────────────────────────────── */}
         {!loading && categories.length > 0 && (
           <section style={{ paddingTop: 72 }}>
-            <SectionTitle title="Nos catégories" />
-            <div className="dekk-cats">
-              {categories.map((c) => (
-                <button key={c.key} className="dekk-cat-tile" onClick={() => setParam('cat', c.key)}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                  <DekkImage src={c.image} alt={c.label} ratio="3 / 4" width={640} sizes="(max-width: 760px) 46vw, 260px" />
-                  <div style={{ fontFamily: SERIF, fontSize: 19, marginTop: 12, color: DEKK.ink }}>{c.label}</div>
-                </button>
-              ))}
-            </div>
+            <SectionTitle
+              title="Nos catégories"
+              right={
+                activeCat !== 'all' ? (
+                  <button onClick={() => setParam('cat', null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: DEKK.gold }}>
+                    Tout voir
+                  </button>
+                ) : undefined
+              }
+            />
+            <DekkCategoryRail
+              items={categories}
+              activeKey={activeCat}
+              onSelect={(k) => setParam('cat', activeCat === k ? null : k)}
+            />
           </section>
         )}
 
