@@ -756,6 +756,38 @@ export function MessagesTab() {
           </Button>
 
           <Button
+            variant={globalBot.autoreply ? 'outline' : 'default'}
+            size="sm"
+            disabled={globalBot.loading || globalBot.savingAutoreply}
+            onClick={async () => {
+              try {
+                const next = await globalBot.toggleAutoreply();
+                toast.success(next ? 'Réponse auto nouveaux clients activée' : 'Réponse auto nouveaux clients désactivée');
+              } catch {
+                toast.error('Impossible de changer la réponse automatique');
+              }
+            }}
+            aria-label={globalBot.autoreply ? 'Désactiver la réponse auto aux nouveaux clients' : 'Activer la réponse auto aux nouveaux clients'}
+            title={globalBot.autoreply
+              ? 'Réponse auto nouveaux clients activée — cliquer pour désactiver'
+              : 'Réponse auto nouveaux clients désactivée — cliquer pour activer'}
+            className={cn(
+              'h-8 px-2 md:px-3 text-xs gap-1.5',
+              !globalBot.autoreply && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
+            )}
+          >
+            {globalBot.savingAutoreply ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Bot className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden md:inline">
+              {globalBot.autoreply ? 'Réponse auto ON' : 'Réponse auto OFF'}
+            </span>
+          </Button>
+
+
+          <Button
             size="sm"
             onClick={() => setNewMsgOpen(true)}
             aria-label="Nouveau message"
