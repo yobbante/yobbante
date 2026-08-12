@@ -1461,21 +1461,57 @@ Deno.serve(async (req) => {
   }
 
 
+  // L'admin doit TOUJOURS recevoir une copie de chaque message entrant,
+  // quel que soit l'etat des bots (pause globale, pause par contact, etc.).
+  const forwardToAdmin = async (label: string) => {
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          notification_type: 'client_inbound_copy',
+          bypass_suspend: true,
+          window_minutes: 1,
+          dedup_key: `inbound:${phone}:${Date.now()}`,
+          message: `Message client ${input.from_name ?? ''} ${phone} (${label})\n\n${rawIncoming || '[media]'}`,
+        }),
+      });
+    } catch (e) {
+      console.error('BOT_CLIENT admin copy failed', e);
+    }
+  };
+
   try {
-    {
-      const { data: gset } = await supa.from('bot_global_settings').select('paused').maybeSingle();
-      if (gset?.paused) {
-        console.log('BOT_CLIENT globally paused');
-        return new Response(JSON.stringify({ ok: true, paused: 'global' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
+    const { data: gset } = await supa
+      .from('bot_global_settings')
+      .select('paused, new_client_autoreply')
+      .maybeSingle();
+
+    if (gset?.paused) {
+      console.log('BOT_CLIENT globally paused');
+      await forwardToAdmin('bots en pause');
+      return new Response(JSON.stringify({ ok: true, paused: 'global' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const { session, expired } = await getSession(supa, phone);
+
+    // Interrupteur dedie : couper UNIQUEMENT la reponse auto aux nouveaux contacts
+    if (gset?.new_client_autoreply === false && !session) {
+      console.log('BOT_CLIENT new-client autoreply disabled', phone);
+      await forwardToAdmin('nouveau client — reponse auto desactivee');
+      return new Response(JSON.stringify({ ok: true, skipped: 'new_client_autoreply_off' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    await forwardToAdmin('copie');
 
     if (session?.bot_paused_until && new Date(session.bot_paused_until) > new Date()) {
       console.log('BOT_CLIENT paused for', phone);
       return new Response(JSON.stringify({ ok: true, paused: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
 
     // Session expired notice (only when there was a pending flow)
     if (expired) {

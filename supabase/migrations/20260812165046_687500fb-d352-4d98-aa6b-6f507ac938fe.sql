@@ -1,0 +1,1 @@
+ALTER TABLE public.bot_global_settings ADD COLUMN IF NOT EXISTS new_client_autoreply boolean NOT NULL DEFAULT true;
