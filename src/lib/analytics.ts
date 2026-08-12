@@ -40,6 +40,8 @@ export const CURRENCY = 'XOF';
 
 let installed = false;
 let pixelInstalled = false;
+/** Le PageView initial est déjà envoyé à l'installation du pixel. */
+let pixelPageviewSent = false;
 
 function hasConsent(): boolean {
   try {
@@ -97,7 +99,8 @@ function injectGa4(): void {
   script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_ID)}`;
   document.head.appendChild(script);
   window.gtag!('js', new Date());
-  window.gtag!('config', GA4_ID, { send_page_view: true, currency: CURRENCY });
+  // send_page_view: false → la vue initiale est envoyée par ScrollToTop (SPA), évite le doublon.
+  window.gtag!('config', GA4_ID, { send_page_view: false, currency: CURRENCY });
 }
 
 /** Routes boutique servies aussi depuis le domaine principal. */
@@ -129,6 +132,7 @@ function injectMetaPixel(): void {
   window.fbq!('consent', hasConsent() ? 'grant' : 'revoke');
   window.fbq!('init', META_PIXEL_ID);
   window.fbq!('track', 'PageView');
+  pixelPageviewSent = true;
 }
 
 function inject(): void {
@@ -175,7 +179,8 @@ export function trackPageview(path: string): void {
   }
   injectMetaPixel();
   if (pixelInstalled && window.fbq) {
-    window.fbq('track', 'PageView');
+    if (pixelPageviewSent) window.fbq('track', 'PageView');
+    pixelPageviewSent = true;
   }
 }
 
