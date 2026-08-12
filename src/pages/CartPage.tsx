@@ -6,7 +6,9 @@ import { recommend, RecProduct } from '@/lib/dekkRecommend';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
 
-const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
+import { DEKK as DEKK_T, SERIF, SANS, MONO } from '@/components/dekk/dekkTheme';
+
+const DEKK = { accent: DEKK_T.gold, accentSoft: DEKK_T.goldSoft, ink: DEKK_T.ink, line: DEKK_T.line, muted: DEKK_T.muted };
 
 type Product = {
   id: string; name: string; description: string | null; category: string;
@@ -46,13 +48,13 @@ export default function CartPage() {
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '"DM Sans", system-ui, sans-serif', color: DEKK.ink }}>
+    <div style={{ minHeight: '100vh', background: DEKK_T.cream, fontFamily: SANS, color: DEKK.ink }}>
       <DekkHeader />
       <main className="max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-24">
         <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           DËKK · Étape 1 sur 3
         </div>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 600, letterSpacing: '-0.02em', margin: '6px 0 24px' }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(30px, 5vw, 44px)', fontWeight: 500, letterSpacing: '-0.02em', margin: '6px 0 24px' }}>
           Mon panier {itemsCount > 0 && <span style={{ color: DEKK.muted, fontWeight: 400, fontSize: '0.6em' }}>· {itemsCount} article{itemsCount>1?'s':''}</span>}
         </h1>
 

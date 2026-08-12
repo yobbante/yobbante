@@ -1,19 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Heart, Plus, Package } from 'lucide-react';
+import { Heart, Package } from 'lucide-react';
 import { CAT_PILLS, type CatKey } from './CatNav';
+import { DEKK, SERIF, SANS, MONO, fmtFcfa } from './dekkTheme';
 
-const DEKK = {
-  accent: '#C97B3A',
-  accentDark: '#8B5220',
-  accentLight: '#F5E6D8',
-  ink: '#0E0E0E',
-  muted: '#6B6B6B',
-  line: '#ECECEC',
-};
-
-const CAT_LABEL: Record<string, string> = Object.fromEntries(
-  CAT_PILLS.map((c) => [c.key, c.label])
-);
+const CAT_LABEL: Record<string, string> = Object.fromEntries(CAT_PILLS.map((c) => [c.key, c.label]));
 
 const DB_TO_UI: Record<string, CatKey> = {
   mode: 'merch-identite',
@@ -24,8 +14,6 @@ const DB_TO_UI: Record<string, CatKey> = {
   beaute: 'bien-etre',
 };
 
-const WOW_UI_CATS: CatKey[] = ['cachettes', 'rc-gadgets'];
-
 export type DekkProduct = {
   id: string;
   name: string;
@@ -35,8 +23,10 @@ export type DekkProduct = {
   price_eur: number;
   price_fcfa: number;
   image_url: string | null;
+  description?: string | null;
 };
 
+/** Carte produit éditoriale : image 4/5, zoom doux au survol, titre serif, prix FCFA. */
 export function DekkProductCard({
   p,
   wished,
@@ -52,202 +42,84 @@ export function DekkProductCard({
 }) {
   const uiCat = DB_TO_UI[p.category] ?? (p.category as CatKey);
   const catLabel = CAT_LABEL[uiCat] ?? p.category;
-  const isWow = WOW_UI_CATS.includes(uiCat);
   const mode = (p.stock_mode || '').toLowerCase();
   const isDrop = mode === 'drop' || mode === 'commande';
+  const out = !isDrop && (p.stock_qty ?? 0) <= 0;
 
-  let modeBadge: { label: string; bg: string; color: string } | null = null;
-  if (badge) {
-    modeBadge = { label: badge, bg: DEKK.accent, color: '#fff' };
-  } else if (isWow) {
-    modeBadge = { label: 'Waouh', bg: DEKK.accent, color: '#fff' };
-  } else if (isDrop) {
-    modeBadge = { label: '10–15j', bg: '#2563EB', color: '#fff' };
-  } else if ((p.stock_qty ?? 0) > 0) {
-    modeBadge = { label: 'En stock', bg: '#0E7A4F', color: '#fff' };
-  } else {
-    modeBadge = { label: 'Rupture', bg: '#DC2626', color: '#fff' };
-  }
+  const tag = badge ?? (isDrop ? 'Sur commande' : out ? 'Rupture' : (p.stock_qty ?? 0) <= 2 ? `Plus que ${p.stock_qty}` : null);
 
   return (
-    <article
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#fff',
-        borderRadius: 12,
-        border: `0.5px solid ${DEKK.line}`,
-        overflow: 'hidden',
-      }}
-    >
-      <Link
-        to={`/boutique/${p.id}`}
-        style={{
-          position: 'relative',
-          display: 'block',
-          aspectRatio: '1/1',
-          background: '#F6F6F6',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          overflow: 'hidden',
-        }}
-      >
+    <article className="dekk-card" style={{ fontFamily: SANS, display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .dekk-card .dekk-card-img{transition:transform 700ms cubic-bezier(.2,.7,.2,1)}
+        .dekk-card:hover .dekk-card-img{transform:scale(1.045)}
+        .dekk-card .dekk-card-add{opacity:0;transition:opacity 220ms ease}
+        .dekk-card:hover .dekk-card-add{opacity:1}
+        @media (hover:none){ .dekk-card .dekk-card-add{opacity:1} }
+      `}</style>
+
+      <Link to={`/boutique/${p.id}`}
+        style={{ position: 'relative', display: 'block', aspectRatio: '4/5', background: DEKK.creamDeep, overflow: 'hidden' }}>
         {p.image_url ? (
-          <img
-            src={p.image_url}
-            alt={p.name}
-            loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          <img className="dekk-card-img" src={p.image_url} alt={p.name} loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: DEKK.muted,
-            }}
-          >
-            <Package size={32} />
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DEKK.muted }}>
+            <Package size={30} />
           </div>
         )}
 
-        {modeBadge && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 8,
-              left: 8,
-              background: modeBadge.bg,
-              color: modeBadge.color,
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              padding: '3px 7px',
-              borderRadius: 99,
-            }}
-          >
-            {modeBadge.label}
+        {tag && (
+          <span style={{
+            position: 'absolute', top: 10, left: 10, background: DEKK.surface, color: DEKK.ink,
+            fontFamily: MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '5px 9px',
+          }}>
+            {tag}
           </span>
         )}
 
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            onWish();
-          }}
-          aria-label="Favori"
+          onClick={(e) => { e.preventDefault(); onWish(); }}
+          aria-label="Ajouter aux favoris"
           style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            background: '#fff',
-            border: `0.5px solid ${DEKK.line}`,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
+            position: 'absolute', top: 8, right: 8, width: 32, height: 32,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
           }}
         >
-          <Heart
-            size={14}
-            fill={wished ? DEKK.accent : 'none'}
-            color={wished ? DEKK.accent : DEKK.muted}
-          />
+          <Heart size={16} fill={wished ? DEKK.gold : 'none'} color={wished ? DEKK.gold : DEKK.ink} />
+        </button>
+
+        <button
+          className="dekk-card-add"
+          onClick={(e) => { e.preventDefault(); onAdd(); }}
+          disabled={out}
+          style={{
+            position: 'absolute', left: 10, right: 10, bottom: 10, height: 40,
+            background: out ? DEKK.creamDeep : DEKK.surface, color: out ? DEKK.muted : DEKK.ink,
+            border: 'none', cursor: out ? 'not-allowed' : 'pointer',
+            fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: SANS,
+          }}
+        >
+          {out ? 'Indisponible' : 'Ajouter au panier'}
         </button>
       </Link>
 
-      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div
-          style={{
-            fontSize: 10,
-            fontFamily: '"DM Mono", monospace',
-            color: DEKK.muted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            marginBottom: 3,
-          }}
-        >
+      <div style={{ padding: '12px 2px 4px' }}>
+        <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: DEKK.muted }}>
           {catLabel}
         </div>
-        <Link
-          to={`/boutique/${p.id}`}
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            lineHeight: 1.3,
-            color: DEKK.ink,
-            textDecoration: 'none',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
+        <Link to={`/boutique/${p.id}`}
+          style={{ display: 'block', fontFamily: SERIF, fontSize: 19, lineHeight: 1.25, color: DEKK.ink, textDecoration: 'none', marginTop: 5 }}>
           {p.name}
         </Link>
-
-        <div
-          style={{
-            marginTop: 'auto',
-            paddingTop: 10,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            gap: 8,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: DEKK.accentDark,
-                lineHeight: 1.1,
-              }}
-            >
-              {Math.round(p.price_fcfa).toLocaleString('fr-FR')} FCFA
-            </div>
-            {isDrop && (
-              <div
-                style={{
-                  fontSize: 10,
-                  color: DEKK.muted,
-                  fontFamily: '"DM Mono", monospace',
-                  marginTop: 2,
-                }}
-              >
-                ≈ {Math.round(p.price_fcfa / 655)} €
-              </div>
-            )}
-          </div>
-          <button
-            onClick={onAdd}
-            aria-label="Ajouter au panier"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 8,
-              background: DEKK.accent,
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              padding: 0,
-            }}
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+        {p.description && (
+          <p style={{ fontSize: 12, color: DEKK.muted, margin: '5px 0 0', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {p.description}
+          </p>
+        )}
+        <div style={{ fontFamily: MONO, fontSize: 13, marginTop: 8 }}>{fmtFcfa(p.price_fcfa)}</div>
       </div>
     </article>
   );
