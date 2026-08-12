@@ -109,18 +109,21 @@ export type Database = {
       bot_global_settings: {
         Row: {
           id: boolean
+          new_client_autoreply: boolean
           paused: boolean
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           id?: boolean
+          new_client_autoreply?: boolean
           paused?: boolean
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           id?: boolean
+          new_client_autoreply?: boolean
           paused?: boolean
           updated_at?: string
           updated_by?: string | null
