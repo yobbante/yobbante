@@ -12,6 +12,7 @@ import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { ecommerce } from '@/lib/analytics';
 import { DEKK, SERIF, SANS, MONO, openDekkCart } from '@/components/dekk/dekkTheme';
 import { DekkImage } from '@/components/dekk/DekkImage';
+import { DekkCategoryRail } from '@/components/dekk/DekkCategoryRail';
 import { dekkImageUrl } from '@/lib/dekkImage';
 
 type Product = {
@@ -126,7 +127,7 @@ export default function BoutiquePage() {
         map.set(key, { key, label: CAT_LABEL[key] ?? p.category, image: p.image_url, count: 1 });
       }
     }
-    return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 4);
+    return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 8);
   }, [products]);
 
   const hero = useMemo(() => products.find((p) => p.image_url) ?? null, [products]);
@@ -146,8 +147,6 @@ export default function BoutiquePage() {
         .dekk-grid{display:grid;gap:26px;grid-template-columns:repeat(4,1fr)}
         @media (max-width:1024px){.dekk-grid{grid-template-columns:repeat(3,1fr)}}
         @media (max-width:760px){.dekk-grid{grid-template-columns:repeat(2,1fr);gap:16px}}
-        .dekk-cats{display:grid;gap:20px;grid-template-columns:repeat(4,1fr)}
-        @media (max-width:760px){.dekk-cats{grid-template-columns:repeat(2,1fr);gap:12px}}
       `}</style>
 
       <DekkHeader
