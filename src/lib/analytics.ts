@@ -49,10 +49,17 @@ function hasConsent(): boolean {
   }
 }
 
-function gtag(...args: unknown[]) {
+/**
+ * IMPORTANT : gtag.js n'accepte QUE des objets `arguments` dans le dataLayer.
+ * Pousser un vrai Array (`dataLayer.push(args)`) fait que gtag.js ignore
+ * silencieusement les commandes `config`/`event` → aucun hit /g/collect.
+ */
+function gtag() {
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(args);
+  // eslint-disable-next-line prefer-rest-params
+  window.dataLayer.push(arguments);
 }
+
 
 /** Consent Mode v2 — doit être poussé avant le chargement des tags Google. */
 function initConsentMode(): void {
