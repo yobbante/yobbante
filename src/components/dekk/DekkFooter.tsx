@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Facebook, MessageCircle } from 'lucide-react';
+import { AtSign, Share2, MessageCircle } from 'lucide-react';
 import { DEKK, SERIF, SANS, MONO } from './dekkTheme';
 import { YOBBANTE_WHATSAPP } from '@/lib/contact';
 
@@ -46,10 +46,10 @@ export function DekkFooter() {
             </p>
             <div style={{ display: 'flex', gap: 14, marginTop: 18 }}>
               <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" style={{ color: DEKK.ink }}>
-                <Instagram size={17} />
+                <AtSign size={17} />
               </a>
               <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" style={{ color: DEKK.ink }}>
-                <Facebook size={17} />
+                <Share2 size={17} />
               </a>
               <a href={`https://wa.me/${YOBBANTE_WHATSAPP}`} target="_blank" rel="noreferrer" aria-label="WhatsApp" style={{ color: DEKK.ink }}>
                 <MessageCircle size={17} />
