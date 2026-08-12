@@ -100,10 +100,16 @@ function injectGa4(): void {
   window.gtag!('config', GA4_ID, { send_page_view: true, currency: CURRENCY });
 }
 
+/** Routes boutique servies aussi depuis le domaine principal. */
+function isShopPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /^\/(boutique|panier|checkout|commande|paiement)/.test(window.location.pathname);
+}
+
 function injectMetaPixel(): void {
   if (pixelInstalled || typeof window === 'undefined' || !META_PIXEL_ID) return;
-  // Boutique uniquement
-  if (!isDekkSubdomain()) return;
+  // Boutique uniquement (sous-domaine Dëkk ou routes boutique du domaine principal)
+  if (!isDekkSubdomain() && !isShopPath()) return;
   pixelInstalled = true;
 
   /* eslint-disable */
@@ -167,6 +173,7 @@ export function trackPageview(path: string): void {
   if (GA4_ID) {
     window.gtag?.('event', 'page_view', { page_path: path, page_location: window.location.href });
   }
+  injectMetaPixel();
   if (pixelInstalled && window.fbq) {
     window.fbq('track', 'PageView');
   }
@@ -183,7 +190,9 @@ const cur = (m: Money) => m.currency ?? CURRENCY;
 const val = (m: Money) => Math.round(Number(m.value) || 0);
 
 function fb(event: string, params: Record<string, unknown> = {}) {
-  if (typeof window === 'undefined' || !window.fbq) return;
+  if (typeof window === 'undefined') return;
+  injectMetaPixel(); // SPA : le pixel peut ne pas encore être installé au boot
+  if (!window.fbq) return;
   window.fbq('track', event, params);
 }
 
