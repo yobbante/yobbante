@@ -1,27 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
+import { DekkImage } from '@/components/dekk/DekkImage';
 import { applySeo } from '@/lib/dekkSeo';
 import { recommend, RecProduct } from '@/lib/dekkRecommend';
-import { useDekkCart } from '@/hooks/useDekkCart';
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
+import { useDekkCart, fcfaOf } from '@/hooks/useDekkCart';
+import { Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Truck } from 'lucide-react';
+import { DEKK, SERIF, SANS, MONO, fmtFcfa } from '@/components/dekk/dekkTheme';
 
-import { DEKK as DEKK_T, SERIF, SANS, MONO } from '@/components/dekk/dekkTheme';
-
-const DEKK = { accent: DEKK_T.gold, accentSoft: DEKK_T.goldSoft, ink: DEKK_T.ink, line: DEKK_T.line, muted: DEKK_T.muted };
-
-type Product = {
-  id: string; name: string; description: string | null; category: string;
-  price_eur: number; price_fcfa: number; image_url: string | null;
-  stock_mode: string; delivery_days: number | null; origin_country: string;
-};
-
-const fmtEur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`;
-const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
+/** Ouvre l'étape de confirmation avant commande. */
+const openConfirm = () => window.dispatchEvent(new Event('dekk:order-confirm'));
 
 export default function CartPage() {
-  const nav = useNavigate();
-  const { items: cart, updateQty: cartUpdate, removeItem: cartRemove } = useDekkCart();
+  const { items: cart, updateQty, removeItem } = useDekkCart();
   const [recs, setRecs] = useState<RecProduct[]>([]);
 
   useEffect(() => {
@@ -33,60 +24,89 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    const cats = [...new Set(cart.map(i => i.product.category))];
+    const cats = [...new Set(cart.map((i) => i.product.category))];
     recommend({
-      excludeIds: cart.map(i => i.product.id),
-      primaryCategory: cats[0],
+      excludeIds: cart.map((i) => i.product.id),
+      primaryCategory: cats[0] as string | undefined,
       limit: 4,
     }).then(setRecs);
   }, [cart.length]);
 
-  const updateQty = (id: string, delta: number) => cartUpdate(id, delta);
-  const removeItem = (id: string) => cartRemove(id);
-
-  const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
+  const subtotal = useMemo(() => cart.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <div style={{ minHeight: '100vh', background: DEKK_T.cream, fontFamily: SANS, color: DEKK.ink }}>
+    <div style={{ minHeight: '100vh', background: DEKK.cream, fontFamily: SANS, color: DEKK.ink }}>
+      <style>{`
+        .dekk-cart{display:grid;gap:44px;grid-template-columns:1fr 340px;align-items:start}
+        .dekk-cart-bar{display:none}
+        @media (max-width:900px){
+          .dekk-cart{grid-template-columns:1fr;gap:26px}
+          .dekk-cart aside{position:static}
+          .dekk-cart aside .dekk-cart-cta{display:none}
+          .dekk-cart-bar{
+            display:block;position:fixed;left:0;right:0;bottom:0;z-index:70;
+            background:rgba(255,255,255,0.94);backdrop-filter:blur(14px);
+            border-top:1px solid ${DEKK.line};
+            padding:12px 16px calc(12px + var(--dekk-safe-b));
+            animation:dekkSheetUp 320ms var(--dekk-ease) both;
+          }
+        }
+        .dekk-recs{display:grid;gap:20px;grid-template-columns:repeat(4,1fr)}
+        @media (max-width:760px){.dekk-recs{grid-template-columns:repeat(2,1fr);gap:14px}}
+      `}</style>
+
       <DekkHeader />
-      <main className="max-w-5xl mx-auto px-4 md:px-6 pt-8 pb-24">
-        <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          DËKK · Étape 1 sur 3
+
+      <main style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 20px 140px' }}>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, color: DEKK.muted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          Dëkk · Étape 1 sur 3
         </div>
-        <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(30px, 5vw, 44px)', fontWeight: 500, letterSpacing: '-0.02em', margin: '6px 0 24px' }}>
-          Mon panier {itemsCount > 0 && <span style={{ color: DEKK.muted, fontWeight: 400, fontSize: '0.6em' }}>· {itemsCount} article{itemsCount>1?'s':''}</span>}
+        <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(30px, 5vw, 46px)', fontWeight: 500, letterSpacing: '-0.01em', margin: '8px 0 26px' }}>
+          Mon panier
+          {itemsCount > 0 && (
+            <span style={{ color: DEKK.muted, fontWeight: 400, fontSize: '0.5em' }}> · {itemsCount} article{itemsCount > 1 ? 's' : ''}</span>
+          )}
         </h1>
 
         {cart.length === 0 ? (
           <EmptyCart />
         ) : (
-          <div className="grid lg:grid-cols-[1fr,360px] gap-8">
-            {/* Items */}
+          <div className="dekk-cart">
+            {/* Articles */}
             <div>
-              {cart.map(item => (
-                <div key={item.product.id} style={{ display: 'flex', gap: 14, padding: '16px 0', borderBottom: `0.5px solid ${DEKK.line}` }}>
-                  <Link to={`/boutique/${item.product.id}`} style={{ width: 90, height: 90, borderRadius: 10, overflow: 'hidden', background: '#F6F6F6', flexShrink: 0 }}>
-                    {item.product.image_url && <img src={item.product.image_url} alt={item.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              {cart.map((item, k) => (
+                <div key={`${item.product.id}-${k}`} className="dekk-rise"
+                  style={{ display: 'flex', gap: 16, padding: '18px 0', borderBottom: `1px solid ${DEKK.line}` }}>
+                  <Link to={`/boutique/${item.product.id}`} style={{ width: 96, flexShrink: 0 }}>
+                    <DekkImage src={item.product.image_url} alt={item.product.name || ''} width={280} sizes="96px" />
                   </Link>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    <Link to={`/boutique/${item.product.id}`} style={{ fontSize: 14, fontWeight: 500, color: DEKK.ink, textDecoration: 'none', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <Link to={`/boutique/${item.product.id}`}
+                      style={{ fontFamily: SERIF, fontSize: 19, lineHeight: 1.25, color: DEKK.ink, textDecoration: 'none' }}>
                       {item.product.name}
                     </Link>
-                    <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, marginTop: 4, letterSpacing: '0.05em' }}>
-                      {item.product.stock_mode === 'stock' ? 'En stock' : `Sous ${item.product.delivery_days ?? 7} j`}
-                      {item.size && ` · ${item.size}`}
-                      {item.color && ` · ${item.color}`}
+                    <div style={{ fontSize: 11, fontFamily: MONO, color: DEKK.muted, marginTop: 5, letterSpacing: '0.05em' }}>
+                      {[
+                        item.product.stock_mode === 'stock' ? 'En stock' : `Sous ${item.product.delivery_days ?? 7} j`,
+                        item.size,
+                        item.color,
+                      ].filter(Boolean).join(' · ')}
                     </div>
-                    <div style={{ marginTop: 'auto', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${DEKK.line}`, borderRadius: 10, height: 36 }}>
-                        <button onClick={() => updateQty(item.product.id, -1)} style={qtyBtn}><Minus size={13} /></button>
-                        <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 600, fontFamily: '"DM Mono", monospace' }}>{item.qty}</span>
-                        <button onClick={() => updateQty(item.product.id, 1)} style={qtyBtn}><Plus size={13} /></button>
+                    <div style={{ marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${DEKK.line}`, height: 40 }}>
+                        <button onClick={() => updateQty(item.product.id, -1)} aria-label="Diminuer" className="dekk-press" style={qtyBtn}>
+                          <Minus size={13} />
+                        </button>
+                        <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontFamily: MONO }}>{item.qty}</span>
+                        <button onClick={() => updateQty(item.product.id, 1)} aria-label="Augmenter" className="dekk-press" style={qtyBtn}>
+                          <Plus size={13} />
+                        </button>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>{fmtEur(item.product.price_eur * item.qty)}</div>
-                        <button onClick={() => removeItem(item.product.id)} style={{ background: 'none', border: 'none', color: DEKK.muted, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: 0, marginTop: 4 }}>
+                        <div style={{ fontFamily: MONO, fontSize: 14 }}>{fmtFcfa(fcfaOf(item.product) * item.qty)}</div>
+                        <button onClick={() => removeItem(item.product.id)}
+                          style={{ background: 'none', border: 'none', color: DEKK.muted, fontSize: 11.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, marginTop: 5 }}>
                           <Trash2 size={11} /> Retirer
                         </button>
                       </div>
@@ -94,32 +114,28 @@ export default function CartPage() {
                   </div>
                 </div>
               ))}
-              <Link to="/boutique" style={{ display: 'inline-block', marginTop: 18, fontSize: 13, color: DEKK.accent, textDecoration: 'none' }}>
-                ← Continuer mes achats
-              </Link>
             </div>
 
-            {/* Summary */}
-            <aside style={{ position: 'sticky', top: 20, alignSelf: 'start', border: `1px solid ${DEKK.line}`, borderRadius: 16, padding: 22, background: '#FAFAFA' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Récapitulatif</div>
-              <Row label="Sous-total" value={fmtEur(subtotal)} />
-              <Row label="Livraison" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>Incluse</span>} />
-              <Row label="Taxes" value="Incluses" muted />
-              <div style={{ borderTop: `0.5px solid ${DEKK.line}`, margin: '14px 0 12px' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(subtotal)}</div>
-                  <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted }}>≈ {fmtFcfa(subtotal * 655)}</div>
-                </div>
+            {/* Récapitulatif */}
+            <aside style={{ position: 'sticky', top: 96, alignSelf: 'start', border: `1px solid ${DEKK.line}`, padding: 22, background: DEKK.surface }}>
+              <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: DEKK.muted, marginBottom: 16 }}>
+                Récapitulatif
               </div>
-              <button onClick={() => nav('/panier/checkout')}
-                style={{ width: '100%', minHeight: 52, marginTop: 18, background: DEKK.ink, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                Continuer vers la livraison <ArrowRight size={15} />
+              <Row label="Sous-total" value={fmtFcfa(subtotal)} />
+              <Row label="Livraison" value="Calculée à l'étape suivante" muted />
+              <Row label="Taxes" value="Incluses" muted />
+              <div style={{ borderTop: `1px solid ${DEKK.line}`, margin: '16px 0 14px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 13 }}>Total articles</span>
+                <span style={{ fontFamily: MONO, fontSize: 20 }}>{fmtFcfa(subtotal)}</span>
+              </div>
+              <button onClick={openConfirm} className="dekk-press dekk-cart-cta"
+                style={{ width: '100%', minHeight: 54, marginTop: 20, background: DEKK.gold, color: '#fff', border: 'none', borderRadius: 2, fontSize: 12.5, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                Passer la commande
               </button>
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: `0.5px solid ${DEKK.line}`, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 11, color: DEKK.muted }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Truck size={12} color={DEKK.accent} /> Livraison Dakar 24–72 h, régions 3–6 j</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ShieldCheck size={12} color={DEKK.accent} /> Paiement sécurisé Wave · OM · Carte</span>
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${DEKK.line}`, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 11.5, color: DEKK.muted }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Truck size={13} color={DEKK.gold} /> Dakar 24–72 h · régions 3–6 j</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><ShieldCheck size={13} color={DEKK.gold} /> Paiement sécurisé Wave · OM · Carte</span>
               </div>
             </aside>
           </div>
@@ -127,30 +143,48 @@ export default function CartPage() {
 
         {recs.length > 0 && <Recommendations title="Vous aimerez aussi" items={recs} />}
       </main>
+
+      {/* Barre d'action mobile */}
+      {cart.length > 0 && (
+        <div className="dekk-cart-bar">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: DEKK.muted }}>Total articles</span>
+            <span style={{ fontFamily: MONO, fontSize: 16 }}>{fmtFcfa(subtotal)}</span>
+          </div>
+          <button onClick={openConfirm} className="dekk-press"
+            style={{ width: '100%', minHeight: 52, background: DEKK.gold, color: '#fff', border: 'none', borderRadius: 2, fontSize: 12.5, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            Passer la commande
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-const qtyBtn: React.CSSProperties = { width: 34, height: 34, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DEKK.ink };
+const qtyBtn: React.CSSProperties = {
+  width: 38, height: 38, border: 'none', background: 'none', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', color: DEKK.ink,
+};
 
 function Row({ label, value, muted }: { label: string; value: React.ReactNode; muted?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: muted ? DEKK.muted : DEKK.ink, marginBottom: 8 }}>
-      <span>{label}</span><span>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12.5, color: muted ? DEKK.muted : DEKK.ink, marginBottom: 9 }}>
+      <span>{label}</span><span style={{ textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
 
 function EmptyCart() {
   return (
-    <div style={{ textAlign: 'center', padding: '64px 24px', border: `1px dashed ${DEKK.line}`, borderRadius: 18 }}>
-      <div style={{ width: 56, height: 56, borderRadius: 28, background: DEKK.accentSoft, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <ShoppingBag size={22} color={DEKK.accent} />
+    <div className="dekk-rise" style={{ textAlign: 'center', padding: '72px 24px', border: `1px solid ${DEKK.line}`, background: DEKK.surface }}>
+      <div style={{ width: 62, height: 62, borderRadius: 31, background: DEKK.goldSoft, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+        <ShoppingBag size={24} color={DEKK.gold} />
       </div>
-      <p style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>Votre panier est vide.</p>
-      <p style={{ fontSize: 13, color: DEKK.muted, marginTop: 8 }}>Découvrez les produits sélectionnés par la communauté.</p>
-      <Link to="/boutique" style={{ display: 'inline-block', marginTop: 18, background: DEKK.ink, color: '#fff', borderRadius: 100, padding: '12px 24px', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
-        Explorer Dëkk →
+      <p style={{ fontFamily: SERIF, fontSize: 24, margin: 0 }}>Votre panier est vide</p>
+      <p style={{ fontSize: 13, color: DEKK.muted, marginTop: 8 }}>Découvrez la sélection Dëkk, importée et vérifiée par Yobbanté.</p>
+      <Link to="/boutique" className="dekk-press"
+        style={{ display: 'inline-block', marginTop: 20, background: DEKK.gold, color: '#fff', padding: '15px 28px', fontSize: 12.5, letterSpacing: '0.08em', textTransform: 'uppercase', textDecoration: 'none' }}>
+        Découvrir la boutique
       </Link>
     </div>
   );
@@ -159,19 +193,14 @@ function EmptyCart() {
 export function Recommendations({ title, items }: { title: string; items: RecProduct[] }) {
   if (!items.length) return null;
   return (
-    <section style={{ marginTop: 56, paddingTop: 28, borderTop: `0.5px solid ${DEKK.line}` }}>
-      <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: DEKK.muted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pour vous</div>
-      <h2 style={{ fontSize: 22, fontWeight: 600, margin: '6px 0 18px', letterSpacing: '-0.01em' }}>{title}</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {items.map(p => (
+    <section style={{ marginTop: 64, paddingTop: 32, borderTop: `1px solid ${DEKK.line}` }}>
+      <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 500, margin: '0 0 22px' }}>{title}</h2>
+      <div className="dekk-recs">
+        {items.map((p) => (
           <Link key={p.id} to={`/boutique/${p.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ aspectRatio: '1/1', background: '#F6F6F6', borderRadius: 12, overflow: 'hidden' }}>
-              {p.image_url && <img src={p.image_url} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 500, marginTop: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 32 }}>
-              {p.name}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{fmtEur(p.price_eur)}</div>
+            <DekkImage src={p.image_url} alt={p.name} width={600} sizes="(max-width: 760px) 45vw, 260px" />
+            <div style={{ fontFamily: SERIF, fontSize: 18, marginTop: 10, lineHeight: 1.25 }}>{p.name}</div>
+            <div style={{ fontFamily: MONO, fontSize: 12.5, marginTop: 4 }}>{fmtFcfa(fcfaOf(p as any))}</div>
           </Link>
         ))}
       </div>
