@@ -10,6 +10,8 @@ import { ecommerce } from '@/lib/analytics';
 import { Heart, Share2, ShieldCheck, Truck, Check, Plus, Minus, Star, ChevronRight, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEKK, SERIF, SANS, MONO, fmtFcfa, openDekkCart } from '@/components/dekk/dekkTheme';
+import { DekkGallery } from '@/components/dekk/DekkGallery';
+import { DekkImage } from '@/components/dekk/DekkImage';
 import { YOBBANTE_WHATSAPP } from '@/lib/contact';
 
 type Product = {
@@ -192,6 +194,16 @@ export default function ProductDetailPage() {
         .dekk-thumbs{display:flex;gap:10px;margin-top:12px}
         .dekk-rel{display:grid;gap:24px;grid-template-columns:repeat(4,1fr)}
         @media (max-width:760px){.dekk-rel{grid-template-columns:repeat(2,1fr);gap:16px}}
+        .dekk-buybar{display:none}
+        @media (max-width:900px){
+          .dekk-buybar{
+            display:flex;gap:10px;align-items:center;
+            position:fixed;left:0;right:0;bottom:0;z-index:70;
+            background:rgba(255,255,255,0.94);backdrop-filter:blur(14px);
+            border-top:1px solid ${DEKK.line};
+            padding:10px 16px calc(10px + var(--dekk-safe-b));
+          }
+        }
       `}</style>
 
       <DekkHeader />
@@ -212,23 +224,12 @@ export default function ProductDetailPage() {
       <main style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 20px 80px' }}>
         <div className="dekk-pdp">
           {/* GALERIE */}
-          <div>
-            <div style={{ position: 'relative', aspectRatio: '4/5', background: DEKK.creamDeep, overflow: 'hidden' }}>
-              <img src={gallery[imgIdx]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <button onClick={() => id && dekkWish.toggle(id)} aria-label="Favori"
-                style={{ position: 'absolute', top: 14, right: 14, width: 38, height: 38, background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Heart size={17} fill={wished ? DEKK.gold : 'none'} color={wished ? DEKK.gold : DEKK.ink} />
-              </button>
-            </div>
-            <div className="dekk-thumbs">
-              {gallery.map((g, i) => (
-                <button key={i} onClick={() => setImgIdx(i)} aria-label={`Vue ${i + 1}`}
-                  style={{ width: 66, height: 80, padding: 0, background: DEKK.creamDeep, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${i === imgIdx ? DEKK.ink : 'transparent'}` }}>
-                  <img src={g} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <DekkGallery
+            images={gallery as string[]}
+            alt={p.name}
+            wished={wished}
+            onWish={() => id && dekkWish.toggle(id)}
+          />
 
           {/* INFOS */}
           <div>
@@ -409,9 +410,7 @@ export default function ProductDetailPage() {
             <div className="dekk-rel">
               {related.map((r) => (
                 <Link key={r.id} to={`/boutique/${r.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ aspectRatio: '4/5', background: DEKK.creamDeep, overflow: 'hidden' }}>
-                    {r.image_url && <img src={r.image_url} alt={r.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  </div>
+                  <DekkImage src={r.image_url} alt={r.name} width={600} sizes="(max-width: 760px) 45vw, 260px" />
                   <div style={{ fontFamily: SERIF, fontSize: 18, marginTop: 10 }}>{r.name}</div>
                   <div style={{ fontFamily: MONO, fontSize: 12.5, marginTop: 4 }}>{fmtFcfa(fcfaOf(r as any))}</div>
                 </Link>
@@ -420,6 +419,23 @@ export default function ProductDetailPage() {
           </div>
         </section>
       )}
+
+      {/* Barre d'achat mobile */}
+      <div className="dekk-buybar">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: SERIF, fontSize: 15, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+          <div style={{ fontFamily: MONO, fontSize: 12.5, color: DEKK.muted }}>{fmtFcfa(unit)}</div>
+        </div>
+        <button onClick={addToCart} disabled={outOfStock} className="dekk-press"
+          style={{
+            flexShrink: 0, minHeight: 48, padding: '0 22px', border: 'none',
+            background: outOfStock ? DEKK.creamDeep : DEKK.gold, color: outOfStock ? DEKK.muted : '#fff',
+            fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
+            cursor: outOfStock ? 'not-allowed' : 'pointer',
+          }}>
+          {outOfStock ? 'Indisponible' : 'Ajouter'}
+        </button>
+      </div>
     </div>
   );
 }

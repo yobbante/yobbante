@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Heart, Package } from 'lucide-react';
+import { Heart } from 'lucide-react';
+import { DekkImage } from './DekkImage';
 import { CAT_PILLS, type CatKey } from './CatNav';
 import { DEKK, SERIF, SANS, MONO, fmtFcfa } from './dekkTheme';
 
@@ -59,15 +60,8 @@ export function DekkProductCard({
       `}</style>
 
       <Link to={`/boutique/${p.id}`}
-        style={{ position: 'relative', display: 'block', aspectRatio: '4/5', background: DEKK.creamDeep, overflow: 'hidden' }}>
-        {p.image_url ? (
-          <img className="dekk-card-img" src={p.image_url} alt={p.name} loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DEKK.muted }}>
-            <Package size={30} />
-          </div>
-        )}
+        style={{ position: 'relative', display: 'block', overflow: 'hidden' }}>
+        <DekkImage className="dekk-card-img" src={p.image_url} alt={p.name} width={700} />
 
         {tag && (
           <span style={{

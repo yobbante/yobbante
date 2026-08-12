@@ -11,6 +11,8 @@ import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
 import { ecommerce } from '@/lib/analytics';
 import { DEKK, SERIF, SANS, MONO, openDekkCart } from '@/components/dekk/dekkTheme';
+import { DekkImage } from '@/components/dekk/DekkImage';
+import { dekkImageUrl } from '@/lib/dekkImage';
 
 type Product = {
   id: string;
@@ -157,8 +159,9 @@ export default function BoutiquePage() {
       {/* ── HERO ─────────────────────────────────────── */}
       <section style={{ position: 'relative', height: 'min(78vh, 640px)', background: DEKK.ink, overflow: 'hidden' }}>
         {hero?.image_url && (
-          <img src={hero.image_url} alt={hero.name}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.72 }} />
+          <img src={dekkImageUrl(hero.image_url, { w: 1600, h: 1100 })} alt={hero.name}
+            fetchPriority="high" decoding="async"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: 0.72 }} />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,18,16,0.72) 0%, rgba(20,18,16,0.25) 70%)' }} />
         <div style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: '0 20px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 72 }}>
@@ -187,9 +190,7 @@ export default function BoutiquePage() {
               {categories.map((c) => (
                 <button key={c.key} className="dekk-cat-tile" onClick={() => setParam('cat', c.key)}
                   style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                  <div style={{ aspectRatio: '3/4', background: DEKK.creamDeep, overflow: 'hidden' }}>
-                    {c.image && <img src={c.image} alt={c.label} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  </div>
+                  <DekkImage src={c.image} alt={c.label} ratio="3 / 4" width={640} sizes="(max-width: 760px) 46vw, 260px" />
                   <div style={{ fontFamily: SERIF, fontSize: 19, marginTop: 12, color: DEKK.ink }}>{c.label}</div>
                 </button>
               ))}
