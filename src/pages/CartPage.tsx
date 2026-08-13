@@ -95,17 +95,17 @@ export default function CartPage() {
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${DEKK.line}`, height: 40 }}>
-                        <button onClick={() => updateQty(item.product.id, -1)} aria-label="Diminuer" className="dekk-press" style={qtyBtn}>
+                        <button onClick={() => updateQty(k, -1)} aria-label="Diminuer" className="dekk-press" style={qtyBtn}>
                           <Minus size={13} />
                         </button>
                         <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontFamily: MONO }}>{item.qty}</span>
-                        <button onClick={() => updateQty(item.product.id, 1)} aria-label="Augmenter" className="dekk-press" style={qtyBtn}>
+                        <button onClick={() => updateQty(k, 1)} aria-label="Augmenter" className="dekk-press" style={qtyBtn}>
                           <Plus size={13} />
                         </button>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontFamily: MONO, fontSize: 14 }}>{fmtFcfa(fcfaOf(item.product) * item.qty)}</div>
-                        <button onClick={() => removeItem(item.product.id)}
+                        <button onClick={() => removeItem(k)}
                           style={{ background: 'none', border: 'none', color: DEKK.muted, fontSize: 11.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, marginTop: 5 }}>
                           <Trash2 size={11} /> Retirer
                         </button>

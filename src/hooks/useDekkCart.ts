@@ -38,9 +38,11 @@ export function useDekkCart() {
 
   useEffect(() => {
     const sync = () => setItems(read());
-    window.addEventListener('storage', (e) => { if (e.key === KEY) sync(); });
+    const onStorage = (e: StorageEvent) => { if (e.key === KEY) sync(); };
+    window.addEventListener('storage', onStorage);
     window.addEventListener(EVT, sync);
     return () => {
+      window.removeEventListener('storage', onStorage);
       window.removeEventListener(EVT, sync);
     };
   }, []);
@@ -71,21 +73,23 @@ export function useDekkCart() {
     });
   }, [write]);
 
-  const updateQty = useCallback((id: string, delta: number) => {
+  /** Modifie la quantité de la ligne `index` (les variantes d'un même produit sont des lignes distinctes). */
+  const updateQty = useCallback((index: number, delta: number) => {
     const next = read()
-      .map(i => i.product.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)
+      .map((i, k) => k === index ? { ...i, qty: Math.max(0, i.qty + delta) } : i)
       .filter(i => i.qty > 0);
     write(next);
   }, [write]);
 
-  const removeItem = useCallback((id: string) => {
-    write(read().filter(i => i.product.id !== id));
+  /** Retire la ligne `index` du panier. */
+  const removeItem = useCallback((index: number) => {
+    write(read().filter((_, k) => k !== index));
   }, [write]);
 
   const clear = useCallback(() => write([]), [write]);
 
   const count = items.reduce((s, i) => s + i.qty, 0);
-  const total = items.reduce((s, i) => s + (i.product.price_eur ?? 0) * i.qty, 0);
+  const total = items.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0);
 
   return { items, count, total, addItem, updateQty, removeItem, clear, setItems: write };
 }
@@ -96,9 +100,14 @@ export function useDekkCartCount() {
   useEffect(() => {
     const sync = () => setCount(read().reduce((s, i) => s + i.qty, 0));
     sync();
-    window.addEventListener('storage', (e) => { if (e.key === KEY) sync(); });
+    const onStorage = (e: StorageEvent) => { if (e.key === KEY) sync(); };
+    window.addEventListener('storage', onStorage);
     window.addEventListener(EVT, sync);
-    return () => window.removeEventListener(EVT, sync);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(EVT, sync);
+    };
   }, []);
   return count;
 }
+

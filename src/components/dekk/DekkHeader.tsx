@@ -16,7 +16,7 @@ export interface DekkHeaderProps {
 type Suggestion = { id: string; name: string; price_fcfa: number; image_url: string | null };
 
 const NAV = [
-  { label: 'Boutique', to: '/boutique' },
+  { label: 'Boutique', to: '/boutique?all=1' },
   { label: 'Nouveautés', to: '/boutique?sort=new' },
   { label: 'Packs', to: '/boutique?cat=packs-cadeaux' },
   { label: 'Suivi', to: '/suivre' },
@@ -131,11 +131,11 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
             style={iconBtn}>
             <Search size={19} />
           </button>
-          {onWishlist && (
-            <button className="dekk-icon-btn" onClick={onWishlist} aria-label="Favoris" style={iconBtn}>
-              <Heart size={19} />
-            </button>
-          )}
+          <button className="dekk-icon-btn"
+            onClick={() => (onWishlist ? onWishlist() : nav('/boutique?wishlist=1'))}
+            aria-label="Favoris" style={iconBtn}>
+            <Heart size={19} />
+          </button>
           <button className="dekk-icon-btn" onClick={() => nav('/auth')} aria-label="Compte" style={iconBtn}>
             <User size={19} />
           </button>

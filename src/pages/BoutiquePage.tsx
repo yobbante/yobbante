@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Truck, Smartphone, ShieldCheck, Star } from 'lucide-react';
 import { useSeo } from '@/hooks/useSeo';
 import { DekkHeader } from '@/components/dekk/DekkHeader';
-import { CAT_PILLS, type CatKey } from '@/components/dekk/CatNav';
+import { type CatKey } from '@/components/dekk/CatNav';
+import { CAT_LABEL, uiCategory, matchesCategory } from '@/lib/dekkCategories';
 import { DekkProductCard } from '@/components/dekk/DekkProductCard';
 import { useDekkCart } from '@/hooks/useDekkCart';
 import { useDekkWishlist } from '@/hooks/useDekkWishlist';
@@ -33,17 +34,6 @@ type Product = {
   created_at: string;
 };
 
-const CAT_LABEL: Record<string, string> = Object.fromEntries(CAT_PILLS.map((c) => [c.key, c.label]));
-
-const DB_TO_UI: Record<string, CatKey> = {
-  mode: 'merch-identite',
-  auto: 'voyage-mobilite',
-  tech: 'tech-productivite',
-  electronique: 'rc-gadgets',
-  maison: 'lifestyle-deco',
-  beaute: 'bien-etre',
-};
-
 const SORTS = [
   { id: 'trending', label: 'Sélection' },
   { id: 'new', label: 'Nouveautés' },
@@ -67,6 +57,7 @@ export default function BoutiquePage() {
   const activeCat = (searchParams.get('cat') as CatKey) || 'all';
   const sort = searchParams.get('sort') || 'trending';
   const wishlistOnly = searchParams.get('wishlist') === '1';
+  const showAll = searchParams.get('all') === '1';
 
   const wishlist = useDekkWishlist();
   const cart = useDekkCart();
@@ -104,7 +95,7 @@ export default function BoutiquePage() {
   };
 
   const filtered = useMemo(() => {
-    let list = activeCat === 'all' ? products : products.filter((p) => DB_TO_UI[p.category] === activeCat || p.category === activeCat);
+    let list = activeCat === 'all' ? products : products.filter((p) => matchesCategory(p.category, activeCat));
     if (wishlistOnly) list = list.filter((p) => wishlist.has(p.id));
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q));
@@ -118,7 +109,7 @@ export default function BoutiquePage() {
   const categories = useMemo(() => {
     const map = new Map<CatKey, { key: CatKey; label: string; image: string | null; count: number }>();
     for (const p of products) {
-      const key = (DB_TO_UI[p.category] ?? p.category) as CatKey;
+      const key = uiCategory(p.category);
       const prev = map.get(key);
       if (prev) {
         prev.count += 1;
@@ -136,7 +127,7 @@ export default function BoutiquePage() {
     [products],
   );
 
-  const gridActive = Boolean(search.trim()) || activeCat !== 'all' || wishlistOnly || sort !== 'trending';
+  const gridActive = Boolean(search.trim()) || activeCat !== 'all' || wishlistOnly || sort !== 'trending' || showAll;
 
   return (
     <div style={{ minHeight: '100vh', background: DEKK.cream, fontFamily: SANS, color: DEKK.ink }}>
@@ -206,7 +197,7 @@ export default function BoutiquePage() {
         {/* ── SÉLECTION / GRILLE ─────────────────────── */}
         <section id="dekk-selection" style={{ paddingTop: 72 }}>
           <SectionTitle
-            title={gridActive ? (activeCat !== 'all' ? CAT_LABEL[activeCat] ?? 'Sélection' : 'Résultats') : 'Sélection du moment'}
+            title={gridActive ? (activeCat !== 'all' ? CAT_LABEL[activeCat] ?? 'Sélection' : showAll && !search.trim() ? 'Tout le catalogue' : 'Résultats') : 'Sélection du moment'}
             right={
               <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                 {activeCat !== 'all' && (
@@ -247,7 +238,7 @@ export default function BoutiquePage() {
 
           {!gridActive && !loading && filtered.length > featured.length && (
             <div style={{ textAlign: 'center', marginTop: 44 }}>
-              <button onClick={() => setParam('sort', 'new')}
+              <button onClick={() => { setParam('all', '1'); document.getElementById('dekk-selection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
                 style={{ border: `1px solid ${DEKK.ink}`, background: 'transparent', color: DEKK.ink, padding: '14px 38px', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 Voir tout le catalogue
               </button>

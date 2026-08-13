@@ -7,7 +7,7 @@ const COLS: { title: string; links: { label: string; to: string; external?: bool
   {
     title: 'Boutique',
     links: [
-      { label: 'Tout le catalogue', to: '/boutique' },
+      { label: 'Tout le catalogue', to: '/boutique?all=1' },
       { label: 'Nouveautés', to: '/boutique?sort=new' },
       { label: 'Packs cadeaux', to: '/boutique?cat=packs-cadeaux' },
       { label: 'Mon panier', to: '/panier' },
