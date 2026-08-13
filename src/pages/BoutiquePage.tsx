@@ -15,6 +15,7 @@ import { DEKK, SERIF, SANS, MONO, openDekkCart } from '@/components/dekk/dekkThe
 import { DekkImage } from '@/components/dekk/DekkImage';
 import { DekkCategoryRail } from '@/components/dekk/DekkCategoryRail';
 import { dekkImageUrl } from '@/lib/dekkImage';
+import dekkHero from '@/assets/dekk-hero.jpg';
 
 type Product = {
   id: string;
