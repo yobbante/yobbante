@@ -230,10 +230,15 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
                 {n.label}
               </Link>
             ))}
+            <Link to="/boutique?wishlist=1" onClick={() => setMenuOpen(false)}
+              style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0', borderBottom: `1px solid ${DEKK.line}` }}>
+              Favoris
+            </Link>
             <Link to="/mon-compte" onClick={() => setMenuOpen(false)}
               style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0' }}>
               Mon compte
             </Link>
+
           </nav>
         </div>
       )}
