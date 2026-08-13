@@ -1248,19 +1248,61 @@ export function MessagesTab() {
                           <Textarea
                             value={clientFreeText}
                             onChange={(e) => onClientTyping(e.target.value)}
-                            placeholder="Écrire un message... (le bot sera automatiquement mis en pause)"
+                            placeholder={attachment ? 'Légende du fichier (optionnel)…' : 'Écrire un message... (le bot sera automatiquement mis en pause)'}
                             rows={2}
                             className="text-xs resize-none"
                           />
+
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                            onChange={(e) => pickAttachment(e.target.files?.[0] ?? null)}
+                          />
+
+                          {attachment && (
+                            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                              <Paperclip className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">{attachment.name}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {(attachment.size / 1024 / 1024).toFixed(1)} Mo
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Retirer le fichier"
+                                onClick={() => { setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                className="shrink-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[9px] text-muted-foreground italic">
-                              Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
-                            </span>
-                            <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-[11px] gap-1"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={sending}
+                                title="Joindre un document, une photo ou un devis (max 16 Mo)"
+                              >
+                                <Paperclip className="w-3.5 h-3.5" />
+                                <span className="hidden md:inline">Joindre</span>
+                              </Button>
+                              <span className="text-[9px] text-muted-foreground italic truncate">
+                                Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
+                              </span>
+                            </div>
+                            <Button onClick={sendClientFree} disabled={sending || (!clientFreeText.trim() && !attachment)} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
                               {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                              Envoyer
+                              {uploading ? 'Envoi du fichier…' : 'Envoyer'}
                             </Button>
                           </div>
+
                         </>
                       ) : (
                         <p className="text-[11px] text-orange-400/90 italic">
