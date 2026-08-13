@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
+import { HubHeader, HubTab } from './hub-ui';
 import { Wallet, Coins, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,14 +34,11 @@ export function FinancesHubTab() {
   const positiveMargin = (data?.marginMonthXof ?? 0) >= 0;
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Finances</h1>
-        <p className="text-sm text-muted-foreground">Revenus clients et paiements des transporteurs.</p>
-      </div>
+    <div className="space-y-3 md:space-y-5">
+      <HubHeader title="Finances" subtitle="Revenus clients et paiements des transporteurs." />
 
       {/* Ligne de résumé — toujours visible */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
         {isLoading || !data ? (
           [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
@@ -59,8 +57,8 @@ export function FinancesHubTab() {
 
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList>
-          <TabsTrigger value="revenus">Revenus clients</TabsTrigger>
-          <TabsTrigger value="paiements-gp">Paiements GP</TabsTrigger>
+          <HubTab value="revenus" icon={Wallet} label="Revenus clients" />
+          <HubTab value="paiements-gp" icon={Coins} label="Paiements GP" />
         </TabsList>
         <TabsContent value="revenus" className="mt-4"><RevenusTab /></TabsContent>
         <TabsContent value="paiements-gp" className="mt-4"><FinancesTab /></TabsContent>
@@ -88,12 +86,12 @@ function SummaryCard({
     danger:  'text-[hsl(var(--danger))]',
   };
   return (
-    <div className={cn('rounded-xl border p-4', styles[tone])}>
+    <div className={cn('rounded-xl border p-2.5 md:p-4', styles[tone])}>
       <div className="flex items-center gap-1.5">
         <Icon className={cn('w-3.5 h-3.5', text[tone])} />
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
       </div>
-      <p className={cn('mt-2 text-xl font-semibold tabular-nums', text[tone])}>{value}</p>
+      <p className={cn('mt-1.5 text-sm md:text-xl font-semibold tabular-nums', text[tone])}>{value}</p>
     </div>
   );
 }
