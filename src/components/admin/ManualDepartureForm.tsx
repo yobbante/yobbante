@@ -538,6 +538,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <SelectContent className="max-h-72">
                   {cityCatalog.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
+                      {gpCityKeys.has(c.city.toLowerCase()) && <span className="mr-1">★</span>}
                       {c.flag} {c.city} <span className="text-muted-foreground">· {c.countryLabel}</span>
                     </SelectItem>
                   ))}
