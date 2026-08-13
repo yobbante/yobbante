@@ -410,8 +410,7 @@ export function RequestsTab({
                     <tr
                       key={d.id}
                       data-dossier-id={d.id}
-                      onClick={() => setExpandedId(isOpen ? null : d.id)}
-                      onDoubleClick={() => sheet.open(d.id)}
+                      onClick={() => { setExpandedId(d.id); sheet.open(d.id); }}
                       className={cn(
                         'cursor-pointer transition-colors',
                         isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
@@ -437,7 +436,7 @@ export function RequestsTab({
                       <td className="px-3 py-2.5 align-middle">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); sheet.open(d.id); }}
+                          onClick={(e) => { e.stopPropagation(); setExpandedId(d.id); sheet.open(d.id); }}
                           className="text-foreground hover:underline text-left truncate max-w-[220px] block text-[13px] font-medium"
                         >
                           {clientName}

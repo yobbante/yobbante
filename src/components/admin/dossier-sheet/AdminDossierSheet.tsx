@@ -61,15 +61,14 @@ export function AdminDossierSheet() {
   const isMobile = useIsMobile();
   const open = !!dossierId;
 
-  // Desktop ≥ md : panneau latéral persistant, non modal, sans overlay sombre
+  // Desktop ≥ md : panneau latéral modal qui se ferme au clic à l'extérieur
   if (!isMobile) {
     return (
-      <SheetPrimitive.Root open={open} onOpenChange={(v) => { if (!v) close(); }} modal={false}>
+      <SheetPrimitive.Root open={open} onOpenChange={(v) => { if (!v) close(); }}>
         <SheetPrimitive.Portal>
+          <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <SheetPrimitive.Content
-            onInteractOutside={(e) => e.preventDefault()}
-            onPointerDownOutside={(e) => e.preventDefault()}
-            className="fixed top-0 right-0 bottom-0 z-40 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right data-[state=open]:duration-200 data-[state=closed]:duration-150"
+            className="fixed top-0 right-0 bottom-0 z-50 w-[44vw] min-w-[480px] max-w-[760px] bg-background border-l border-border shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right data-[state=open]:duration-200 data-[state=closed]:duration-150"
           >
             <button
               onClick={close}
