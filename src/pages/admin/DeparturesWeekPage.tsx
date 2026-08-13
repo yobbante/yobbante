@@ -315,18 +315,23 @@ export default function DeparturesWeekPage() {
                       </div>
                       <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
                       <AssignedDossiersList departureId={d.id} />
-                      <div className="flex items-center justify-between gap-2 mt-3">
-                        <Badge variant={pub.variant}>{pub.label}</Badge>
-                        {(d.publication_status ?? 'draft') !== 'published' && (
-                          <span
-                            role="button"
-                            onClick={(e) => { e.stopPropagation(); markPublished(d); }}
-                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
-                          >
-                            <Send className="w-3 h-3" /> Marquer publié
-                          </span>
-                        )}
+                      <div className="flex items-center justify-end gap-1 mt-3">
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setEditing(d); }}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
+                        >
+                          <Pencil className="w-3 h-3" /> Modifier
+                        </span>
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(d); }}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-3 h-3" /> Supprimer
+                        </span>
                       </div>
+
                     </button>
                   );
                 })}
