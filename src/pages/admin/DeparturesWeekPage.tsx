@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus, Globe } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus, Globe, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useManualDepartures, type ManualDeparture } from '@/hooks/useManualDepartures';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSeo } from '@/hooks/useSeo';
@@ -51,7 +55,7 @@ function buildWhatsAppText(departures: ManualDeparture[]): string {
 
 export default function DeparturesWeekPage() {
   useSeo({ title: 'Départs de la semaine · Admin Yobbanté', path: '/admin/departs-semaine' });
-  const { list } = useManualDepartures();
+  const { list, remove } = useManualDepartures();
   const qc = useQueryClient();
   const [routeFilter, setRouteFilter] = useState('');
   const [modeFilter, setModeFilter] = useState('all');
@@ -61,6 +65,8 @@ export default function DeparturesWeekPage() {
   const [selected, setSelected] = useState<ManualDeparture | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<ManualDeparture | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ManualDeparture | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Realtime — refetch on any change to manual_departures
@@ -281,7 +287,6 @@ export default function DeparturesWeekPage() {
                   const total = d.total_capacity_kg;
                   const used = Math.max(0, total - remaining);
                   const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-                  const pub = PUB_BADGE[d.publication_status ?? 'draft'];
                   return (
                     <button
                       key={d.id}
@@ -315,18 +320,23 @@ export default function DeparturesWeekPage() {
                       </div>
                       <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
                       <AssignedDossiersList departureId={d.id} />
-                      <div className="flex items-center justify-between gap-2 mt-3">
-                        <Badge variant={pub.variant}>{pub.label}</Badge>
-                        {(d.publication_status ?? 'draft') !== 'published' && (
-                          <span
-                            role="button"
-                            onClick={(e) => { e.stopPropagation(); markPublished(d); }}
-                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
-                          >
-                            <Send className="w-3 h-3" /> Marquer publié
-                          </span>
-                        )}
+                      <div className="flex items-center justify-end gap-1 mt-3">
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setEditing(d); }}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
+                        >
+                          <Pencil className="w-3 h-3" /> Modifier
+                        </span>
+                        <span
+                          role="button"
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelete(d); }}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-3 h-3" /> Supprimer
+                        </span>
                       </div>
+
                     </button>
                   );
                 })}
@@ -350,11 +360,43 @@ export default function DeparturesWeekPage() {
         onCreated={() => qc.invalidateQueries({ queryKey: ['manual_departures'] })}
       />
       <ManualDepartureForm
-        open={creating}
-        departure={null}
-        onClose={() => setCreating(false)}
+        open={creating || !!editing}
+        departure={editing}
+        onClose={() => { setCreating(false); setEditing(null); }}
       />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce départ ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · Réf #${confirmDelete.short_ref ?? '----'}`}
+              <br />
+              Action définitive. Si des colis sont déjà assignés, détachez-les d'abord.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!confirmDelete) return;
+                try {
+                  await remove.mutateAsync(confirmDelete.id);
+                  toast.success('Départ supprimé');
+                  setConfirmDelete(null);
+                } catch (e: any) {
+                  toast.error(e.message ?? 'Suppression impossible');
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
