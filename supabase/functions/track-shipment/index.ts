@@ -160,20 +160,41 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (dossier) {
+        // Mapping exhaustif dossier → pipeline public. Tout statut inconnu ne doit
+        // JAMAIS faire régresser le suivi client (ex. WEIGHED = "paiement en attente"
+        // côté admin, mais côté client le colis reste "En préparation").
         const DOSSIER_TO_PIPELINE: Record<string, string> = {
-          CREATED: 'CONFIRMED', PENDING: 'CONFIRMED', IN_REVIEW: 'CONFIRMED',
-          ASSIGNED: 'MATCHED', MATCHED: 'MATCHED',
+          CREATED: 'CONFIRMED', PENDING: 'CONFIRMED', SUBMITTED: 'CONFIRMED',
+          IN_REVIEW: 'CONFIRMED', CONFIRMED: 'CONFIRMED', AWAITING_CLIENT: 'CONFIRMED',
+          STALE: 'CONFIRMED', SOURCING: 'CONFIRMED', PROCURED: 'CONFIRMED',
+          EN_RECHERCHE_DEPART: 'CONFIRMED', QUOTE_ACCEPTED: 'CONFIRMED',
+          ASSIGNED: 'MATCHED', MATCHED: 'MATCHED', DEPARTURE_CONFIRMED: 'MATCHED',
           RECEIVED: 'IN_PREPARATION', IN_STORAGE: 'IN_PREPARATION',
-          READY_TO_SHIP: 'IN_PREPARATION', COLLECTED: 'IN_PREPARATION',
+          READY_TO_SHIP: 'IN_PREPARATION', COLLECTING: 'IN_PREPARATION',
+          COLLECTED: 'IN_PREPARATION', WEIGHED: 'IN_PREPARATION',
           SHIPPED: 'IN_TRANSIT', IN_TRANSIT: 'IN_TRANSIT',
           CUSTOMS: 'CUSTOMS',
-          ARRIVED: 'ARRIVED',
+          ARRIVED: 'ARRIVED', ARRIVED_HUB: 'ARRIVED',
           OUT_FOR_DELIVERY: 'OUT_FOR_DELIVERY',
-          DELIVERED: 'DELIVERED',
+          DELIVERED: 'DELIVERED', CLOSED: 'DELIVERED', ARCHIVED: 'DELIVERED',
         };
         const dossierStatus = (dossier as any).status;
-        const isQuote = ['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED'].includes(dossierStatus);
-        const mapped = isQuote ? dossierStatus : (DOSSIER_TO_PIPELINE[dossierStatus] || 'CONFIRMED');
+        const isQuote = ['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_REFUSED'].includes(dossierStatus);
+        const isLifecycle = ['CANCELLED', 'RETURN_REQUESTED', 'RETURN_IN_PROGRESS', 'RETURNED'].includes(dossierStatus);
+
+        // Plancher de progression déduit des horodatages : le suivi public est
+        // monotone, il ne recule jamais même si le statut admin change de nature.
+        let floor = 'CONFIRMED';
+        const bump = (s: string) => {
+          if (PIPELINE.indexOf(s) > PIPELINE.indexOf(floor)) floor = s;
+        };
+        if ((dossier as any).collected_at) bump('IN_PREPARATION');
+        if ((dossier as any).weighed_at) bump('IN_PREPARATION');
+        if ((dossier as any).delivered_at) bump('DELIVERED');
+
+        const fromStatus = DOSSIER_TO_PIPELINE[dossierStatus];
+        if (fromStatus) bump(fromStatus);
+        const mapped = floor;
         // Synthesize pseudo-events from dossier timestamps
         const events: any[] = [
           { event_type: 'shipment_created', to_status: 'CONFIRMED', created_at: (dossier as any).created_at, note: null },
@@ -182,10 +203,12 @@ Deno.serve(async (req) => {
           (dossier as any).delivered_at && { event_type: 'delivered', to_status: 'DELIVERED', created_at: (dossier as any).delivered_at, note: null },
         ].filter(Boolean);
         const timeline = isQuote ? [] : buildTimeline(mapped, events);
+        const publicStatus = isQuote || isLifecycle ? dossierStatus : mapped;
         return new Response(JSON.stringify({
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
-          status: mapped,
-          status_label: STATUS_LABEL[mapped] || mapped,
+          status: publicStatus,
+          status_label: STATUS_LABEL[publicStatus] || publicStatus,
+
           origin_city: (dossier as any).origin_city || countryName((dossier as any).origin_country),
           destination_city: (dossier as any).destination_city || countryName((dossier as any).destination_country),
           weight_kg: (dossier as any).actual_weight_kg ?? (dossier as any).estimated_weight,
