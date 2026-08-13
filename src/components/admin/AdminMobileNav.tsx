@@ -14,21 +14,25 @@ const ITEMS: { id: AdminSection; icon: typeof Package; label: string }[] = [
  * Les sections secondaires restent accessibles via « Plus » (drawer sidebar).
  */
 export function AdminMobileNav({
-  active, onChange, onMore, unread = 0,
+  active, onChange, onMore, unread = 0, isAgent = false,
 }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   onMore: () => void;
   unread?: number;
+  isAgent?: boolean;
 }) {
+  const items = isAgent
+    ? ITEMS.filter(i => i.id === 'dossiers' || i.id === 'messages')
+    : ITEMS;
   return (
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation admin"
     >
-      <div className="grid grid-cols-5">
-        {ITEMS.map(({ id, icon: Icon, label }) => {
+      <div className={cn('grid', isAgent ? 'grid-cols-3' : 'grid-cols-5')}>
+        {items.map(({ id, icon: Icon, label }) => {
           const isActive = active === id;
           return (
             <button
