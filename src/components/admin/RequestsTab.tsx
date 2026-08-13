@@ -25,6 +25,8 @@ import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
 import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
+import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
+
 
 
 const TYPE_FILTERS = [
