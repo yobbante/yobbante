@@ -234,15 +234,18 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
           aria-modal="true"
           aria-label="Menu"
           style={{
-            position: 'fixed', inset: 0, zIndex: 90, fontFamily: SANS,
+            position: 'fixed', inset: 0, zIndex: 2000, fontFamily: SANS,
             background: `radial-gradient(120% 80% at 100% 0%, ${DEKK.goldSoft} 0%, ${DEKK.cream} 46%, ${DEKK.creamDeep} 100%)`,
             display: 'flex', flexDirection: 'column',
-            animation: 'dekkFade 260ms var(--dekk-ease, ease) both',
+            animation: 'dekkMenuFade 240ms cubic-bezier(.22,.8,.24,1) both',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             overflowY: 'auto',
+            color: DEKK.ink,
           }}
         >
           <style>{`
+            @keyframes dekkMenuFade{from{opacity:0}to{opacity:1}}
             @keyframes dekkMenuItem{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
             .dekk-menu-item{animation:dekkMenuItem 520ms var(--dekk-ease, cubic-bezier(.22,.8,.24,1)) both}
             .dekk-menu-item .dekk-menu-rule{transform:scaleX(.16);transform-origin:left;transition:transform 420ms var(--dekk-ease, ease)}
