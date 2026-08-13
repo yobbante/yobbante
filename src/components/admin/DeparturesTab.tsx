@@ -17,7 +17,7 @@ import { useManualDepartures, type ManualDeparture, type DepartureStatus } from 
 import { ManualDepartureForm } from './ManualDepartureForm';
 import { cn } from '@/lib/utils';
 
-const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer (LCL)', road: 'Route' };
+const MODE_LABEL: Record<string, string> = { gp: 'GP', air: 'Air', sea_lcl: 'Mer (LCL)', road: 'Route' };
 
 const STATUS_BADGE: Record<DepartureStatus, { label: string; variant: 'success' | 'danger' | 'secondary' | 'warning' }> = {
   active:    { label: 'Actif',     variant: 'success' },
@@ -92,6 +92,7 @@ export function DeparturesTab() {
           <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous modes</SelectItem>
+            <SelectItem value="gp">GP</SelectItem>
             <SelectItem value="air">Air</SelectItem>
             <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
             <SelectItem value="road">Route</SelectItem>

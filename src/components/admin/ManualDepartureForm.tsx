@@ -29,6 +29,8 @@ import { estimateArrivalDate } from '@/lib/deliveryEta';
 import { uniqueCitiesFromNavettes } from '@/lib/dakarZones';
 import { cn } from '@/lib/utils';
 import { Sparkles } from 'lucide-react';
+import { PhoneField } from './PhoneField';
+import { dialForCountry } from '@/lib/dialCodes';
 
 /** Yobbanté fixe la capacité par GP à 25 kg. */
 const DEFAULT_CAPACITY_KG = 25;
@@ -68,11 +70,9 @@ interface Props {
 const Schema = z.object({
   origin_city: z.string().optional(),
   destination_city: z.string().optional(),
-  transport_mode: z.enum(['air', 'sea_lcl', 'road']).optional(),
+  transport_mode: z.enum(['gp', 'air', 'sea_lcl', 'road']).optional(),
   departure_date: z.string().optional(),
 });
-
-const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Touba', 'Autre'];
 
 export function ManualDepartureForm({ open, onClose, departure, prefill }: Props) {
   const { create, update } = useManualDepartures();
@@ -121,10 +121,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   // restreindre le sélecteur à ces villes. Sinon, catalogue DB complet.
   const gpCities = uniqueCitiesFromNavettes(matched?.navettes);
   const gpCityKeys = new Set(gpCities.map((c) => c.toLowerCase()));
-  const cityCatalog =
-    gpCityKeys.size > 0
-      ? fullCityCatalog.filter((c) => gpCityKeys.has(c.city.toLowerCase()))
-      : fullCityCatalog;
+  // Villes desservies par le GP en premier, puis le reste du catalogue —
+  // l'admin peut toujours choisir une autre destination.
+  const gpCatalog = fullCityCatalog.filter((c) => gpCityKeys.has(c.city.toLowerCase()));
+  const otherCatalog = fullCityCatalog.filter((c) => !gpCityKeys.has(c.city.toLowerCase()));
+  const cityCatalog = [...gpCatalog, ...otherCatalog];
 
 
   // Snapshot values when matched, to detect edits.
@@ -203,7 +204,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           )
         : null;
       setForeignCityId(prefMatch?.id ?? '');
-      setMode('air');
+      setMode('gp');
       setDepartureDate(prefill?.departureDate ? new Date(prefill.departureDate) : undefined);
       setArrivalEstimate(undefined);
       setUseFixedPrice(false); setPriceOverride('');
@@ -226,9 +227,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
   // Quand le GP est identifié : si une seule ville desservie, la pré-remplir.
   useEffect(() => {
-    if (!matched || cityCatalog.length !== 1) return;
+    if (!matched || gpCatalog.length === 0) return;
     if (foreignCityId) return; // déjà choisie
-    const c = cityCatalog[0];
+    const c = gpCatalog[0];
     setForeignCityId(c.id);
     if (direction === 'from_dakar') {
       setDestCountry(c.country); setDestCity(c.city);
@@ -241,9 +242,16 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setArrivalEstimate(estimateArrivalDate({ destinationCountry: country, destinationCity: cityName, departureDate }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matched?.id, cityCatalog.length]);
+  }, [matched?.id, gpCatalog.length]);
 
 
+
+  // Ville étrangère courante (destination si Dakar→étranger, origine sinon)
+  const foreignCity = cityCatalog.find((c) => c.id === foreignCityId) ?? null;
+  const foreignCityLabel = foreignCity?.city ?? (direction === 'from_dakar' ? destCity : originCity) ?? '';
+  const foreignCountry = foreignCity?.country ?? (direction === 'from_dakar' ? destCountry : originCountry);
+  const foreignDial = dialForCountry(foreignCountry);
+  const foreignFlag = foreignCity?.flag ?? '';
 
   async function save(publish: boolean) {
     const finalStatus: DepartureStatus = 'active';
@@ -280,7 +288,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           telephone_2: tTel2.trim() || null,
           adresse_1: tAdr1.trim() || '',
           adresse_2: tAdr2.trim() || null,
-          ville: tVille.trim() || 'Dakar',
+          ville: 'Dakar',
           zone: tZone.trim() || null,
           notes: tNotes.trim() || null,
         });
@@ -365,7 +373,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         setOriginCountry('SN'); setOriginCity('Dakar');
         setDestCountry(''); setDestCity('');
         setDirection('from_dakar');
-        setMode('air');
+        setMode('gp');
         setDepartureDate(undefined);
         setArrivalEstimate(undefined);
         setUseFixedPrice(false); setPriceOverride('');
@@ -412,32 +420,46 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <Label>Nom / Prénom</Label>
                 <Input value={tNom} onChange={(e) => { setTNom(e.target.value); markEditedIf(matched?.nom, e.target.value); }} placeholder="Ibrahima Fall" />
               </div>
-              <div>
-                <Label>Téléphone principal</Label>
-                <Input value={tTel1} onChange={(e) => { setTTel1(e.target.value); markEditedIf(matched?.telephone_1, e.target.value); }} placeholder="+221 77 ..." />
-                <p className="text-[11px] text-muted-foreground mt-1">Utilisé pour la notification WhatsApp automatique</p>
+
+              {/* Bloc 1 — Adresse principale (Dakar) + téléphone principal SN */}
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Contact à Dakar 🇸🇳
+                </p>
+                <div>
+                  <Label>Adresse principale (Dakar)</Label>
+                  <Input value={tAdr1} onChange={(e) => { setTAdr1(e.target.value); markEditedIf(matched?.adresse_1, e.target.value); }} placeholder="Liberté 6, Dakar" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Toutes les adresses Sénégal sont considérées à Dakar.</p>
+                </div>
+                <PhoneField
+                  label="Téléphone principal"
+                  value={tTel1}
+                  onChange={(v) => { setTTel1(v); markEditedIf(matched?.telephone_1, v); }}
+                  lockedDial="+221"
+                  placeholder="77 123 45 67"
+                  hint="Numéro sénégalais — utilisé pour la notification WhatsApp automatique"
+                />
               </div>
-              <div>
-                <Label>Téléphone secondaire</Label>
-                <Input value={tTel2} onChange={(e) => { setTTel2(e.target.value); markEditedIf(matched?.telephone_2, e.target.value); }} placeholder="+221 76 ..." />
+
+              {/* Bloc 2 — Adresse secondaire (destination) + téléphone local */}
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Contact à {foreignCityLabel || 'destination'} {foreignFlag}
+                </p>
+                <div>
+                  <Label>Adresse secondaire (optionnel)</Label>
+                  <Input value={tAdr2} onChange={(e) => { setTAdr2(e.target.value); markEditedIf(matched?.adresse_2, e.target.value); }} placeholder={foreignCityLabel ? `Adresse à ${foreignCityLabel}` : 'Point de dépôt habituel'} />
+                </div>
+                <PhoneField
+                  label="Téléphone secondaire"
+                  value={tTel2}
+                  onChange={(v) => { setTTel2(v); markEditedIf(matched?.telephone_2, v); }}
+                  suggestedDial={foreignDial}
+                  placeholder="6 12 34 56 78"
+                  hint={foreignCityLabel ? `Indicatif déduit de ${foreignCityLabel}` : "Indicatif ajustable selon le pays de destination"}
+                />
               </div>
-              <div>
-                <Label>Adresse principale</Label>
-                <Input value={tAdr1} onChange={(e) => { setTAdr1(e.target.value); markEditedIf(matched?.adresse_1, e.target.value); }} placeholder="Liberté 6, Dakar" />
-              </div>
-              <div>
-                <Label>Adresse secondaire (optionnel)</Label>
-                <Input value={tAdr2} onChange={(e) => { setTAdr2(e.target.value); markEditedIf(matched?.adresse_2, e.target.value); }} placeholder="Point de dépôt habituel" />
-              </div>
-              <div>
-                <Label>Ville</Label>
-                <Select value={tVille} onValueChange={(v) => { setTVille(v); markEditedIf(matched?.ville, v); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {VILLES.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+
               <div>
                 <Label>Zone / Quartier (optionnel)</Label>
                 <Input value={tZone} onChange={(e) => { setTZone(e.target.value); markEditedIf(matched?.zone, e.target.value); }} placeholder="Almadies" />
@@ -516,6 +538,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 <SelectContent className="max-h-72">
                   {cityCatalog.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
+                      {gpCityKeys.has(c.city.toLowerCase()) && <span className="mr-1">★</span>}
                       {c.flag} {c.city} <span className="text-muted-foreground">· {c.countryLabel}</span>
                     </SelectItem>
                   ))}
@@ -523,7 +546,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </Select>
               {matched && gpCityKeys.size > 0 && (
                 <p className="text-[11px] text-primary/80 mt-1">
-                  Villes filtrées selon les navettes de ce GP ({gpCityKeys.size}{gpCityKeys.size > 1 ? ' villes' : ' ville'}).
+                  Destination pré-remplie depuis les navettes de ce GP ({gpCityKeys.size}{gpCityKeys.size > 1 ? ' villes desservies' : ' ville desservie'}) — vous pouvez aussi en choisir une autre.
                 </p>
               )}
               <div className="mt-2 flex items-center gap-3 text-[11px]">
@@ -565,6 +588,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="gp">GP (bagage accompagné)</SelectItem>
                   <SelectItem value="air">Air</SelectItem>
                   <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
                   <SelectItem value="road">Route</SelectItem>

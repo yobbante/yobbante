@@ -1,0 +1,2 @@
+ALTER TABLE public.manual_departures DROP CONSTRAINT IF EXISTS manual_departures_transport_mode_check;
+ALTER TABLE public.manual_departures ADD CONSTRAINT manual_departures_transport_mode_check CHECK (transport_mode = ANY (ARRAY['gp'::text, 'air'::text, 'sea_lcl'::text, 'road'::text]));
