@@ -20,7 +20,10 @@ import { FinancesHubTab } from '@/components/admin/FinancesHubTab';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
+import { AdminMobileNav } from '@/components/admin/AdminMobileNav';
+import { useAdminBrief } from '@/hooks/useAdminBrief';
 import { cn } from '@/lib/utils';
+
 
 const ALLOWED: AdminSection[] = ADMIN_NAV.map(n => n.id);
 
@@ -254,7 +257,15 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+
+      <AdminMobileNav
+        active={section}
+        onChange={setSection}
+        onMore={() => setMobileOpen(true)}
+        unread={brief?.unreadMessages ?? 0}
+      />
     </div>
+
   );
 }
 
