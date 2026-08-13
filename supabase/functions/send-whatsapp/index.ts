@@ -256,14 +256,16 @@ Deno.serve(async (req) => {
   }
 
   // Build Meta payload
-  const useTemplate = !!body.template_name;
-  const useInteractive = !!body.interactive_type
+  const useMedia = !!body.media_url && /^https:\/\//i.test(String(body.media_url));
+  const useTemplate = !useMedia && !!body.template_name;
+  const useInteractive = !useMedia && !!body.interactive_type
     && (body.interactive_type === 'button' || body.interactive_type === 'list');
   let metaBody: Record<string, unknown>;
   let messageBody: string | null = null;
   let activeTemplateName: string | null = body.template_name ?? null;
-  let messageType: 'text' | 'template' | 'interactive' = 'text';
+  let messageType: 'text' | 'template' | 'interactive' | 'media' = 'text';
   let interactivePayloadSnapshot: any = null;
+
 
   const truncate = (s: string, n: number) => (s ?? '').toString().slice(0, n);
 
