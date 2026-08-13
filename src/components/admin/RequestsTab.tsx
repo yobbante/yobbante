@@ -388,11 +388,12 @@ export function RequestsTab({
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-[10px] uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="text-left font-medium px-3 py-2 w-[22%]">Réf</th>
-                <th className="text-left font-medium px-3 py-2 w-[26%] hidden md:table-cell">Client</th>
-                <th className="text-left font-medium px-3 py-2 w-[18%]">Statut</th>
-                <th className="text-left font-medium px-3 py-2 w-[20%]">GP</th>
-                <th className="text-right font-medium px-3 py-2 w-[14%] hidden md:table-cell">Montant</th>
+                <th className="text-left font-medium px-3 py-2 w-[19%]">Réf</th>
+                <th className="text-left font-medium px-3 py-2 w-[22%]">Client</th>
+                <th className="text-left font-medium px-3 py-2 w-[15%]">Statut</th>
+                <th className="text-left font-medium px-3 py-2 w-[16%]">Échéance</th>
+                <th className="text-left font-medium px-3 py-2 w-[16%] hidden md:table-cell">GP</th>
+                <th className="text-right font-medium px-3 py-2 w-[12%] hidden md:table-cell">Montant</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -402,6 +403,8 @@ export function RequestsTab({
                 const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
                 const amountXof = (d as any).final_amount_xof
                   ?? ((d as any).estimated_cost != null ? Math.round(Number((d as any).estimated_cost) * 655.957) : null);
+                const timing = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
+
                 return (
                   <Fragment key={d.id}>
                     <tr
