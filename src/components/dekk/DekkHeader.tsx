@@ -317,7 +317,8 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
               Livraison offerte dès 25 000 FCFA
             </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </header>
