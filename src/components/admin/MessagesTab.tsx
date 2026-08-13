@@ -723,7 +723,15 @@ export function MessagesTab() {
               </span>
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 926</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Mise à jour en temps réel · Clients : 607 · GP : 926
+            {globalBot.paused
+              ? ' · ⏸ Tous les bots en pause'
+              : !globalBot.autoreply
+                ? ' · Bots actifs — seul l’accueil auto des nouveaux clients est coupé'
+                : ''}
+          </p>
+
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background/40 p-1">
