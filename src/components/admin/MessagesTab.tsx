@@ -626,8 +626,43 @@ export function MessagesTab() {
   }, [openPhone, inbound]);
   const windowStatus = useMemo(() => computeWindowStatus(lastInboundAt), [lastInboundAt]);
 
+  const MAX_ATTACHMENT_MB = 16;
+
+  function mediaKindOf(file: File): 'image' | 'video' | 'audio' | 'document' {
+    const t = file.type || '';
+    if (t.startsWith('image/')) return 'image';
+    if (t.startsWith('video/')) return 'video';
+    if (t.startsWith('audio/')) return 'audio';
+    return 'document';
+  }
+
+  /** Upload dans le bucket privé + URL signée (Meta télécharge le fichier immédiatement). */
+  async function uploadAttachment(file: File): Promise<{ url: string; kind: ReturnType<typeof mediaKindOf> }> {
+    const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-120) || 'fichier';
+    const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${safeName}`;
+    const { error: upErr } = await supabase.storage
+      .from('admin-attachments')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+    if (upErr) throw upErr;
+    const { data, error } = await supabase.storage
+      .from('admin-attachments')
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (error || !data?.signedUrl) throw error ?? new Error('URL signée indisponible');
+    return { url: data.signedUrl, kind: mediaKindOf(file) };
+  }
+
+  function pickAttachment(file: File | null) {
+    if (!file) { setAttachment(null); return; }
+    if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+      toast.error(`Fichier trop lourd (max ${MAX_ATTACHMENT_MB} Mo pour WhatsApp)`);
+      return;
+    }
+    setAttachment(file);
+  }
+
   async function sendClientFree() {
-    if (!openPhone || !clientFreeText.trim()) return;
+    if (!openPhone) return;
+    if (!clientFreeText.trim() && !attachment) return;
     if (windowStatus !== 'open') {
       toast.error('Fenêtre WhatsApp fermée — utilisez un template.');
       return;
@@ -636,24 +671,61 @@ export function MessagesTab() {
     try {
       // Auto-pause le bot client pour éviter tout chevauchement (durée choisie, défaut 1h)
       await pauseClientBot(clientPauseDuration, true);
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          recipient_phone: openPhone,
-          recipient_type: 'client',
-          message: clientFreeText.trim(),
-          trigger_type: 'admin_free_text_client',
-        },
-      });
-      if (error) throw error;
+
+      const text = clientFreeText.trim();
+
+      if (attachment) {
+        setUploading(true);
+        const { url, kind } = await uploadAttachment(attachment);
+        setUploading(false);
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: openPhone,
+            recipient_type: 'client',
+            media_url: url,
+            media_type: kind,
+            media_filename: attachment.name,
+            media_caption: kind === 'image' || kind === 'video' || kind === 'document' ? text : '',
+            trigger_type: 'admin_attachment_client',
+          },
+        });
+        if (error) throw error;
+        // Audio/sticker n'acceptent pas de légende → envoyer le texte à part
+        if (text && kind === 'audio') {
+          await supabase.functions.invoke('send-whatsapp', {
+            body: {
+              recipient_phone: openPhone,
+              recipient_type: 'client',
+              message: text,
+              trigger_type: 'admin_free_text_client',
+            },
+          });
+        }
+      } else {
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: openPhone,
+            recipient_type: 'client',
+            message: text,
+            trigger_type: 'admin_free_text_client',
+          },
+        });
+        if (error) throw error;
+      }
+
       const label = clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration / 60)}h` : `${clientPauseDuration}min`;
-      toast.success(`Message envoyé · Bot en pause ${label}`);
+      toast.success(`${attachment ? 'Fichier envoyé' : 'Message envoyé'} · Bot en pause ${label}`);
       setClientFreeText('');
+      setAttachment(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     } finally {
+      setUploading(false);
       setSending(false);
     }
   }
+
 
   // Default composer tab based on WhatsApp window status
   useEffect(() => {
