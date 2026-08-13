@@ -39,6 +39,12 @@ interface SendPayload {
   trigger_type?: string;
   /** Override explicite du phone_number_id Meta utilise pour l'envoi. */
   phone_id?: string;
+  /** Envoi d'un média (lien HTTPS accessible par Meta). */
+  media_url?: string;
+  media_type?: 'image' | 'document' | 'video' | 'audio';
+  media_filename?: string;
+  media_caption?: string;
+
 
   // legacy
   client_name?: string;
