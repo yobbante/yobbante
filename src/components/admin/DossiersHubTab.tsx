@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus } from 'lucide-react';
+import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { HubHeader, HubTab } from './hub-ui';
+
 
 
 
@@ -39,38 +41,41 @@ export function DossiersHubTab() {
 
   return (
     <DossierSheetProvider>
-      <div className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Dossiers</h1>
-            <p className="text-sm text-muted-foreground">Toutes les demandes et expéditions, par catégorie.</p>
-          </div>
-          <Button size="sm" onClick={() => setIntakeOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Nouveau dossier
-          </Button>
-        </div>
+      <div className="space-y-3 md:space-y-4">
+        <HubHeader
+          title="Dossiers"
+          subtitle="Toutes les demandes et expéditions, par catégorie."
+          actions={
+            <Button size="sm" onClick={() => setIntakeOpen(true)} aria-label="Nouveau dossier">
+              <Plus className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Nouveau dossier</span>
+            </Button>
+          }
+        />
 
         <Tabs value={tab} onValueChange={onChange}>
           <TabsList>
-            <TabsTrigger value="tous">Tous</TabsTrigger>
-            <TabsTrigger value="demandes" className="relative">
-              Demandes entrantes
-              {unassignedCount > 0 && (
-                <span className="ml-1.5 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 tabular-nums">
+            <HubTab value="tous"     icon={Layers}   label="Tous" />
+            <HubTab
+              value="demandes"
+              icon={Inbox}
+              label="Demandes entrantes"
+              badge={unassignedCount > 0 ? (
+                <span className="ml-1 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 tabular-nums">
                   {unassignedCount}
                 </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="reception">Réception</TabsTrigger>
-            <TabsTrigger value="sourcing">Sourcing</TabsTrigger>
-            <TabsTrigger value="audit">Audit & Test</TabsTrigger>
+              ) : undefined}
+            />
+            <HubTab value="reception" icon={PackageOpen} label="Réception" />
+            <HubTab value="sourcing"  icon={ShoppingCart} label="Sourcing" />
+            <HubTab value="audit"     icon={ShieldCheck}  label="Audit & Test" />
           </TabsList>
 
-          <TabsContent value="tous"      className="mt-4"><RequestsTab /></TabsContent>
-          <TabsContent value="demandes"  className="mt-4">
+          <TabsContent value="tous"      className="mt-3 md:mt-4"><RequestsTab /></TabsContent>
+          <TabsContent value="demandes"  className="mt-3 md:mt-4">
             <div className="mb-3 flex items-center justify-end gap-2">
               <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer">
-                Voir archivés / annulés
+                <span className="hidden md:inline">Voir archivés / annulés</span>
+                <span className="md:hidden">Archivés</span>
               </Label>
               <Switch
                 id="show-archived"
@@ -88,11 +93,12 @@ export function DossiersHubTab() {
             />
           </TabsContent>
 
-          <TabsContent value="reception" className="mt-4"><ReceptionKanbanTab /></TabsContent>
-          <TabsContent value="sourcing"  className="mt-4"><SourcingTab /></TabsContent>
-          <TabsContent value="audit"     className="mt-4"><ClientAuditPanel /></TabsContent>
+          <TabsContent value="reception" className="mt-3 md:mt-4"><ReceptionKanbanTab /></TabsContent>
+          <TabsContent value="sourcing"  className="mt-3 md:mt-4"><SourcingTab /></TabsContent>
+          <TabsContent value="audit"     className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
         </Tabs>
       </div>
+
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
 

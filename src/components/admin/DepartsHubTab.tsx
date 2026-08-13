@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
+import { CalendarDays, List, Radio } from 'lucide-react';
+import { HubHeader, HubTab } from './hub-ui';
 import { DeparturesTab } from './DeparturesTab';
 import { KonnektMonitorTab } from './KonnektMonitorTab';
 import DeparturesWeekPage from '@/pages/admin/DeparturesWeekPage';
@@ -20,22 +22,19 @@ export function DepartsHubTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Départs</h1>
-        <p className="text-sm text-muted-foreground">Vue semaine, liste des départs manuels et monitoring Konnekt.</p>
-      </div>
+    <div className="space-y-3 md:space-y-4">
+      <HubHeader title="Départs" subtitle="Vue semaine, liste des départs manuels et monitoring Konnekt." />
 
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList>
-          <TabsTrigger value="semaine">Vue semaine</TabsTrigger>
-          <TabsTrigger value="liste">Liste</TabsTrigger>
-          <TabsTrigger value="konnekt">Konnekt</TabsTrigger>
+          <HubTab value="semaine" icon={CalendarDays} label="Vue semaine" />
+          <HubTab value="liste"   icon={List}         label="Liste" />
+          <HubTab value="konnekt" icon={Radio}        label="Konnekt" />
         </TabsList>
 
-        <TabsContent value="semaine" className="mt-4"><DeparturesWeekPage /></TabsContent>
-        <TabsContent value="liste"   className="mt-4"><DeparturesTab /></TabsContent>
-        <TabsContent value="konnekt" className="mt-4"><KonnektMonitorTab /></TabsContent>
+        <TabsContent value="semaine" className="mt-3 md:mt-4"><DeparturesWeekPage /></TabsContent>
+        <TabsContent value="liste"   className="mt-3 md:mt-4"><DeparturesTab /></TabsContent>
+        <TabsContent value="konnekt" className="mt-3 md:mt-4"><KonnektMonitorTab /></TabsContent>
       </Tabs>
     </div>
   );
