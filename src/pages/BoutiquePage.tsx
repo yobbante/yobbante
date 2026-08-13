@@ -122,7 +122,6 @@ export default function BoutiquePage() {
     return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 8);
   }, [products]);
 
-  const hero = useMemo(() => products.find((p) => p.image_url) ?? null, [products]);
   const featured = useMemo(
     () => products.filter((p) => p.image_url).slice(0, 4),
     [products],
