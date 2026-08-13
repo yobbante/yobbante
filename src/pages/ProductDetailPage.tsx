@@ -13,6 +13,7 @@ import { DEKK, SERIF, SANS, MONO, fmtFcfa, openDekkCart } from '@/components/dek
 import { DekkGallery } from '@/components/dekk/DekkGallery';
 import { DekkImage } from '@/components/dekk/DekkImage';
 import { YOBBANTE_WHATSAPP } from '@/lib/contact';
+import { categoryLabel, uiCategory } from '@/lib/dekkCategories';
 
 type Product = {
   id: string;
@@ -184,7 +185,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const gallery = [p.image_url, p.image_url, p.image_url].filter(Boolean);
+  const gallery = [...new Set([p.image_url].filter(Boolean))];
 
   return (
     <div style={{ minHeight: '100vh', background: DEKK.cream, fontFamily: SANS, color: DEKK.ink }}>
@@ -213,8 +214,8 @@ export default function ProductDetailPage() {
         <nav aria-label="Fil d'Ariane" style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: DEKK.muted, display: 'flex', alignItems: 'center', gap: 7 }}>
           <Link to="/boutique" style={{ color: DEKK.muted, textDecoration: 'none' }}>Boutique</Link>
           <ChevronRight size={11} />
-          <Link to={`/boutique?cat=${p.category}`} style={{ color: DEKK.muted, textDecoration: 'none' }}>
-            {CATEGORY[p.category] ?? p.category}
+          <Link to={`/?cat=${uiCategory(p.category)}`} style={{ color: DEKK.muted, textDecoration: 'none' }}>
+            {categoryLabel(p.category)}
           </Link>
           <ChevronRight size={11} />
           <span style={{ color: DEKK.ink }}>{p.name.length > 30 ? p.name.slice(0, 30) + '…' : p.name}</span>
@@ -234,7 +235,7 @@ export default function ProductDetailPage() {
           {/* INFOS */}
           <div>
             <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: DEKK.gold }}>
-              {CATEGORY[p.category] ?? p.category} · Origine {ORIGIN[p.origin_country] ?? 'International'}
+              {categoryLabel(p.category)} · Origine {ORIGIN[p.origin_country] ?? 'International'}
             </div>
             <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(30px, 4.4vw, 44px)', fontWeight: 500, lineHeight: 1.1, margin: '12px 0 0' }}>
               {p.name}

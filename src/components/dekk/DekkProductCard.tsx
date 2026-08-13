@@ -1,19 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { DekkImage } from './DekkImage';
-import { CAT_PILLS, type CatKey } from './CatNav';
 import { DEKK, SERIF, SANS, MONO, fmtFcfa } from './dekkTheme';
-
-const CAT_LABEL: Record<string, string> = Object.fromEntries(CAT_PILLS.map((c) => [c.key, c.label]));
-
-const DB_TO_UI: Record<string, CatKey> = {
-  mode: 'merch-identite',
-  auto: 'voyage-mobilite',
-  tech: 'tech-productivite',
-  electronique: 'rc-gadgets',
-  maison: 'lifestyle-deco',
-  beaute: 'bien-etre',
-};
+import { categoryLabel } from '@/lib/dekkCategories';
 
 export type DekkProduct = {
   id: string;
@@ -41,8 +30,7 @@ export function DekkProductCard({
   onAdd: () => void;
   badge?: string;
 }) {
-  const uiCat = DB_TO_UI[p.category] ?? (p.category as CatKey);
-  const catLabel = CAT_LABEL[uiCat] ?? p.category;
+  const catLabel = categoryLabel(p.category);
   const mode = (p.stock_mode || '').toLowerCase();
   const isDrop = mode === 'drop' || mode === 'commande';
   const out = !isDrop && (p.stock_qty ?? 0) <= 0;
