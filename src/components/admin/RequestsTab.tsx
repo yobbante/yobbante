@@ -161,6 +161,29 @@ export function RequestsTab({
     },
   });
 
+  // Départs assignés → dates de départ / arrivée pour l'affichage dynamique.
+  const departureIds = useMemo(
+    () => Array.from(new Set(dossiers.map((d: any) => d.assigned_departure_id).filter(Boolean))) as string[],
+    [dossiers],
+  );
+  const { data: departures = {} } = useQuery({
+    queryKey: ['admin-requests-departures', departureIds],
+    enabled: departureIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('manual_departures')
+        .select('id, departure_date, arrival_estimate')
+        .in('id', departureIds);
+      if (error) throw error;
+      const map: Record<string, TimingDeparture> = {};
+      for (const row of data || []) map[(row as any).id] = row as any;
+      return map;
+    },
+  });
+
+
+
   const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
 
   // Programmatic quick-assign trigger (fired from NextActionsSheet).
