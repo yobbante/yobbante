@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -81,11 +81,17 @@ function GlobalNotifiers() {
   return null;
 }
 
+/** Redirection interne qui conserve la query string (?cat=…&sort=…). */
+const RedirectKeepQuery = ({ to }: { to: string }) => {
+  const loc = useLocation();
+  return <Navigate to={`${to}${loc.search}${loc.hash}`} replace />;
+};
+
 const DekkRoutes = () => (
   <Routes>
     {/* Boutique = home sur le sous-domaine */}
     <Route path="/" element={<DekkLayout><BoutiquePage /></DekkLayout>} />
-    <Route path="/boutique" element={<Navigate to="/" replace />} />
+    <Route path="/boutique" element={<RedirectKeepQuery to="/" />} />
     <Route path="/boutique/:id" element={<DekkLayout><ProductDetailPage /></DekkLayout>} />
     {/* Alias SEO-friendly futur */}
     <Route path="/produit/:id" element={<DekkLayout><ProductDetailPage /></DekkLayout>} />
