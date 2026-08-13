@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
+import { User, Building2 } from 'lucide-react';
+import { HubHeader, HubTab } from './hub-ui';
 import { EnterpriseQuotesTab } from './EnterpriseQuotesTab';
 import { DevisSurMesureTab } from './DevisSurMesureTab';
 
@@ -19,22 +21,18 @@ export function LeadsHubTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Leads &amp; devis</h1>
-        <p className="text-sm text-muted-foreground">Toutes les demandes de devis particuliers et entreprises.</p>
-      </div>
+    <div className="space-y-3 md:space-y-4">
+      <HubHeader title="Leads & devis" subtitle="Toutes les demandes de devis particuliers et entreprises." />
 
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="particuliers">Particuliers &amp; sur mesure</TabsTrigger>
-          <TabsTrigger value="b2b">Entreprises B2B</TabsTrigger>
+          <HubTab value="particuliers" icon={User}      label="Particuliers & sur mesure" />
+          <HubTab value="b2b"          icon={Building2} label="Entreprises B2B" />
         </TabsList>
 
-        <TabsContent value="particuliers" className="mt-4"><DevisSurMesureTab /></TabsContent>
-        <TabsContent value="b2b"          className="mt-4"><EnterpriseQuotesTab /></TabsContent>
+        <TabsContent value="particuliers" className="mt-3 md:mt-4"><DevisSurMesureTab /></TabsContent>
+        <TabsContent value="b2b"          className="mt-3 md:mt-4"><EnterpriseQuotesTab /></TabsContent>
       </Tabs>
     </div>
   );
 }
-
