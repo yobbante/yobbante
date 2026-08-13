@@ -58,6 +58,16 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
     if (searchOpen) setTimeout(() => inputRef.current?.focus(), 40);
   }, [searchOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
+
+
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q.length < 2) return [];
@@ -216,32 +226,96 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
         </div>
       )}
 
-      {/* Menu mobile */}
+      {/* Menu mobile — plein écran éditorial */}
       {menuOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: DEKK.cream, padding: '20px', fontFamily: SANS }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: SERIF, fontSize: 24, letterSpacing: '0.3em' }}>DËKK</span>
-            <button onClick={() => setMenuOpen(false)} aria-label="Fermer le menu" style={iconBtn}><X size={22} /></button>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 90, fontFamily: SANS,
+            background: `radial-gradient(120% 80% at 100% 0%, ${DEKK.goldSoft} 0%, ${DEKK.cream} 46%, ${DEKK.creamDeep} 100%)`,
+            display: 'flex', flexDirection: 'column',
+            animation: 'dekkFade 260ms var(--dekk-ease, ease) both',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            overflowY: 'auto',
+          }}
+        >
+          <style>{`
+            @keyframes dekkMenuItem{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+            .dekk-menu-item{animation:dekkMenuItem 520ms var(--dekk-ease, cubic-bezier(.22,.8,.24,1)) both}
+            .dekk-menu-item .dekk-menu-rule{transform:scaleX(.16);transform-origin:left;transition:transform 420ms var(--dekk-ease, ease)}
+            .dekk-menu-item:active .dekk-menu-rule{transform:scaleX(1)}
+            .dekk-menu-num{font-variant-numeric:tabular-nums}
+          `}</style>
+
+          {/* Barre haute */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '18px 20px', borderBottom: `1px solid ${DEKK.line}`,
+          }}>
+            <div>
+              <div style={{ fontFamily: SERIF, fontSize: 22, letterSpacing: '0.3em', paddingLeft: '0.3em', lineHeight: 1 }}>DËKK</div>
+              <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: DEKK.muted, marginTop: 5 }}>
+                by Yobbanté
+              </div>
+            </div>
+            <button onClick={() => setMenuOpen(false)} aria-label="Fermer le menu"
+              style={{
+                width: 44, height: 44, borderRadius: 999, border: `1px solid ${DEKK.line}`,
+                background: 'rgba(255,255,255,0.7)', color: DEKK.ink, display: 'inline-flex',
+                alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              }}>
+              <X size={20} />
+            </button>
           </div>
-          <nav style={{ display: 'grid', gap: 4, marginTop: 40 }}>
-            {NAV.map((n) => (
-              <Link key={n.label} to={n.to} onClick={() => setMenuOpen(false)}
-                style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0', borderBottom: `1px solid ${DEKK.line}` }}>
-                {n.label}
+
+          {/* Liens principaux */}
+          <nav style={{ padding: '10px 20px 4px', flex: 1 }}>
+            {[...NAV, { label: 'Favoris', to: '/boutique?wishlist=1' }, { label: 'Mon compte', to: '/mon-compte' }].map((n, i) => (
+              <Link
+                key={n.label}
+                to={n.to}
+                onClick={() => setMenuOpen(false)}
+                className="dekk-menu-item"
+                style={{
+                  display: 'block', textDecoration: 'none', color: DEKK.ink,
+                  padding: '16px 0 12px', animationDelay: `${60 + i * 55}ms`,
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+                  <span className="dekk-menu-num" style={{ fontFamily: MONO, fontSize: 10, color: DEKK.gold, letterSpacing: '0.14em' }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span style={{ fontFamily: SERIF, fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.01em' }}>{n.label}</span>
+                </span>
+                <span className="dekk-menu-rule" style={{ display: 'block', height: 1, background: DEKK.gold, marginTop: 14 }} />
               </Link>
             ))}
-            <Link to="/boutique?wishlist=1" onClick={() => setMenuOpen(false)}
-              style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0', borderBottom: `1px solid ${DEKK.line}` }}>
-              Favoris
-            </Link>
-            <Link to="/mon-compte" onClick={() => setMenuOpen(false)}
-              style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0' }}>
-              Mon compte
-            </Link>
-
           </nav>
+
+          {/* Pied de menu */}
+          <div style={{ padding: '18px 20px 26px', borderTop: `1px solid ${DEKK.line}` }}>
+            <button
+              onClick={() => { setMenuOpen(false); openDekkCart(); }}
+              className="dekk-press"
+              style={{
+                width: '100%', height: 52, border: 'none', cursor: 'pointer',
+                background: DEKK.ink, color: '#F7F4EF', fontFamily: MONO, fontSize: 11,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}
+            >
+              <ShoppingBag size={16} />
+              Voir le panier{cartCount > 0 ? ` · ${cartCount}` : ''}
+            </button>
+            <p style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: DEKK.muted, marginTop: 16, textAlign: 'center' }}>
+              Livraison offerte dès 25 000 FCFA
+            </p>
+          </div>
         </div>
       )}
+
     </header>
   );
 }
