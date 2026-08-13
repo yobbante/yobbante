@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus, Globe } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Send, Filter, Image as ImageIcon, Smartphone, MessageSquarePlus, Plus, Globe, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useManualDepartures, type ManualDeparture } from '@/hooks/useManualDepartures';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSeo } from '@/hooks/useSeo';
@@ -51,7 +55,7 @@ function buildWhatsAppText(departures: ManualDeparture[]): string {
 
 export default function DeparturesWeekPage() {
   useSeo({ title: 'Départs de la semaine · Admin Yobbanté', path: '/admin/departs-semaine' });
-  const { list } = useManualDepartures();
+  const { list, remove } = useManualDepartures();
   const qc = useQueryClient();
   const [routeFilter, setRouteFilter] = useState('');
   const [modeFilter, setModeFilter] = useState('all');
@@ -61,6 +65,8 @@ export default function DeparturesWeekPage() {
   const [selected, setSelected] = useState<ManualDeparture | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<ManualDeparture | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ManualDeparture | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   // Realtime — refetch on any change to manual_departures
@@ -281,7 +287,6 @@ export default function DeparturesWeekPage() {
                   const total = d.total_capacity_kg;
                   const used = Math.max(0, total - remaining);
                   const pct = total > 0 ? Math.round((used / total) * 100) : 0;
-                  const pub = PUB_BADGE[d.publication_status ?? 'draft'];
                   return (
                     <button
                       key={d.id}
@@ -355,9 +360,9 @@ export default function DeparturesWeekPage() {
         onCreated={() => qc.invalidateQueries({ queryKey: ['manual_departures'] })}
       />
       <ManualDepartureForm
-        open={creating}
-        departure={null}
-        onClose={() => setCreating(false)}
+        open={creating || !!editing}
+        departure={editing}
+        onClose={() => { setCreating(false); setEditing(null); }}
       />
     </div>
   );
