@@ -243,7 +243,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <>
-              {section !== 'messages' && <AdminBreadcrumb section={section} />}
+              {section !== 'messages' && <div className="hidden md:block"><AdminBreadcrumb section={section} /></div>}
               {section === 'overview' && <OverviewTab onJump={setSection} />}
               {section === 'dossiers' && <DossiersHubTab />}
               {section === 'departs'  && <DepartsHubTab />}
