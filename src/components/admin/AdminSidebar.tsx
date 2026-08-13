@@ -25,6 +25,9 @@ export type AdminSection =
   | 'settings';
 
 type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+
+// Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
+export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
 type NavGroup = { label: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -73,10 +76,11 @@ const HIDDEN_SECTIONS: NavItem[] = [
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
 
-export function AdminSidebar({ active, onChange, isAdmin }: {
+export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
+  isAgent?: boolean;
 }) {
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
@@ -138,9 +142,11 @@ export function AdminSidebar({ active, onChange, isAdmin }: {
         minWidth: 220,
       }}
     >
-      <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />
+      {!isAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
       {NAV_GROUPS.map((group, gi) => {
-        const visibleItems = group.items.filter(n => !n.adminOnly || isAdmin);
+        const visibleItems = group.items.filter(n =>
+          (!n.adminOnly || isAdmin) && (!isAgent || AGENT_SECTIONS.includes(n.id)),
+        );
         if (visibleItems.length === 0) return null;
         return (
           <div key={gi} className="flex flex-col gap-0.5">
