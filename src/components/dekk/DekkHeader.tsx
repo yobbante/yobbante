@@ -58,6 +58,16 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
     if (searchOpen) setTimeout(() => inputRef.current?.focus(), 40);
   }, [searchOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
+
+
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q.length < 2) return [];
