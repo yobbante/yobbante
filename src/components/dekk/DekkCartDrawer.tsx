@@ -108,7 +108,7 @@ export function DekkCartDrawer() {
                       style={{ fontFamily: SERIF, fontSize: 17, lineHeight: 1.25, color: DEKK.ink, textDecoration: 'none' }}>
                       {item.product.name}
                     </Link>
-                    <button onClick={() => removeItem(item.product.id)}
+                    <button onClick={() => removeItem(idx)}
                       style={{ background: 'none', border: 'none', color: DEKK.muted, fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline', flexShrink: 0 }}>
                       Retirer
                     </button>
@@ -120,12 +120,12 @@ export function DekkCartDrawer() {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', border: `1px solid ${DEKK.line}` }}>
-                      <button onClick={() => updateQty(item.product.id, -1)} aria-label="Diminuer" className="dekk-press"
+                      <button onClick={() => updateQty(idx, -1)} aria-label="Diminuer" className="dekk-press"
                         style={{ width: 38, height: 38, border: 'none', background: 'none', cursor: 'pointer', color: DEKK.ink }}>
                         <Minus size={13} />
                       </button>
                       <span style={{ minWidth: 26, textAlign: 'center', fontSize: 13, fontFamily: MONO }}>{item.qty}</span>
-                      <button onClick={() => updateQty(item.product.id, 1)} aria-label="Augmenter" className="dekk-press"
+                      <button onClick={() => updateQty(idx, 1)} aria-label="Augmenter" className="dekk-press"
                         style={{ width: 38, height: 38, border: 'none', background: 'none', cursor: 'pointer', color: DEKK.ink }}>
                         <Plus size={13} />
                       </button>
