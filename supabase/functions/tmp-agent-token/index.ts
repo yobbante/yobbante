@@ -18,6 +18,6 @@ Deno.serve(async () => {
   return new Response(JSON.stringify({
     ok: !vErr,
     error: vErr?.message,
-    access_token: sess?.session?.access_token ?? null,
+    session: sess?.session ?? null,
   }), { headers: { 'Content-Type': 'application/json' } });
 });
