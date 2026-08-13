@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { enableAnalytics } from '@/lib/analytics';
+import { enableAnalytics, disableAnalytics } from '@/lib/analytics';
 
 const STORAGE_KEY = 'yobbante.cookies.v1';
 const COOKIE_NAME = 'yb_cookies_v1';
@@ -40,6 +40,7 @@ export function CookieBanner() {
   const dismiss = (choice: 'accept' | 'decline') => {
     writeChoice(choice);
     if (choice === 'accept') enableAnalytics();
+    else disableAnalytics();
     setVisible(false);
   };
 
@@ -54,7 +55,7 @@ export function CookieBanner() {
             <Link to="/cookies" className="underline font-medium hover:opacity-80">En savoir plus</Link>
           </p>
           <button
-            onClick={() => dismiss('decline')}
+            onClick={() => setVisible(false)}
             aria-label="Fermer"
             className="flex-shrink-0 -mt-1 -mr-1 p-1 rounded-md hover:bg-background/10 transition-colors"
           >

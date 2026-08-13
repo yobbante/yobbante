@@ -52,6 +52,38 @@ function hasConsent(): boolean {
 }
 
 /**
+ * Meta Pixel : `fbq('consent','revoke')` met TOUS les événements en file
+ * d'attente (zéro requête facebook.com/tr). On ne révoque donc que si
+ * l'utilisateur a explicitement refusé ; tant qu'il n'a pas décidé, le pixel
+ * fonctionne normalement (comportement Meta par défaut).
+ */
+function pixelConsentState(): 'grant' | 'revoke' {
+  try {
+    return localStorage.getItem(CONSENT_KEY) === 'decline' ? 'revoke' : 'grant';
+  } catch {
+    return 'grant';
+  }
+}
+
+/** Debug : `?adebug=1` ou localStorage `yobbante.analytics.debug=1`. */
+function debugOn(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (new URLSearchParams(window.location.search).get('adebug') === '1') {
+      localStorage.setItem('yobbante.analytics.debug', '1');
+    }
+    return localStorage.getItem('yobbante.analytics.debug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function alog(...args: unknown[]): void {
+  if (debugOn()) console.log('[analytics]', ...args);
+}
+
+
+/**
  * IMPORTANT : gtag.js n'accepte QUE des objets `arguments` dans le dataLayer.
  * Pousser un vrai Array (`dataLayer.push(args)`) fait que gtag.js ignore
  * silencieusement les commandes `config`/`event` → aucun hit /g/collect.
@@ -129,9 +161,10 @@ function injectMetaPixel(): void {
   })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
   /* eslint-enable */
 
-  window.fbq!('consent', hasConsent() ? 'grant' : 'revoke');
+  window.fbq!('consent', pixelConsentState());
   window.fbq!('init', META_PIXEL_ID);
   window.fbq!('track', 'PageView');
+  alog('fbq init + PageView', META_PIXEL_ID, pixelConsentState());
   pixelPageviewSent = true;
 }
 
@@ -163,11 +196,24 @@ export function enableAnalytics(): void {
   window.fbq?.('consent', 'grant');
 }
 
+/** Call after user clicks Decline — coupe le pixel Meta. */
+export function disableAnalytics(): void {
+  if (typeof window === 'undefined') return;
+  window.gtag?.('consent', 'update', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+  });
+  window.fbq?.('consent', 'revoke');
+}
+
 /** Push a custom event to the dataLayer + GA4. Safe no-op when tags absent. */
 export function track(event: string, params: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event, ...params });
+  alog('gtag event', event, params);
   window.gtag?.('event', event, params);
 }
 
@@ -198,8 +244,11 @@ function fb(event: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return;
   injectMetaPixel(); // SPA : le pixel peut ne pas encore être installé au boot
   if (!window.fbq) return;
+  alog('fbq track', event, params);
   window.fbq('track', event, params);
 }
+
+
 
 export const ecommerce = {
   viewContent(item: EcomItem, money: Money) {
