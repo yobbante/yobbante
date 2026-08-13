@@ -4067,6 +4067,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_agent_support: { Args: { _user_id: string }; Returns: boolean }
       is_business_admin: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
@@ -4197,7 +4198,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff" | "user"
+      app_role: "admin" | "staff" | "user" | "agent_support"
       business_account_status: "pending" | "active" | "suspended"
       business_invitation_status: "pending" | "accepted" | "expired" | "revoked"
       business_invoice_status:
@@ -4406,7 +4407,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "user"],
+      app_role: ["admin", "staff", "user", "agent_support"],
       business_account_status: ["pending", "active", "suspended"],
       business_invitation_status: ["pending", "accepted", "expired", "revoked"],
       business_invoice_status: [
