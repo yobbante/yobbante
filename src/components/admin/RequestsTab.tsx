@@ -509,7 +509,7 @@ export function RequestsTab({
                     {/* Ligne dépliée */}
                     {isOpen && (
                       <tr key={`${d.id}-expanded`} className="bg-secondary/20">
-                        <td colSpan={5} className="px-4 py-3 border-t border-border">
+                        <td colSpan={6} className="px-4 py-3 border-t border-border">
                           <div className="space-y-3">
                             <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
