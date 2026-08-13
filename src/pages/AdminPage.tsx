@@ -78,7 +78,9 @@ export default function AdminPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { section: pathSlug } = useParams<{ section?: string }>();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { data: brief } = useAdminBrief();
+
 
   // Resolve slug (handles both new IDs and legacy redirects)
   const resolved = resolveSlug(pathSlug);
