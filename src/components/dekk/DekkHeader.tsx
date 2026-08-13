@@ -85,7 +85,23 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
         .dekk-icon-btn:hover{color:${DEKK.gold}}
         @media (max-width:860px){ .dekk-desktop-only{display:none !important} }
         @media (min-width:861px){ .dekk-mobile-only{display:none !important} }
+        @media (max-width:860px){
+          .dekk-topbar{height:60px !important;padding:0 12px !important;gap:6px !important}
+          .dekk-actions{gap:2px !important}
+          /* cibles tactiles 44px */
+          .dekk-actions .dekk-icon-btn, .dekk-menu-btn{
+            width:44px;height:44px;padding:0 !important;
+            align-items:center;justify-content:center;
+          }
+          .dekk-actions .dekk-icon-btn svg, .dekk-menu-btn svg{width:22px;height:22px}
+          .dekk-logo{font-size:22px !important;letter-spacing:0.26em !important;padding-left:0.26em !important}
+        }
+        @media (max-width:380px){
+          .dekk-actions .dekk-icon-btn, .dekk-menu-btn{width:40px;height:40px}
+          .dekk-logo{font-size:20px !important}
+        }
       `}</style>
+
 
       {/* Bandeau livraison */}
       <div style={{ background: DEKK.ink, color: '#F7F4EF', textAlign: 'center', padding: '7px 16px' }}>
