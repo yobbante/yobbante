@@ -39,6 +39,12 @@ interface SendPayload {
   trigger_type?: string;
   /** Override explicite du phone_number_id Meta utilise pour l'envoi. */
   phone_id?: string;
+  /** Envoi d'un média (lien HTTPS accessible par Meta). */
+  media_url?: string;
+  media_type?: 'image' | 'document' | 'video' | 'audio';
+  media_filename?: string;
+  media_caption?: string;
+
 
   // legacy
   client_name?: string;
@@ -250,14 +256,16 @@ Deno.serve(async (req) => {
   }
 
   // Build Meta payload
-  const useTemplate = !!body.template_name;
-  const useInteractive = !!body.interactive_type
+  const useMedia = !!body.media_url && /^https:\/\//i.test(String(body.media_url));
+  const useTemplate = !useMedia && !!body.template_name;
+  const useInteractive = !useMedia && !!body.interactive_type
     && (body.interactive_type === 'button' || body.interactive_type === 'list');
   let metaBody: Record<string, unknown>;
   let messageBody: string | null = null;
   let activeTemplateName: string | null = body.template_name ?? null;
-  let messageType: 'text' | 'template' | 'interactive' = 'text';
+  let messageType: 'text' | 'template' | 'interactive' | 'media' = 'text';
   let interactivePayloadSnapshot: any = null;
+
 
   const truncate = (s: string, n: number) => (s ?? '').toString().slice(0, n);
 
@@ -331,7 +339,27 @@ Deno.serve(async (req) => {
     };
   };
 
-  if (useTemplate) {
+  if (useMedia) {
+    const kind = body.media_type ?? 'document';
+    const caption = truncate(body.media_caption ?? body.message ?? '', 1024);
+    const mediaObj: Record<string, unknown> = { link: body.media_url };
+    if (kind === 'document') {
+      mediaObj.filename = truncate(body.media_filename || 'document', 240);
+      if (caption) mediaObj.caption = caption;
+    } else if (kind === 'image' || kind === 'video') {
+      if (caption) mediaObj.caption = caption;
+    }
+    metaBody = {
+      messaging_product: 'whatsapp',
+      to: recipient,
+      type: kind,
+      [kind]: mediaObj,
+    };
+    messageType = 'media';
+    messageBody = caption || `[${kind}] ${body.media_filename ?? ''}`.trim();
+    console.log('WA_MEDIA', { kind, filename: body.media_filename ?? null });
+  } else if (useTemplate) {
+
     metaBody = buildTemplateBody(body.template_name!);
     messageType = 'template';
     // BUG 1 — Pre-render the human-readable text so we store something usable

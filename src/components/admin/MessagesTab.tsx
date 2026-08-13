@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -179,9 +179,13 @@ export function MessagesTab() {
   const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const [clientBotPausedUntil, setClientBotPausedUntil] = useState<string | null>(null);
   const [clientPauseDuration, setClientPauseDuration] = useState<number>(60); // minutes
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
   const clientPauseTypingRef = useRef<number | null>(null);
+
 
   // ---------- Initial load + realtime subscriptions ----------
   const [reloading, setReloading] = useState(false);
@@ -622,8 +626,43 @@ export function MessagesTab() {
   }, [openPhone, inbound]);
   const windowStatus = useMemo(() => computeWindowStatus(lastInboundAt), [lastInboundAt]);
 
+  const MAX_ATTACHMENT_MB = 16;
+
+  function mediaKindOf(file: File): 'image' | 'video' | 'audio' | 'document' {
+    const t = file.type || '';
+    if (t.startsWith('image/')) return 'image';
+    if (t.startsWith('video/')) return 'video';
+    if (t.startsWith('audio/')) return 'audio';
+    return 'document';
+  }
+
+  /** Upload dans le bucket privé + URL signée (Meta télécharge le fichier immédiatement). */
+  async function uploadAttachment(file: File): Promise<{ url: string; kind: ReturnType<typeof mediaKindOf> }> {
+    const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-120) || 'fichier';
+    const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${safeName}`;
+    const { error: upErr } = await supabase.storage
+      .from('admin-attachments')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+    if (upErr) throw upErr;
+    const { data, error } = await supabase.storage
+      .from('admin-attachments')
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (error || !data?.signedUrl) throw error ?? new Error('URL signée indisponible');
+    return { url: data.signedUrl, kind: mediaKindOf(file) };
+  }
+
+  function pickAttachment(file: File | null) {
+    if (!file) { setAttachment(null); return; }
+    if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+      toast.error(`Fichier trop lourd (max ${MAX_ATTACHMENT_MB} Mo pour WhatsApp)`);
+      return;
+    }
+    setAttachment(file);
+  }
+
   async function sendClientFree() {
-    if (!openPhone || !clientFreeText.trim()) return;
+    if (!openPhone) return;
+    if (!clientFreeText.trim() && !attachment) return;
     if (windowStatus !== 'open') {
       toast.error('Fenêtre WhatsApp fermée — utilisez un template.');
       return;
@@ -632,30 +671,68 @@ export function MessagesTab() {
     try {
       // Auto-pause le bot client pour éviter tout chevauchement (durée choisie, défaut 1h)
       await pauseClientBot(clientPauseDuration, true);
-      const { error } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          recipient_phone: openPhone,
-          recipient_type: 'client',
-          message: clientFreeText.trim(),
-          trigger_type: 'admin_free_text_client',
-        },
-      });
-      if (error) throw error;
+
+      const text = clientFreeText.trim();
+
+      if (attachment) {
+        setUploading(true);
+        const { url, kind } = await uploadAttachment(attachment);
+        setUploading(false);
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: openPhone,
+            recipient_type: 'client',
+            media_url: url,
+            media_type: kind,
+            media_filename: attachment.name,
+            media_caption: kind === 'image' || kind === 'video' || kind === 'document' ? text : '',
+            trigger_type: 'admin_attachment_client',
+          },
+        });
+        if (error) throw error;
+        // Audio/sticker n'acceptent pas de légende → envoyer le texte à part
+        if (text && kind === 'audio') {
+          await supabase.functions.invoke('send-whatsapp', {
+            body: {
+              recipient_phone: openPhone,
+              recipient_type: 'client',
+              message: text,
+              trigger_type: 'admin_free_text_client',
+            },
+          });
+        }
+      } else {
+        const { error } = await supabase.functions.invoke('send-whatsapp', {
+          body: {
+            recipient_phone: openPhone,
+            recipient_type: 'client',
+            message: text,
+            trigger_type: 'admin_free_text_client',
+          },
+        });
+        if (error) throw error;
+      }
+
       const label = clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration / 60)}h` : `${clientPauseDuration}min`;
-      toast.success(`Message envoyé · Bot en pause ${label}`);
+      toast.success(`${attachment ? 'Fichier envoyé' : 'Message envoyé'} · Bot en pause ${label}`);
       setClientFreeText('');
+      setAttachment(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     } finally {
+      setUploading(false);
       setSending(false);
+    }
   }
+
 
   // Default composer tab based on WhatsApp window status
   useEffect(() => {
     if (!openPhone) return;
     setClientComposerTab(windowStatus === 'open' ? 'free' : 'templates');
   }, [windowStatus, openPhone]);
-  }
+
 
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
@@ -1171,19 +1248,61 @@ export function MessagesTab() {
                           <Textarea
                             value={clientFreeText}
                             onChange={(e) => onClientTyping(e.target.value)}
-                            placeholder="Écrire un message... (le bot sera automatiquement mis en pause)"
+                            placeholder={attachment ? 'Légende du fichier (optionnel)…' : 'Écrire un message... (le bot sera automatiquement mis en pause)'}
                             rows={2}
                             className="text-xs resize-none"
                           />
+
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                            onChange={(e) => pickAttachment(e.target.files?.[0] ?? null)}
+                          />
+
+                          {attachment && (
+                            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                              <Paperclip className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">{attachment.name}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {(attachment.size / 1024 / 1024).toFixed(1)} Mo
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Retirer le fichier"
+                                onClick={() => { setAttachment(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                className="shrink-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[9px] text-muted-foreground italic">
-                              Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
-                            </span>
-                            <Button onClick={sendClientFree} disabled={sending || !clientFreeText.trim()} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-[11px] gap-1"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={sending}
+                                title="Joindre un document, une photo ou un devis (max 16 Mo)"
+                              >
+                                <Paperclip className="w-3.5 h-3.5" />
+                                <span className="hidden md:inline">Joindre</span>
+                              </Button>
+                              <span className="text-[9px] text-muted-foreground italic truncate">
+                                Envoi = pause auto du bot ({clientPauseDuration >= 60 ? `${Math.round(clientPauseDuration/60)}h` : `${clientPauseDuration}min`})
+                              </span>
+                            </div>
+                            <Button onClick={sendClientFree} disabled={sending || (!clientFreeText.trim() && !attachment)} size="sm" className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
                               {sending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                              Envoyer
+                              {uploading ? 'Envoi du fichier…' : 'Envoyer'}
                             </Button>
                           </div>
+
                         </>
                       ) : (
                         <p className="text-[11px] text-orange-400/90 italic">
