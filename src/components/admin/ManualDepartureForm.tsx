@@ -565,7 +565,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               </Select>
               {matched && gpCityKeys.size > 0 && (
                 <p className="text-[11px] text-primary/80 mt-1">
-                  Destination pré-remplie depuis les navettes de ce GP ({gpCityKeys.size}{gpCityKeys.size > 1 ? ' villes desservies' : ' ville desservie'}) — vous pouvez aussi en choisir une autre.
+                  Pré-rempli depuis les trajets connus de ce GP ({gpCities.slice(0, 3).join(', ')}{gpCities.length > 3 ? '…' : ''}) — vous pouvez choisir une autre ville.
                 </p>
               )}
               <div className="mt-2 flex items-center gap-3 text-[11px]">
