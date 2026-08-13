@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export type DepartureStatus = 'active' | 'full' | 'cancelled' | 'draft' | 'expired';
-export type TransportMode = 'air' | 'sea_lcl' | 'road';
+export type TransportMode = 'gp' | 'air' | 'sea_lcl' | 'road';
 
 export interface ManualDeparture {
   id: string;
