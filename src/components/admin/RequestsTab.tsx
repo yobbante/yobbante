@@ -410,8 +410,7 @@ export function RequestsTab({
                     <tr
                       key={d.id}
                       data-dossier-id={d.id}
-                      onClick={() => setExpandedId(isOpen ? null : d.id)}
-                      onDoubleClick={() => sheet.open(d.id)}
+                      onClick={() => { setExpandedId(d.id); sheet.open(d.id); }}
                       className={cn(
                         'cursor-pointer transition-colors',
                         isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
