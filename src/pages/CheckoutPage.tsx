@@ -11,7 +11,10 @@ import { fcfaOf } from '@/hooks/useDekkCart';
 const DEKK = { accent: '#C97B3A', accentSoft: '#FBF3EA', ink: '#0E0E0E', line: '#ECECEC', muted: '#6B6B6B' };
 
 type Product = { id: string; name: string; price_eur: number; price_fcfa: number; image_url: string | null; stock_mode: string; delivery_days: number | null };
-type CartItem = { product: Product; qty: number };
+type CartItem = { product: Product; qty: number; size?: string | null; color?: string | null };
+
+/** Taux de conversion d'affichage EUR → FCFA (fixe, zone UEMOA). */
+const EUR_XOF = 655;
 
 const fmtEur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`;
 const fmtFcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
@@ -82,9 +85,14 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, payment]);
 
-  const subtotal = useMemo(() => cart.reduce((s, i) => s + i.product.price_eur * i.qty, 0), [cart]);
+  /** Tous les montants du tunnel sont en FCFA (devise de facturation réelle). */
+  const subtotalFcfa = useMemo(() => cart.reduce((s, i) => s + fcfaOf(i.product) * i.qty, 0), [cart]);
   const itemsCount = cart.reduce((s, i) => s + i.qty, 0);
-  const discount = promo?.discount_eur ?? 0;
+  const discountFcfa = Math.min(subtotalFcfa, Math.round((promo?.discount_eur ?? 0) * EUR_XOF));
+  const totalFcfa = Math.max(0, subtotalFcfa - discountFcfa);
+  /** Équivalents EUR conservés pour la base et les codes promo. */
+  const subtotal = Math.round(subtotalFcfa / EUR_XOF);
+  const discount = Math.round(discountFcfa / EUR_XOF);
   const total = Math.max(0, subtotal - discount);
 
   // Recompute discount when subtotal changes (re-validate against the rules)
@@ -92,7 +100,7 @@ export default function CheckoutPage() {
     if (!promo) return;
     void validatePromo(promo.code, /* silent */ true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subtotal]);
+  }, [subtotalFcfa]);
 
   async function validatePromo(rawCode: string, silent = false) {
     const code = rawCode.trim().toUpperCase();
@@ -111,7 +119,7 @@ export default function CheckoutPage() {
       if (p.expires_at && new Date(p.expires_at) < new Date()) throw new Error('Ce code a expiré.');
       if (p.max_uses != null && p.used_count >= p.max_uses) throw new Error('Ce code a atteint sa limite d\'utilisation.');
       if (subtotal < (p.min_subtotal_eur ?? 0)) {
-        throw new Error(`Minimum d'achat : ${p.min_subtotal_eur} €.`);
+        throw new Error(`Minimum d'achat : ${fmtFcfa(Math.round((p.min_subtotal_eur ?? 0) * EUR_XOF))}.`);
       }
       const d = p.discount_type === 'percent'
         ? Math.min(subtotal, Math.floor(subtotal * p.discount_value / 100))
@@ -148,7 +156,7 @@ export default function CheckoutPage() {
       discount_eur: discount,
       promo_code: promo?.code ?? null,
       total_eur: total,
-      total_fcfa: total * 655,
+      total_fcfa: totalFcfa,
       status: 'pending',
     };
     let orderId: string | undefined;
@@ -168,7 +176,7 @@ export default function CheckoutPage() {
           items: cart,
           subtotal_eur: Math.round(subtotal),
           total_eur: Math.round(total),
-          total_fcfa: Math.round(total * 655),
+          total_fcfa: Math.round(totalFcfa),
           status: order.status,
           user_id: session?.user?.id ?? null,
         });
@@ -318,7 +326,7 @@ export default function CheckoutPage() {
                   <button onClick={() => setStep('delivery')} style={ghostBtn}>← Modifier la livraison</button>
                   <button onClick={handleConfirm} disabled={submitting || promoApplying}
                     style={{ ...primaryBtn, flex: 1, opacity: (submitting || promoApplying) ? 0.6 : 1, cursor: (submitting || promoApplying) ? 'not-allowed' : 'pointer' }}>
-                    {submitting ? 'Confirmation…' : promoApplying ? 'Vérification du code…' : `Confirmer la commande · ${fmtEur(total)}`}
+                    {submitting ? 'Confirmation…' : promoApplying ? 'Vérification du code…' : `Confirmer la commande · ${fmtFcfa(totalFcfa)}`}
                   </button>
                 </div>
               </section>
@@ -329,8 +337,8 @@ export default function CheckoutPage() {
           <aside style={{ alignSelf: 'start', position: 'sticky', top: 20, border: `1px solid ${DEKK.line}`, borderRadius: 16, padding: 20, background: '#FAFAFA' }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Votre commande ({itemsCount})</div>
             <div style={{ maxHeight: 240, overflowY: 'auto', marginBottom: 14 }}>
-              {cart.map(item => (
-                <div key={item.product.id} style={{ display: 'flex', gap: 10, padding: '8px 0' }}>
+              {cart.map((item, k) => (
+                <div key={`${item.product.id}-${k}`} style={{ display: 'flex', gap: 10, padding: '8px 0' }}>
                   <div style={{ position: 'relative', width: 52, height: 52, borderRadius: 8, background: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                     {item.product.image_url && <img src={item.product.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     <span style={{ position: 'absolute', top: -4, right: -4, background: DEKK.ink, color: '#fff', fontSize: 9, fontWeight: 700, width: 18, height: 18, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -341,15 +349,20 @@ export default function CheckoutPage() {
                     <div style={{ fontWeight: 500, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {item.product.name}
                     </div>
+                    {(item.size || item.color) && (
+                      <div style={{ fontSize: 11, color: DEKK.muted, marginTop: 2 }}>
+                        {[item.size, item.color].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, alignSelf: 'center' }}>
-                    {fmtEur(item.product.price_eur * item.qty)}
+                    {fmtFcfa(fcfaOf(item.product) * item.qty)}
                   </div>
                 </div>
               ))}
             </div>
             <div style={{ borderTop: `0.5px solid ${DEKK.line}`, paddingTop: 12 }}>
-              <SummaryRow label="Sous-total" value={fmtEur(subtotal)} />
+              <SummaryRow label="Sous-total" value={fmtFcfa(subtotalFcfa)} />
               <SummaryRow label="Livraison" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>Incluse</span>} />
 
               {/* Promo code */}
@@ -359,7 +372,7 @@ export default function CheckoutPage() {
                     <Tag size={13} color="#0E7A4F" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#0E7A4F', fontFamily: '"DM Mono", monospace', letterSpacing: '0.04em' }}>{promo.code}</div>
-                      <div style={{ fontSize: 11, color: DEKK.muted }}>−{fmtEur(promo.discount_eur)} appliqués</div>
+                      <div style={{ fontSize: 11, color: DEKK.muted }}>−{fmtFcfa(Math.round(promo.discount_eur * EUR_XOF))} appliqués</div>
                     </div>
                     <button type="button" onClick={() => { setPromo(null); setPromoInput(''); setPromoError(null); }}
                       aria-label="Retirer le code"
@@ -392,14 +405,14 @@ export default function CheckoutPage() {
               </div>
 
               {discount > 0 && (
-                <SummaryRow label="Remise" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>−{fmtEur(discount)}</span>} />
+                <SummaryRow label="Remise" value={<span style={{ color: '#0E7A4F', fontWeight: 600 }}>−{fmtFcfa(discountFcfa)}</span>} />
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>Total</span>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtEur(total)}</div>
-                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtFcfa(total * 655)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>{fmtFcfa(totalFcfa)}</div>
+                  <div style={{ fontSize: 10, color: DEKK.muted, fontFamily: '"DM Mono", monospace' }}>≈ {fmtEur(total)}</div>
                 </div>
               </div>
             </div>
