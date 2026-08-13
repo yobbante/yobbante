@@ -117,13 +117,31 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
     .filter((c) => c.city.toLowerCase() !== 'dakar') // hub exclu
     .sort((a, b) => a.city.localeCompare(b.city, 'fr'));
 
-  // Si un GP est identifié et a des villes desservies (via navettes),
-  // restreindre le sélecteur à ces villes. Sinon, catalogue DB complet.
-  const gpCities = uniqueCitiesFromNavettes(matched?.navettes);
+  // Villes desservies par le GP : navettes déclarées + historique de départs
+  // + sa ville de rattachement si elle n'est pas Dakar.
+  const { data: historyCities } = useGpServedCities(matched ? tRef : null);
+  const gpCities = (() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    const push = (c?: string | null) => {
+      const v = (c ?? '').trim();
+      if (!v || v.toLowerCase() === 'dakar') return;
+      const k = v.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k); out.push(v);
+    };
+    uniqueCitiesFromNavettes(matched?.navettes).forEach(push);
+    (historyCities ?? []).forEach(push);
+    Object.keys(matched?.default_routes ?? {}).forEach(push);
+    push(matched?.ville);
+    return out;
+  })();
   const gpCityKeys = new Set(gpCities.map((c) => c.toLowerCase()));
-  // Villes desservies par le GP en premier, puis le reste du catalogue —
-  // l'admin peut toujours choisir une autre destination.
-  const gpCatalog = fullCityCatalog.filter((c) => gpCityKeys.has(c.city.toLowerCase()));
+  // Villes desservies par le GP en premier (dans l'ordre de pertinence),
+  // puis le reste du catalogue — l'admin peut toujours choisir autre chose.
+  const gpCatalog = gpCities
+    .map((name) => fullCityCatalog.find((c) => c.city.toLowerCase() === name.toLowerCase()))
+    .filter((c): c is typeof fullCityCatalog[number] => !!c);
   const otherCatalog = fullCityCatalog.filter((c) => !gpCityKeys.has(c.city.toLowerCase()));
   const cityCatalog = [...gpCatalog, ...otherCatalog];
 
