@@ -228,7 +228,7 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
       )}
 
       {/* Menu mobile — plein écran éditorial */}
-      {menuOpen && (
+      {menuOpen && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
