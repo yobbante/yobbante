@@ -193,13 +193,12 @@ export default function AdminPage() {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto">
-        {/* Mobile header */}
-        <header className="lg:hidden sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
-          <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded text-muted-foreground hover:text-foreground">
+        {/* Mobile header — icônes uniquement */}
+        <header className="lg:hidden sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border px-2 py-1.5 flex items-center justify-between">
+          <button onClick={() => setMobileOpen(true)} aria-label="Menu" className="p-2 rounded text-muted-foreground hover:text-foreground">
             <Menu className="w-5 h-5" />
           </button>
-          <span className="text-sm font-bold tracking-tight">YOBBANTÉ — Admin</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <AdminLiveBadge className="mr-1" />
             <AdminNotificationBell />
             <button
@@ -209,7 +208,7 @@ export default function AdminPage() {
             >
               <LogOut className="w-5 h-5" />
             </button>
-            <button onClick={() => navigate('/app')} className="p-2 -mr-2 rounded text-muted-foreground hover:text-foreground">
+            <button onClick={() => navigate('/app')} aria-label="Retour à l'app" className="p-2 rounded text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-5 h-5" />
             </button>
           </div>
@@ -221,7 +220,8 @@ export default function AdminPage() {
         </div>
 
 
-        <main className={cn('flex-1 w-full flex flex-col min-h-0', section === 'messages' ? 'p-0 max-w-none' : 'px-4 md:px-8 py-6 md:py-8 max-w-6xl')}>
+        <main className={cn('flex-1 w-full flex flex-col min-h-0 pb-14 lg:pb-0', section === 'messages' ? 'p-0 max-w-none' : 'px-3 md:px-8 py-3 md:py-8 max-w-6xl')}>
+
           {isUnknownSection ? (
             <div className="py-20 text-center">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Erreur 404</p>
