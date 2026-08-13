@@ -85,7 +85,23 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
         .dekk-icon-btn:hover{color:${DEKK.gold}}
         @media (max-width:860px){ .dekk-desktop-only{display:none !important} }
         @media (min-width:861px){ .dekk-mobile-only{display:none !important} }
+        @media (max-width:860px){
+          .dekk-topbar{height:60px !important;padding:0 12px !important;gap:6px !important}
+          .dekk-actions{gap:2px !important}
+          /* cibles tactiles 44px */
+          .dekk-actions .dekk-icon-btn, .dekk-menu-btn{
+            width:44px;height:44px;padding:0 !important;
+            align-items:center;justify-content:center;
+          }
+          .dekk-actions .dekk-icon-btn svg, .dekk-menu-btn svg{width:22px;height:22px}
+          .dekk-logo{font-size:22px !important;letter-spacing:0.26em !important;padding-left:0.26em !important}
+        }
+        @media (max-width:380px){
+          .dekk-actions .dekk-icon-btn, .dekk-menu-btn{width:40px;height:40px}
+          .dekk-logo{font-size:20px !important}
+        }
       `}</style>
+
 
       {/* Bandeau livraison */}
       <div style={{ background: DEKK.ink, color: '#F7F4EF', textAlign: 'center', padding: '7px 16px' }}>
@@ -96,6 +112,7 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
 
       {/* Barre principale */}
       <div
+        className="dekk-topbar"
         style={{
           maxWidth: 1180, margin: '0 auto', padding: '0 20px', height: 68,
           display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 12,
@@ -110,14 +127,14 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
             </Link>
           ))}
         </nav>
-        <button className="dekk-mobile-only" onClick={() => setMenuOpen(true)} aria-label="Ouvrir le menu"
+        <button className="dekk-mobile-only dekk-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Ouvrir le menu"
           style={{ background: 'none', border: 'none', padding: 4, color: DEKK.ink, cursor: 'pointer', justifySelf: 'start', display: 'inline-flex' }}>
           <Menu size={22} />
         </button>
 
         {/* Centre — logo */}
         <Link to="/boutique" style={{ textDecoration: 'none', textAlign: 'center', color: DEKK.ink }}>
-          <div style={{ fontFamily: SERIF, fontSize: 26, letterSpacing: '0.32em', lineHeight: 1, paddingLeft: '0.32em' }}>
+          <div className="dekk-logo" style={{ fontFamily: SERIF, fontSize: 26, letterSpacing: '0.32em', lineHeight: 1, paddingLeft: '0.32em' }}>
             DËKK
           </div>
           <div className="dekk-desktop-only" style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: DEKK.muted, marginTop: 5 }}>
@@ -126,17 +143,17 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
         </Link>
 
         {/* Droite — icônes */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18, justifySelf: 'end' }}>
+        <div className="dekk-actions" style={{ display: 'flex', alignItems: 'center', gap: 18, justifySelf: 'end' }}>
           <button className="dekk-icon-btn" onClick={() => setSearchOpen((v) => !v)} aria-label="Rechercher"
             style={iconBtn}>
             <Search size={19} />
           </button>
-          <button className="dekk-icon-btn"
+          <button className="dekk-icon-btn dekk-desktop-only"
             onClick={() => (onWishlist ? onWishlist() : nav('/boutique?wishlist=1'))}
             aria-label="Favoris" style={iconBtn}>
             <Heart size={19} />
           </button>
-          <button className="dekk-icon-btn" onClick={() => nav('/auth')} aria-label="Compte" style={iconBtn}>
+          <button className="dekk-icon-btn dekk-desktop-only" onClick={() => nav('/auth')} aria-label="Compte" style={iconBtn}>
             <User size={19} />
           </button>
           <button className="dekk-icon-btn" onClick={openDekkCart} aria-label="Voir le panier"
@@ -169,6 +186,7 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
                 placeholder="Rechercher un produit…"
                 style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 16, fontFamily: SANS, color: DEKK.ink }}
               />
+
               <button onClick={() => setSearchOpen(false)} aria-label="Fermer la recherche" style={iconBtn}>
                 <X size={17} />
               </button>
@@ -212,10 +230,15 @@ export function DekkHeader({ searchValue, onSearchChange, onWishlist, sticky = t
                 {n.label}
               </Link>
             ))}
+            <Link to="/boutique?wishlist=1" onClick={() => setMenuOpen(false)}
+              style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0', borderBottom: `1px solid ${DEKK.line}` }}>
+              Favoris
+            </Link>
             <Link to="/mon-compte" onClick={() => setMenuOpen(false)}
               style={{ fontFamily: SERIF, fontSize: 30, color: DEKK.ink, textDecoration: 'none', padding: '10px 0' }}>
               Mon compte
             </Link>
+
           </nav>
         </div>
       )}
