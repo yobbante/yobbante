@@ -179,9 +179,13 @@ export function MessagesTab() {
   const [transporteurInfo, setTransporteurInfo] = useState<{ id: string; reference: string; prenom: string | null; nom: string; ville: string; adresse_collecte_dakar: string | null; adresses_remise: Record<string, string>; bot_paused_until: string | null } | null>(null);
   const [clientBotPausedUntil, setClientBotPausedUntil] = useState<string | null>(null);
   const [clientPauseDuration, setClientPauseDuration] = useState<number>(60); // minutes
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pauseTimerRef = useRef<number | null>(null);
   const clientPauseTypingRef = useRef<number | null>(null);
+
 
   // ---------- Initial load + realtime subscriptions ----------
   const [reloading, setReloading] = useState(false);
