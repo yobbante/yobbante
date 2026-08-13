@@ -339,7 +339,27 @@ Deno.serve(async (req) => {
     };
   };
 
-  if (useTemplate) {
+  if (useMedia) {
+    const kind = body.media_type ?? 'document';
+    const caption = truncate(body.media_caption ?? body.message ?? '', 1024);
+    const mediaObj: Record<string, unknown> = { link: body.media_url };
+    if (kind === 'document') {
+      mediaObj.filename = truncate(body.media_filename || 'document', 240);
+      if (caption) mediaObj.caption = caption;
+    } else if (kind === 'image' || kind === 'video') {
+      if (caption) mediaObj.caption = caption;
+    }
+    metaBody = {
+      messaging_product: 'whatsapp',
+      to: recipient,
+      type: kind,
+      [kind]: mediaObj,
+    };
+    messageType = 'media';
+    messageBody = caption || `[${kind}] ${body.media_filename ?? ''}`.trim();
+    console.log('WA_MEDIA', { kind, filename: body.media_filename ?? null });
+  } else if (useTemplate) {
+
     metaBody = buildTemplateBody(body.template_name!);
     messageType = 'template';
     // BUG 1 — Pre-render the human-readable text so we store something usable
