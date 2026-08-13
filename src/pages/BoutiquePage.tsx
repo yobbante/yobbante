@@ -149,12 +149,16 @@ export default function BoutiquePage() {
 
       {/* ── HERO ─────────────────────────────────────── */}
       <section style={{ position: 'relative', height: 'min(78vh, 640px)', background: DEKK.ink, overflow: 'hidden' }}>
-        {hero?.image_url && (
-          <img src={dekkImageUrl(hero.image_url, { w: 1600, h: 1100 })} alt={hero.name}
-            fetchPriority="high" decoding="async"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: 0.72 }} />
-        )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,18,16,0.72) 0%, rgba(20,18,16,0.25) 70%)' }} />
+        <img
+          src={dekkHero}
+          alt="Sélection Dëkk : objets choisis et importés par Yobbanté, livrés à Dakar"
+          width={1920}
+          height={1280}
+          fetchPriority="high"
+          decoding="async"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center right' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,18,16,0.80) 0%, rgba(20,18,16,0.45) 55%, rgba(20,18,16,0.10) 100%)' }} />
         <div style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: '0 20px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 72 }}>
           <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.24em', textTransform: 'uppercase', color: DEKK.goldSoft }}>
             Dëkk — Édition 2026
