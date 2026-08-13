@@ -648,6 +648,7 @@ export function MessagesTab() {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setSending(false);
+    }
   }
 
   // Default composer tab based on WhatsApp window status
@@ -655,7 +656,7 @@ export function MessagesTab() {
     if (!openPhone) return;
     setClientComposerTab(windowStatus === 'open' ? 'free' : 'templates');
   }, [windowStatus, openPhone]);
-  }
+
 
 
   async function saveAddress(kind: 'collecte' | 'remise', value: string, city?: string) {
