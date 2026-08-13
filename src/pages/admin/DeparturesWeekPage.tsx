@@ -364,7 +364,39 @@ export default function DeparturesWeekPage() {
         departure={editing}
         onClose={() => { setCreating(false); setEditing(null); }}
       />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce départ ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete && `${confirmDelete.origin_city} → ${confirmDelete.destination_city} · Réf #${confirmDelete.short_ref ?? '----'}`}
+              <br />
+              Action définitive. Si des colis sont déjà assignés, détachez-les d'abord.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!confirmDelete) return;
+                try {
+                  await remove.mutateAsync(confirmDelete.id);
+                  toast.success('Départ supprimé');
+                  setConfirmDelete(null);
+                } catch (e: any) {
+                  toast.error(e.message ?? 'Suppression impossible');
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
