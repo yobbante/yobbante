@@ -723,68 +723,89 @@ export function MessagesTab() {
               </span>
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Mise à jour en temps réel · Clients : 607 · GP : 926</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Mise à jour en temps réel · Clients : 607 · GP : 926
+            {globalBot.paused
+              ? ' · ⏸ Tous les bots en pause'
+              : !globalBot.autoreply
+                ? ' · Bots actifs — seul l’accueil auto des nouveaux clients est coupé'
+                : ''}
+          </p>
+
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={globalBot.paused ? 'default' : 'outline'}
-            size="sm"
-            disabled={globalBot.loading || globalBot.saving}
-            onClick={async () => {
-              try {
-                const next = await globalBot.toggle();
-                toast.success(next ? 'Tous les bots sont en pause' : 'Tous les bots sont réactivés');
-              } catch {
-                toast.error('Impossible de changer l\u2019état des bots');
-              }
-            }}
-            aria-label={globalBot.paused ? 'Réactiver tous les bots' : 'Mettre tous les bots en pause'}
-            title={globalBot.paused ? 'Bots en pause — cliquer pour relancer' : 'Bots actifs — cliquer pour tout mettre en pause'}
-            className={cn(
-              'h-8 px-2 md:px-3 text-xs gap-1.5',
-              globalBot.paused && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
-            )}
-          >
-            {globalBot.saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : globalBot.paused ? (
-              <PlayCircle className="w-3.5 h-3.5" />
-            ) : (
-              <PauseCircle className="w-3.5 h-3.5" />
-            )}
-            <span className="hidden md:inline">{globalBot.paused ? 'Bots en pause' : 'Bots actifs'}</span>
-          </Button>
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background/40 p-1">
+            <Button
+              variant={globalBot.paused ? 'default' : 'outline'}
+              size="sm"
+              disabled={globalBot.loading || globalBot.saving}
+              onClick={async () => {
+                try {
+                  const next = await globalBot.toggle();
+                  toast.success(next ? 'Tous les bots sont en pause' : 'Tous les bots sont réactivés');
+                } catch {
+                  toast.error('Impossible de changer l\u2019état des bots');
+                }
+              }}
+              aria-label={globalBot.paused ? 'Réactiver tous les bots' : 'Mettre tous les bots en pause'}
+              title={globalBot.paused
+                ? 'TOUS les bots (client + GP + relances) sont en pause — cliquer pour tout relancer'
+                : 'TOUS les bots sont actifs — cliquer pour tout mettre en pause (inclut la réponse auto)'}
+              className={cn(
+                'h-8 px-2 md:px-3 text-xs gap-1.5',
+                globalBot.paused && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
+              )}
+            >
+              {globalBot.saving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : globalBot.paused ? (
+                <PlayCircle className="w-3.5 h-3.5" />
+              ) : (
+                <PauseCircle className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden md:inline">{globalBot.paused ? 'Tous les bots : pause' : 'Tous les bots : actifs'}</span>
+            </Button>
 
-          <Button
-            variant={globalBot.autoreply ? 'outline' : 'default'}
-            size="sm"
-            disabled={globalBot.loading || globalBot.savingAutoreply}
-            onClick={async () => {
-              try {
-                const next = await globalBot.toggleAutoreply();
-                toast.success(next ? 'Réponse auto nouveaux clients activée' : 'Réponse auto nouveaux clients désactivée');
-              } catch {
-                toast.error('Impossible de changer la réponse automatique');
-              }
-            }}
-            aria-label={globalBot.autoreply ? 'Désactiver la réponse auto aux nouveaux clients' : 'Activer la réponse auto aux nouveaux clients'}
-            title={globalBot.autoreply
-              ? 'Réponse auto nouveaux clients activée — cliquer pour désactiver'
-              : 'Réponse auto nouveaux clients désactivée — cliquer pour activer'}
-            className={cn(
-              'h-8 px-2 md:px-3 text-xs gap-1.5',
-              !globalBot.autoreply && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
-            )}
-          >
-            {globalBot.savingAutoreply ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Bot className="w-3.5 h-3.5" />
-            )}
-            <span className="hidden md:inline">
-              {globalBot.autoreply ? 'Réponse auto ON' : 'Réponse auto OFF'}
-            </span>
-          </Button>
+            <span className="hidden md:block h-5 w-px bg-border" aria-hidden />
+
+            <Button
+              variant={globalBot.autoreply ? 'outline' : 'default'}
+              size="sm"
+              disabled={globalBot.loading || globalBot.savingAutoreply}
+              onClick={async () => {
+                try {
+                  const next = await globalBot.toggleAutoreply();
+                  toast.success(
+                    next
+                      ? 'Accueil auto des nouveaux clients activé'
+                      : 'Accueil auto des nouveaux clients désactivé — les autres bots continuent de tourner',
+                  );
+                } catch {
+                  toast.error('Impossible de changer la réponse automatique');
+                }
+              }}
+              aria-label={globalBot.autoreply
+                ? 'Désactiver l\u2019accueil auto des nouveaux clients'
+                : 'Activer l\u2019accueil auto des nouveaux clients'}
+              title={globalBot.autoreply
+                ? 'Accueil auto des NOUVEAUX clients activé — réglage indépendant, cliquer pour le couper sans toucher aux autres bots'
+                : 'Accueil auto des NOUVEAUX clients coupé — tous les autres bots (GP, suivi de dossier, notifications) continuent normalement'}
+              className={cn(
+                'h-8 px-2 md:px-3 text-xs gap-1.5',
+                !globalBot.autoreply && 'bg-amber-500 text-zinc-950 hover:bg-amber-500/90',
+              )}
+            >
+              {globalBot.savingAutoreply ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Bot className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden md:inline">
+                {globalBot.autoreply ? 'Accueil nouveaux clients : ON' : 'Accueil nouveaux clients : OFF'}
+              </span>
+            </Button>
+          </div>
+
 
 
           <Button
