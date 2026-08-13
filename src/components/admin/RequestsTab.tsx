@@ -434,15 +434,15 @@ export function RequestsTab({
                         </div>
                       </td>
                       {/* Client */}
-                      <td className="px-3 py-2.5 align-middle hidden md:table-cell">
+                      <td className="px-3 py-2.5 align-middle">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); sheet.open(d.id); }}
-                          className="text-foreground hover:underline text-left truncate max-w-[220px] block text-[13px]"
+                          className="text-foreground hover:underline text-left truncate max-w-[220px] block text-[13px] font-medium"
                         >
                           {clientName}
                         </button>
-                        {d.contact_phone && (
+                        {d.contact_phone ? (
                           <a
                             href={`tel:${d.contact_phone}`}
                             onClick={(e) => e.stopPropagation()}
@@ -450,6 +450,10 @@ export function RequestsTab({
                           >
                             {d.contact_phone}
                           </a>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground truncate block">
+                            {[(d as any).origin_city || d.origin_country, (d as any).destination_city || d.destination_country].filter(Boolean).join(' → ')}
+                          </span>
                         )}
                       </td>
                       {/* Statut */}
@@ -461,8 +465,23 @@ export function RequestsTab({
                           {DOSSIER_STATUS_LABELS[d.status]}
                         </span>
                       </td>
+                      {/* Échéance dynamique : départ avant, arrivée après, etc. */}
+                      <td className="px-3 py-2.5 align-middle">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
+                          {timing.label}
+                        </div>
+                        <div className={cn('text-[13px] font-medium leading-tight mt-0.5', TIMING_TONE_CLASS[timing.tone])}>
+                          {timing.value}
+                        </div>
+                        {timing.hint && (
+                          <div className={cn('text-[10px] leading-none', TIMING_TONE_CLASS[timing.tone], 'opacity-80')}>
+                            {timing.hint}
+                          </div>
+                        )}
+                      </td>
                       {/* GP */}
-                      <td className="px-3 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
+
                         <GpAssignBadge
                           transporteurRef={(d as any).assigned_transporteur_ref}
                           onAssignClick={() =>
