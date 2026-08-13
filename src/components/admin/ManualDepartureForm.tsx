@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateArrivalDate } from '@/lib/deliveryEta';
+import { useGpServedCities } from '@/hooks/useGpServedCities';
 import { uniqueCitiesFromNavettes } from '@/lib/dakarZones';
 import { cn } from '@/lib/utils';
 import { Sparkles } from 'lucide-react';
