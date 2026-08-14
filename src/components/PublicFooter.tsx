@@ -166,7 +166,18 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Yobbanté. Tous droits réservés.</p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Yobbanté. Tous droits réservés.
+            <Link
+              to="/auth?mode=staff&redirect=%2Fadmin"
+              aria-label="Accès équipe"
+              title="Accès équipe"
+              className="text-muted-foreground/40 hover:text-foreground transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </Link>
+          </p>
+
           <p className="text-xs text-muted-foreground">
             powered by{' '}
             <a
