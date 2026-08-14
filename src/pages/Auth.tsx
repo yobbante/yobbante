@@ -38,11 +38,16 @@ async function resolvePostLoginRoute(userId: string, fallback: string): Promise<
 export default function Auth() {
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'apple' | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
+  const staffMode = params.get('mode') === 'staff';
   const rawRedirect = params.get('redirect') || '/app';
   const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
+
 
   // CAS 1 — Session déjà active : on redirige immédiatement et on n'affiche
   // jamais la page de connexion (évite l'écran figé après un retour OAuth).
