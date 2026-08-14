@@ -38,11 +38,16 @@ async function resolvePostLoginRoute(userId: string, fallback: string): Promise<
 export default function Auth() {
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'apple' | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
+  const staffMode = params.get('mode') === 'staff';
   const rawRedirect = params.get('redirect') || '/app';
   const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
+
 
   // CAS 1 — Session déjà active : on redirige immédiatement et on n'affiche
   // jamais la page de connexion (évite l'écran figé après un retour OAuth).
@@ -101,6 +106,29 @@ export default function Auth() {
       setLoadingProvider(null);
     }
   };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setEmailLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      toast.error(
+        error.message?.includes('Email logins are disabled')
+          ? "La connexion par email est désactivée sur le projet."
+          : 'Email ou mot de passe incorrect.',
+      );
+      setEmailLoading(false);
+      return;
+    }
+    const dest = await resolvePostLoginRoute(data.user!.id, redirectTo);
+    navigate(dest, { replace: true });
+  };
+
+
 
 
   // Tant qu'on n'a pas vérifié la session, on n'affiche rien (anti-flash).
@@ -212,12 +240,52 @@ export default function Auth() {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
-              <h3 className="text-xl font-bold tracking-tight">Connexion sécurisée</h3>
+              <h3 className="text-xl font-bold tracking-tight">
+                {staffMode ? 'Accès équipe' : 'Connexion sécurisée'}
+              </h3>
               <p className="mt-1 text-xs text-white/55">
-                Choisissez votre méthode pour accéder à votre espace.
+                {staffMode
+                  ? 'Réservé au personnel Yobbanté (admin, staff, service client).'
+                  : 'Choisissez votre méthode pour accéder à votre espace.'}
               </p>
 
-              <div className="mt-6 space-y-3">
+              {staffMode && (
+                <form onSubmit={handleEmailLogin} className="mt-6 space-y-3">
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email professionnel"
+                    className="w-full h-11 rounded-xl bg-white/[0.06] border border-white/12 px-3.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-yellow-400/60"
+                  />
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mot de passe"
+                    className="w-full h-11 rounded-xl bg-white/[0.06] border border-white/12 px-3.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-yellow-400/60"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={emailLoading}
+                    className="w-full h-11 rounded-xl bg-yellow-400 text-zinc-950 hover:bg-yellow-300 font-semibold"
+                  >
+                    {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Se connecter'}
+                  </Button>
+                </form>
+              )}
+
+              {staffMode && (
+                <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-widest text-white/30">
+                  <span className="h-px flex-1 bg-white/10" /> ou <span className="h-px flex-1 bg-white/10" />
+                </div>
+              )}
+
+              <div className={staffMode ? 'space-y-3' : 'mt-6 space-y-3'}>
                 <Button
                   variant="outline"
                   onClick={() => handleOAuth('google')}
@@ -245,6 +313,7 @@ export default function Auth() {
                 En continuant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
               </p>
             </div>
+
 
             <p className="text-center text-[11px] text-white/45 mt-6 leading-relaxed">
               Yobbanté utilise une connexion sociale sécurisée — aucun mot de passe à retenir.
