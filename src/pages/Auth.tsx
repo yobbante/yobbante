@@ -107,6 +107,29 @@ export default function Auth() {
     }
   };
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setEmailLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      toast.error(
+        error.message?.includes('Email logins are disabled')
+          ? "La connexion par email est désactivée sur le projet."
+          : 'Email ou mot de passe incorrect.',
+      );
+      setEmailLoading(false);
+      return;
+    }
+    const dest = await resolvePostLoginRoute(data.user!.id, redirectTo);
+    navigate(dest, { replace: true });
+  };
+
+
+
 
   // Tant qu'on n'a pas vérifié la session, on n'affiche rien (anti-flash).
   if (!sessionChecked) {
