@@ -272,7 +272,7 @@ export function RequestsTab({
             </p>
           </div>
         ) : <div />}
-        <div className="inline-flex rounded-md border border-border bg-card p-0.5">
+        <div className="hidden md:inline-flex rounded-md border border-border bg-card p-0.5">
           <button
             onClick={() => setView('list')}
             className={cn(
@@ -336,7 +336,7 @@ export function RequestsTab({
 
 
       {/* Status pill filters (multi-select) */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="hidden md:flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">Statut :</span>
         {DOSSIER_STATUS_ORDER.map(s => {
           const active = statusFilter.has(s);

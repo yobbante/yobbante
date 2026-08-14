@@ -72,7 +72,7 @@ export function DossiersHubTab() {
 
           <TabsContent value="tous"      className="mt-3 md:mt-4"><RequestsTab /></TabsContent>
           <TabsContent value="demandes"  className="mt-3 md:mt-4">
-            <div className="mb-3 flex items-center justify-end gap-2">
+            <div className="mb-3 hidden md:flex items-center justify-end gap-2">
               <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer">
                 <span className="hidden md:inline">Voir archivés / annulés</span>
                 <span className="md:hidden">Archivés</span>
