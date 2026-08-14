@@ -208,6 +208,7 @@ export function LiveDeparturesTicker() {
       aria-label="Prochains départs"
     >
       <span
+        className="hidden md:inline-flex"
         style={{
           fontFamily: '"DM Mono", ui-monospace, monospace',
           fontSize: 12,
@@ -218,7 +219,6 @@ export function LiveDeparturesTicker() {
           paddingRight: 12,
           borderRight: '0.5px solid #1E1E1E',
           height: '100%',
-          display: 'inline-flex',
           alignItems: 'center',
           flexShrink: 0,
           whiteSpace: 'nowrap',
