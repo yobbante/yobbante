@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Image as ImageIcon, Truck, UserCheck, Bike, ClipboardList } from 'lucide-react';
+import { Image as ImageIcon, Truck, UserCheck, Bike, ClipboardList, Route as RouteIcon } from 'lucide-react';
 import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { HubHeader, HubTab } from './hub-ui';
@@ -7,8 +7,9 @@ import { TransporteursTab } from './TransporteursTab';
 import { LivreursTab } from './LivreursTab';
 import { GpOperationsTab } from './GpOperationsTab';
 import { SuiviOnboardingTab } from './SuiviOnboardingTab';
+import { FretRoutierTab } from './FretRoutierTab';
 
-const TABS = ['gp', 'onboarding', 'livreurs', 'operations'] as const;
+const TABS = ['gp', 'onboarding', 'livreurs', 'fret', 'operations'] as const;
 type TabId = typeof TABS[number];
 
 export function TerrainHubTab() {
@@ -42,12 +43,14 @@ export function TerrainHubTab() {
           <HubTab value="gp"         icon={Truck}         label="Transporteurs GP" />
           <HubTab value="onboarding" icon={UserCheck}     label="Suivi onboarding" />
           <HubTab value="livreurs"   icon={Bike}          label="Livreurs Dakar" />
+          <HubTab value="fret"        icon={RouteIcon}     label="Fret routier" />
           <HubTab value="operations" icon={ClipboardList} label="Opérations du jour" />
         </TabsList>
 
         <TabsContent value="gp"         className="mt-3 md:mt-4"><TransporteursTab /></TabsContent>
         <TabsContent value="onboarding" className="mt-3 md:mt-4"><SuiviOnboardingTab /></TabsContent>
         <TabsContent value="livreurs"   className="mt-3 md:mt-4"><LivreursTab /></TabsContent>
+        <TabsContent value="fret"       className="mt-3 md:mt-4"><FretRoutierTab /></TabsContent>
         <TabsContent value="operations" className="mt-3 md:mt-4"><GpOperationsTab /></TabsContent>
       </Tabs>
     </div>
