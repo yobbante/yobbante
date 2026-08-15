@@ -167,6 +167,28 @@ Deno.serve(async (req) => {
       return json({ course: c });
     }
 
+    if (action === 'track') {
+      const ref = String(body.ref ?? '').trim().toUpperCase();
+      if (!ref) return json({ error: 'not_found' }, 404);
+      const { data: c } = await supa
+        .from('fret_courses')
+        .select('ref, destination, status, remis_at, accepted_at, en_route_at, arrived_at, delivered_at, chauffeur_id')
+        .eq('ref', ref)
+        .maybeSingle();
+      if (!c) return json({ error: 'not_found' }, 404);
+      let chauffeur: { nom_complet: string | null; immatriculation: string | null } | null = null;
+      if (c.chauffeur_id) {
+        const { data: ch } = await supa
+          .from('chauffeurs')
+          .select('nom_complet, immatriculation')
+          .eq('id', c.chauffeur_id)
+          .maybeSingle();
+        chauffeur = ch ?? null;
+      }
+      const { chauffeur_id: _omit, ...rest } = c as Record<string, unknown>;
+      return json({ course: rest, chauffeur });
+    }
+
     if (action === 'confirm') {
       const token = String(body.confirm_token ?? '');
       const { data: c } = await supa
