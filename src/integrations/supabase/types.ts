@@ -384,6 +384,71 @@ export type Database = {
           },
         ]
       }
+      chauffeur_sessions: {
+        Row: {
+          chauffeur_id: string
+          created_at: string
+          expires_at: string
+          token: string
+        }
+        Insert: {
+          chauffeur_id: string
+          created_at?: string
+          expires_at?: string
+          token: string
+        }
+        Update: {
+          chauffeur_id?: string
+          created_at?: string
+          expires_at?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chauffeur_sessions_chauffeur_id_fkey"
+            columns: ["chauffeur_id"]
+            isOneToOne: false
+            referencedRelation: "chauffeurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chauffeurs: {
+        Row: {
+          created_at: string
+          id: string
+          immatriculation: string | null
+          is_active: boolean
+          nom_complet: string | null
+          pin_code: string
+          routes: string[]
+          telephone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          immatriculation?: string | null
+          is_active?: boolean
+          nom_complet?: string | null
+          pin_code?: string
+          routes?: string[]
+          telephone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          immatriculation?: string | null
+          is_active?: boolean
+          nom_complet?: string | null
+          pin_code?: string
+          routes?: string[]
+          telephone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_bot_sessions: {
         Row: {
           bot_paused_until: string | null
@@ -1603,6 +1668,122 @@ export type Database = {
           volume?: string
         }
         Relationships: []
+      }
+      fret_course_events: {
+        Row: {
+          actor: string | null
+          course_id: string
+          created_at: string
+          id: string
+          note: string | null
+          status: Database["public"]["Enums"]["fret_course_status"]
+        }
+        Insert: {
+          actor?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status: Database["public"]["Enums"]["fret_course_status"]
+        }
+        Update: {
+          actor?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["fret_course_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fret_course_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "fret_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fret_courses: {
+        Row: {
+          accepted_at: string | null
+          arrived_at: string | null
+          chauffeur_id: string | null
+          client_nom: string | null
+          client_phone: string | null
+          colis_description: string | null
+          confirm_token: string
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          destination: string
+          dossier_id: string | null
+          en_route_at: string | null
+          id: string
+          photo_url: string | null
+          ref: string
+          remis_at: string
+          status: Database["public"]["Enums"]["fret_course_status"]
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          arrived_at?: string | null
+          chauffeur_id?: string | null
+          client_nom?: string | null
+          client_phone?: string | null
+          colis_description?: string | null
+          confirm_token?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          destination: string
+          dossier_id?: string | null
+          en_route_at?: string | null
+          id?: string
+          photo_url?: string | null
+          ref: string
+          remis_at?: string
+          status?: Database["public"]["Enums"]["fret_course_status"]
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          arrived_at?: string | null
+          chauffeur_id?: string | null
+          client_nom?: string | null
+          client_phone?: string | null
+          colis_description?: string | null
+          confirm_token?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          destination?: string
+          dossier_id?: string | null
+          en_route_at?: string | null
+          id?: string
+          photo_url?: string | null
+          ref?: string
+          remis_at?: string
+          status?: Database["public"]["Enums"]["fret_course_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fret_courses_chauffeur_id_fkey"
+            columns: ["chauffeur_id"]
+            isOneToOne: false
+            referencedRelation: "chauffeurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fret_courses_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gp_auth_tokens: {
         Row: {
@@ -4008,6 +4189,7 @@ export type Database = {
       }
       expire_past_manual_departures: { Args: never; Returns: number }
       expire_unpaid_shipments: { Args: never; Returns: number }
+      fret_generate_ref: { Args: never; Returns: string }
       generate_business_invoice_reference: { Args: never; Returns: string }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
@@ -4257,6 +4439,13 @@ export type Database = {
         | "QUALIFIED"
         | "WON"
         | "LOST"
+      fret_course_status:
+        | "PENDING_ACCEPT"
+        | "REMIS_CHAUFFEUR"
+        | "EN_ROUTE"
+        | "ARRIVE"
+        | "LIVRE"
+        | "ANNULE"
       manual_quote_status: "pending" | "quoted" | "confirmed" | "cancelled"
       package_status:
         | "CREATED"
@@ -4465,6 +4654,14 @@ export const Constants = {
         "business_sourcing",
       ],
       enterprise_quote_status: ["NEW", "CONTACTED", "QUALIFIED", "WON", "LOST"],
+      fret_course_status: [
+        "PENDING_ACCEPT",
+        "REMIS_CHAUFFEUR",
+        "EN_ROUTE",
+        "ARRIVE",
+        "LIVRE",
+        "ANNULE",
+      ],
       manual_quote_status: ["pending", "quoted", "confirmed", "cancelled"],
       package_status: [
         "CREATED",

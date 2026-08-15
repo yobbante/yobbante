@@ -50,6 +50,8 @@ import RejoindreKonnektPage from "./pages/RejoindreKonnektPage";
 import KonnektLandingPage from "./pages/KonnektLandingPage";
 import { isKonnektDomain } from "@/lib/konnektDomain";
 import ModifierPage from "./pages/ModifierPage";
+import ChauffeurApp from "./pages/fret/ChauffeurApp";
+import RecuPage from "./pages/fret/RecuPage";
 import GpDepartPage from "./pages/gp/GpDepartPage";
 import GpDashboardPage from "./pages/gp/GpDashboardPage";
 import GpLoginPage from "./pages/gp/GpLoginPage";
@@ -121,6 +123,8 @@ const DekkRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/chauffeur" element={<ChauffeurApp />} />
+    <Route path="/recu/:token" element={<RecuPage />} />
     <Route path="/gp/connexion" element={<GpLoginPage />} />
     <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
@@ -216,6 +220,8 @@ const MainRoutes = () => (
     <Route path="/avis/:trackingId" element={<AvisPage />} />
     <Route path="/pay/:trackingId" element={<PayPage />} />
     <Route path="/modifier/:token" element={<ModifierPage />} />
+    <Route path="/chauffeur" element={<ChauffeurApp />} />
+    <Route path="/recu/:token" element={<RecuPage />} />
     <Route path="/gp/connexion" element={<GpLoginPage />} />
     <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
