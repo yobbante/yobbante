@@ -69,6 +69,8 @@ export default function TrackPage() {
   // Route may be /suivre/:trackingNumber, /track/:id, or /suivre?ref=…
   const rawId = params.trackingNumber || params.id || searchParams.get('ref') || searchParams.get('tracking') || '';
   const id = normalizeTrackingId(rawId);
+  const isFret = /^YBR-?[A-Z0-9]{4,}$/.test(id);
+
   useSeo({
     title: id ? `Suivi ${id} | Yobbanté` : 'Suivre mon colis | Yobbanté',
     description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
