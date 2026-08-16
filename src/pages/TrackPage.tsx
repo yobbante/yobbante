@@ -11,6 +11,8 @@ import { useJsonLd } from '@/hooks/useJsonLd';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 import { normalizeTrackingId } from '@/lib/trackingId';
+import { FretTrackView } from '@/components/fret/FretTrackView';
+
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
