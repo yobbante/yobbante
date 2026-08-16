@@ -1785,6 +1785,95 @@ export type Database = {
           },
         ]
       }
+      fret_tarif_destinations: {
+        Row: {
+          active: boolean
+          country_code: string | null
+          created_at: string
+          id: string
+          name: string
+          scope: string
+          updated_at: string
+          zone_id: string
+        }
+        Insert: {
+          active?: boolean
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          scope: string
+          updated_at?: string
+          zone_id: string
+        }
+        Update: {
+          active?: boolean
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          scope?: string
+          updated_at?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fret_tarif_destinations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "fret_tarif_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fret_tarif_zones: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          id: string
+          label: string
+          min_billable_kg: number | null
+          price_l_fcfa: number | null
+          price_m_fcfa: number | null
+          price_per_kg_fcfa: number | null
+          price_s_fcfa: number | null
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          label: string
+          min_billable_kg?: number | null
+          price_l_fcfa?: number | null
+          price_m_fcfa?: number | null
+          price_per_kg_fcfa?: number | null
+          price_s_fcfa?: number | null
+          scope: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          min_billable_kg?: number | null
+          price_l_fcfa?: number | null
+          price_m_fcfa?: number | null
+          price_per_kg_fcfa?: number | null
+          price_s_fcfa?: number | null
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gp_auth_tokens: {
         Row: {
           created_at: string
