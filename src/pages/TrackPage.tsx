@@ -11,6 +11,8 @@ import { useJsonLd } from '@/hooks/useJsonLd';
 import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/lib/deliveryDelays';
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 import { normalizeTrackingId } from '@/lib/trackingId';
+import { FretTrackView } from '@/components/fret/FretTrackView';
+
 
 interface TimelineEvent {
   status: 'done' | 'current' | 'pending';
@@ -69,6 +71,8 @@ export default function TrackPage() {
   // Route may be /suivre/:trackingNumber, /track/:id, or /suivre?ref=…
   const rawId = params.trackingNumber || params.id || searchParams.get('ref') || searchParams.get('tracking') || '';
   const id = normalizeTrackingId(rawId);
+  const isFret = /^YBR-?[A-Z0-9]{4,}$/.test(id);
+
   useSeo({
     title: id ? `Suivi ${id} | Yobbanté` : 'Suivre mon colis | Yobbanté',
     description: 'Suivez votre colis Yobbanté en temps réel grâce à votre numéro de suivi.',
@@ -149,7 +153,8 @@ export default function TrackPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!id) { setData(null); return; }
+    if (!id || isFret) { setData(null); return; }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -230,7 +235,7 @@ export default function TrackPage() {
             <h2 className="mb-3">Suivre mon colis</h2>
             <input
               className="input-base w-full mb-3"
-              placeholder="YOB-XXXXXX ou YBT-AAAA-XXXX"
+              placeholder="YOB-XXXXXX, YBT-AAAA-XXXX ou YBR-XXXXXX"
               value={input}
               onChange={e => setInput(e.target.value)}
               inputMode="text"
@@ -246,7 +251,10 @@ export default function TrackPage() {
               Suivre →
             </button>
           </form>
+        ) : isFret ? (
+          <FretTrackView trackingRef={id} onReset={() => navigate('/suivre')} />
         ) : loading && !data ? (
+
           <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…
           </div>
