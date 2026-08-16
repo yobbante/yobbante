@@ -149,7 +149,8 @@ export default function TrackPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!id) { setData(null); return; }
+    if (!id || isFret) { setData(null); return; }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
