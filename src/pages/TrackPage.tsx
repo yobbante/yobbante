@@ -233,7 +233,7 @@ export default function TrackPage() {
             <h2 className="mb-3">Suivre mon colis</h2>
             <input
               className="input-base w-full mb-3"
-              placeholder="YOB-XXXXXX ou YBT-AAAA-XXXX"
+              placeholder="YOB-XXXXXX, YBT-AAAA-XXXX ou YBR-XXXXXX"
               value={input}
               onChange={e => setInput(e.target.value)}
               inputMode="text"
@@ -249,7 +249,10 @@ export default function TrackPage() {
               Suivre →
             </button>
           </form>
+        ) : isFret ? (
+          <FretTrackView trackingRef={id} onReset={() => navigate('/suivre')} />
         ) : loading && !data ? (
+
           <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" /> Chargement du suivi…
           </div>
