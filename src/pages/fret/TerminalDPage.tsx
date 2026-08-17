@@ -62,7 +62,7 @@ export default function TerminalDPage() {
     if (!dest || !zone || quote?.price == null) return;
     setSavingDevis(true);
     try {
-      const row = await createDevis({
+      await createDevis({
         conversation_phone: devisPhone.replace(/\s/g, '') || null,
         engine: tab === 'national' ? 'fret_national' : 'fret_international',
         origin: 'Dakar (Baux Maraîchers)',
@@ -73,7 +73,7 @@ export default function TerminalDPage() {
         breakdown: [{ label: `Transport routier ${zone.label}`, amountFcfa: quote.price }],
         total_fcfa: quote.price,
       });
-      setDevisRef(row?.reference ?? null);
+      setDevisRef(dest.name);
       toast.success('Devis enregistré — notre équipe vous l\'envoie après vérification.');
     } catch (e) {
       toast.error('Impossible d\'enregistrer le devis', {
@@ -232,7 +232,7 @@ export default function TerminalDPage() {
                 <p className="text-sm font-medium">Recevoir ce devis</p>
                 {devisRef ? (
                   <p className="text-xs text-muted-foreground">
-                    Devis {devisRef} enregistré · valable jusqu'au {formatFrDate(devisValidUntil())}.
+                    Devis enregistré pour {devisRef} · valable jusqu'au {formatFrDate(devisValidUntil())}.
                     Notre équipe le vérifie puis vous l'envoie sur WhatsApp.
                   </p>
                 ) : (

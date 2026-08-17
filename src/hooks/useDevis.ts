@@ -55,8 +55,13 @@ export function useDevisList(opts: { phone?: string | null; dossierId?: string |
  * Crée un devis. Statut TOUJOURS `pending_send` : aucun message WhatsApp
  * n'est envoyé tant qu'un agent n'a pas explicitement cliqué "Envoyer".
  */
-export async function createDevis(draft: DevisDraft): Promise<DevisRow | null> {
-  const { data, error } = await supabase
+export async function createDevis(
+  draft: DevisDraft,
+  /** Les visiteurs anonymes n'ont pas le droit de relire la table : on
+   *  n'ajoute `.select()` que pour le personnel authentifié. */
+  opts: { returnRow?: boolean } = {},
+): Promise<DevisRow | null> {
+  const insert = supabase
     .from('devis')
     .insert({
       dossier_id: draft.dossier_id ?? null,
@@ -73,9 +78,13 @@ export async function createDevis(draft: DevisDraft): Promise<DevisRow | null> {
       notes: draft.notes ?? null,
       status: 'pending_send',
       valid_until: draft.valid_until ?? devisValidUntil(),
-    })
-    .select(SELECT)
-    .maybeSingle();
+    });
+  if (!opts.returnRow) {
+    const { error } = await insert;
+    if (error) throw error;
+    return null;
+  }
+  const { data, error } = await insert.select(SELECT).maybeSingle();
   if (error) throw error;
   return data ? normalize(data as Record<string, unknown>) : null;
 }
@@ -85,7 +94,7 @@ export function useDevisActions() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['devis'] });
 
   const create = useMutation({
-    mutationFn: (draft: DevisDraft) => createDevis(draft),
+    mutationFn: (draft: DevisDraft) => createDevis(draft, { returnRow: true }),
     onSuccess: invalidate,
   });
 
