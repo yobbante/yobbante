@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot, Paperclip, X } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot, Paperclip, X, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
 import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/whatsappTemplateHelpers';
 import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
+import { DevisDialog } from './messages/DevisDialog';
 import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
 import { MediaMessage } from './messages/MediaMessage';
@@ -171,6 +172,7 @@ export function MessagesTab() {
   const [gpMode, setGpMode] = useState<'libre' | 'templates'>('libre');
   const [gpText, setGpText] = useState('');
   const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
+  const [devisOpen, setDevisOpen] = useState(false);
   const [availableDossiers, setAvailableDossiers] = useState<LinkableDossier[]>([]);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [newMsgOpen, setNewMsgOpen] = useState(false);
@@ -1044,6 +1046,9 @@ export function MessagesTab() {
                       {windowStatus === 'unknown' && <><Clock className="w-2.5 h-2.5" />Nouveau contact</>}
                     </Badge>
                   )}
+                  <Button variant="outline" size="sm" onClick={() => setDevisOpen(true)} className="text-xs">
+                    <FileText className="w-3.5 h-3.5 mr-1" /> Devis
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={handleMarkHandled} className="text-xs">
                     <CheckCheck className="w-3.5 h-3.5 mr-1" /> Traité
                   </Button>
@@ -1443,6 +1448,14 @@ export function MessagesTab() {
         onPick={(d) => linkDossierToConv(d)}
       />
       <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
+      {openPhone && (
+        <DevisDialog
+          open={devisOpen}
+          onOpenChange={setDevisOpen}
+          phone={openPhone}
+          dossier={linkedDossier as never}
+        />
+      )}
     </div>
   );
 }

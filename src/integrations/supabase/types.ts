@@ -877,6 +877,99 @@ export type Database = {
         }
         Relationships: []
       }
+      devis: {
+        Row: {
+          breakdown: Json
+          colis_size: string | null
+          conversation_phone: string | null
+          created_at: string
+          created_by: string | null
+          destination: string | null
+          dossier_id: string | null
+          engine: string
+          id: string
+          is_current: boolean
+          mode: string | null
+          notes: string | null
+          origin: string | null
+          parent_id: string | null
+          reference: string
+          sent_at: string | null
+          status: string
+          total_fcfa: number
+          total_manual: boolean
+          updated_at: string
+          valid_until: string
+          version: number
+          weight_kg: number | null
+        }
+        Insert: {
+          breakdown?: Json
+          colis_size?: string | null
+          conversation_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          dossier_id?: string | null
+          engine?: string
+          id?: string
+          is_current?: boolean
+          mode?: string | null
+          notes?: string | null
+          origin?: string | null
+          parent_id?: string | null
+          reference?: string
+          sent_at?: string | null
+          status?: string
+          total_fcfa?: number
+          total_manual?: boolean
+          updated_at?: string
+          valid_until?: string
+          version?: number
+          weight_kg?: number | null
+        }
+        Update: {
+          breakdown?: Json
+          colis_size?: string | null
+          conversation_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          dossier_id?: string | null
+          engine?: string
+          id?: string
+          is_current?: boolean
+          mode?: string | null
+          notes?: string | null
+          origin?: string | null
+          parent_id?: string | null
+          reference?: string
+          sent_at?: string | null
+          status?: string
+          total_fcfa?: number
+          total_manual?: boolean
+          updated_at?: string
+          valid_until?: string
+          version?: number
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_customs_documents: {
         Row: {
           created_at: string
@@ -4280,6 +4373,7 @@ export type Database = {
       expire_unpaid_shipments: { Args: never; Returns: number }
       fret_generate_ref: { Args: never; Returns: string }
       generate_business_invoice_reference: { Args: never; Returns: string }
+      generate_devis_reference: { Args: never; Returns: string }
       generate_dossier_reference: { Args: never; Returns: string }
       generate_identifier_code: {
         Args: { p_country: Database["public"]["Enums"]["warehouse_country"] }

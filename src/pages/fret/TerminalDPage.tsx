@@ -11,6 +11,9 @@ import {
   type ColisSize,
 } from '@/lib/fretPricing';
 import { whatsappLink } from '@/lib/contact';
+import { createDevis } from '@/hooks/useDevis';
+import { formatFrDate, devisValidUntil } from '@/lib/devis';
+import { toast } from 'sonner';
 import { useSeo } from '@/hooks/useSeo';
 import { Loader2, MessageCircle, Truck } from 'lucide-react';
 
@@ -50,6 +53,34 @@ export default function TerminalDPage() {
           : `${weight || `> ${FRET_MAX_AUTO_KG}`} kg`
       }`
     : 'Bonjour Yobbanté, je souhaite un devis fret routier Terminal D.';
+
+  const [devisPhone, setDevisPhone] = useState('+221');
+  const [devisRef, setDevisRef] = useState<string | null>(null);
+  const [savingDevis, setSavingDevis] = useState(false);
+
+  async function handleCreateDevis() {
+    if (!dest || !zone || quote?.price == null) return;
+    setSavingDevis(true);
+    try {
+      await createDevis({
+        conversation_phone: devisPhone.replace(/\s/g, '') || null,
+        engine: tab === 'national' ? 'fret_national' : 'fret_international',
+        origin: 'Dakar (Baux Maraîchers)',
+        destination: dest.name,
+        weight_kg: tab === 'international' ? weightNum : null,
+        colis_size: tab === 'national' ? size : null,
+        mode: 'Terminal D — fret routier',
+        breakdown: [{ label: `Transport routier ${zone.label}`, amountFcfa: quote.price }],
+        total_fcfa: quote.price,
+      });
+      setDevisRef(dest.name);
+      toast.success('Devis enregistré — notre équipe vous l\'envoie après vérification.');
+    } catch (e) {
+      toast.error('Impossible d\'enregistrer le devis', {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally { setSavingDevis(false); }
+  }
 
   const switchTab = (t: Tab) => {
     setTab(t);
@@ -195,6 +226,36 @@ export default function TerminalDPage() {
                 <p className="text-sm text-muted-foreground">{quote?.detail}</p>
               )}
             </div>
+
+            {quote?.price != null && (
+              <div className="rounded-2xl border border-border bg-card/40 p-4 space-y-2">
+                <p className="text-sm font-medium">Recevoir ce devis</p>
+                {devisRef ? (
+                  <p className="text-xs text-muted-foreground">
+                    Devis enregistré pour {devisRef} · valable jusqu'au {formatFrDate(devisValidUntil())}.
+                    Notre équipe le vérifie puis vous l'envoie sur WhatsApp.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      value={devisPhone}
+                      onChange={(e) => setDevisPhone(e.target.value)}
+                      placeholder="+221 77 123 45 67"
+                      aria-label="Numéro WhatsApp"
+                      className="h-11 px-3 rounded-xl bg-background border border-border text-sm flex-1 min-w-[180px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateDevis}
+                      disabled={savingDevis}
+                      className="h-11 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60"
+                    >
+                      {savingDevis ? 'Enregistrement…' : 'Enregistrer mon devis'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {tab === 'national' && (
               <div className="rounded-2xl border border-border bg-card/40 p-4">

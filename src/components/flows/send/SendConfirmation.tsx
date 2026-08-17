@@ -9,6 +9,7 @@ import { EmailRecapCard, RecapRow } from './pieces';
 import { TRANSPORT_MODES, GOODS_TYPES } from './constants';
 import type { CountryProfile } from '@/lib/countryProfile';
 import { formatLocalAmount } from '@/lib/countryProfile';
+import { fcfa, formatFrDate, type DevisRow } from '@/lib/devis';
 
 export type SendConfirmationData = {
   reference: string;
@@ -21,7 +22,7 @@ export type SendConfirmationData = {
 type CityLite = { city: string; country: string } | null | undefined;
 
 export function SendConfirmation({
-  confirmed, compactHeader,
+  confirmed, devis, compactHeader,
   originCity, destCity, originProfile, destProfile,
   pickupDate, pickupSlot, pickupAddress,
   senderName, senderPhone,
@@ -30,6 +31,8 @@ export function SendConfirmation({
   goodsType, description, weight, parcelCount,
 }: {
   confirmed: SendConfirmationData;
+  /** Devis auto-généré rattaché au dossier (affichage immédiat, pas d'envoi WhatsApp). */
+  devis?: DevisRow | null;
   compactHeader?: React.ReactNode;
   originCity: CityLite; destCity: CityLite;
   originProfile: CountryProfile; destProfile: CountryProfile;
@@ -86,6 +89,45 @@ export function SendConfirmation({
         subtitle="Votre commande est enregistrée. Notre équipe vous contacte sous 24h pour organiser la collecte."
         ctaHref="/app" ctaLabel="Suivre ma commande →"
       />
+
+      {/* Devis auto-généré — visible immédiatement par le client */}
+      {devis && (
+        <section className="mt-5 rounded-2xl border border-border bg-card p-4 sm:p-5" aria-label="Votre devis">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold">Votre devis — {devis.reference}</h2>
+          </div>
+          <dl className="mt-3 space-y-1 text-xs">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Trajet</dt>
+              <dd className="font-medium text-right">{devis.origin} → {devis.destination}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Poids</dt>
+              <dd className="font-medium">{devis.weight_kg} kg</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Mode</dt>
+              <dd className="font-medium">{devis.mode}</dd>
+            </div>
+          </dl>
+          <ul className="mt-3 border-t border-border pt-3 space-y-1 text-xs">
+            {devis.breakdown.map((l, i) => (
+              <li key={i} className="flex justify-between gap-3">
+                <span className="text-muted-foreground">{l.label}</span>
+                <span className="font-medium">{fcfa(l.amountFcfa)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 border-t border-border pt-3 flex items-center justify-between">
+            <span className="text-sm font-semibold">Total TTC</span>
+            <span className="text-lg font-bold">{fcfa(devis.total_fcfa)}</span>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Devis valable jusqu'au {formatFrDate(devis.valid_until)}. Notre équipe le vérifie avant tout envoi WhatsApp.
+          </p>
+        </section>
+      )}
 
       {/* F4 — Accusé WhatsApp + CTA paiement (évite les paniques post-clic) */}
       <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">

@@ -184,6 +184,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const [chosen, setChosen]               = useState<MatchOptionView | null>(null);
   const [submitting, setSubmitting]       = useState(false);
   const [confirmed, setConfirmed]         = useState<{ reference: string; trackingId: string; price: number; eta: string; dossierId?: string; arrivalDate?: string } | null>(null);
+  const [autoDevis, setAutoDevis]         = useState<import('@/lib/devis').DevisRow | null>(null);
   const [manualQuoteOpen, setManualQuoteOpen] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
@@ -752,6 +753,39 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
       });
       const arrivalLabel = (await import('@/lib/deliveryEta')).formatFrenchDate(arrival);
 
+      // ── Devis auto-généré rattaché au dossier (statut "en attente d'envoi").
+      // Aucun message WhatsApp de devis n'est envoyé ici : un agent doit
+      // explicitement cliquer "Envoyer" depuis l'admin (mécanisme unique).
+      try {
+        const { createDevis } = await import('@/hooks/useDevis');
+        const devisBreakdown = [
+          ...pricing.lines.map(l => ({ label: l.label, amountFcfa: l.amountFcfa })),
+          { label: 'TVA (18 %)', amountFcfa: pricing.tva },
+        ];
+        const { devisValidUntil } = await import('@/lib/devis');
+        await createDevis({
+          dossier_id: (dossier as any).id,
+          conversation_phone: senderPhone || null,
+          engine: 'international',
+          origin: originCity?.city ?? null,
+          destination: destCity?.city ?? null,
+          weight_kg: weight,
+          mode: priority === 'express' ? 'Express' : 'Standard',
+          breakdown: devisBreakdown,
+          total_fcfa: pricing.total_ttc,
+        });
+        setAutoDevis({
+          id: 'local', reference: dossier.reference, version: 1, parent_id: null,
+          is_current: true, dossier_id: (dossier as any).id, conversation_phone: senderPhone || null,
+          engine: 'international', origin: originCity?.city ?? null, destination: destCity?.city ?? null,
+          weight_kg: weight, colis_size: null,
+          mode: priority === 'express' ? 'Express' : 'Standard',
+          breakdown: devisBreakdown, total_fcfa: pricing.total_ttc, total_manual: false,
+          notes: null, status: 'pending_send', valid_until: devisValidUntil(),
+          sent_at: null, created_at: new Date().toISOString(),
+        });
+      } catch (e) { console.error('Devis auto error', e); }
+
       setConfirmed({
         reference: dossier.reference,
         trackingId,
@@ -801,6 +835,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     return (
       <SendConfirmation
         confirmed={confirmed}
+        devis={autoDevis}
         compactHeader={compactHeader}
         originCity={originCity} destCity={destCity}
         originProfile={originProfile} destProfile={destProfile}
