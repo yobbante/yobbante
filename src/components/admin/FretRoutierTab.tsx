@@ -40,9 +40,17 @@ interface Course {
   arrived_at: string | null;
   delivered_at: string | null;
   chauffeur_id: string | null;
+  pickup_address?: string | null;
+  pickup_zone?: string | null;
+  pickup_fee_fcfa?: number | null;
+  expediteur_nom?: string | null;
+  expediteur_phone?: string | null;
+  total_fcfa?: number | null;
+  source?: string | null;
 }
 
 const STATUS_TONE: Record<FretStatus, string> = {
+  A_ENLEVER: 'bg-orange-500/15 text-orange-600',
   PENDING_ACCEPT: 'bg-amber-500/15 text-amber-600',
   REMIS_CHAUFFEUR: 'bg-blue-500/15 text-blue-500',
   EN_ROUTE: 'bg-blue-500/15 text-blue-500',
@@ -64,6 +72,7 @@ export function FretRoutierTab() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [bordereau, setBordereau] = useState<{ course: Course; chauffeur: Chauffeur } | null>(null);
+  const [assign, setAssign] = useState<Course | null>(null);
 
   const courses = useQuery({
     queryKey: ['fret-courses'],
@@ -150,12 +159,35 @@ export function FretRoutierTab() {
                   </span>
                 </div>
                 <p className="font-medium text-sm truncate">{c.destination} · {c.client_nom || 'Client'}</p>
+                {c.pickup_address && (
+                  <p className="text-xs text-muted-foreground">
+                    Enlèvement : {c.pickup_address}
+                    {c.pickup_zone ? ` · ${c.pickup_zone}` : ''}
+                    {c.pickup_fee_fcfa ? ` · +${c.pickup_fee_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
+                  </p>
+                )}
+                {(c.expediteur_nom || c.total_fcfa) && (
+                  <p className="text-xs text-muted-foreground">
+                    {c.expediteur_nom ? `Expéditeur : ${c.expediteur_nom}` : ''}
+                    {c.expediteur_phone ? ` (${c.expediteur_phone})` : ''}
+                    {c.total_fcfa ? ` · Total ${c.total_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
+                  </p>
+                )}
+                {c.client_phone && (
+                  <p className="text-xs text-muted-foreground">Destinataire : {c.client_nom || '—'} ({c.client_phone})</p>
+                )}
                 <p className="text-xs text-muted-foreground truncate">
                   <Truck className="w-3 h-3 inline mr-1" />
-                  {ch?.nom_complet || ch?.telephone || 'Chauffeur inconnu'}
-                  {ch?.immatriculation ? ` · ${ch.immatriculation}` : ''} · remis {fmt(c.remis_at)}
+                  {c.status === 'A_ENLEVER' && !c.chauffeur_id
+                    ? 'Aucun chauffeur assigné'
+                    : `${ch?.nom_complet || ch?.telephone || 'Chauffeur inconnu'}${ch?.immatriculation ? ` · ${ch.immatriculation}` : ''} · remis ${fmt(c.remis_at)}`}
                 </p>
                 <div className="flex gap-2 pt-1">
+                  {!c.chauffeur_id && (
+                    <Button size="sm" className="h-8 text-xs" onClick={() => { setAssign(c); setOpen(true); }}>
+                      Assigner un chauffeur
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" className="h-8 text-xs"
                     onClick={() => {
                       navigator.clipboard?.writeText(`${window.location.origin}/suivre/${c.ref}`);
@@ -177,8 +209,10 @@ export function FretRoutierTab() {
       )}
 
       <RemiseDialog
+        key={assign?.id ?? 'new'}
+        course={assign}
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={(v) => { setOpen(v); if (!v) setAssign(null); }}
         chauffeurs={chauffeurs.data ?? []}
         onDone={(course, chauffeur) => {
           qc.invalidateQueries({ queryKey: ['fret-courses'] });
@@ -223,17 +257,18 @@ function Row({ k, v }: { k: string; v: string }) {
   );
 }
 
-function RemiseDialog({ open, onOpenChange, chauffeurs, onDone }: {
+function RemiseDialog({ open, onOpenChange, chauffeurs, onDone, course }: {
+  course?: Course | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   chauffeurs: Chauffeur[];
   onDone: (c: Course, ch: Chauffeur) => void;
 }) {
   const [phone, setPhone] = useState('');
-  const [destination, setDestination] = useState('');
-  const [clientNom, setClientNom] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [description, setDescription] = useState('');
+  const [destination, setDestination] = useState(course?.destination ?? '');
+  const [clientNom, setClientNom] = useState(course?.client_nom ?? '');
+  const [clientPhone, setClientPhone] = useState(course?.client_phone ?? '');
+  const [description, setDescription] = useState(course?.colis_description ?? '');
   const [file, setFile] = useState<File | null>(null);
   const [nomComplet, setNomComplet] = useState('');
   const [immat, setImmat] = useState('');
@@ -290,8 +325,28 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone }: {
         photoUrl = signed?.signedUrl ?? null;
       }
 
-      // 3. Course
-      const { data: course, error: cErr } = await supabase
+      // 3. Course — mise à jour si demande d'enlèvement existante, sinon création
+      let created: Course;
+      if (course) {
+        const { data, error } = await supabase
+          .from('fret_courses' as any)
+          .update({
+            chauffeur_id: chauffeur.id,
+            destination: destination.trim(),
+            client_nom: clientNom.trim() || null,
+            client_phone: clientPhone.trim() ? normalizePhone(clientPhone) : null,
+            colis_description: description.trim() || null,
+            ...(photoUrl ? { photo_url: photoUrl } : {}),
+            status: 'PENDING_ACCEPT',
+            remis_at: new Date().toISOString(),
+          })
+          .eq('id', course.id)
+          .select()
+          .single();
+        if (error) throw error;
+        created = data as unknown as Course;
+      } else {
+      const { data: inserted, error: cErr } = await supabase
         .from('fret_courses' as any)
         .insert({
           chauffeur_id: chauffeur.id,
@@ -304,16 +359,18 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone }: {
         .select()
         .single();
       if (cErr) throw cErr;
+      created = inserted as unknown as Course;
+      }
 
       // 4. Notification WhatsApp au chauffeur (lien direct vers sa PWA)
       await sendGpMessage({
         phone: chauffeur.telephone,
-        message: `Nouveau colis a prendre en charge — ${destination.trim()}\n\nRef : ${(course as any).ref}\n\nOuvrez votre espace chauffeur pour accepter la course :\n${window.location.origin}/chauffeur\nCode PIN : ${chauffeur.pin_code}\n\nYobbante`,
+        message: `Nouveau colis a prendre en charge — ${destination.trim()}\n\nRef : ${created.ref}\n\nOuvrez votre espace chauffeur pour accepter la course :\n${window.location.origin}/chauffeur\nCode PIN : ${chauffeur.pin_code}\n\nYobbante`,
         trigger_type: 'fret_routier_assignation',
         silent: true,
       });
 
-      return { course: course as unknown as Course, chauffeur };
+      return { course: created, chauffeur };
     },
     onSuccess: ({ course, chauffeur }) => {
       toast.success('Colis remis — chauffeur notifié');
@@ -329,7 +386,7 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone }: {
       <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Remise d'un colis</DialogTitle>
-          <DialogDescription>Garage Baux Maraîchers · assignation à un chauffeur.</DialogDescription>
+          <DialogDescription>Assignation du colis à un chauffeur.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">

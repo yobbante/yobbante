@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type FretStatus =
+  | 'A_ENLEVER'
   | 'PENDING_ACCEPT'
   | 'REMIS_CHAUFFEUR'
   | 'EN_ROUTE'
@@ -33,6 +34,7 @@ export interface FretChauffeur {
 }
 
 export const FRET_STATUS_LABEL: Record<FretStatus, string> = {
+  A_ENLEVER: "En attente d'enlèvement",
   PENDING_ACCEPT: "En attente d'acceptation",
   REMIS_CHAUFFEUR: 'Remis au chauffeur',
   EN_ROUTE: 'En route',
