@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.whatsapp-media-proxy]
 verify_jwt = false
+
+[functions.fret-booking]
+verify_jwt = false
