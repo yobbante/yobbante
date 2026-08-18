@@ -13,10 +13,25 @@ const ADMIN_PHONE = '+221784604003';
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // --- Auth: service-role bearer required (internal call only) ---
+  // --- Auth: service-role or project anon key (the database scheduler uses anon) ---
   const __SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const __ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
   const __auth = req.headers.get('authorization') ?? '';
-  if (!__SR || __auth !== `Bearer ${__SR}`) {
+  const __apikey = req.headers.get('apikey') ?? '';
+  const __isService = !!__SR && __auth === `Bearer ${__SR}`;
+  const __isScheduler = !!__ANON && (__auth === `Bearer ${__ANON}` || __apikey === __ANON);
+  // Legacy JWT anon keys remain valid for database cron jobs after Cloud key rotation.
+  // Restrict compatibility to this exact project and the anon role.
+  let __isLegacyScheduler = false;
+  const bearer = __auth.toLowerCase().startsWith('bearer ') ? __auth.slice(7) : __apikey;
+  if (bearer) {
+    try {
+      const payload = JSON.parse(atob(bearer.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const projectRef = new URL(Deno.env.get('SUPABASE_URL') ?? '').hostname.split('.')[0];
+      __isLegacyScheduler = payload?.role === 'anon' && payload?.ref === projectRef;
+    } catch { /* invalid token */ }
+  }
+  if (!__isService && !__isScheduler && !__isLegacyScheduler) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...(typeof corsHeaders !== 'undefined' ? corsHeaders : {}), 'Content-Type': 'application/json' },
@@ -92,7 +107,7 @@ Deno.serve(async (req) => {
 
     // Send via send-whatsapp
     try {
-      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+      const sendResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,6 +120,10 @@ Deno.serve(async (req) => {
           trigger_type: 'admin_notification',
         }),
       });
+      const sendResult = await sendResponse.json().catch(() => ({}));
+      if (!sendResponse.ok || sendResult?.status !== 'sent') {
+        throw new Error(sendResult?.result?.error?.message ?? sendResult?.error ?? `WhatsApp HTTP ${sendResponse.status}`);
+      }
     } catch (e) {
       console.error('send-whatsapp failed', e);
       // continue: do NOT mark as sent so we retry next run

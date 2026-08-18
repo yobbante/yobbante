@@ -117,6 +117,16 @@ Deno.serve(async (req) => {
     if (!__ok && !!__ANON && (__auth === `Bearer ${__ANON}` || __apikey === __ANON)) {
       __ok = true; // public caller with project anon key
     }
+    if (!__ok) {
+      const bearer = __auth.toLowerCase().startsWith('bearer ') ? __auth.slice(7) : __apikey;
+      if (bearer) {
+        try {
+          const payload = JSON.parse(atob(bearer.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          const projectRef = new URL(Deno.env.get('SUPABASE_URL') ?? '').hostname.split('.')[0];
+          __ok = payload?.role === 'anon' && payload?.ref === projectRef;
+        } catch { /* invalid token */ }
+      }
+    }
     if (!__ok && __auth.toLowerCase().startsWith('bearer ')) {
       try {
         const { createClient: __cc } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
