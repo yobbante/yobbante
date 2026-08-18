@@ -1805,6 +1805,7 @@ export type Database = {
           client_nom: string | null
           client_phone: string | null
           colis_description: string | null
+          colis_size: string | null
           confirm_token: string
           created_at: string
           created_by: string | null
@@ -1812,12 +1813,21 @@ export type Database = {
           destination: string
           dossier_id: string | null
           en_route_at: string | null
+          expediteur_nom: string | null
+          expediteur_phone: string | null
           id: string
           photo_url: string | null
+          pickup_address: string | null
+          pickup_fee_fcfa: number
+          pickup_zone: string | null
           ref: string
-          remis_at: string
+          remis_at: string | null
+          scope: string | null
+          source: string | null
           status: Database["public"]["Enums"]["fret_course_status"]
+          total_fcfa: number | null
           updated_at: string
+          weight_kg: number | null
         }
         Insert: {
           accepted_at?: string | null
@@ -1826,6 +1836,7 @@ export type Database = {
           client_nom?: string | null
           client_phone?: string | null
           colis_description?: string | null
+          colis_size?: string | null
           confirm_token?: string
           created_at?: string
           created_by?: string | null
@@ -1833,12 +1844,21 @@ export type Database = {
           destination: string
           dossier_id?: string | null
           en_route_at?: string | null
+          expediteur_nom?: string | null
+          expediteur_phone?: string | null
           id?: string
           photo_url?: string | null
+          pickup_address?: string | null
+          pickup_fee_fcfa?: number
+          pickup_zone?: string | null
           ref: string
-          remis_at?: string
+          remis_at?: string | null
+          scope?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["fret_course_status"]
+          total_fcfa?: number | null
           updated_at?: string
+          weight_kg?: number | null
         }
         Update: {
           accepted_at?: string | null
@@ -1847,6 +1867,7 @@ export type Database = {
           client_nom?: string | null
           client_phone?: string | null
           colis_description?: string | null
+          colis_size?: string | null
           confirm_token?: string
           created_at?: string
           created_by?: string | null
@@ -1854,12 +1875,21 @@ export type Database = {
           destination?: string
           dossier_id?: string | null
           en_route_at?: string | null
+          expediteur_nom?: string | null
+          expediteur_phone?: string | null
           id?: string
           photo_url?: string | null
+          pickup_address?: string | null
+          pickup_fee_fcfa?: number
+          pickup_zone?: string | null
           ref?: string
-          remis_at?: string
+          remis_at?: string | null
+          scope?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["fret_course_status"]
+          total_fcfa?: number | null
           updated_at?: string
+          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -4623,6 +4653,7 @@ export type Database = {
         | "WON"
         | "LOST"
       fret_course_status:
+        | "A_ENLEVER"
         | "PENDING_ACCEPT"
         | "REMIS_CHAUFFEUR"
         | "EN_ROUTE"
@@ -4838,6 +4869,7 @@ export const Constants = {
       ],
       enterprise_quote_status: ["NEW", "CONTACTED", "QUALIFIED", "WON", "LOST"],
       fret_course_status: [
+        "A_ENLEVER",
         "PENDING_ACCEPT",
         "REMIS_CHAUFFEUR",
         "EN_ROUTE",
