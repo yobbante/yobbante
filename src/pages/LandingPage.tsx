@@ -1029,12 +1029,41 @@ function LandingFooter() {
             marginTop: 48,
             paddingTop: 24,
             borderTop: '1px solid rgba(255,255,255,0.1)',
-            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
             color: 'rgba(255,255,255,0.5)',
             fontSize: 13,
           }}
         >
-          © 2026 Yobbanté · Tous droits réservés
+          <span>© 2026 Yobbanté · Tous droits réservés</span>
+          <Link
+            to="/auth?mode=staff&redirect=%2Fadmin"
+            aria-label="Accès équipe"
+            title="Accès équipe"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'rgba(255,255,255,0.4)',
+              transition: 'color 0.2s, border-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+            }}
+          >
+            <Shield className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
     </footer>
