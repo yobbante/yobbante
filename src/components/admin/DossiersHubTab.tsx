@@ -4,13 +4,14 @@ import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon } from 'lucide-react';
 import { HubHeader, HubTab } from './hub-ui';
 
 
 
 
 import { RequestsTab } from './RequestsTab';
+import { FretDossiersList } from './dossiers/FretDossiersList';
 import { ReceptionKanbanTab } from './ReceptionKanbanTab';
 import { SourcingTab } from './SourcingTab';
 import { NewIntakeDialog } from './inbox/NewIntakeDialog';
@@ -19,7 +20,7 @@ import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 import { ClientAuditPanel } from './ClientAuditPanel';
 import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
-const TABS = ['tous', 'demandes', 'reception', 'sourcing', 'audit'] as const;
+const TABS = ['tous', 'demandes', 'routier', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
 const DEFAULT_TAB: TabId = 'demandes';
 
@@ -68,6 +69,7 @@ export function DossiersHubTab() {
                   </span>
                 ) : undefined}
               />
+              <HubTab value="routier"   icon={RouteIcon}   label="Routier" />
               <HubTab value="reception" icon={PackageOpen} label="Réception" />
               <HubTab value="sourcing"  icon={ShoppingCart} label="Sourcing" />
               <HubTab value="audit"     icon={ShieldCheck}  label="Audit & Test" />
@@ -78,7 +80,13 @@ export function DossiersHubTab() {
           </div>
 
 
-          <TabsContent value="tous"      className="mt-3 md:mt-4"><RequestsTab /></TabsContent>
+          <TabsContent value="tous"      className="mt-3 md:mt-4 space-y-4">
+            <RequestsTab />
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">Dossiers routiers (Terminal D)</p>
+              <FretDossiersList compact />
+            </div>
+          </TabsContent>
           <TabsContent value="demandes"  className="mt-3 md:mt-4">
             <div className="mb-3 hidden md:flex items-center justify-end gap-2">
               <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer">
@@ -101,6 +109,7 @@ export function DossiersHubTab() {
             />
           </TabsContent>
 
+          <TabsContent value="routier"   className="mt-3 md:mt-4"><FretDossiersList /></TabsContent>
           <TabsContent value="reception" className="mt-3 md:mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-3 md:mt-4"><SourcingTab /></TabsContent>
           <TabsContent value="audit"     className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
