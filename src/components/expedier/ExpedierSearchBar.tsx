@@ -102,7 +102,10 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [origin, setOrigin] = useState(buildCityLabel(hydratedSend?.origin_city, hydratedSend?.origin) || DAKAR);
   const [destination, setDestination] = useState(buildCityLabel(hydratedSend?.destination_city, hydratedSend?.destination));
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
-  const [transport, setTransport] = useState<'AIR' | 'SEA' | 'ROAD'>(hydratedSend?.transport ?? 'AIR');
+  // Routier public = Terminal D (page dédiée /terminal-d) → seuls Aérien/Maritime ici.
+  const [transport, setTransport] = useState<'AIR' | 'SEA'>(
+    hydratedSend?.transport === 'SEA' ? 'SEA' : 'AIR',
+  );
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
