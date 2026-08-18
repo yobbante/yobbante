@@ -34,9 +34,12 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   phone: string;
   dossier?: LinkedDossierLite | null;
+  /** Devis à ouvrir directement en édition (module admin « Devis »). */
+  initialDevis?: DevisRow | null;
 }
 
-export function DevisDialog({ open, onOpenChange, phone, dossier }: Props) {
+export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }: Props) {
+
   const { zones, destinations } = useFretTarifs();
   const { data: existing = [], isLoading } = useDevisList({
     phone, dossierId: dossier?.id ?? null, enabled: open,
