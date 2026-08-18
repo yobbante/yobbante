@@ -166,17 +166,18 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Yobbanté. Tous droits réservés.
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+            <span>© {new Date().getFullYear()} Yobbanté. Tous droits réservés.</span>
             <Link
               to="/auth?mode=staff&redirect=%2Fadmin"
               aria-label="Accès équipe"
               title="Accès équipe"
-              className="text-muted-foreground/70 hover:text-foreground transition-colors p-1 -m-1"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Lock className="w-3.5 h-3.5" />
+              Accès équipe
             </Link>
-          </p>
+          </div>
 
           <p className="text-xs text-muted-foreground">
             powered by{' '}
