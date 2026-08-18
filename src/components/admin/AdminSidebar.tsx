@@ -149,10 +149,12 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
         minWidth: 220,
       }}
     >
-      {!isAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
+      {!isAgent && !isTerrainAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n =>
-          (!n.adminOnly || isAdmin) && (!isAgent || AGENT_SECTIONS.includes(n.id)),
+          (!n.adminOnly || isAdmin || (isTerrainAgent && n.id === 'terrain'))
+          && (!isAgent || AGENT_SECTIONS.includes(n.id))
+          && (!isTerrainAgent || TERRAIN_AGENT_SECTIONS.includes(n.id)),
         );
         if (visibleItems.length === 0) return null;
         return (
