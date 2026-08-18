@@ -69,12 +69,17 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
     setManualValue('');
     setExtraLabel(''); setExtraAmount('');
     setValidUntil(devisValidUntil());
+    if (initialDevis) {
+      loadForEdit(initialDevis);
+      return;
+    }
     if (dossier) {
       setOrigin(dossier.origin_city || '');
       setDestination(dossier.destination_city || '');
       setWeight(dossier.estimated_weight ? String(dossier.estimated_weight) : '');
     }
-  }, [open, dossier?.id]); // eslint-disable-line
+  }, [open, dossier?.id, initialDevis?.id]); // eslint-disable-line
+
 
   const fretDestOptions = useMemo(() => {
     const scope = engine === 'fret_national' ? 'national' : 'international';
