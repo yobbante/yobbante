@@ -10,20 +10,26 @@ import {
   quoteNational,
   type ColisSize,
 } from '@/lib/fretPricing';
+import { calculerFraisEnlevement, QUARTIER_GROUPS } from '@/lib/dakarZones';
 import { whatsappLink } from '@/lib/contact';
-import { createDevis } from '@/hooks/useDevis';
-import { formatFrDate, devisValidUntil } from '@/lib/devis';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSeo } from '@/hooks/useSeo';
 import { Loader2, MessageCircle, Truck } from 'lucide-react';
 
 type Tab = 'national' | 'international';
 
+const ZONE_LABEL: Record<string, string> = {
+  dakar_centre: 'Dakar centre — enlèvement inclus',
+  dakar_banlieue: 'Dakar périphérie',
+  hors_dakar: 'Zone éloignée',
+};
+
 export default function TerminalDPage() {
   useSeo({
     title: 'Terminal D — Tarifs fret routier Dakar | Yobbanté',
     description:
-      "Prix instantané pour l'envoi de colis par bus depuis Baux Maraîchers vers les villes du Sénégal et les pays voisins.",
+      "Prix instantané pour l'envoi de colis depuis Dakar vers les villes du Sénégal et les pays voisins, avec enlèvement à domicile.",
     path: '/terminal-d',
   });
 
@@ -32,6 +38,14 @@ export default function TerminalDPage() {
   const [destId, setDestId] = useState('');
   const [size, setSize] = useState<ColisSize>('S');
   const [weight, setWeight] = useState('');
+
+  // Enlèvement (obligatoire — plus aucun dépôt possible)
+  const [pickupQuartier, setPickupQuartier] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [expediteurNom, setExpediteurNom] = useState('');
+  const [expediteurPhone, setExpediteurPhone] = useState('+221');
+  const [destNom, setDestNom] = useState('');
+  const [destPhone, setDestPhone] = useState('+221');
 
   const scopedDest = useMemo(
     () => destinations.filter(d => d.scope === tab),
@@ -46,40 +60,60 @@ export default function TerminalDPage() {
     return tab === 'national' ? quoteNational(zone, size) : quoteInternational(zone, weightNum);
   }, [zone, tab, size, weightNum]);
 
+  const frais = useMemo(
+    () => calculerFraisEnlevement(`${pickupQuartier} ${pickupAddress}`.trim()),
+    [pickupQuartier, pickupAddress],
+  );
+  const pickupFilled = !!(pickupQuartier || pickupAddress.trim());
+  const pickupFee = pickupFilled ? frais.surcharge : 0;
+  const totalPrice = quote?.price != null ? quote.price + pickupFee : null;
+
   const waMessage = dest
-    ? `Bonjour Yobbanté, je souhaite un devis fret routier Terminal D.\nDestination : ${dest.name}${zone ? ` (${zone.label})` : ''}\nPoids estimé : ${
+    ? `Bonjour Yobbanté, je souhaite un enlèvement de colis (transport routier depuis Dakar).\nDestination : ${dest.name}${zone ? ` (${zone.label})` : ''}\nPoids estimé : ${
         tab === 'international'
           ? `${weight || '?'} kg`
           : `${weight || `> ${FRET_MAX_AUTO_KG}`} kg`
       }`
-    : 'Bonjour Yobbanté, je souhaite un devis fret routier Terminal D.';
+    : 'Bonjour Yobbanté, je souhaite un enlèvement de colis (transport routier depuis Dakar).';
 
-  const [devisPhone, setDevisPhone] = useState('+221');
-  const [devisRef, setDevisRef] = useState<string | null>(null);
-  const [savingDevis, setSavingDevis] = useState(false);
+  const [bookingRef, setBookingRef] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  async function handleCreateDevis() {
+  const canBook =
+    !!dest && !!zone && quote?.price != null && pickupFilled &&
+    !!expediteurNom.trim() && !!destNom.trim() && destPhone.replace(/\D/g, '').length >= 9;
+
+  async function handleBooking() {
     if (!dest || !zone || quote?.price == null) return;
-    setSavingDevis(true);
+    setSaving(true);
     try {
-      await createDevis({
-        conversation_phone: devisPhone.replace(/\s/g, '') || null,
-        engine: tab === 'national' ? 'fret_national' : 'fret_international',
-        origin: 'Dakar (Baux Maraîchers)',
-        destination: dest.name,
-        weight_kg: tab === 'international' ? weightNum : null,
-        colis_size: tab === 'national' ? size : null,
-        mode: 'Terminal D — fret routier',
-        breakdown: [{ label: `Transport routier ${zone.label}`, amountFcfa: quote.price }],
-        total_fcfa: quote.price,
+      const { data, error } = await supabase.functions.invoke('fret-booking', {
+        body: {
+          scope: tab,
+          destination: dest.name,
+          zone_label: zone.label,
+          colis_size: tab === 'national' ? size : null,
+          weight_kg: tab === 'international' ? weightNum : null,
+          base_fcfa: quote.price,
+          pickup_fee_fcfa: pickupFee,
+          total_fcfa: totalPrice,
+          pickup_address: [pickupQuartier, pickupAddress.trim()].filter(Boolean).join(' — '),
+          pickup_zone: ZONE_LABEL[frais.zone],
+          expediteur_nom: expediteurNom.trim(),
+          expediteur_phone: expediteurPhone.replace(/\s/g, ''),
+          client_nom: destNom.trim(),
+          client_phone: destPhone.replace(/\s/g, ''),
+        },
       });
-      setDevisRef(dest.name);
-      toast.success('Devis enregistré — notre équipe vous l\'envoie après vérification.');
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      setBookingRef((data as { ref?: string })?.ref ?? 'enregistrée');
+      toast.success("Demande d'enlèvement enregistrée");
     } catch (e) {
-      toast.error('Impossible d\'enregistrer le devis', {
+      toast.error("Impossible d'enregistrer la demande", {
         description: e instanceof Error ? e.message : String(e),
       });
-    } finally { setSavingDevis(false); }
+    } finally { setSaving(false); }
   }
 
   const switchTab = (t: Tab) => {
@@ -96,9 +130,9 @@ export default function TerminalDPage() {
           <Truck className="w-5 h-5" />
           <span className="text-xs font-semibold uppercase tracking-wide">Terminal D</span>
         </div>
-        <h1 className="text-2xl font-semibold mt-2">Fret routier depuis Dakar</h1>
+        <h1 className="text-2xl font-semibold mt-2">Transport routier depuis Dakar</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Départs quotidiens du garage Baux Maraîchers. Prix affiché immédiatement.
+          Départs quotidiens. Enlèvement de votre colis à Dakar, prix affiché immédiatement.
         </p>
 
         {/* Tabs */}
@@ -123,14 +157,8 @@ export default function TerminalDPage() {
           </div>
         ) : (
           <div className="mt-5 grid gap-4">
-            {/* Origine + destination */}
+            {/* Destination */}
             <div className="rounded-2xl border border-border bg-card/40 p-4 space-y-3">
-              <div>
-                <label className="text-xs uppercase tracking-wide text-muted-foreground">Départ</label>
-                <div className="mt-1 h-11 flex items-center px-3 rounded-lg bg-background/60 border border-border/60 text-sm">
-                  Dakar — Garage Baux Maraîchers
-                </div>
-              </div>
               <div>
                 <label htmlFor="fret-dest" className="text-xs uppercase tracking-wide text-muted-foreground">
                   {tab === 'national' ? 'Ville de destination' : 'Pays de destination'}
@@ -194,6 +222,76 @@ export default function TerminalDPage() {
               )}
             </div>
 
+            {/* Enlèvement — systématique */}
+            {quote?.price != null && (
+              <div className="rounded-2xl border border-border bg-card/40 p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-medium">Enlèvement à Dakar</p>
+                  <p className="text-xs text-muted-foreground">
+                    Un chauffeur vient récupérer votre colis — aucun déplacement de votre côté.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="pickup-zone" className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Quartier d'enlèvement
+                  </label>
+                  <select
+                    id="pickup-zone"
+                    value={pickupQuartier}
+                    onChange={e => setPickupQuartier(e.target.value)}
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm"
+                  >
+                    <option value="">Sélectionner…</option>
+                    {QUARTIER_GROUPS.map(g => (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.quartiers.map(q => <option key={q} value={q}>{q}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="pickup-address" className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Adresse précise
+                  </label>
+                  <input
+                    id="pickup-address"
+                    value={pickupAddress}
+                    onChange={e => setPickupAddress(e.target.value)}
+                    placeholder="Rue, immeuble, repère…"
+                    className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm"
+                  />
+                  {pickupFilled && (
+                    <p className="text-xs mt-1 text-muted-foreground" aria-live="polite">
+                      {ZONE_LABEL[frais.zone]} · {pickupFee > 0 ? `frais d'enlèvement +${fmtFcfa(pickupFee)}` : 'enlèvement inclus'}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="exp-nom" className="text-xs uppercase tracking-wide text-muted-foreground">Nom de l'expéditeur</label>
+                    <input id="exp-nom" value={expediteurNom} onChange={e => setExpediteurNom(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="exp-tel" className="text-xs uppercase tracking-wide text-muted-foreground">Téléphone expéditeur</label>
+                    <input id="exp-tel" inputMode="tel" value={expediteurPhone} onChange={e => setExpediteurPhone(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="dst-nom" className="text-xs uppercase tracking-wide text-muted-foreground">Nom du destinataire</label>
+                    <input id="dst-nom" value={destNom} onChange={e => setDestNom(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm" />
+                  </div>
+                  <div>
+                    <label htmlFor="dst-tel" className="text-xs uppercase tracking-wide text-muted-foreground">Téléphone destinataire</label>
+                    <input id="dst-tel" inputMode="tel" value={destPhone} onChange={e => setDestPhone(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Prix — mis en avant, immédiat */}
             <div
               aria-live="polite"
@@ -203,11 +301,15 @@ export default function TerminalDPage() {
                 <p className="text-sm text-muted-foreground">
                   Choisissez une destination pour voir le prix immédiatement.
                 </p>
-              ) : quote?.price != null ? (
+              ) : totalPrice != null ? (
                 <>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Prix total</p>
-                  <p className="text-4xl font-semibold mt-1">{fmtFcfa(quote.price)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{quote.detail}</p>
+                  <p className="text-4xl font-semibold mt-1">{fmtFcfa(totalPrice)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{quote?.detail}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Transport {fmtFcfa(quote!.price!)}
+                    {pickupFee > 0 ? ` + enlèvement ${fmtFcfa(pickupFee)}` : ' · enlèvement inclus'}
+                  </p>
                 </>
               ) : quote?.manualQuote ? (
                 <>
@@ -229,30 +331,27 @@ export default function TerminalDPage() {
 
             {quote?.price != null && (
               <div className="rounded-2xl border border-border bg-card/40 p-4 space-y-2">
-                <p className="text-sm font-medium">Recevoir ce devis</p>
-                {devisRef ? (
-                  <p className="text-xs text-muted-foreground">
-                    Devis enregistré pour {devisRef} · valable jusqu'au {formatFrDate(devisValidUntil())}.
-                    Notre équipe le vérifie puis vous l'envoie sur WhatsApp.
+                {bookingRef ? (
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
+                    Votre demande d'enlèvement est enregistrée{bookingRef !== 'enregistrée' ? ` (réf. ${bookingRef})` : ''}.
+                    Notre équipe vous contacte pour organiser le passage du chauffeur.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    <input
-                      value={devisPhone}
-                      onChange={(e) => setDevisPhone(e.target.value)}
-                      placeholder="+221 77 123 45 67"
-                      aria-label="Numéro WhatsApp"
-                      className="h-11 px-3 rounded-xl bg-background border border-border text-sm flex-1 min-w-[180px]"
-                    />
+                  <>
                     <button
                       type="button"
-                      onClick={handleCreateDevis}
-                      disabled={savingDevis}
-                      className="h-11 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60"
+                      onClick={handleBooking}
+                      disabled={!canBook || saving}
+                      className="w-full h-12 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-60"
                     >
-                      {savingDevis ? 'Enregistrement…' : 'Enregistrer mon devis'}
+                      {saving ? 'Enregistrement…' : "Demander l'enlèvement"}
                     </button>
-                  </div>
+                    {!canBook && (
+                      <p className="text-xs text-muted-foreground">
+                        Renseignez l'adresse d'enlèvement, les noms et le téléphone du destinataire.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             )}
