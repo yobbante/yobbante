@@ -1028,16 +1028,19 @@ function LandingFooter() {
           style={{
             marginTop: 48,
             paddingTop: 24,
-            borderTop: '1px solid rgba(255,255,255,0.1)',
+            paddingBottom: 96,
             display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 12,
             color: 'rgba(255,255,255,0.5)',
             fontSize: 13,
+            borderTop: '1px solid rgba(255,255,255,0.1)',
           }}
         >
           <span>© 2026 Yobbanté · Tous droits réservés</span>
+
           <Link
             to="/auth?mode=staff&redirect=%2Fadmin"
             aria-label="Accès équipe"
