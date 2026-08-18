@@ -187,3 +187,21 @@ export function useDevisActions() {
 }
 
 export { isDevisExpired, formatDevisMessage };
+
+/** Liste transversale de TOUS les devis (module admin « Devis »). */
+export function useAllDevis(opts: { limit?: number } = {}) {
+  const { limit = 300 } = opts;
+  return useQuery({
+    queryKey: ['devis', 'all', limit],
+    staleTime: 30_000,
+    queryFn: async (): Promise<DevisRow[]> => {
+      const { data, error } = await supabase
+        .from('devis')
+        .select(SELECT)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []).map((d) => normalize(d as Record<string, unknown>));
+    },
+  });
+}
