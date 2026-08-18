@@ -38,7 +38,7 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
       <div className="space-y-3 md:space-y-4">
         <HubHeader
           title="Dossiers routiers"
-          subtitle="Courses Terminal D — consultation uniquement. La gestion se fait dans Fret routier."
+          subtitle="Courses Terminal D — cliquez une fiche pour la consulter, la modifier et faire avancer le statut."
         />
         <FretDossiersList />
       </div>
