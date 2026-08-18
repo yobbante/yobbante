@@ -395,7 +395,6 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                   >
                     <option value="AIR">Aérien</option>
                     <option value="SEA">Maritime</option>
-                    <option value="ROAD">Routier</option>
                   </select>
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
@@ -404,6 +403,15 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                     Continuer →
                   </button>
                 </div>
+                <a
+                  href="/terminal-d"
+                  className={cn(
+                    'block text-[11px] underline underline-offset-2 transition-colors',
+                    isDark ? 'text-white/60 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
+                </a>
               </div>
             )}
 
