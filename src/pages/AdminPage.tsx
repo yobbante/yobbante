@@ -50,6 +50,8 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   transporteurs:   { section: 'terrain', tab: 'gp' },
   livreurs:        { section: 'terrain', tab: 'livreurs' },
   'gp-operations': { section: 'terrain', tab: 'operations' },
+  fret:            { section: 'terrain', tab: 'fret' },
+  routier:         { section: 'dossiers', tab: 'routier' },
 
   // Départs
   departures:      { section: 'departs', tab: 'liste' },

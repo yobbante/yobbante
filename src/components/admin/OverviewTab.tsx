@@ -5,6 +5,7 @@ import {
   Inbox, Truck, ShoppingCart, ArrowUpRight, Plane, AlertTriangle,
   MessageSquare, Building2, CreditCard, Star, Package, PackageOpen,
   TrendingUp, TrendingDown, Clock, Users as UsersIcon, ShieldAlert, Hourglass, Plus,
+  Route as RouteIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -42,7 +43,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
     queryKey: ['admin-overview-v3'],
     staleTime: 60_000,
     queryFn: async () => {
-      const [dossiersR, shipmentsR, packagesR, reviewsR, invoicesR, entR, receptionR] = await Promise.all([
+      const [dossiersR, shipmentsR, packagesR, reviewsR, invoicesR, entR, fretR, receptionR] = await Promise.all([
         supabase.from('dossiers')
           .select('id, status, reference, product_description, origin_country, destination_country, created_at, updated_at, payment_status, estimated_cost, tracking_id, business_id, dossier_type, needs_sourcing, intake_method, source, last_client_contact, reminder_count, user_id')
           .order('created_at', { ascending: false })
@@ -52,6 +53,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
         supabase.from('customer_reviews').select('id, rating, would_recommend, created_at').limit(200),
         supabase.from('business_invoices').select('id, status, amount_xof, amount_eur, due_at').limit(500),
         supabase.from('enterprise_quotes').select('id, status, company, full_name, created_at').order('created_at', { ascending: false }).limit(200),
+        supabase.from('fret_courses' as any).select('id, status, destination, scope, created_at, updated_at, total_fcfa').order('created_at', { ascending: false }).limit(500),
         supabase.from('reception_orders').select('id, status, reference, merchant_name, order_description, created_at, updated_at, estimated_value_eur, payment_status').order('created_at', { ascending: false }).limit(500),
       ]);
       return {
@@ -62,6 +64,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
         invoices: invoicesR.data || [],
         quotes: (entR.data || []) as any[],
         receptions: (receptionR.data || []) as any[],
+        fret: (fretR.data || []) as any[],
       };
     },
   });
@@ -103,6 +106,16 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
       transit:    data.receptions.filter(r => r.status === 'in_transit').length,
       delivered7: data.receptions.filter(r => r.status === 'delivered' && inDays(r.updated_at, 7)).length,
     };
+    /* ── Fret routier Terminal D ───────────────────────── */
+    const fretPipeline = {
+      aEnlever:  data.fret.filter(f => f.status === 'A_ENLEVER').length,
+      enAttente: data.fret.filter(f => f.status === 'PENDING_ACCEPT').length,
+      enCours:   data.fret.filter(f => ['REMIS_CHAUFFEUR', 'EN_ROUTE'].includes(f.status)).length,
+      arrive:    data.fret.filter(f => f.status === 'ARRIVE').length,
+      delivered7:data.fret.filter(f => f.status === 'LIVRE' && inDays(f.updated_at, 7)).length,
+    };
+    const fretActive = fretPipeline.aEnlever + fretPipeline.enAttente + fretPipeline.enCours + fretPipeline.arrive;
+
     const recActive = recPipeline.pending + recPipeline.received + recPipeline.consolidated + recPipeline.transit;
 
     /* ── Demandes clients ──────────────────────────────── */
@@ -151,6 +164,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
       shipPipeline, shipActive,
       sourcingPipeline, sourcingActive,
       recPipeline, recActive,
+      fretPipeline, fretActive,
       reqNew, reqReview, reqAwaiting, reqStale, newQuotes, reqBySource,
       last7, trend,
       pendingPayments, revenuePending, business, individual,
@@ -295,8 +309,8 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
         </section>
       )}
 
-      {/* ── 3 SERVICES — Expédier / Sourcing / Réception ──── */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ── SERVICES — Expédier / Sourcing / Réception / Routier ──── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <ServiceCard
           icon={Truck} title="Expédier" tone="success"
           activeCount={m.shipActive}
@@ -330,6 +344,18 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
             { label: 'Reçu / inspecté', value: m.recPipeline.received, tone: 'warning' },
             { label: 'Consolidé',   value: m.recPipeline.consolidated, tone: 'warning' },
             { label: 'En transit',  value: m.recPipeline.transit,      tone: 'success' },
+          ]}
+        />
+        <ServiceCard
+          icon={RouteIcon} title="Routier (Terminal D)" tone="warning"
+          activeCount={m.fretActive}
+          delivered7={m.fretPipeline.delivered7}
+          onJump={() => onJump('routier')}
+          steps={[
+            { label: 'À enlever',   value: m.fretPipeline.aEnlever,  tone: 'muted' },
+            { label: 'À accepter',  value: m.fretPipeline.enAttente, tone: 'warning' },
+            { label: 'En route',    value: m.fretPipeline.enCours,   tone: 'success' },
+            { label: 'Arrivé',      value: m.fretPipeline.arrive,    tone: 'warning' },
           ]}
         />
       </section>
