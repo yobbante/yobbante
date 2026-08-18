@@ -122,6 +122,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
 
 
   useEffect(() => {
+    if (isTerrainAgent) return;
     let mounted = true;
     async function loadCount() {
       const { count } = await supabase
@@ -138,7 +139,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
-  }, []);
+  }, [isTerrainAgent]);
 
   return (
     <nav
