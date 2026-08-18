@@ -144,10 +144,19 @@ export function CityPicker({
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-[60] flex sm:items-center sm:justify-center"
+          className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center"
           role="dialog"
           aria-modal="true"
           aria-label={ariaLabel}
+          // Le portail vit hors du DOM d'un éventuel Dialog Radix parent :
+          // Radix pose `pointer-events: none` sur le body et fermerait le
+          // parent au premier clic. On réactive les events et on stoppe la
+          // propagation vers la couche « dismissable » du parent.
+          style={{ pointerEvents: 'auto' }}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onMouseDownCapture={(e) => e.stopPropagation()}
+          onTouchStartCapture={(e) => e.stopPropagation()}
+          onFocusCapture={(e) => e.stopPropagation()}
         >
           {/* backdrop — click to close */}
           <div
