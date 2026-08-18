@@ -111,10 +111,20 @@ Deno.serve(async (req) => {
         // ---- Statuses (delivery updates) ----
         for (const st of value?.statuses ?? []) {
           try {
+            const deliveryError = Array.isArray(st?.errors) && st.errors.length > 0
+              ? st.errors.map((error: any) => {
+                  const detail = error?.error_data?.details;
+                  return [error?.code, error?.title ?? error?.message, detail].filter(Boolean).join(' — ');
+                }).join(' | ')
+              : null;
             await supa
               .from('whatsapp_outbound_messages')
-              .update({ status: st.status })
+              .update({
+                status: st.status,
+                error_message: deliveryError,
+              })
               .eq('wamid', st.id);
+            if (deliveryError) console.error('WA_DELIVERY_ERROR', st.id, deliveryError);
           } catch (e) {
             console.error('WA_ERROR status update', e);
           }
