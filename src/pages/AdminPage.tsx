@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserRole } from '@/hooks/useUserRole';
-import { AdminSidebar, ADMIN_NAV, AGENT_SECTIONS, type AdminSection } from '@/components/admin/AdminSidebar';
+import { AdminSidebar, ADMIN_NAV, AGENT_SECTIONS, TERRAIN_AGENT_SECTIONS, type AdminSection } from '@/components/admin/AdminSidebar';
 import { OverviewTab } from '@/components/admin/OverviewTab';
 import { DossiersHubTab } from '@/components/admin/DossiersHubTab';
 import { DepartsHubTab } from '@/components/admin/DepartsHubTab';
@@ -78,7 +78,7 @@ function resolveSlug(slug: string | undefined): { section: AdminSection; tab?: s
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { isStaff, isAdmin, isAgentSupport, isLoading: roleLoading } = useUserRole();
+  const { isStaff, isAdmin, isAgentSupport, isAgentTerrain, isLoading: roleLoading } = useUserRole();
   const [authChecked, setAuthChecked] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { section: pathSlug } = useParams<{ section?: string }>();
@@ -126,7 +126,8 @@ export default function AdminPage() {
   // Un agent support qui atterrit sur une section interdite est renvoyé vers les dossiers.
   useEffect(() => {
     if (isAgentSupport && !pathSlug) navigate('/admin/dossiers', { replace: true });
-  }, [isAgentSupport, pathSlug, navigate]);
+    if (isAgentTerrain && !pathSlug) navigate('/admin/terrain', { replace: true });
+  }, [isAgentSupport, isAgentTerrain, pathSlug, navigate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -172,11 +173,11 @@ export default function AdminPage() {
           <p className="text-[11px] text-muted-foreground mt-1 ml-6">Console opérations</p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} isAgent={isAgentSupport} />
+          <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} isAgent={isAgentSupport} isTerrainAgent={isAgentTerrain} />
         </div>
         <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/8 px-2 py-1 rounded">
-            <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : isAgentSupport ? 'Agent support' : 'Staff'}
+            <ShieldCheck className="w-3 h-3" /> {isAdmin ? 'Admin' : isAgentSupport ? 'Agent support' : isAgentTerrain ? 'Agent terrain' : 'Staff'}
           </span>
           <AdminLiveBadge />
           <button
@@ -200,7 +201,7 @@ export default function AdminPage() {
               <button onClick={() => setMobileOpen(false)} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} isAgent={isAgentSupport} />
+              <AdminSidebar active={section} onChange={setSection} isAdmin={isAdmin} isAgent={isAgentSupport} isTerrainAgent={isAgentTerrain} />
             </div>
           </aside>
         </div>
@@ -261,17 +262,28 @@ export default function AdminPage() {
                 Aller aux dossiers
               </Button>
             </div>
+          ) : isAgentTerrain && !TERRAIN_AGENT_SECTIONS.includes(section) ? (
+            <div className="py-20 text-center">
+              <ShieldCheck className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-base font-semibold text-foreground">Section non autorisée</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                Votre rôle « Agent terrain » donne accès au module Fret routier (Terminal D) uniquement.
+              </p>
+              <Button onClick={() => setSection('terrain')} variant="outline" className="mt-4">
+                Aller au fret routier
+              </Button>
+            </div>
           ) : (
             <>
               {section !== 'messages' && <div className="hidden md:block"><AdminBreadcrumb section={section} /></div>}
               {section === 'overview' && <OverviewTab onJump={setSection} />}
-              {section === 'dossiers' && <DossiersHubTab />}
+              {section === 'dossiers' && <DossiersHubTab fretOnly={isAgentTerrain} />}
               {section === 'departs'  && <DepartsHubTab />}
-              {section === 'terrain'  && isAdmin && <TerrainHubTab />}
+              {section === 'terrain'  && (isAdmin || isAgentTerrain) && <TerrainHubTab fretOnly={isAgentTerrain} />}
               {section === 'clients'  && <ClientsTab />}
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
-              {section === 'devis'    && <DevisAdminTab />}
+              {section === 'devis'    && <DevisAdminTab readOnly={isAgentTerrain} fretOnly={isAgentTerrain} />}
               {section === 'maritime' && (
                 <div className="py-20 text-center">
                   <Ship className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -295,6 +307,7 @@ export default function AdminPage() {
         onChange={setSection}
         onMore={() => setMobileOpen(true)}
         isAgent={isAgentSupport}
+        isTerrainAgent={isAgentTerrain}
         unread={brief?.unreadMessages ?? 0}
       />
     </div>
