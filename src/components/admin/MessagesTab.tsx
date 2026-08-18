@@ -197,8 +197,8 @@ export function MessagesTab() {
   const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setReloading(true);
     const [{ data: inData }, { data: outData }] = await Promise.all([
-      supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(500),
-      supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(2000),
+      supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(3000),
     ]);
     if (!mountedRef.current) return;
     setInbound(((inData ?? []) as InboundMsg[]).filter((m) => !isSuperAdmin(m)));
@@ -1178,7 +1178,7 @@ export function MessagesTab() {
 
               {/* Composer */}
               {activeConv.channel === 'client' ? (
-                <div className="border-t border-border bg-card">
+                <div className="border-t border-border bg-card pb-[calc(3.25rem+env(safe-area-inset-bottom))] lg:pb-0">
                   {/* Bot client status bar */}
                   <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2 flex-wrap">
                     <span className={cn('flex items-center gap-1 font-semibold', clientBotPaused ? 'text-amber-400' : 'text-emerald-400')}>
@@ -1363,7 +1363,7 @@ export function MessagesTab() {
                   )}
                 </div>
               ) : (
-                <div className="border-t border-border bg-card">
+                <div className="border-t border-border bg-card pb-[calc(3.25rem+env(safe-area-inset-bottom))] lg:pb-0">
                   {/* Bot status bar */}
                   <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2">
                     <span className={cn('flex items-center gap-1 font-semibold', botPaused ? 'text-amber-400' : 'text-emerald-400')}>

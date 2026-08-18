@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, MapPin, MessageCircle, Package, ShoppingCart, ChevronDown, Settings } from 'lucide-react';
+import { Mail, MapPin, MessageCircle, Package, ShoppingCart, ChevronDown, Lock } from 'lucide-react';
 
 const SOCIAL_LINKS: { label: string; href: string; path: string }[] = [
   { label: 'Instagram', href: 'https://instagram.com/yobbante', path: 'M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.64.07-4.85.07-3.2 0-3.58 0-4.85-.07-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.2 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.2 8.8 2.2 12 2.2zm0 1.8c-3.14 0-3.51 0-4.74.07-1.07.05-1.65.23-2.04.38-.51.2-.88.43-1.26.82-.39.38-.62.75-.82 1.26-.15.39-.33.97-.38 2.04-.06 1.23-.07 1.6-.07 4.74s0 3.51.07 4.74c.05 1.07.23 1.65.38 2.04.2.51.43.88.82 1.26.38.39.75.62 1.26.82.39.15.97.33 2.04.38 1.23.06 1.6.07 4.74.07s3.51 0 4.74-.07c1.07-.05 1.65-.23 2.04-.38.51-.2.88-.43 1.26-.82.39-.38.62-.75.82-1.26.15-.39.33-.97.38-2.04.06-1.23.07-1.6.07-4.74s0-3.51-.07-4.74c-.05-1.07-.23-1.65-.38-2.04a3.4 3.4 0 0 0-.82-1.26 3.4 3.4 0 0 0-1.26-.82c-.39-.15-.97-.33-2.04-.38C15.51 4 15.14 4 12 4zm0 3.06a4.94 4.94 0 1 1 0 9.88 4.94 4.94 0 0 1 0-9.88zm0 8.14a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zm6.28-8.34a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0z' },
@@ -166,17 +166,18 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-8 pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Yobbanté. Tous droits réservés.
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+            <span>© {new Date().getFullYear()} Yobbanté. Tous droits réservés.</span>
             <Link
               to="/auth?mode=staff&redirect=%2Fadmin"
               aria-label="Accès équipe"
               title="Accès équipe"
-              className="text-muted-foreground/70 hover:text-foreground transition-colors p-1 -m-1"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Lock className="w-3.5 h-3.5" />
+              Accès équipe
             </Link>
-          </p>
+          </div>
 
           <p className="text-xs text-muted-foreground">
             powered by{' '}
