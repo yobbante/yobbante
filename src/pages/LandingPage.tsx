@@ -919,6 +919,7 @@ function LandingFooter() {
       title: 'Services',
       items: [
         { label: 'Expédier un colis', to: '/expedier' },
+        { label: 'Transport routier', to: '/terminal-d' },
         { label: 'Tarifs', to: '/tarifs' },
         { label: 'Suivre mon colis', to: '/suivre' },
         { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
