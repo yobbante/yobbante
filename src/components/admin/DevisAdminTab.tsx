@@ -40,7 +40,7 @@ export function DevisAdminTab({ readOnly = false, fretOnly = false }: { readOnly
   const { data: devis = [], isLoading } = useAllDevis();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<'all' | DevisStatus>('all');
-  const [engine, setEngine] = useState<'all' | DevisEngine>(fretOnly ? 'fret_national' : 'all');
+  const [engine, setEngine] = useState<'all' | DevisEngine>('all');
   const [open, setOpen] = useState<DevisRow | null>(null);
   const [creating, setCreating] = useState(false);
 
