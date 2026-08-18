@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Truck, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, MessageCircle, MoreHorizontal, Route as RouteIcon, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminSection } from './AdminSidebar';
 
@@ -9,29 +9,38 @@ const ITEMS: { id: AdminSection; icon: typeof Package; label: string }[] = [
   { id: 'messages', icon: MessageCircle,   label: 'Messages' },
 ];
 
+const TERRAIN_ITEMS: { id: AdminSection; icon: typeof Package; label: string }[] = [
+  { id: 'terrain',  icon: RouteIcon, label: 'Fret routier' },
+  { id: 'dossiers', icon: Package,   label: 'Dossiers routiers' },
+  { id: 'devis',    icon: FileText,  label: 'Devis' },
+];
+
 /**
  * Barre de navigation mobile — icônes seules.
  * Les sections secondaires restent accessibles via « Plus » (drawer sidebar).
  */
 export function AdminMobileNav({
-  active, onChange, onMore, unread = 0, isAgent = false,
+  active, onChange, onMore, unread = 0, isAgent = false, isTerrainAgent = false,
 }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   onMore: () => void;
   unread?: number;
   isAgent?: boolean;
+  isTerrainAgent?: boolean;
 }) {
-  const items = isAgent
-    ? ITEMS.filter(i => i.id === 'dossiers' || i.id === 'messages')
-    : ITEMS;
+  const items = isTerrainAgent
+    ? TERRAIN_ITEMS
+    : isAgent
+      ? ITEMS.filter(i => i.id === 'dossiers' || i.id === 'messages')
+      : ITEMS;
   return (
     <nav
       className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation admin"
     >
-      <div className={cn('grid', isAgent ? 'grid-cols-3' : 'grid-cols-5')}>
+      <div className={cn('grid', isAgent ? 'grid-cols-3' : isTerrainAgent ? 'grid-cols-4' : 'grid-cols-5')}>
         {items.map(({ id, icon: Icon, label }) => {
           const isActive = active === id;
           return (

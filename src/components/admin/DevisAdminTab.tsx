@@ -36,7 +36,7 @@ const STATUS_FILTERS: { id: 'all' | DevisStatus; label: string }[] = [
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
-export function DevisAdminTab() {
+export function DevisAdminTab({ readOnly = false, fretOnly = false }: { readOnly?: boolean; fretOnly?: boolean }) {
   const { data: devis = [], isLoading } = useAllDevis();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<'all' | DevisStatus>('all');
@@ -53,6 +53,7 @@ export function DevisAdminTab() {
       if (status !== 'all') {
         if (status === 'expired' ? !expired : (d.status !== status || expired)) return false;
       }
+      if (fretOnly && d.engine === 'international') return false;
       if (engine !== 'all' && d.engine !== engine) return false;
       if (!s) return true;
       return (
@@ -62,18 +63,20 @@ export function DevisAdminTab() {
         (d.origin ?? '').toLowerCase().includes(s)
       );
     });
-  }, [current, q, status, engine]);
+  }, [current, q, status, engine, fretOnly]);
 
   return (
     <div className="space-y-3 md:space-y-4">
       <HubHeader
         title="Devis"
-        subtitle="Tous les devis, aérien/maritime et transport routier Terminal D."
-        actions={
+        subtitle={fretOnly
+          ? 'Devis Terminal D (routier national et international) — consultation uniquement.'
+          : 'Tous les devis, aérien/maritime et transport routier Terminal D.'}
+        actions={readOnly ? undefined : (
           <Button size="sm" onClick={() => setCreating(true)} aria-label="Nouveau devis">
             <FileText className="w-4 h-4 md:mr-1" /><span className="hidden md:inline">Nouveau devis</span>
           </Button>
-        }
+        )}
       />
 
       <div className="relative">
@@ -93,7 +96,7 @@ export function DevisAdminTab() {
       </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {(['all', 'international', 'fret_national', 'fret_international'] as const).map(id => (
+        {((fretOnly ? ['all', 'fret_national', 'fret_international'] : ['all', 'international', 'fret_national', 'fret_international']) as ('all' | DevisEngine)[]).map(id => (
           <button key={id} onClick={() => setEngine(id)}
             className={cn('shrink-0 rounded-full border px-2.5 py-1 text-[11px]',
               engine === id ? 'border-[#F5C518] bg-[#F5C518]/10 text-foreground' : 'border-border text-muted-foreground')}>
@@ -133,18 +136,20 @@ export function DevisAdminTab() {
                   {d.conversation_phone || 'Contact inconnu'} · créé le {fmtDate(d.created_at)} · valable jusqu'au {formatFrDate(d.valid_until)}
                 </p>
                 <p className="text-[11px] text-muted-foreground">{ENGINE_LABELS[d.engine]}</p>
-                <div className="pt-1">
-                  <Button size="sm" className="h-8 text-xs" onClick={() => setOpen(d)}>
-                    <Send className="w-3 h-3 mr-1" /> Vérifier et envoyer
-                  </Button>
-                </div>
+                {!readOnly && (
+                  <div className="pt-1">
+                    <Button size="sm" className="h-8 text-xs" onClick={() => setOpen(d)}>
+                      <Send className="w-3 h-3 mr-1" /> Vérifier et envoyer
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {open && (
+      {open && !readOnly && (
         <DevisDialog
           open={!!open}
           onOpenChange={(v) => !v && setOpen(null)}
@@ -153,7 +158,7 @@ export function DevisAdminTab() {
         />
       )}
 
-      <DevisDialog open={creating} onOpenChange={setCreating} phone="" />
+      {!readOnly && <DevisDialog open={creating} onOpenChange={setCreating} phone="" />}
     </div>
   );
 }

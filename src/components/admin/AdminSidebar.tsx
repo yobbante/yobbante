@@ -30,6 +30,8 @@ type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; 
 
 // Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
+// Sections visibles par le rôle « agent_terrain » (fret routier Terminal D).
+export const TERRAIN_AGENT_SECTIONS: AdminSection[] = ['terrain', 'dossiers', 'devis'];
 type NavGroup = { label: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -80,11 +82,12 @@ const HIDDEN_SECTIONS: NavItem[] = [
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
 
-export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
+export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
   isAgent?: boolean;
+  isTerrainAgent?: boolean;
 }) {
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
@@ -119,6 +122,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
 
 
   useEffect(() => {
+    if (isTerrainAgent) return;
     let mounted = true;
     async function loadCount() {
       const { count } = await supabase
@@ -135,7 +139,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
-  }, []);
+  }, [isTerrainAgent]);
 
   return (
     <nav
@@ -146,10 +150,12 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
         minWidth: 220,
       }}
     >
-      {!isAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
+      {!isAgent && !isTerrainAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n =>
-          (!n.adminOnly || isAdmin) && (!isAgent || AGENT_SECTIONS.includes(n.id)),
+          (!n.adminOnly || isAdmin || (isTerrainAgent && n.id === 'terrain'))
+          && (!isAgent || AGENT_SECTIONS.includes(n.id))
+          && (!isTerrainAgent || TERRAIN_AGENT_SECTIONS.includes(n.id)),
         );
         if (visibleItems.length === 0) return null;
         return (

@@ -6,9 +6,10 @@ import { detectServiceKind } from '@/lib/intakeSources';
  * Compte les dossiers "Envoi" à traiter (SUBMITTED + IN_REVIEW).
  * Utilisé pour le badge sur l'onglet "Demandes entrantes".
  */
-export function useInboxUnassignedCount() {
+export function useInboxUnassignedCount(enabled = true) {
   return useQuery({
     queryKey: ['inbox-unassigned-count'],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')

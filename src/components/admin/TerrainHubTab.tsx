@@ -12,18 +12,33 @@ import { FretRoutierTab } from './FretRoutierTab';
 const TABS = ['gp', 'onboarding', 'livreurs', 'fret', 'operations'] as const;
 type TabId = typeof TABS[number];
 
-export function TerrainHubTab() {
+export function TerrainHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
   const [sp, setSp] = useSearchParams();
   const navigate = useNavigate();
   const tabParam = sp.get('tab') as TabId | null;
-  const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : 'gp';
+  const defaultTab: TabId = fretOnly ? 'fret' : 'gp';
+  const tab: TabId = fretOnly
+    ? 'fret'
+    : (tabParam && TABS.includes(tabParam) ? tabParam : defaultTab);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
-    if (v === 'gp') next.delete('tab');
+    if (v === defaultTab) next.delete('tab');
     else next.set('tab', v);
     setSp(next, { replace: true });
   };
+
+  if (fretOnly) {
+    return (
+      <div className="space-y-3 md:space-y-4">
+        <HubHeader
+          title="Fret routier — Terminal D"
+          subtitle="Remises de colis, demandes d'enlèvement, courses en cours et chauffeurs."
+        />
+        <FretRoutierTab />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 md:space-y-4">
