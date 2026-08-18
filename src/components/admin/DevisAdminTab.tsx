@@ -96,7 +96,7 @@ export function DevisAdminTab({ readOnly = false, fretOnly = false }: { readOnly
       </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {((fretOnly ? ['fret_national', 'fret_international'] : ['all', 'international', 'fret_national', 'fret_international']) as ('all' | DevisEngine)[]).map(id => (
+        {((fretOnly ? ['all', 'fret_national', 'fret_international'] : ['all', 'international', 'fret_national', 'fret_international']) as ('all' | DevisEngine)[]).map(id => (
           <button key={id} onClick={() => setEngine(id)}
             className={cn('shrink-0 rounded-full border px-2.5 py-1 text-[11px]',
               engine === id ? 'border-[#F5C518] bg-[#F5C518]/10 text-foreground' : 'border-border text-muted-foreground')}>
