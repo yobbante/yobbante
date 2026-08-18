@@ -263,8 +263,17 @@ export function CityPicker({
                 </Section>
               ) : (
                 filtered.pop.length === 0 && (
-                  <div className="px-4 py-12 text-center text-[13px] text-muted-foreground">
-                    Aucune ville trouvée pour « {q} ».
+                  <div className="px-4 py-10 text-center text-[13px] text-muted-foreground space-y-2">
+                    <div>Aucune ville trouvée pour « {q} ».</div>
+                    <div>
+                      Destination au Sénégal ou dans un pays voisin (Gambie, Mali, Mauritanie…) ?
+                    </div>
+                    <a
+                      href="/terminal-d"
+                      className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-medium border border-border text-foreground hover:bg-secondary"
+                    >
+                      → Transport routier (Terminal D)
+                    </a>
                   </div>
                 )
               )}

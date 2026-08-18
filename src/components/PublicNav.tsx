@@ -22,6 +22,7 @@ const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadg
   { label: 'Expédier',     to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
   { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
   { label: 'Réception',    to: '/expedier/recevoir', match: p => p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  { label: 'Transport routier', to: '/terminal-d',   match: p => p.startsWith('/terminal-d') },
   // Secondaires
   { label: 'Suivre',       to: '/suivre',            match: p => p.startsWith('/suivre') || p.startsWith('/track') },
   { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },

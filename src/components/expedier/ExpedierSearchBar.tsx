@@ -102,7 +102,10 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [origin, setOrigin] = useState(buildCityLabel(hydratedSend?.origin_city, hydratedSend?.origin) || DAKAR);
   const [destination, setDestination] = useState(buildCityLabel(hydratedSend?.destination_city, hydratedSend?.destination));
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
-  const [transport, setTransport] = useState<'AIR' | 'SEA' | 'ROAD'>(hydratedSend?.transport ?? 'AIR');
+  // Routier public = Terminal D (page dédiée /terminal-d) → seuls Aérien/Maritime ici.
+  const [transport, setTransport] = useState<'AIR' | 'SEA'>(
+    hydratedSend?.transport === 'SEA' ? 'SEA' : 'AIR',
+  );
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
@@ -392,7 +395,6 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                   >
                     <option value="AIR">Aérien</option>
                     <option value="SEA">Maritime</option>
-                    <option value="ROAD">Routier</option>
                   </select>
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
@@ -401,6 +403,15 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                     Continuer →
                   </button>
                 </div>
+                <a
+                  href="/terminal-d"
+                  className={cn(
+                    'block text-[11px] underline underline-offset-2 transition-colors',
+                    isDark ? 'text-white/60 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
+                </a>
               </div>
             )}
 
