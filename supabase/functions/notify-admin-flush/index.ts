@@ -20,7 +20,18 @@ Deno.serve(async (req) => {
   const __apikey = req.headers.get('apikey') ?? '';
   const __isService = !!__SR && __auth === `Bearer ${__SR}`;
   const __isScheduler = !!__ANON && (__auth === `Bearer ${__ANON}` || __apikey === __ANON);
-  if (!__isService && !__isScheduler) {
+  // Legacy JWT anon keys remain valid for database cron jobs after Cloud key rotation.
+  // Restrict compatibility to this exact project and the anon role.
+  let __isLegacyScheduler = false;
+  const bearer = __auth.toLowerCase().startsWith('bearer ') ? __auth.slice(7) : __apikey;
+  if (bearer) {
+    try {
+      const payload = JSON.parse(atob(bearer.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      const projectRef = new URL(Deno.env.get('SUPABASE_URL') ?? '').hostname.split('.')[0];
+      __isLegacyScheduler = payload?.role === 'anon' && payload?.ref === projectRef;
+    } catch { /* invalid token */ }
+  }
+  if (!__isService && !__isScheduler && !__isLegacyScheduler) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...(typeof corsHeaders !== 'undefined' ? corsHeaders : {}), 'Content-Type': 'application/json' },
