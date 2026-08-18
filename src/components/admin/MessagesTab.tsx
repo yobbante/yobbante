@@ -197,8 +197,8 @@ export function MessagesTab() {
   const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setReloading(true);
     const [{ data: inData }, { data: outData }] = await Promise.all([
-      supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(500),
-      supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(500),
+      supabase.from('whatsapp_inbound_messages').select('*').order('received_at', { ascending: false }).limit(2000),
+      supabase.from('whatsapp_outbound_messages').select('*').order('created_at', { ascending: false }).limit(3000),
     ]);
     if (!mountedRef.current) return;
     setInbound(((inData ?? []) as InboundMsg[]).filter((m) => !isSuperAdmin(m)));
