@@ -161,7 +161,10 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
     try {
       const target = row ?? (await persist());
       if (!target) return;
-      await send.mutateAsync({ devis: target, phone });
+      const to = (phone || target.conversation_phone || '').trim();
+      if (!to) throw new Error('Aucun numéro WhatsApp associé à ce devis');
+      await send.mutateAsync({ devis: target, phone: to });
+
       toast.success('Devis envoyé sur WhatsApp');
       onOpenChange(false);
     } catch (e) {
