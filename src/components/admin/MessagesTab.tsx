@@ -1178,7 +1178,7 @@ export function MessagesTab() {
 
               {/* Composer */}
               {activeConv.channel === 'client' ? (
-                <div className="border-t border-border bg-card">
+                <div className="border-t border-border bg-card pb-[calc(3.25rem+env(safe-area-inset-bottom))] lg:pb-0">
                   {/* Bot client status bar */}
                   <div className="px-3 py-1.5 flex items-center justify-between text-[10px] border-b border-border/50 gap-2 flex-wrap">
                     <span className={cn('flex items-center gap-1 font-semibold', clientBotPaused ? 'text-amber-400' : 'text-emerald-400')}>
