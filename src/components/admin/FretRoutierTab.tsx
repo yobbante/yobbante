@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertTriangle, Camera, Check, Copy, Loader2, Plus, Search, Send, Truck,
+  AlertTriangle, Camera, Check, Copy, Loader2, MapPin, Package, Plus, Search, Send, Truck,
+  UserRound, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,45 +10,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
+import { HubTab } from './hub-ui';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { sendGpMessage } from '@/lib/sendGpMessage';
 import { normalizePhone } from '@/lib/phone';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
-
-interface Chauffeur {
-  id: string;
-  telephone: string;
-  pin_code: string;
-  nom_complet: string | null;
-  immatriculation: string | null;
-  routes: string[] | null;
-  is_active: boolean;
-}
-
-interface Course {
-  id: string;
-  ref: string;
-  destination: string;
-  client_nom: string | null;
-  client_phone: string | null;
-  colis_description: string | null;
-  photo_url: string | null;
-  status: FretStatus;
-  confirm_token: string;
-  remis_at: string | null;
-  arrived_at: string | null;
-  delivered_at: string | null;
-  chauffeur_id: string | null;
-  pickup_address?: string | null;
-  pickup_zone?: string | null;
-  pickup_fee_fcfa?: number | null;
-  expediteur_nom?: string | null;
-  expediteur_phone?: string | null;
-  total_fcfa?: number | null;
-  source?: string | null;
-}
+import {
+  useChauffeurs, useFretCourses, FRET_ACTIVE_STATUSES,
+  type AdminChauffeur as Chauffeur, type AdminFretCourse as Course,
+} from '@/hooks/useFretAdmin';
+import { cn } from '@/lib/utils';
 
 const STATUS_TONE: Record<FretStatus, string> = {
   A_ENLEVER: 'bg-orange-500/15 text-orange-600',
@@ -59,6 +34,15 @@ const STATUS_TONE: Record<FretStatus, string> = {
   ANNULE: 'bg-muted text-muted-foreground',
 };
 
+const FILTERS: { id: 'all' | FretStatus; label: string }[] = [
+  { id: 'all', label: 'Toutes' },
+  { id: 'A_ENLEVER', label: "À enlever" },
+  { id: 'PENDING_ACCEPT', label: "En attente d'acceptation" },
+  { id: 'EN_ROUTE', label: 'En route' },
+  { id: 'ARRIVE', label: 'Arrivé' },
+  { id: 'LIVRE', label: 'Livré' },
+];
+
 const fmt = (d: string | null) =>
   d ? new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -67,39 +51,21 @@ function isStale(c: Course) {
   return c.status === 'ARRIVE' && !!c.arrived_at && Date.now() - new Date(c.arrived_at).getTime() > 24 * 3600 * 1000;
 }
 
+const SUB_TABS = ['courses', 'demandes', 'chauffeurs', 'destinations'] as const;
+type SubTab = typeof SUB_TABS[number];
+
 export function FretRoutierTab() {
   const qc = useQueryClient();
+  const [sub, setSub] = useState<SubTab>('courses');
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
+  const [status, setStatus] = useState<'all' | FretStatus>('all');
   const [bordereau, setBordereau] = useState<{ course: Course; chauffeur: Chauffeur } | null>(null);
   const [assign, setAssign] = useState<Course | null>(null);
+  const [detail, setDetail] = useState<Chauffeur | null>(null);
 
-  const courses = useQuery({
-    queryKey: ['fret-courses'],
-    queryFn: async (): Promise<Course[]> => {
-      const { data, error } = await supabase
-        .from('fret_courses' as any)
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as unknown as Course[];
-    },
-    refetchInterval: 60_000,
-  });
-
-  const chauffeurs = useQuery({
-    queryKey: ['chauffeurs'],
-    queryFn: async (): Promise<Chauffeur[]> => {
-      const { data, error } = await supabase
-        .from('chauffeurs' as any)
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      return (data ?? []) as unknown as Chauffeur[];
-    },
-  });
+  const courses = useFretCourses();
+  const chauffeurs = useChauffeurs();
 
   const byId = useMemo(() => {
     const m = new Map<string, Chauffeur>();
@@ -107,27 +73,73 @@ export function FretRoutierTab() {
     return m;
   }, [chauffeurs.data]);
 
+  const all = courses.data ?? [];
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const all = courses.data ?? [];
-    if (!s) return all;
-    return all.filter((c) =>
-      c.ref.toLowerCase().includes(s) ||
-      c.destination.toLowerCase().includes(s) ||
-      (c.client_nom ?? '').toLowerCase().includes(s) ||
-      (byId.get(c.chauffeur_id ?? '')?.nom_complet ?? '').toLowerCase().includes(s));
-  }, [q, courses.data, byId]);
+    return all.filter((c) => {
+      if (status !== 'all' && c.status !== status) return false;
+      if (!s) return true;
+      return c.ref.toLowerCase().includes(s) ||
+        c.destination.toLowerCase().includes(s) ||
+        (c.client_nom ?? '').toLowerCase().includes(s) ||
+        (c.expediteur_nom ?? '').toLowerCase().includes(s) ||
+        (c.client_phone ?? '').includes(s) ||
+        (byId.get(c.chauffeur_id ?? '')?.nom_complet ?? '').toLowerCase().includes(s);
+    });
+  }, [q, all, status, byId]);
 
-  const alerts = (courses.data ?? []).filter(isStale);
+  /** Demandes d'enlèvement clients (créées depuis /terminal-d) sans chauffeur. */
+  const demandes = useMemo(
+    () => all.filter((c) => !c.chauffeur_id && c.status === 'A_ENLEVER'),
+    [all],
+  );
+
+  const alerts = all.filter(isStale);
+
+  const byDestination = useMemo(() => {
+    const m = new Map<string, { total: number; actives: number; scope: string | null }>();
+    for (const c of all) {
+      const key = c.destination || '—';
+      const cur = m.get(key) ?? { total: 0, actives: 0, scope: c.scope ?? null };
+      cur.total += 1;
+      if (FRET_ACTIVE_STATUSES.includes(c.status)) cur.actives += 1;
+      m.set(key, cur);
+    }
+    return Array.from(m.entries())
+      .map(([destination, v]) => ({ destination, ...v }))
+      .sort((a, b) => b.actives - a.actives || b.total - a.total);
+  }, [all]);
+
+  const coursesByChauffeur = useMemo(() => {
+    const m = new Map<string, Course[]>();
+    for (const c of all) {
+      if (!c.chauffeur_id) continue;
+      m.set(c.chauffeur_id, [...(m.get(c.chauffeur_id) ?? []), c]);
+    }
+    return m;
+  }, [all]);
+
+  const toggleChauffeur = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from('chauffeurs' as any).update({ is_active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Chauffeur mis à jour');
+      qc.invalidateQueries({ queryKey: ['chauffeurs'] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Mise à jour impossible'),
+  });
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Réf · destination · chauffeur" className="pl-9 h-10" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Réf · destination · client · chauffeur" className="pl-9 h-10" />
         </div>
-        <Button size="sm" className="h-10 shrink-0" onClick={() => setOpen(true)} aria-label="Nouvelle remise">
+        <Button size="sm" className="h-10 shrink-0" onClick={() => { setAssign(null); setOpen(true); }} aria-label="Nouvelle remise">
           <Plus className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Remise colis</span>
         </Button>
       </div>
@@ -142,71 +154,151 @@ export function FretRoutierTab() {
         </div>
       )}
 
-      {courses.isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-10 text-center">Aucune course. Créez la première remise de colis.</p>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((c) => {
-            const ch = byId.get(c.chauffeur_id ?? '');
+      <Tabs value={sub} onValueChange={(v) => setSub(v as SubTab)}>
+        <TabsList>
+          <HubTab value="courses" icon={Package} label="Courses" />
+          <HubTab
+            value="demandes"
+            icon={Truck}
+            label="Demandes d'enlèvement"
+            badge={demandes.length > 0 ? (
+              <span className="ml-1 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 tabular-nums">
+                {demandes.length}
+              </span>
+            ) : undefined}
+          />
+          <HubTab value="chauffeurs" icon={Users} label="Chauffeurs" />
+          <HubTab value="destinations" icon={MapPin} label="Destinations" />
+        </TabsList>
+
+        {/* ── Toutes les courses ─────────────────────────── */}
+        <TabsContent value="courses" className="mt-3 space-y-3">
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {FILTERS.map((f) => {
+              const n = f.id === 'all' ? all.length : all.filter((c) => c.status === f.id).length;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setStatus(f.id)}
+                  className={cn(
+                    'shrink-0 rounded-full border px-2.5 py-1 text-[11px] transition-colors',
+                    status === f.id ? 'border-[#F5C518] bg-[#F5C518]/10 text-foreground' : 'border-border text-muted-foreground',
+                  )}
+                >
+                  {f.label} <span className="tabular-nums">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {courses.isLoading ? (
+            <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Aucune course pour ce filtre.</p>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((c) => (
+                <CourseCard
+                  key={c.id}
+                  course={c}
+                  chauffeur={byId.get(c.chauffeur_id ?? '') ?? null}
+                  onAssign={() => { setAssign(c); setOpen(true); }}
+                  onBordereau={(ch) => setBordereau({ course: c, chauffeur: ch })}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Demandes d'enlèvement clients ──────────────── */}
+        <TabsContent value="demandes" className="mt-3 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Réservations créées par les clients depuis /terminal-d, en attente d'assignation à un chauffeur.
+          </p>
+          {courses.isLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : demandes.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Aucune demande en attente.</p>
+          ) : demandes.map((c) => (
+            <CourseCard
+              key={c.id}
+              course={c}
+              chauffeur={null}
+              onAssign={() => { setAssign(c); setOpen(true); }}
+              onBordereau={() => {}}
+            />
+          ))}
+        </TabsContent>
+
+        {/* ── Chauffeurs ─────────────────────────────────── */}
+        <TabsContent value="chauffeurs" className="mt-3 space-y-2">
+          {chauffeurs.isLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : (chauffeurs.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Aucun chauffeur enregistré.</p>
+          ) : (chauffeurs.data ?? []).map((ch) => {
+            const list = coursesByChauffeur.get(ch.id) ?? [];
+            const actives = list.filter((c) => FRET_ACTIVE_STATUSES.includes(c.status)).length;
             return (
-              <div key={c.id} className="rounded-xl border border-border p-3 space-y-1.5">
+              <div key={ch.id} className="rounded-xl border border-border p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-xs text-muted-foreground">{c.ref}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_TONE[c.status]}`}>
-                    {FRET_STATUS_LABEL[c.status]}
+                  <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                    <UserRound className="w-3.5 h-3.5 text-muted-foreground" />
+                    {ch.nom_complet || ch.telephone}
+                  </p>
+                  <span className={cn('text-[11px] px-2 py-0.5 rounded-full',
+                    ch.is_active ? 'bg-emerald-500/15 text-emerald-600' : 'bg-muted text-muted-foreground')}>
+                    {ch.is_active ? 'Actif' : 'Inactif'}
                   </span>
                 </div>
-                <p className="font-medium text-sm truncate">{c.destination} · {c.client_nom || 'Client'}</p>
-                {c.pickup_address && (
-                  <p className="text-xs text-muted-foreground">
-                    Enlèvement : {c.pickup_address}
-                    {c.pickup_zone ? ` · ${c.pickup_zone}` : ''}
-                    {c.pickup_fee_fcfa ? ` · +${c.pickup_fee_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
-                  </p>
-                )}
-                {(c.expediteur_nom || c.total_fcfa) && (
-                  <p className="text-xs text-muted-foreground">
-                    {c.expediteur_nom ? `Expéditeur : ${c.expediteur_nom}` : ''}
-                    {c.expediteur_phone ? ` (${c.expediteur_phone})` : ''}
-                    {c.total_fcfa ? ` · Total ${c.total_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
-                  </p>
-                )}
-                {c.client_phone && (
-                  <p className="text-xs text-muted-foreground">Destinataire : {c.client_nom || '—'} ({c.client_phone})</p>
-                )}
-                <p className="text-xs text-muted-foreground truncate">
-                  <Truck className="w-3 h-3 inline mr-1" />
-                  {c.status === 'A_ENLEVER' && !c.chauffeur_id
-                    ? 'Aucun chauffeur assigné'
-                    : `${ch?.nom_complet || ch?.telephone || 'Chauffeur inconnu'}${ch?.immatriculation ? ` · ${ch.immatriculation}` : ''} · remis ${fmt(c.remis_at)}`}
+                <p className="text-xs text-muted-foreground">
+                  {ch.telephone}{ch.immatriculation ? ` · ${ch.immatriculation}` : ''} · PIN {ch.pin_code}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {list.length} course(s) · {actives} active(s) · {list.filter(c => c.status === 'LIVRE').length} livrée(s)
                 </p>
                 <div className="flex gap-2 pt-1">
-                  {!c.chauffeur_id && (
-                    <Button size="sm" className="h-8 text-xs" onClick={() => { setAssign(c); setOpen(true); }}>
-                      Assigner un chauffeur
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" className="h-8 text-xs"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(`${window.location.origin}/suivre/${c.ref}`);
-                      toast.success('Lien de suivi copié');
-                    }}>
-                    <Copy className="w-3 h-3 mr-1" /> Lien suivi
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDetail(ch)}>
+                    Fiche détaillée
                   </Button>
-                  {ch && (
-                    <Button size="sm" variant="outline" className="h-8 text-xs"
-                      onClick={() => setBordereau({ course: c, chauffeur: ch })}>
-                      Bordereau
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant={ch.is_active ? 'outline' : 'default'}
+                    className="h-8 text-xs"
+                    disabled={toggleChauffeur.isPending}
+                    onClick={() => toggleChauffeur.mutate({ id: ch.id, is_active: !ch.is_active })}
+                  >
+                    {ch.is_active ? 'Désactiver' : 'Réactiver'}
+                  </Button>
                 </div>
               </div>
             );
           })}
-        </div>
-      )}
+        </TabsContent>
+
+        {/* ── Destinations / zones ───────────────────────── */}
+        <TabsContent value="destinations" className="mt-3 space-y-2">
+          {byDestination.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Aucune course.</p>
+          ) : byDestination.map((d) => (
+            <button
+              key={d.destination}
+              onClick={() => { setQ(d.destination); setSub('courses'); setStatus('all'); }}
+              className="w-full flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-left"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium truncate">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {d.destination}
+                {d.scope === 'international' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500">International</span>
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                {d.actives} active(s) · {d.total} au total
+              </span>
+            </button>
+          ))}
+        </TabsContent>
+      </Tabs>
 
       <RemiseDialog
         key={assign?.id ?? 'new'}
@@ -220,6 +312,41 @@ export function FretRoutierTab() {
           setBordereau({ course, chauffeur });
         }}
       />
+
+      {/* Fiche chauffeur */}
+      <Dialog open={!!detail} onOpenChange={(v) => !v && setDetail(null)}>
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{detail?.nom_complet || detail?.telephone}</DialogTitle>
+            <DialogDescription>Fiche chauffeur et historique des courses.</DialogDescription>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-3 text-sm">
+              <div className="space-y-1">
+                <Row k="Téléphone" v={detail.telephone} />
+                <Row k="Immatriculation" v={detail.immatriculation || '—'} />
+                <Row k="Code PIN" v={detail.pin_code} />
+                <Row k="Statut" v={detail.is_active ? 'Actif' : 'Inactif'} />
+                <Row k="Routes" v={(detail.routes ?? []).join(', ') || '—'} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold uppercase text-muted-foreground">Courses</p>
+                {(coursesByChauffeur.get(detail.id) ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aucune course.</p>
+                ) : (coursesByChauffeur.get(detail.id) ?? []).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-xs">
+                    <span className="font-mono truncate">{c.ref}</span>
+                    <span className="truncate">{c.destination}</span>
+                    <span className={cn('shrink-0 px-1.5 py-0.5 rounded-full text-[10px]', STATUS_TONE[c.status])}>
+                      {FRET_STATUS_LABEL[c.status]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!bordereau} onOpenChange={(v) => !v && setBordereau(null)}>
         <DialogContent className="max-w-sm">
@@ -244,6 +371,70 @@ export function FretRoutierTab() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CourseCard({ course: c, chauffeur: ch, onAssign, onBordereau }: {
+  course: Course;
+  chauffeur: Chauffeur | null;
+  onAssign: () => void;
+  onBordereau: (ch: Chauffeur) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-border p-3 space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs text-muted-foreground">{c.ref}</span>
+        <div className="flex items-center gap-1.5">
+          {c.scope === 'international' && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500">International</span>
+          )}
+          <span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS_TONE[c.status]}`}>
+            {FRET_STATUS_LABEL[c.status]}
+          </span>
+        </div>
+      </div>
+      <p className="font-medium text-sm truncate">{c.destination} · {c.client_nom || 'Client'}</p>
+      {c.pickup_address && (
+        <p className="text-xs text-muted-foreground">
+          Enlèvement : {c.pickup_address}
+          {c.pickup_zone ? ` · ${c.pickup_zone}` : ''}
+          {c.pickup_fee_fcfa ? ` · +${c.pickup_fee_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
+        </p>
+      )}
+      {(c.expediteur_nom || c.total_fcfa) && (
+        <p className="text-xs text-muted-foreground">
+          {c.expediteur_nom ? `Expéditeur : ${c.expediteur_nom}` : ''}
+          {c.expediteur_phone ? ` (${c.expediteur_phone})` : ''}
+          {c.total_fcfa ? ` · Total ${c.total_fcfa.toLocaleString('fr-FR')} FCFA` : ''}
+        </p>
+      )}
+      {c.client_phone && (
+        <p className="text-xs text-muted-foreground">Destinataire : {c.client_nom || '—'} ({c.client_phone})</p>
+      )}
+      <p className="text-xs text-muted-foreground truncate">
+        <Truck className="w-3 h-3 inline mr-1" />
+        {!c.chauffeur_id
+          ? 'Aucun chauffeur assigné'
+          : `${ch?.nom_complet || ch?.telephone || 'Chauffeur inconnu'}${ch?.immatriculation ? ` · ${ch.immatriculation}` : ''} · remis ${fmt(c.remis_at)}`}
+      </p>
+      <div className="flex gap-2 pt-1">
+        {!c.chauffeur_id && (
+          <Button size="sm" className="h-8 text-xs" onClick={onAssign}>Assigner un chauffeur</Button>
+        )}
+        <Button size="sm" variant="outline" className="h-8 text-xs"
+          onClick={() => {
+            navigator.clipboard?.writeText(`${window.location.origin}/suivre/${c.ref}`);
+            toast.success('Lien de suivi copié');
+          }}>
+          <Copy className="w-3 h-3 mr-1" /> Lien suivi
+        </Button>
+        {ch && (
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => onBordereau(ch)}>
+            Bordereau
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -346,20 +537,20 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone, course }: {
         if (error) throw error;
         created = data as unknown as Course;
       } else {
-      const { data: inserted, error: cErr } = await supabase
-        .from('fret_courses' as any)
-        .insert({
-          chauffeur_id: chauffeur.id,
-          destination: destination.trim(),
-          client_nom: clientNom.trim() || null,
-          client_phone: clientPhone.trim() ? normalizePhone(clientPhone) : null,
-          colis_description: description.trim() || null,
-          photo_url: photoUrl,
-        })
-        .select()
-        .single();
-      if (cErr) throw cErr;
-      created = inserted as unknown as Course;
+        const { data: inserted, error: cErr } = await supabase
+          .from('fret_courses' as any)
+          .insert({
+            chauffeur_id: chauffeur.id,
+            destination: destination.trim(),
+            client_nom: clientNom.trim() || null,
+            client_phone: clientPhone.trim() ? normalizePhone(clientPhone) : null,
+            colis_description: description.trim() || null,
+            photo_url: photoUrl,
+          })
+          .select()
+          .single();
+        if (cErr) throw cErr;
+        created = inserted as unknown as Course;
       }
 
       // 4. Notification WhatsApp au chauffeur (lien direct vers sa PWA)

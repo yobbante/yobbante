@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
-  Tag, MapPin, CalendarDays, Building2, Globe,
+  Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,13 +18,15 @@ export type AdminSection =
   | 'clients'
   | 'messages'
   | 'leads'
+  | 'devis'
+  | 'maritime'
   | 'revenus'
   | 'finances'
   | 'boutique'
   | 'hubs'
   | 'settings';
 
-type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean; soon?: boolean };
 
 // Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
@@ -42,6 +44,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Opérations',
     items: [
       { id: 'departs', label: 'Départs',         icon: Truck },
+      { id: 'devis',   label: 'Devis',           icon: FileText },
+      { id: 'maritime', label: 'Maritime',       icon: Ship, soon: true },
       { id: 'terrain', label: 'Équipe terrain',  icon: UsersRound, adminOnly: true },
     ],
   },
@@ -158,8 +162,8 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
                 {group.label}
               </div>
             )}
-            {visibleItems.map(({ id, label, icon: Icon }) => {
-              const disabled = id === 'settings' && !isAdmin;
+            {visibleItems.map(({ id, label, icon: Icon, soon }) => {
+              const disabled = soon || (id === 'settings' && !isAdmin);
               const isActive = active === id;
               return (
                 <button
@@ -192,6 +196,11 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 truncate">{label}</span>
+                  {soon && (
+                    <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                      Bientôt
+                    </span>
+                  )}
                   {id === 'messages' && unread > 0 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
                       {unread > 99 ? '99+' : unread}

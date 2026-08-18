@@ -34,9 +34,12 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   phone: string;
   dossier?: LinkedDossierLite | null;
+  /** Devis à ouvrir directement en édition (module admin « Devis »). */
+  initialDevis?: DevisRow | null;
 }
 
-export function DevisDialog({ open, onOpenChange, phone, dossier }: Props) {
+export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }: Props) {
+
   const { zones, destinations } = useFretTarifs();
   const { data: existing = [], isLoading } = useDevisList({
     phone, dossierId: dossier?.id ?? null, enabled: open,
@@ -66,12 +69,17 @@ export function DevisDialog({ open, onOpenChange, phone, dossier }: Props) {
     setManualValue('');
     setExtraLabel(''); setExtraAmount('');
     setValidUntil(devisValidUntil());
+    if (initialDevis) {
+      loadForEdit(initialDevis);
+      return;
+    }
     if (dossier) {
       setOrigin(dossier.origin_city || '');
       setDestination(dossier.destination_city || '');
       setWeight(dossier.estimated_weight ? String(dossier.estimated_weight) : '');
     }
-  }, [open, dossier?.id]); // eslint-disable-line
+  }, [open, dossier?.id, initialDevis?.id]); // eslint-disable-line
+
 
   const fretDestOptions = useMemo(() => {
     const scope = engine === 'fret_national' ? 'national' : 'international';
@@ -153,7 +161,10 @@ export function DevisDialog({ open, onOpenChange, phone, dossier }: Props) {
     try {
       const target = row ?? (await persist());
       if (!target) return;
-      await send.mutateAsync({ devis: target, phone });
+      const to = (phone || target.conversation_phone || '').trim();
+      if (!to) throw new Error('Aucun numéro WhatsApp associé à ce devis');
+      await send.mutateAsync({ devis: target, phone: to });
+
       toast.success('Devis envoyé sur WhatsApp');
       onOpenChange(false);
     } catch (e) {

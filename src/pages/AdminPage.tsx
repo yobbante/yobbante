@@ -17,6 +17,8 @@ import { MessagesTab } from '@/components/admin/MessagesTab';
 import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesHubTab } from '@/components/admin/FinancesHubTab';
+import { DevisAdminTab } from '@/components/admin/DevisAdminTab';
+import { Ship } from 'lucide-react';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
@@ -48,6 +50,8 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   transporteurs:   { section: 'terrain', tab: 'gp' },
   livreurs:        { section: 'terrain', tab: 'livreurs' },
   'gp-operations': { section: 'terrain', tab: 'operations' },
+  fret:            { section: 'terrain', tab: 'fret' },
+  routier:         { section: 'dossiers', tab: 'routier' },
 
   // Départs
   departures:      { section: 'departs', tab: 'liste' },
@@ -267,6 +271,16 @@ export default function AdminPage() {
               {section === 'clients'  && <ClientsTab />}
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
+              {section === 'devis'    && <DevisAdminTab />}
+              {section === 'maritime' && (
+                <div className="py-20 text-center">
+                  <Ship className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-base font-semibold text-foreground">Maritime — bientôt disponible</p>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                    L'espace de gestion du fret maritime sera activé prochainement.
+                  </p>
+                </div>
+              )}
               {section === 'finances' && isAdmin && <FinancesHubTab />}
               {section === 'boutique' && <BoutiqueTab />}
               {section === 'hubs'     && <HubsHubTab />}
