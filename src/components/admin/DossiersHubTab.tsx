@@ -24,13 +24,27 @@ const TABS = ['tous', 'demandes', 'routier', 'reception', 'sourcing', 'audit'] a
 type TabId = typeof TABS[number];
 const DEFAULT_TAB: TabId = 'demandes';
 
-export function DossiersHubTab() {
+export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
   const [sp, setSp] = useSearchParams();
   const tabParam = sp.get('tab') as TabId | null;
   const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : DEFAULT_TAB;
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const { data: unassignedCount = 0 } = useInboxUnassignedCount();
+  const { data: unassignedCount = 0 } = useInboxUnassignedCount(!fretOnly);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Agent terrain : uniquement les dossiers routiers (Terminal D), en lecture.
+  if (fretOnly) {
+    return (
+      <div className="space-y-3 md:space-y-4">
+        <HubHeader
+          title="Dossiers routiers"
+          subtitle="Courses Terminal D — consultation uniquement. La gestion se fait dans Fret routier."
+        />
+        <FretDossiersList />
+      </div>
+    );
+  }
+
 
 
   const onChange = (v: string) => {
