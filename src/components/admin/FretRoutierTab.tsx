@@ -22,6 +22,7 @@ import {
   useChauffeurs, useFretCourses, FRET_ACTIVE_STATUSES,
   type AdminChauffeur as Chauffeur, type AdminFretCourse as Course,
 } from '@/hooks/useFretAdmin';
+import { FretCourseSheet } from './fret/FretCourseSheet';
 import { cn } from '@/lib/utils';
 
 const STATUS_TONE: Record<FretStatus, string> = {
@@ -63,6 +64,7 @@ export function FretRoutierTab() {
   const [bordereau, setBordereau] = useState<{ course: Course; chauffeur: Chauffeur } | null>(null);
   const [assign, setAssign] = useState<Course | null>(null);
   const [detail, setDetail] = useState<Chauffeur | null>(null);
+  const [courseDetail, setCourseDetail] = useState<Course | null>(null);
 
   const courses = useFretCourses();
   const chauffeurs = useChauffeurs();
@@ -203,6 +205,7 @@ export function FretRoutierTab() {
                   course={c}
                   chauffeur={byId.get(c.chauffeur_id ?? '') ?? null}
                   onAssign={() => { setAssign(c); setOpen(true); }}
+                  onOpen={() => setCourseDetail(c)}
                   onBordereau={(ch) => setBordereau({ course: c, chauffeur: ch })}
                 />
               ))}
@@ -225,6 +228,7 @@ export function FretRoutierTab() {
               course={c}
               chauffeur={null}
               onAssign={() => { setAssign(c); setOpen(true); }}
+              onOpen={() => setCourseDetail(c)}
               onBordereau={() => {}}
             />
           ))}
@@ -299,6 +303,13 @@ export function FretRoutierTab() {
           ))}
         </TabsContent>
       </Tabs>
+
+      <FretCourseSheet
+        course={courseDetail ? (all.find((c) => c.id === courseDetail.id) ?? courseDetail) : null}
+        open={!!courseDetail}
+        onOpenChange={(v) => { if (!v) setCourseDetail(null); }}
+        onAssign={(c) => { setCourseDetail(null); setAssign(c); setOpen(true); }}
+      />
 
       <RemiseDialog
         key={assign?.id ?? 'new'}
@@ -375,14 +386,21 @@ export function FretRoutierTab() {
   );
 }
 
-function CourseCard({ course: c, chauffeur: ch, onAssign, onBordereau }: {
+function CourseCard({ course: c, chauffeur: ch, onAssign, onOpen, onBordereau }: {
   course: Course;
   chauffeur: Chauffeur | null;
   onAssign: () => void;
+  onOpen: () => void;
   onBordereau: (ch: Chauffeur) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border p-3 space-y-1.5">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      className="rounded-xl border border-border bg-card p-3 space-y-1.5 cursor-pointer hover:border-primary/50 hover:bg-secondary/40 transition-colors"
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-xs text-muted-foreground">{c.ref}</span>
         <div className="flex items-center gap-1.5">
@@ -418,7 +436,7 @@ function CourseCard({ course: c, chauffeur: ch, onAssign, onBordereau }: {
           ? 'Aucun chauffeur assigné'
           : `${ch?.nom_complet || ch?.telephone || 'Chauffeur inconnu'}${ch?.immatriculation ? ` · ${ch.immatriculation}` : ''} · remis ${fmt(c.remis_at)}`}
       </p>
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
         {!c.chauffeur_id && (
           <Button size="sm" className="h-8 text-xs" onClick={onAssign}>Assigner un chauffeur</Button>
         )}
