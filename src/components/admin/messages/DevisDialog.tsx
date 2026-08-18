@@ -103,7 +103,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier }: Props) {
     parent_id: null, is_current: true,
     dossier_id: dossier?.id ?? null, conversation_phone: phone,
     engine,
-    origin: engine === 'international' ? origin : 'Dakar (Baux Maraîchers)',
+    origin: engine === 'international' ? origin : 'Dakar',
     destination,
     weight_kg: weight ? Number(weight.replace(',', '.')) : null,
     colis_size: engine === 'fret_national' ? size : null,

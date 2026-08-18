@@ -43,6 +43,7 @@ interface Course {
 }
 
 const STATUS_TONE: Record<FretStatus, string> = {
+  A_ENLEVER: 'bg-orange-500/15 text-orange-600',
   PENDING_ACCEPT: 'bg-amber-500/15 text-amber-600',
   REMIS_CHAUFFEUR: 'bg-blue-500/15 text-blue-500',
   EN_ROUTE: 'bg-blue-500/15 text-blue-500',
@@ -329,7 +330,7 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone }: {
       <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Remise d'un colis</DialogTitle>
-          <DialogDescription>Garage Baux Maraîchers · assignation à un chauffeur.</DialogDescription>
+          <DialogDescription>Assignation du colis à un chauffeur.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">

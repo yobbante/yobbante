@@ -1,5 +1,5 @@
 /**
- * Tarification fret routier "Terminal D" (garage Baux Maraîchers).
+ * Tarification fret routier "Terminal D" (transport routier depuis Dakar).
  * Système INDÉPENDANT de pricingEngine.ts (aérien/maritime/GP international).
  *
  * National  : tarif fixe par taille de colis (S/M/L), par zone de distance.
