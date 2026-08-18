@@ -1,0 +1,1 @@
+delete from public.devis where reference in ('DEV-23F38F','DEV-78815E');
