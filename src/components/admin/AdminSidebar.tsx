@@ -30,6 +30,8 @@ type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; 
 
 // Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
+// Sections visibles par le rôle « agent_terrain » (fret routier Terminal D).
+export const TERRAIN_AGENT_SECTIONS: AdminSection[] = ['terrain', 'dossiers', 'devis'];
 type NavGroup = { label: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
