@@ -82,11 +82,12 @@ const HIDDEN_SECTIONS: NavItem[] = [
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
 
-export function AdminSidebar({ active, onChange, isAdmin, isAgent = false }: {
+export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
   isAgent?: boolean;
+  isTerrainAgent?: boolean;
 }) {
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
