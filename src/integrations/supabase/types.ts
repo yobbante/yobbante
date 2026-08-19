@@ -3672,6 +3672,7 @@ export type Database = {
           beta_validated_at: string | null
           beta_wizard_completed_at: string | null
           bot_paused_until: string | null
+          capacite_kg: number | null
           created_at: string
           creneau_dakar: string[] | null
           default_rate_per_kg: number | null
@@ -3730,6 +3731,7 @@ export type Database = {
           beta_validated_at?: string | null
           beta_wizard_completed_at?: string | null
           bot_paused_until?: string | null
+          capacite_kg?: number | null
           created_at?: string
           creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
@@ -3788,6 +3790,7 @@ export type Database = {
           beta_validated_at?: string | null
           beta_wizard_completed_at?: string | null
           bot_paused_until?: string | null
+          capacite_kg?: number | null
           created_at?: string
           creneau_dakar?: string[] | null
           default_rate_per_kg?: number | null
