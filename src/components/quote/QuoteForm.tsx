@@ -331,17 +331,10 @@ export function QuoteForm() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Poids (kg) *">
               <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
-            </Field>
-            <Field label="Mode">
-              <select aria-label="Mode de transport" className="input-base w-full" value={mode} onChange={e => setMode(e.target.value as TransportMode)}>
-                <option value="air">Air</option>
-                <option value="sea">Mer LCL</option>
-                <option value="road">Route (Terminal D)</option>
-              </select>
             </Field>
             <Field label="Type">
               <select aria-label="Type de marchandise" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
@@ -349,6 +342,7 @@ export function QuoteForm() {
               </select>
             </Field>
           </div>
+
           {(() => {
             const w = Number(weight);
             if (!origin || !destination || !w || w <= 0) return null;
