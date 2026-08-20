@@ -30,6 +30,13 @@ interface Props {
 
 type DepartureMode = 'ref' | 'route' | 'gp' | 'skip';
 
+const TRANSPORT_LABELS: Record<'gp' | 'air' | 'sea' | 'road', string> = {
+  gp: 'GP',
+  air: 'Aérien (fret)',
+  sea: 'Maritime',
+  road: 'Routier (Terminal D)',
+};
+
 type IntakeData = {
   source: IntakeSource | null;
   source_reference: string;
@@ -43,7 +50,7 @@ type IntakeData = {
   origin_city: string;
   destination_city: string;
   weight_kg: string;
-  transport_mode: 'air' | 'sea' | 'road';
+  transport_mode: 'gp' | 'air' | 'sea' | 'road';
   description: string;
   declared_value: string;
   desired_date: string;
@@ -73,7 +80,7 @@ const INITIAL: IntakeData = {
   client_name: '', client_phone: '', client_email: '', client_city: '',
   client_type: 'individual', client_company: '',
   service_kind: null,
-  origin_city: '', destination_city: '', weight_kg: '', transport_mode: 'air',
+  origin_city: '', destination_city: '', weight_kg: '', transport_mode: 'gp',
   description: '', declared_value: '', desired_date: '',
   product: '', sourcing_country: '', budget: '', quantity: '', product_url: '',
   origin_country_reception: '', tracking_number: '',
@@ -321,7 +328,8 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       if (data.service_kind === 'envoi') {
         // Routier = Terminal D uniquement : ce wizard crée un dossier générique
         // (pricingEngine + départs aériens), incompatible avec fret_courses.
-        if (data.transport_mode === 'road') return false;
+        // Routier → Terminal D ; Aérien (fret classique) et Maritime pas encore ouverts.
+        if (data.transport_mode !== 'gp') return false;
         return !!(data.origin_city && data.destination_city && data.weight_kg);
       }
 
@@ -350,7 +358,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       p_origin_country: 'FR',
       p_destination_country: 'SN',
       p_weight_kg: w,
-      p_transport_type: data.transport_mode === 'sea' ? 'sea' : 'air',
+      p_transport_type: data.transport_mode === 'sea' ? 'sea' : 'air', // GP = transport aérien accompagné
       p_priority: 'normal',
       p_origin_city: data.origin_city,
       p_destination_city: data.destination_city,
@@ -595,7 +603,18 @@ Merci de votre confiance.`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-2xl overflow-y-auto"
+        // Le CityPicker s'affiche dans un portail hors du DOM du Sheet : sans ça
+        // le focus trap Radix reprend le focus et la saisie clavier est perdue.
+        onFocusOutside={(e) => {
+          if ((e.target as HTMLElement | null)?.closest?.('[data-city-picker-portal]')) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if ((e.target as HTMLElement | null)?.closest?.('[data-city-picker-portal]')) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>Nouveau dossier · Étape {step + 1} / {TOTAL_STEPS}</SheetTitle>
         </SheetHeader>
@@ -766,11 +785,23 @@ Merci de votre confiance.`;
                       value={data.transport_mode}
                       onChange={e => update({ transport_mode: e.target.value as any })}
                     >
-                      <option value="air">Air</option>
-                      <option value="sea">Maritime</option>
+                      <option value="gp">GP (bagage accompagné)</option>
+                      <option value="air">Aérien (fret classique) — bientôt</option>
+                      <option value="sea">Maritime — bientôt</option>
                       <option value="road">Routier (Terminal D)</option>
                     </select>
                   </div>
+                  {(data.transport_mode === 'air' || data.transport_mode === 'sea') && (
+                    <div className="col-span-2 rounded-[10px] border border-border bg-muted/40 p-3 text-sm">
+                      <p className="font-medium">
+                        {data.transport_mode === 'air' ? 'Fret aérien classique' : 'Fret maritime'} — bientôt disponible
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ce mode n'est pas encore opérationnel. Pour un envoi par avion aujourd'hui,
+                        choisissez « GP (bagage accompagné) ».
+                      </p>
+                    </div>
+                  )}
                   {data.transport_mode === 'road' && (
                     <div className="col-span-2 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
                       <div className="flex items-start gap-2">
@@ -882,7 +913,7 @@ Merci de votre confiance.`;
                 <div><strong>Canal:</strong> {INTAKE_SOURCES.find(s => s.id === data.source)?.label}</div>
                 <div><strong>Service:</strong> {SERVICE_KINDS.find(s => s.id === data.service_kind)?.label}</div>
                 {data.service_kind === 'envoi' && (
-                  <div>{data.origin_city} → {data.destination_city} · {data.weight_kg} kg · {data.transport_mode}</div>
+                  <div>{data.origin_city} → {data.destination_city} · {data.weight_kg} kg · {TRANSPORT_LABELS[data.transport_mode]}</div>
                 )}
                 {data.service_kind === 'sourcing' && <div>{data.product} ({data.sourcing_country})</div>}
                 {data.service_kind === 'reception' && <div>{data.origin_country_reception} → SN</div>}
