@@ -18,6 +18,7 @@ import { DossierAlertsBar } from './dossiers/DossierAlertsBar';
 import { MorningBrief } from './MorningBrief';
 import { FinancesKpis } from './FinancesKpis';
 import type { AdminSection } from './AdminSidebar';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 
 
 /* ───────────────────────── helpers ───────────────────────── */
@@ -235,6 +236,12 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      {/* Activation des notifications push (super admin / staff) */}
+      <PushNotificationsCard
+        audience="admin"
+        title="Alertes push Yobbanté"
+        description="Nouveau message, nouveau dossier, changement de statut, paiement — même téléphone verrouillé."
+      />
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-border">
 

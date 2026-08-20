@@ -1,0 +1,1 @@
+grant execute on function public.notify_admin_http(text, text, uuid, text, integer) to public;
