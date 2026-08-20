@@ -53,11 +53,18 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!metaRes.ok) {
-      return new Response(JSON.stringify({ error: 'meta failed', status: metaRes.status }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const body = await metaRes.text();
+      let detail = body.slice(0, 300);
+      try { detail = JSON.parse(body)?.error?.message ?? detail; } catch { /* keep raw */ }
+      // Meta answers 400 when the media id no longer exists (expired after ~30 days)
+      // or when the token can't access it. Surface it as 404, not 502: it is not a
+      // server fault and a 5xx here gets reported as a runtime error in the client.
+      return new Response(
+        JSON.stringify({ error: 'media_unavailable', meta_status: metaRes.status, detail }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
+
     const meta = await metaRes.json();
     const mediaUrl: string | undefined = meta?.url;
     const mime: string = meta?.mime_type ?? 'application/octet-stream';
