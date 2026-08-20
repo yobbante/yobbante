@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useFretCourses, FRET_ACTIVE_STATUSES } from '@/hooks/useFretAdmin';
 import { useGpColis, stepOf, stalledHours, GP_STEPS, GP_STEP_TONE } from '@/hooks/useGpTerrain';
 import { cn } from '@/lib/utils';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 
 /** Tableau de bord combiné : activité routière (Terminal D) + colis GP, avec alertes. */
 export function TerrainOverview({ onGoto }: { onGoto?: (tab: 'fret' | 'colis') => void }) {
@@ -58,6 +59,12 @@ export function TerrainOverview({ onGoto }: { onGoto?: (tab: 'fret' | 'colis') =
 
   return (
     <div className="space-y-4">
+      <PushNotificationsCard
+        audience="admin"
+        title="Alertes terrain sur mon téléphone"
+        description="Nouvelle demande d'enlèvement, colis bloqué +24h, chauffeur sans réponse — même app fermée."
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         <Kpi icon={Truck}  label="Courses actives"   value={stats.activeCourses} onClick={() => onGoto?.('fret')} />
         <Kpi icon={Package} label="Enlèvements routiers" value={stats.aEnlever} tone="amber" onClick={() => onGoto?.('fret')} />

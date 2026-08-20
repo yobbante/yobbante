@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, Check, Loader2, LogOut, MapPin, Package, Truck } from 'lucide-react';
+import { Check, Loader2, LogOut, MapPin, Package, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSeo } from '@/hooks/useSeo';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 import {
   FRET_NEXT_ACTION,
   FRET_STATUS_LABEL,
@@ -146,9 +147,6 @@ export default function ChauffeurApp() {
   const [courses, setCourses] = useState<FretCourse[]>([]);
   const [loading, setLoading] = useState(!!token);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [notifOn, setNotifOn] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'granted',
-  );
   const knownIds = useRef<Set<string> | null>(null);
   const { canInstall, promptInstall } = usePwaInstall();
 
@@ -199,12 +197,6 @@ export default function ChauffeurApp() {
     }
   };
 
-  const enableNotifications = async () => {
-    if (typeof Notification === 'undefined') return;
-    const perm = await Notification.requestPermission();
-    setNotifOn(perm === 'granted');
-    if (perm === 'granted') toast.success('Alertes activées');
-  };
 
   const logout = () => {
     localStorage.removeItem(FRET_TOKEN_KEY);
@@ -235,18 +227,18 @@ export default function ChauffeurApp() {
       </header>
 
       <main className="px-4 py-4 space-y-4 max-w-md mx-auto">
-        {(!notifOn || canInstall) && (
-          <div className="rounded-2xl border border-border bg-card p-3 space-y-2">
-            {!notifOn && (
-              <Button variant="outline" className="w-full h-11" onClick={enableNotifications}>
-                <Bell className="w-4 h-4 mr-2" /> Activer les alertes de nouvelle course
-              </Button>
-            )}
-            {canInstall && (
-              <Button variant="outline" className="w-full h-11" onClick={() => promptInstall()}>
-                <Package className="w-4 h-4 mr-2" /> Installer l'app sur mon téléphone
-              </Button>
-            )}
+        <PushNotificationsCard
+          audience="chauffeur"
+          chauffeurToken={token}
+          title="Alertes de nouvelle course"
+          description="Recevez chaque nouveau colis à prendre en charge, même téléphone verrouillé ou app fermée."
+        />
+
+        {canInstall && (
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <Button variant="outline" className="w-full h-11" onClick={() => promptInstall()}>
+              <Package className="w-4 h-4 mr-2" /> Installer l'app sur mon téléphone
+            </Button>
           </div>
         )}
 

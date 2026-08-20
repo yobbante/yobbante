@@ -579,6 +579,19 @@ function RemiseDialog({ open, onOpenChange, chauffeurs, onDone, course }: {
         silent: true,
       });
 
+      // 5. Notification push sur le téléphone du chauffeur (même app fermée)
+      try {
+        await supabase.functions.invoke('push-send', {
+          body: {
+            chauffeur_id: chauffeur.id,
+            title: 'Nouveau colis à prendre en charge',
+            body: `${destination.trim()} — ${created.ref}`,
+            url: '/chauffeur',
+            tag: `course-${created.id}`,
+          },
+        });
+      } catch { /* non bloquant */ }
+
       return { course: created, chauffeur };
     },
     onSuccess: ({ course, chauffeur }) => {
