@@ -94,9 +94,20 @@ export function QuoteForm() {
     }
   };
   const [weight, setWeight] = useState('');
-  const [mode, setMode] = useState<TransportMode>('air');
+  const [mode, setMode] = useState<SendTransportMode>('gp');
   const [type, setType] = useState<GoodsType>('standard');
   const weightInputRef = useRef<HTMLInputElement>(null);
+
+  /** Routier = Terminal D : redirection immédiate dès la sélection du mode. */
+  const goTerminalD = () => {
+    const raw = direction === 'from_dakar' ? destination : origin;
+    const cityOnly = (raw || '').split(',')[0].trim();
+    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+  };
+  const handleModeChange = (m: SendTransportMode) => {
+    setMode(m);
+    if (m === 'road') goTerminalD();
+  };
 
   // External trigger from the landing world map (or destination pills):
   // prefill the SEND tab with Dakar → <city> and focus the weight field.
