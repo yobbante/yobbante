@@ -136,6 +136,13 @@ export function CityPicker({
     setDebouncedQ('');
   };
 
+  /** Ferme le picker si le clic vise le fond ou un élément marqué « dismiss ». */
+  const maybeDismiss = (target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    if (el && el.closest('[data-city-picker-dismiss]')) setOpen(false);
+  };
+
+
   return (
     <>
       <button
