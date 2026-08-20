@@ -316,7 +316,13 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     if (step === 1) return data.client_name.trim().length >= 2 && data.client_phone.trim().length >= 6;
     if (step === 2) {
       if (!data.service_kind) return false;
-      if (data.service_kind === 'envoi') return !!(data.origin_city && data.destination_city && data.weight_kg);
+      if (data.service_kind === 'envoi') {
+        // Routier = Terminal D uniquement : ce wizard crée un dossier générique
+        // (pricingEngine + départs aériens), incompatible avec fret_courses.
+        if (data.transport_mode === 'road') return false;
+        return !!(data.origin_city && data.destination_city && data.weight_kg);
+      }
+
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
     }
