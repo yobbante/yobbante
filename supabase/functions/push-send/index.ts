@@ -90,7 +90,6 @@ Deno.serve(async (req) => {
         dead.push(s.id);
       } else {
         console.error('push failed', res.status, res.error);
-        await admin.rpc as unknown; // no-op typing guard
         await admin.from('push_subscriptions')
           .update({ failure_count: 1 })
           .eq('id', s.id);
