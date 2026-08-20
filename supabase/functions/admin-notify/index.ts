@@ -137,7 +137,8 @@ Deno.serve(async (req) => {
     // 4b) Fenêtre 24h fermée (erreur Meta 131047) → on repasse par un template
     //     autorisé pour rouvrir la conversation avec le super admin.
     const metaCode = waJson?.result?.error?.code ?? waJson?.result?.error?.error_data?.code;
-    const closedWindow = !sendOk || metaCode === 131047
+    const waFailed = waJson?.ok === false || (waJson?.status && waJson.status !== 'sent' && !waJson?.skipped);
+    const closedWindow = !sendOk || waFailed || metaCode === 131047
       || /24 hours/i.test(JSON.stringify(waJson?.result?.error ?? ''));
     __dbg.closed_window = closedWindow;
     if (closedWindow) {
