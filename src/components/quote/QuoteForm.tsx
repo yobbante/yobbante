@@ -258,7 +258,17 @@ export function QuoteForm() {
       {/* TAB 1 — SEND */}
       {service === 'send' && (
         <div className="space-y-3">
+          <TransportModeSelector value={mode} onChange={handleModeChange} />
+          {isModeSoon(mode) && <ModeSoonNotice mode={mode} />}
+          {mode === 'road' && (
+            <div className="rounded-lg border border-border bg-secondary px-3 py-2.5 text-[12px]">
+              Le transport routier se gère sur <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
+            </div>
+          )}
+          {mode === 'gp' && (
+          <div className="space-y-3">
           <div className="flex items-center gap-2 text-[11px]">
+
             <span
               className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
               style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
