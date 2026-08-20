@@ -117,6 +117,24 @@ Deno.serve(async (req) => {
       await admin.functions.invoke('notify-admin-flush', { body: { reason: 'fret_pickup_request' } });
     } catch (_) { /* non bloquant */ }
 
+    // 3b. Notification push à l'équipe terrain (téléphone verrouillé / app fermée)
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/push-send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          audience: 'admin',
+          title: "Nouvelle demande d'enlèvement",
+          body: `${course.ref} — ${destination}${b.pickup_zone ? ` · ${b.pickup_zone}` : ''}`,
+          url: '/admin/terrain?tab=fret',
+          tag: `pickup-${course.id}`,
+        }),
+      });
+    } catch (_) { /* non bloquant */ }
+
     return json({ ref: course.ref, course_id: course.id, devis_reference: devis?.reference ?? null });
   } catch (e) {
     console.error('fret-booking error', e);
