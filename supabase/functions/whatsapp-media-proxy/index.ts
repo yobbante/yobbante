@@ -60,8 +60,10 @@ Deno.serve(async (req) => {
       // or when the token can't access it. Surface it as 404, not 502: it is not a
       // server fault and a 5xx here gets reported as a runtime error in the client.
       return new Response(
-        JSON.stringify({ error: 'media_unavailable', meta_status: metaRes.status, detail }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ unavailable: true, error: 'media_unavailable', meta_status: metaRes.status, detail }),
+        // 200 on purpose: an expired/unknown media id is an expected outcome, and any
+        // non-2xx here is reported as a client runtime error (blank screen overlay).
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -69,16 +71,16 @@ Deno.serve(async (req) => {
     const mediaUrl: string | undefined = meta?.url;
     const mime: string = meta?.mime_type ?? 'application/octet-stream';
     if (!mediaUrl) {
-      return new Response(JSON.stringify({ error: 'no url' }), {
-        status: 502,
+      return new Response(JSON.stringify({ unavailable: true, error: 'no url' }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const bin = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${token}` } });
     if (!bin.ok || !bin.body) {
-      return new Response(JSON.stringify({ error: 'fetch failed', status: bin.status }), {
-        status: 502,
+      return new Response(JSON.stringify({ unavailable: true, error: 'fetch failed', status: bin.status }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
