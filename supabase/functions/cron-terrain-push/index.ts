@@ -72,10 +72,10 @@ Deno.serve(async (req) => {
   const tags = alerts.map((a) => a.tag);
   const { data: recent } = await admin
     .from('admin_notifications_sent')
-    .select('dedupe_key')
-    .in('dedupe_key', tags)
-    .gte('created_at', new Date(now - 12 * H).toISOString());
-  const already = new Set((recent ?? []).map((r: { dedupe_key: string }) => r.dedupe_key));
+    .select('dedup_key')
+    .in('dedup_key', tags)
+    .gte('sent_at', new Date(now - 12 * H).toISOString());
+  const already = new Set((recent ?? []).map((r: { dedup_key: string }) => r.dedup_key));
   const todo = alerts.filter((a) => !already.has(a.tag));
   if (!todo.length) return json({ alerts: alerts.length, sent: 0 });
 
@@ -93,7 +93,9 @@ Deno.serve(async (req) => {
       if (res.ok) sent++;
       else if (res.gone) dead.push(s.id);
     }
-    await admin.from('admin_notifications_sent').insert({ dedupe_key: a.tag }).select().maybeSingle();
+    await admin
+      .from('admin_notifications_sent')
+      .insert({ dedup_key: a.tag, notification_type: 'terrain_push' });
   }
   if (dead.length) await admin.from('push_subscriptions').delete().in('id', dead);
 
