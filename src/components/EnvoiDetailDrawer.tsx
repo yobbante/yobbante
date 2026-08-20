@@ -23,7 +23,7 @@ function transportVisual(mode?: string | null) {
   const m = (mode ?? '').toUpperCase();
   if (m.includes('SEA') || m === 'VOLUME') return { Icon: Ship, label: 'Maritime', tone: 'text-sky-400' };
   if (m.includes('ROAD') || m === 'ECONOMY') return { Icon: Truck, label: 'Routier', tone: 'text-amber-400' };
-  if (m.includes('AIR') || m === 'FAST') return { Icon: Plane, label: 'Aérien', tone: 'text-primary' };
+  if (m.includes('AIR') || m === 'FAST') return { Icon: Plane, label: 'GP', tone: 'text-primary' };
   return { Icon: Plane, label: mode ?? 'Standard', tone: 'text-primary' };
 }
 

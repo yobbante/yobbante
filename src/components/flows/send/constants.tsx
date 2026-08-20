@@ -25,7 +25,7 @@ export const GOODS_TYPES = [
 export type GoodsId = typeof GOODS_TYPES[number]['id'];
 
 export const TRANSPORT_MODES = [
-  { id: 'AIR'  as const, label: 'Aérien',   eta: '3-7 jours',    icon: <Plane className="w-4 h-4" /> },
+  { id: 'AIR'  as const, label: 'GP',       eta: '3-7 jours',    icon: <Plane className="w-4 h-4" /> },
   { id: 'SEA'  as const, label: 'Maritime', eta: '18-25 jours',  icon: <Ship  className="w-4 h-4" /> },
   { id: 'ROAD' as const, label: 'Routier',  eta: '7-14 jours',   icon: <Truck className="w-4 h-4" /> },
 ];

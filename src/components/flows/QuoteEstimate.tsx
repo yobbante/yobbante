@@ -22,10 +22,10 @@ const CONFIDENCE_DOT: Record<Quote['confidence'], string> = {
 };
 
 const MODE_LABEL: Record<string, string> = {
-  air: 'Aérien',
+  air: 'GP',
   sea_lcl: 'Maritime LCL',
   road: 'Routier',
-  AIR: 'Aérien',
+  AIR: 'GP',
   SEA: 'Maritime',
   ROAD: 'Routier',
 };

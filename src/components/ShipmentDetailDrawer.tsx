@@ -31,7 +31,7 @@ function transportIconAndLabel(mode?: string | null): { icon: JSX.Element; label
   const m = (mode ?? '').toUpperCase();
   if (m.includes('SEA') || m === 'VOLUME') return { icon: <Ship className="w-4 h-4" />, label: 'Maritime' };
   if (m.includes('ROAD') || m === 'ECONOMY') return { icon: <Truck className="w-4 h-4" />, label: 'Routier' };
-  if (m.includes('AIR') || m === 'FAST') return { icon: <Plane className="w-4 h-4" />, label: 'Aérien' };
+  if (m.includes('AIR') || m === 'FAST') return { icon: <Plane className="w-4 h-4" />, label: 'GP' };
   return { icon: <Truck className="w-4 h-4" />, label: mode ?? 'Standard' };
 }
 
