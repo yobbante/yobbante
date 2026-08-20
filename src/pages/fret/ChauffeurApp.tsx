@@ -235,18 +235,18 @@ export default function ChauffeurApp() {
       </header>
 
       <main className="px-4 py-4 space-y-4 max-w-md mx-auto">
-        {(!notifOn || canInstall) && (
-          <div className="rounded-2xl border border-border bg-card p-3 space-y-2">
-            {!notifOn && (
-              <Button variant="outline" className="w-full h-11" onClick={enableNotifications}>
-                <Bell className="w-4 h-4 mr-2" /> Activer les alertes de nouvelle course
-              </Button>
-            )}
-            {canInstall && (
-              <Button variant="outline" className="w-full h-11" onClick={() => promptInstall()}>
-                <Package className="w-4 h-4 mr-2" /> Installer l'app sur mon téléphone
-              </Button>
-            )}
+        <PushNotificationsCard
+          audience="chauffeur"
+          chauffeurToken={token}
+          title="Alertes de nouvelle course"
+          description="Recevez chaque nouveau colis à prendre en charge, même téléphone verrouillé ou app fermée."
+        />
+
+        {canInstall && (
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <Button variant="outline" className="w-full h-11" onClick={() => promptInstall()}>
+              <Package className="w-4 h-4 mr-2" /> Installer l'app sur mon téléphone
+            </Button>
           </div>
         )}
 
