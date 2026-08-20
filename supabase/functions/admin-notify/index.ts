@@ -123,45 +123,43 @@ Deno.serve(async (req) => {
         body: JSON.stringify(payload),
       });
 
-    const sendRes = await callWa({
-      recipient_type: 'admin',
-      recipient_phone: phone,
-      message: body.message,
-      trigger_type: body.notification_type,
-    });
-    let sendOk = sendRes.ok;
-    let waJson: any = null;
-    try { waJson = await sendRes.json(); } catch { /* ignore */ }
-    const __dbg: Record<string, unknown> = { freeform_status: sendRes.status };
+    // 4a) Fenêtre 24h WhatsApp : Meta accepte l'appel API (wamid) puis échoue en
+    //     livraison (131047) si l'admin n'a pas écrit depuis 24h. On vérifie donc
+    //     la fenêtre AVANT d'envoyer, et on part directement en template sinon.
+    const adminTail24 = phone.replace(/\D/g, '').slice(-9);
+    const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { count: inboundCount } = await supa.from('whatsapp_inbound_messages')
+      .select('id', { count: 'exact', head: true })
+      .gte('received_at', since24h)
+      .ilike('from_phone', `%${adminTail24}%`);
+    const windowOpen = (inboundCount ?? 0) > 0;
+    const __dbg: Record<string, unknown> = { window_open: windowOpen };
 
-    // 4b) Fenêtre 24h fermée (erreur Meta 131047) → on repasse par un template
-    //     autorisé pour rouvrir la conversation avec le super admin.
-    const metaCode = waJson?.result?.error?.code ?? waJson?.result?.error?.error_data?.code;
-    const waFailed = waJson?.ok === false || (waJson?.status && waJson.status !== 'sent' && !waJson?.skipped);
-    const closedWindow = !sendOk || waFailed || metaCode === 131047
-      || /24 hours/i.test(JSON.stringify(waJson?.result?.error ?? ''));
-    __dbg.closed_window = closedWindow;
-    __dbg.wa = JSON.stringify(waJson).slice(0, 300);
-    if (closedWindow) {
-      try {
-        const tplRes = await callWa({
-          recipient_type: 'admin',
-          recipient_phone: phone,
-          template_name: 'admin_window_keepalive',
-          template_language: 'fr',
-          message: body.message,
-          fallback_text: body.message,
-          trigger_type: `${body.notification_type}_reopen`,
-        });
-        sendOk = tplRes.ok;
-        const tplTxt = await tplRes.text().catch(() => '');
-        __dbg.keepalive_status = tplRes.status;
-        __dbg.keepalive_body = tplTxt.slice(0, 300);
-        console.log('admin-notify keepalive', tplRes.status, tplTxt.slice(0, 300));
-      } catch (e) {
-        console.error('admin-notify template fallback failed', e);
-      }
+    let sendOk = false;
+    if (windowOpen) {
+      const sendRes = await callWa({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        message: body.message,
+        trigger_type: body.notification_type,
+      });
+      sendOk = sendRes.ok;
+      __dbg.freeform_status = sendRes.status;
+    } else {
+      // Hors fenêtre : seul un template approuvé est délivrable.
+      const tplRes = await callWa({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        template_name: 'admin_window_keepalive',
+        template_language: 'fr',
+        message: body.message,
+        fallback_text: body.message,
+        trigger_type: `${body.notification_type}_template`,
+      });
+      sendOk = tplRes.ok;
+      __dbg.template_status = tplRes.status;
     }
+
 
     // 4) Record
     await supa.from('admin_notifications_sent').insert({
