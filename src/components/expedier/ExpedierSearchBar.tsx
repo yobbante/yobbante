@@ -403,23 +403,15 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                     excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
                   />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number" inputMode="decimal" placeholder="Poids (kg)"
                     value={weight} onChange={e => setWeight(e.target.value)}
                     className={fieldCls}
                   />
-                  <select
-                    value={transport} onChange={e => setTransport(e.target.value as any)}
-                    aria-label="Mode de transport"
-                    className={fieldCls}
-                  >
-                    <option value="AIR">Aérien</option>
-                    <option value="SEA">Maritime</option>
-                  </select>
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
-                    className={cn(ctaCls, 'col-span-2 sm:col-span-1')}
+                    className={ctaCls}
                   >
                     Continuer →
                   </button>
@@ -433,8 +425,11 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                 >
                   Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
                 </a>
+                </div>
+                )}
               </div>
             )}
+
 
             {/* SOURCING ────────────────────────────────────────────── */}
             {mode === 'sourcing' && (
