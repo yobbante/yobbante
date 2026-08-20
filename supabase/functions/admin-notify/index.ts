@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
       phone_sent_to: phone,
     });
 
-    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey }), {
+    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, debug: __dbg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
