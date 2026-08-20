@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Check, Copy, Loader2, MapPin, MessageCircle, Package, Pencil, Phone, Truck, X,
+  Check, ClipboardCheck, Copy, Loader2, MapPin, MessageCircle, Package, Pencil, Phone, Truck, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
