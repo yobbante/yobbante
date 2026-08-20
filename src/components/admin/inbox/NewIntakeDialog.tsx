@@ -856,6 +856,8 @@ Merci de votre confiance.`;
                     </Card>
                   </div>
                 </div>
+                  )}
+                </div>
               )}
 
               {data.service_kind === 'sourcing' && (
