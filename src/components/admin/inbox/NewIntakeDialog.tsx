@@ -760,50 +760,17 @@ Merci de votre confiance.`;
               </div>
 
               {data.service_kind === 'envoi' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Origine</Label>
-                    <CityPicker
-                      includeHub
-                      value={data.origin_city}
-                      onChange={v => update({ origin_city: v })}
-                      placeholder="Ville de départ"
-                      ariaLabel="Ville d'origine"
-                    /></div>
-                  <div><Label className="text-xs">Destination</Label>
-                    <CityPicker
-                      includeHub
-                      value={data.destination_city}
-                      onChange={v => update({ destination_city: v })}
-                      placeholder="Ville d'arrivée"
-                      ariaLabel="Ville de destination"
-                    /></div>
-                  <div><Label className="text-xs">Poids (kg)</Label>
-                    <Input type="number" value={data.weight_kg} onChange={e => update({ weight_kg: e.target.value })} /></div>
-                  <div><Label className="text-xs">Mode</Label>
-                    <select
-                      className="flex h-10 w-full rounded-[8px] border-[0.5px] border-[hsl(var(--color-border-tertiary))] bg-[hsl(var(--background-surface))] px-3 text-sm"
-                      value={data.transport_mode}
-                      onChange={e => update({ transport_mode: e.target.value as any })}
-                    >
-                      <option value="gp">GP (bagage accompagné)</option>
-                      <option value="air">Aérien (fret classique) — bientôt</option>
-                      <option value="sea">Maritime — bientôt</option>
-                      <option value="road">Routier (Terminal D)</option>
-                    </select>
-                  </div>
-                  {(data.transport_mode === 'air' || data.transport_mode === 'sea') && (
-                    <div className="col-span-2 rounded-[10px] border border-border bg-muted/40 p-3 text-sm">
-                      <p className="font-medium">
-                        {data.transport_mode === 'air' ? 'Fret aérien classique' : 'Fret maritime'} — bientôt disponible
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Ce mode n'est pas encore opérationnel. Pour un envoi par avion aujourd'hui,
-                        choisissez « GP (bagage accompagné) ».
-                      </p>
-                    </div>
-                  )}
+                <div className="space-y-3">
+                  {/* 1re question : le mode de transport pilote toute la suite */}
+                  <TransportModeSelector
+                    value={data.transport_mode}
+                    onChange={(m) => update({ transport_mode: m })}
+                  />
+
+                  {isModeSoon(data.transport_mode) && <ModeSoonNotice mode={data.transport_mode} />}
+
                   {data.transport_mode === 'road' && (
-                    <div className="col-span-2 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
+                    <div className="rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
                       <div className="flex items-start gap-2">
                         <Truck className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
                         <div className="text-sm">
@@ -831,6 +798,31 @@ Merci de votre confiance.`;
                       </div>
                     </div>
                   )}
+
+                  {/* Le reste du formulaire n'a de sens que pour le GP */}
+                  {data.transport_mode === 'gp' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label className="text-xs">Origine</Label>
+                    <CityPicker
+                      includeHub
+                      value={data.origin_city}
+                      onChange={v => update({ origin_city: v })}
+                      placeholder="Ville de départ"
+                      ariaLabel="Ville d'origine"
+                    /></div>
+                  <div><Label className="text-xs">Destination</Label>
+                    <CityPicker
+                      includeHub
+                      value={data.destination_city}
+                      onChange={v => update({ destination_city: v })}
+                      placeholder="Ville d'arrivée"
+                      ariaLabel="Ville de destination"
+                    /></div>
+                  <div><Label className="text-xs">Poids (kg)</Label>
+                    <Input type="number" value={data.weight_kg} onChange={e => update({ weight_kg: e.target.value })} /></div>
+                  <div><Label className="text-xs">Date souhaitée</Label>
+                    <Input type="date" value={data.desired_date} onChange={e => update({ desired_date: e.target.value })} /></div>
+
 
                   <div className="col-span-2"><Label className="text-xs">Description</Label>
                     <Textarea value={data.description} onChange={e => update({ description: e.target.value })} rows={2} /></div>
