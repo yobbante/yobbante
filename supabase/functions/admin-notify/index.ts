@@ -150,6 +150,8 @@ Deno.serve(async (req) => {
           trigger_type: `${body.notification_type}_reopen`,
         });
         sendOk = tplRes.ok;
+        const tplTxt = await tplRes.text().catch(() => '');
+        console.log('admin-notify keepalive', tplRes.status, tplTxt.slice(0, 300));
       } catch (e) {
         console.error('admin-notify template fallback failed', e);
       }
