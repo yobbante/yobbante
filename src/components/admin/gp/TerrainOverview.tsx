@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useFretCourses, FRET_ACTIVE_STATUSES } from '@/hooks/useFretAdmin';
 import { useGpColis, stepOf, stalledHours, GP_STEPS, GP_STEP_TONE } from '@/hooks/useGpTerrain';
 import { cn } from '@/lib/utils';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 
 /** Tableau de bord combiné : activité routière (Terminal D) + colis GP, avec alertes. */
 export function TerrainOverview({ onGoto }: { onGoto?: (tab: 'fret' | 'colis') => void }) {
