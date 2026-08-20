@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, ArrowLeft, ArrowRight, Check, MessageCircle, MapPin } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Check, MessageCircle, MapPin, Truck, ExternalLink } from 'lucide-react';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   INTAKE_SOURCES, SERVICE_KINDS, RECEPTION_TAG, SOURCING_TAG,
   type IntakeSource, type ServiceKind,
@@ -288,6 +289,7 @@ function useClientLookup(phone: string) {
 }
 
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
@@ -316,7 +318,13 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     if (step === 1) return data.client_name.trim().length >= 2 && data.client_phone.trim().length >= 6;
     if (step === 2) {
       if (!data.service_kind) return false;
-      if (data.service_kind === 'envoi') return !!(data.origin_city && data.destination_city && data.weight_kg);
+      if (data.service_kind === 'envoi') {
+        // Routier = Terminal D uniquement : ce wizard crée un dossier générique
+        // (pricingEngine + départs aériens), incompatible avec fret_courses.
+        if (data.transport_mode === 'road') return false;
+        return !!(data.origin_city && data.destination_city && data.weight_kg);
+      }
+
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
     }
@@ -760,9 +768,39 @@ Merci de votre confiance.`;
                     >
                       <option value="air">Air</option>
                       <option value="sea">Maritime</option>
-                      <option value="road">Routier</option>
+                      <option value="road">Routier (Terminal D)</option>
                     </select>
                   </div>
+                  {data.transport_mode === 'road' && (
+                    <div className="col-span-2 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
+                      <div className="flex items-start gap-2">
+                        <Truck className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium">Envoi routier → utilisez Terminal D</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Le fret routier (Sénégal et pays voisins) a sa propre grille tarifaire et crée
+                            une course avec enlèvement à Dakar. Ce formulaire créerait un dossier générique
+                            au mauvais prix.
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Button
+                              type="button" size="sm" variant="outline"
+                              onClick={() => { onOpenChange?.(false); navigate('/admin/fret'); }}
+                            >
+                              Équipe terrain → Fret routier
+                            </Button>
+                            <Button
+                              type="button" size="sm" variant="ghost"
+                              onClick={() => window.open('/terminal-d', '_blank')}
+                            >
+                              Ouvrir Terminal D <ExternalLink className="w-3 h-3 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="col-span-2"><Label className="text-xs">Description</Label>
                     <Textarea value={data.description} onChange={e => update({ description: e.target.value })} rows={2} /></div>
                   <div><Label className="text-xs">Valeur déclarée (€)</Label>
