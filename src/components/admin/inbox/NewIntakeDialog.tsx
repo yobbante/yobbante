@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, ArrowLeft, ArrowRight, Check, MessageCircle, MapPin } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Check, MessageCircle, MapPin, Truck, ExternalLink } from 'lucide-react';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   INTAKE_SOURCES, SERVICE_KINDS, RECEPTION_TAG, SOURCING_TAG,
   type IntakeSource, type ServiceKind,
@@ -288,6 +289,7 @@ function useClientLookup(phone: string) {
 }
 
 export function NewIntakeDialog({ open, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
