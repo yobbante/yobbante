@@ -136,6 +136,13 @@ export function CityPicker({
     setDebouncedQ('');
   };
 
+  /** Ferme le picker si le clic vise le fond ou un élément marqué « dismiss ». */
+  const maybeDismiss = (target: EventTarget | null) => {
+    const el = target as HTMLElement | null;
+    if (el && el.closest('[data-city-picker-dismiss]')) setOpen(false);
+  };
+
+
   return (
     <>
       <button
@@ -168,8 +175,11 @@ export function CityPicker({
           // Radix pose `pointer-events: none` sur le body et fermerait le
           // parent au premier clic. On réactive les events et on stoppe la
           // propagation vers la couche « dismissable » du parent.
+          // NB : `stopPropagation` en phase capture empêche aussi l'événement
+          // d'atteindre nos propres enfants (fond, bouton Annuler) — on gère
+          // donc la fermeture ici, directement dans le handler de capture.
           style={{ pointerEvents: 'auto' }}
-          onPointerDownCapture={(e) => e.stopPropagation()}
+          onPointerDownCapture={(e) => { e.stopPropagation(); maybeDismiss(e.target); }}
           onMouseDownCapture={(e) => e.stopPropagation()}
           onTouchStartCapture={(e) => e.stopPropagation()}
           onFocusCapture={(e) => e.stopPropagation()}
@@ -177,9 +187,15 @@ export function CityPicker({
           {/* backdrop — click to close */}
           <div
             className="absolute inset-0 bg-black/50 animate-in fade-in-0"
-            onMouseDown={() => setOpen(false)}
-            onTouchStart={() => setOpen(false)}
+            data-city-picker-dismiss=""
             aria-hidden="true"
+          />
+          <button
+            type="button"
+            aria-label="Fermer"
+            data-city-picker-dismiss=""
+            className="absolute inset-0 w-full h-full opacity-0 cursor-default"
+            onClick={() => setOpen(false)}
           />
           {/* sheet */}
           <div
@@ -235,8 +251,8 @@ export function CityPicker({
                 </div>
                 <button
                   type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setOpen(false); }}
-                  onTouchStart={(e) => { e.preventDefault(); setOpen(false); }}
+                  data-city-picker-dismiss=""
+                  onClick={() => setOpen(false)}
                   className="text-[13px] px-2 py-1 text-muted-foreground hover:text-foreground rounded focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   Annuler
