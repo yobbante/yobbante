@@ -171,6 +171,10 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
                   onClick={() => { navigator.clipboard?.writeText(trackUrl); toast.success('Lien de suivi copié'); }}>
             <Copy className="w-3 h-3 mr-1" /> Lien suivi
           </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+                  onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/recu/${course.confirm_token}`); toast.success('Lien de confirmation copié'); }}>
+            <ClipboardCheck className="w-3 h-3 mr-1" /> Lien réception
+          </Button>
           {course.client_phone && (
             <>
               <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
