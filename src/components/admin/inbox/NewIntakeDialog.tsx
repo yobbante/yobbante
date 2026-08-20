@@ -822,14 +822,11 @@ Merci de votre confiance.`;
                     <Input type="number" value={data.weight_kg} onChange={e => update({ weight_kg: e.target.value })} /></div>
                   <div><Label className="text-xs">Date souhaitée</Label>
                     <Input type="date" value={data.desired_date} onChange={e => update({ desired_date: e.target.value })} /></div>
-
-
                   <div className="col-span-2"><Label className="text-xs">Description</Label>
                     <Textarea value={data.description} onChange={e => update({ description: e.target.value })} rows={2} /></div>
-                  <div><Label className="text-xs">Valeur déclarée (€)</Label>
+                  <div className="col-span-2"><Label className="text-xs">Valeur déclarée (€)</Label>
                     <Input type="number" value={data.declared_value} onChange={e => update({ declared_value: e.target.value })} /></div>
-                  <div><Label className="text-xs">Date souhaitée</Label>
-                    <Input type="date" value={data.desired_date} onChange={e => update({ desired_date: e.target.value })} /></div>
+
 
                   <div className="col-span-2 grid grid-cols-2 gap-3">
                     <Card className="p-3">
