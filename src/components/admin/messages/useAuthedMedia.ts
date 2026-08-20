@@ -41,6 +41,11 @@ export function useAuthedMedia(mediaUrl: string) {
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!res.ok) throw new Error(`proxy ${res.status}`);
+        // The proxy answers 200 + JSON when the media is gone from Meta
+        // (expired id / token without access) instead of a 4xx-5xx.
+        if (res.headers.get('content-type')?.includes('application/json')) {
+          throw new Error('media unavailable');
+        }
         const blob = await res.blob();
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
