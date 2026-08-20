@@ -251,8 +251,8 @@ export function CityPicker({
                 </div>
                 <button
                   type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setOpen(false); }}
-                  onTouchStart={(e) => { e.preventDefault(); setOpen(false); }}
+                  data-city-picker-dismiss=""
+                  onClick={() => setOpen(false)}
                   className="text-[13px] px-2 py-1 text-muted-foreground hover:text-foreground rounded focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   Annuler
