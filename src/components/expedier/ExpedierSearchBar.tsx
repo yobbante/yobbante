@@ -102,10 +102,19 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [origin, setOrigin] = useState(buildCityLabel(hydratedSend?.origin_city, hydratedSend?.origin) || DAKAR);
   const [destination, setDestination] = useState(buildCityLabel(hydratedSend?.destination_city, hydratedSend?.destination));
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
-  // Routier public = Terminal D (page dédiée /terminal-d) → seuls Aérien/Maritime ici.
-  const [transport, setTransport] = useState<'AIR' | 'SEA'>(
-    hydratedSend?.transport === 'SEA' ? 'SEA' : 'AIR',
-  );
+  // Mode de transport = 1re question. GP par défaut (ex-"Aérien").
+  // Routier = Terminal D (page dédiée /terminal-d).
+  const [transportMode, setTransportMode] = useState<SendTransportMode>('gp');
+  const transport: 'AIR' | 'SEA' = 'AIR';
+  const goTerminalD = () => {
+    const raw = direction === 'from_dakar' ? destination : origin;
+    const cityOnly = (raw || '').split(',')[0].trim();
+    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+  };
+  const handleTransportChange = (m: SendTransportMode) => {
+    setTransportMode(m);
+    if (m === 'road') goTerminalD();
+  };
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
