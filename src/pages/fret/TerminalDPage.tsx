@@ -27,6 +27,11 @@ const ZONE_LABEL: Record<string, string> = {
   hors_dakar: 'Zone éloignée',
 };
 
+const norm = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+
+
 export default function TerminalDPage() {
   useSeo({
     title: 'Terminal D — Fret routier national et international | Yobbanté',
