@@ -324,7 +324,7 @@ export function QuoteForm() {
               <select aria-label="Mode de transport" className="input-base w-full" value={mode} onChange={e => setMode(e.target.value as TransportMode)}>
                 <option value="air">Air</option>
                 <option value="sea">Mer LCL</option>
-                <option value="road">Route</option>
+                <option value="road">Route (Terminal D)</option>
               </select>
             </Field>
             <Field label="Type">
