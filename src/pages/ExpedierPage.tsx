@@ -24,10 +24,21 @@ export default function ExpedierPage() {
   // (ex: /expedier?destination=FR&destination_city=Paris&weight=5&type=docs)
   // pre-fill SendFlow on mount. All params are validated to avoid injecting
   // garbage from a copy-pasted / tampered link.
+  // Routier = Terminal D uniquement : tout deep-link transport=ROAD est
+  // renvoyé vers /terminal-d (avec la ville si elle est fournie).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if ((sp.get('transport') || '').toUpperCase() !== 'ROAD') return;
+    const city = (sp.get('destination_city') || sp.get('dest_city') || sp.get('dest') || '')
+      .replace(/[\x00-\x1F<>]/g, '').trim().slice(0, 60);
+    navigate(city ? `/terminal-d?ville=${encodeURIComponent(city)}` : '/terminal-d', { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     if ((urlMode ?? 'envoyer') !== 'envoyer') return;
     try {
       const sp = new URLSearchParams(window.location.search);
+
 
       // ISO-2 country code: exactly two A-Z letters (uppercased).
       const isCountry = (v: string | null): v is string =>
