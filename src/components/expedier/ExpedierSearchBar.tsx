@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
+import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from '@/components/quote/TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
@@ -225,7 +226,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       window.dispatchEvent(new Event('send-preset-updated'));
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, transport, weight, mode]);
+  }, [origin, destination, weight, mode]);
 
 
   const canSubmitSend = !!origin && !!destination && !!weight;
@@ -238,7 +239,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       return [
         origin && destination ? `${origin.split(',')[0]} → ${destination.split(',')[0]}` : 'Itinéraire à définir',
         weight ? `${weight} kg` : 'Poids ?',
-        transport === 'AIR' ? 'Air' : transport === 'SEA' ? 'Maritime' : 'Routier',
+        transportMode === 'gp' ? 'GP' : transportMode === 'sea' ? 'Maritime' : transportMode === 'road' ? 'Routier' : 'Aérien',
       ];
     }
     if (mode === 'sourcing') {
@@ -253,7 +254,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       recMode === 'AIR' ? 'Aérien' : 'Maritime',
       ...(estValue ? [`${estValue} €`] : []),
     ];
-  }, [mode, origin, destination, weight, transport, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);
+  }, [mode, origin, destination, weight, transportMode, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);
 
   // ── Shared field classes ─────────────────────────────────────────
   const fieldCls = cn(
