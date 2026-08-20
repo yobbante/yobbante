@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
     const closedWindow = !sendOk || waFailed || metaCode === 131047
       || /24 hours/i.test(JSON.stringify(waJson?.result?.error ?? ''));
     __dbg.closed_window = closedWindow;
+    __dbg.wa = JSON.stringify(waJson).slice(0, 300);
     if (closedWindow) {
       try {
         const tplRes = await callWa({
