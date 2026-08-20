@@ -130,6 +130,16 @@ export function QuoteForm() {
 
   const submit = () => {
     if (service === 'send') {
+      // Routier = Terminal D uniquement (national + international).
+      // On quitte l'ancien moteur de pricing et on redirige vers /terminal-d,
+      // en pré-remplissant la ville si elle est saisie (Terminal D fait lui-même
+      // la correspondance : si la ville n'est pas couverte, le champ reste vide).
+      if (mode === 'road') {
+        const raw = direction === 'from_dakar' ? destination : origin;
+        const cityOnly = (raw || '').split(',')[0].trim();
+        navigate(cityOnly ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+        return;
+      }
       if (!origin || !destination || !weight) return;
       // Hand off directly to /expedier/envoyer with the same preset
       // shape ExpedierSearchBar consumes, so the flow shows the price
@@ -138,8 +148,8 @@ export function QuoteForm() {
       const o = resolveCityToCountry(origin, customCities);
       const d = resolveCityToCountry(destination, customCities);
       if (!o || !d) return;
-      const transport: 'AIR' | 'SEA' | 'ROAD' =
-        mode === 'air' ? 'AIR' : mode === 'sea' ? 'SEA' : 'ROAD';
+      const transport: 'AIR' | 'SEA' = mode === 'sea' ? 'SEA' : 'AIR';
+
       const preset = {
         origin: o.country, destination: d.country,
         origin_city: o.city, destination_city: d.city,
