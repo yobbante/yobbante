@@ -102,7 +102,7 @@ export async function enablePush(opts: EnableOptions): Promise<EnableResult> {
       (await reg.pushManager.getSubscription()) ??
       (await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).slice().buffer as ArrayBuffer,
       }));
 
     const { error } = await supabase.functions.invoke('push-subscribe', {
