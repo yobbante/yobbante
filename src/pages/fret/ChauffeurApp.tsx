@@ -146,9 +146,6 @@ export default function ChauffeurApp() {
   const [courses, setCourses] = useState<FretCourse[]>([]);
   const [loading, setLoading] = useState(!!token);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [notifOn, setNotifOn] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'granted',
-  );
   const knownIds = useRef<Set<string> | null>(null);
   const { canInstall, promptInstall } = usePwaInstall();
 
