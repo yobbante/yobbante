@@ -370,8 +370,11 @@ export function QuoteForm() {
             );
           })()}
           <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
+          </div>
+          )}
         </div>
       )}
+
 
       {/* TAB 2 — SOURCING */}
       {service === 'sourcing' && (
