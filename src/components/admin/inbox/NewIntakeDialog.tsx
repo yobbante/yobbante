@@ -595,7 +595,18 @@ Merci de votre confiance.`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-2xl overflow-y-auto"
+        // Le CityPicker s'affiche dans un portail hors du DOM du Sheet : sans ça
+        // le focus trap Radix reprend le focus et la saisie clavier est perdue.
+        onFocusOutside={(e) => {
+          if ((e.target as HTMLElement | null)?.closest?.('[data-city-picker-portal]')) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if ((e.target as HTMLElement | null)?.closest?.('[data-city-picker-portal]')) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>Nouveau dossier · Étape {step + 1} / {TOTAL_STEPS}</SheetTitle>
         </SheetHeader>
