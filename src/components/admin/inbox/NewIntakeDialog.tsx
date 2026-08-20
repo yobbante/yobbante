@@ -766,9 +766,39 @@ Merci de votre confiance.`;
                     >
                       <option value="air">Air</option>
                       <option value="sea">Maritime</option>
-                      <option value="road">Routier</option>
+                      <option value="road">Routier (Terminal D)</option>
                     </select>
                   </div>
+                  {data.transport_mode === 'road' && (
+                    <div className="col-span-2 rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
+                      <div className="flex items-start gap-2">
+                        <Truck className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium">Envoi routier → utilisez Terminal D</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Le fret routier (Sénégal et pays voisins) a sa propre grille tarifaire et crée
+                            une course avec enlèvement à Dakar. Ce formulaire créerait un dossier générique
+                            au mauvais prix.
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Button
+                              type="button" size="sm" variant="outline"
+                              onClick={() => { onOpenChange?.(false); navigate('/admin/fret'); }}
+                            >
+                              Équipe terrain → Fret routier
+                            </Button>
+                            <Button
+                              type="button" size="sm" variant="ghost"
+                              onClick={() => window.open('/terminal-d', '_blank')}
+                            >
+                              Ouvrir Terminal D <ExternalLink className="w-3 h-3 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="col-span-2"><Label className="text-xs">Description</Label>
                     <Textarea value={data.description} onChange={e => update({ description: e.target.value })} rows={2} /></div>
                   <div><Label className="text-xs">Valeur déclarée (€)</Label>
