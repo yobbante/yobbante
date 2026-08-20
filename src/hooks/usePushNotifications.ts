@@ -37,20 +37,21 @@ export function usePushNotifications({ audience, chauffeurToken }: Options) {
   const enable = useCallback(async () => {
     setBusy(true);
     try {
-      const res = await enablePush({ audience, chauffeurToken });
-      if (res.ok) {
+      const res: EnableResult = await enablePush({ audience, chauffeurToken });
+      if (res.ok === true) {
         setSubscribed(true);
         toast.success('Notifications activées sur cet appareil');
         return true;
       }
-      if (res.reason === 'ios_install_required') {
+      const { reason, detail } = res;
+      if (reason === 'ios_install_required') {
         toast.error("Sur iPhone, installez d'abord l'app : Partager → Ajouter à l'écran d'accueil");
-      } else if (res.reason === 'denied') {
+      } else if (reason === 'denied') {
         toast.error('Notifications refusées. Autorisez-les dans les réglages du navigateur.');
-      } else if (res.reason === 'unsupported') {
+      } else if (reason === 'unsupported') {
         toast.error('Ce navigateur ne gère pas les notifications push.');
       } else {
-        toast.error(res.detail || 'Activation impossible');
+        toast.error(detail || 'Activation impossible');
       }
       return false;
     } finally {
