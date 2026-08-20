@@ -154,26 +154,38 @@ export default function TerminalDPage() {
           <Truck className="w-5 h-5" />
           <span className="text-xs font-semibold uppercase tracking-wide">Terminal D</span>
         </div>
-        <h1 className="text-2xl font-semibold mt-2">Transport routier depuis Dakar</h1>
+        <h1 className="text-2xl font-semibold mt-2">
+          Transport routier depuis Dakar — national et international
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Transport routier au Sénégal <span className="text-foreground font-medium">et vers les pays voisins</span> (Gambie, Mali, Mauritanie, Guinée…).
+        </p>
         <p className="text-sm text-muted-foreground mt-1">
           Départs quotidiens. Enlèvement de votre colis à Dakar, prix affiché immédiatement.
         </p>
 
         {/* Tabs */}
-        <div className="mt-5 inline-flex rounded-xl border border-border p-1 bg-card/40">
+        <div className="mt-5 inline-flex flex-wrap rounded-xl border border-border p-1 bg-card/40">
           {(['national', 'international'] as Tab[]).map(t => (
             <button
               key={t}
               type="button"
               onClick={() => switchTab(t)}
+              aria-pressed={tab === t}
               className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                 tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
               }`}
             >
-              {t === 'national' ? 'Sénégal' : 'Pays voisins'}
+              {t === 'national' ? '🇸🇳 Sénégal (national)' : '🌍 Pays voisins (international)'}
             </button>
           ))}
         </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {tab === 'national'
+            ? 'Toutes les régions du Sénégal — tarif selon la taille du colis.'
+            : 'Gambie, Mali, Mauritanie, Guinée… — tarif au kilo, minimum 3 kg.'}
+        </p>
+
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
