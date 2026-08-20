@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSeo } from '@/hooks/useSeo';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { PushNotificationsCard } from '@/components/PushNotificationsCard';
 import {
   FRET_NEXT_ACTION,
   FRET_STATUS_LABEL,
