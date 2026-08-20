@@ -27,17 +27,34 @@ const ZONE_LABEL: Record<string, string> = {
 
 export default function TerminalDPage() {
   useSeo({
-    title: 'Terminal D — Tarifs fret routier Dakar | Yobbanté',
+    title: 'Terminal D — Fret routier national et international | Yobbanté',
     description:
-      "Prix instantané pour l'envoi de colis depuis Dakar vers les villes du Sénégal et les pays voisins, avec enlèvement à domicile.",
+      "Transport routier depuis Dakar : toutes les villes du Sénégal et les pays voisins (Gambie, Mali, Mauritanie, Guinée…). Prix instantané et enlèvement à domicile.",
     path: '/terminal-d',
   });
+
+  const [searchParams] = useSearchParams();
+  const villeParam = searchParams.get('ville') || '';
 
   const { zones, destinations, isLoading } = useFretTarifs();
   const [tab, setTab] = useState<Tab>('national');
   const [destId, setDestId] = useState('');
   const [size, setSize] = useState<ColisSize>('S');
   const [weight, setWeight] = useState('');
+  const [prefillDone, setPrefillDone] = useState(false);
+
+  // Pré-remplissage depuis le widget "Envoyer un colis" (?ville=…).
+  // Si la ville n'est pas couverte par Terminal D, on ne force rien.
+  useEffect(() => {
+    if (prefillDone || !villeParam || destinations.length === 0) return;
+    setPrefillDone(true);
+    const match = destinations.find(d => norm(d.name) === norm(villeParam))
+      ?? destinations.find(d => norm(d.name).includes(norm(villeParam)) || norm(villeParam).includes(norm(d.name)));
+    if (!match) return;
+    setTab(match.scope === 'international' ? 'international' : 'national');
+    setDestId(match.id);
+  }, [villeParam, destinations, prefillDone]);
+
 
   // Enlèvement (obligatoire — plus aucun dépôt possible)
   const [pickupQuartier, setPickupQuartier] = useState('');
