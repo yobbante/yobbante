@@ -199,12 +199,6 @@ export default function ChauffeurApp() {
     }
   };
 
-  const enableNotifications = async () => {
-    if (typeof Notification === 'undefined') return;
-    const perm = await Notification.requestPermission();
-    setNotifOn(perm === 'granted');
-    if (perm === 'granted') toast.success('Alertes activées');
-  };
 
   const logout = () => {
     localStorage.removeItem(FRET_TOKEN_KEY);
