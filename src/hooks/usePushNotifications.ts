@@ -7,6 +7,7 @@ import {
   iosNeedsInstall,
   isIosDevice,
   pushSupported,
+  type EnableResult,
 } from '@/lib/push';
 
 interface Options {
