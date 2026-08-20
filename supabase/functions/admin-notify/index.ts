@@ -132,12 +132,14 @@ Deno.serve(async (req) => {
     let sendOk = sendRes.ok;
     let waJson: any = null;
     try { waJson = await sendRes.json(); } catch { /* ignore */ }
+    const __dbg: Record<string, unknown> = { freeform_status: sendRes.status };
 
     // 4b) Fenêtre 24h fermée (erreur Meta 131047) → on repasse par un template
     //     autorisé pour rouvrir la conversation avec le super admin.
     const metaCode = waJson?.result?.error?.code ?? waJson?.result?.error?.error_data?.code;
     const closedWindow = !sendOk || metaCode === 131047
       || /24 hours/i.test(JSON.stringify(waJson?.result?.error ?? ''));
+    __dbg.closed_window = closedWindow;
     if (closedWindow) {
       try {
         const tplRes = await callWa({
@@ -151,6 +153,8 @@ Deno.serve(async (req) => {
         });
         sendOk = tplRes.ok;
         const tplTxt = await tplRes.text().catch(() => '');
+        __dbg.keepalive_status = tplRes.status;
+        __dbg.keepalive_body = tplTxt.slice(0, 300);
         console.log('admin-notify keepalive', tplRes.status, tplTxt.slice(0, 300));
       } catch (e) {
         console.error('admin-notify template fallback failed', e);
