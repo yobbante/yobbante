@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Check, Copy, Loader2, MapPin, MessageCircle, Package, Pencil, Phone, Truck, X,
+  Check, ClipboardCheck, Copy, Loader2, MapPin, MessageCircle, Package, Pencil, Phone, Truck, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,6 +170,10 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
           <Button size="sm" variant="outline" className="h-8 text-xs"
                   onClick={() => { navigator.clipboard?.writeText(trackUrl); toast.success('Lien de suivi copié'); }}>
             <Copy className="w-3 h-3 mr-1" /> Lien suivi
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+                  onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/recu/${course.confirm_token}`); toast.success('Lien de confirmation copié'); }}>
+            <ClipboardCheck className="w-3 h-3 mr-1" /> Lien réception
           </Button>
           {course.client_phone && (
             <>
