@@ -143,24 +143,18 @@ export function QuoteForm() {
   const submit = () => {
     if (service === 'send') {
       // Routier = Terminal D uniquement (national + international).
-      // On quitte l'ancien moteur de pricing et on redirige vers /terminal-d,
-      // en pré-remplissant la ville si elle est saisie (Terminal D fait lui-même
-      // la correspondance : si la ville n'est pas couverte, le champ reste vide).
-      if (mode === 'road') {
-        const raw = direction === 'from_dakar' ? destination : origin;
-        const cityOnly = (raw || '').split(',')[0].trim();
-        navigate(cityOnly ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
-        return;
-      }
+      if (mode === 'road') { goTerminalD(); return; }
+      // Aérien (fret classique) et Maritime : pas encore opérationnels.
+      if (isModeSoon(mode)) return;
       if (!origin || !destination || !weight) return;
       // Hand off directly to /expedier/envoyer with the same preset
       // shape ExpedierSearchBar consumes, so the flow shows the price
-      // section without a separate /devis detour. Hash #tarifs lets
-      // SendFlow auto-scroll to the pricing step once the route is ready.
+      // section without a separate /devis detour.
       const o = resolveCityToCountry(origin, customCities);
       const d = resolveCityToCountry(destination, customCities);
       if (!o || !d) return;
-      const transport: 'AIR' | 'SEA' = mode === 'sea' ? 'SEA' : 'AIR';
+      // GP (bagage accompagné) = ancien "AIR" côté moteur de prix.
+      const transport: 'AIR' | 'SEA' = 'AIR';
 
       const preset = {
         origin: o.country, destination: d.country,
@@ -173,7 +167,7 @@ export function QuoteForm() {
       saveDraft({
         service, origin, destination,
         weightKg: Number(weight) || 0,
-        mode, type,
+        mode: 'air' as TransportMode, type,
       });
       // Land on Étape 1 (Collecte) — the sticky bar resume bar will already
       // show the route/poids/mode chosen here. We don't want to skip ahead
