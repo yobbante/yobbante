@@ -247,5 +247,5 @@ function Divider() {
   return <div className="my-3" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }} />;
 }
 function labelMode(m: string) {
-  return ({ air: 'Aérien', sea: 'Maritime', road: 'Route' } as Record<string, string>)[m] ?? m;
+  return ({ air: 'GP', sea: 'Maritime', road: 'Route' } as Record<string, string>)[m] ?? m;
 }

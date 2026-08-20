@@ -138,7 +138,7 @@ export default function DevisPage() {
 }
 
 function labelMode(m: string) {
-  if (m === 'air') return 'Aérien';
+  if (m === 'air') return 'GP';
   if (m === 'sea') return 'Maritime';
   if (m === 'road') return 'Route';
   return m;

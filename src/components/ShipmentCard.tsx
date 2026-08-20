@@ -17,7 +17,7 @@ function transportLabel(mode?: string | null) {
   const m = (mode ?? '').toUpperCase();
   if (m.includes('SEA') || m === 'VOLUME') return 'Maritime';
   if (m.includes('ROAD') || m === 'ECONOMY') return 'Routier';
-  if (m.includes('AIR') || m === 'FAST') return 'Aérien';
+  if (m.includes('AIR') || m === 'FAST') return 'GP';
   return mode ?? 'Standard';
 }
 

@@ -6,6 +6,7 @@ import {
   saveDraft,
 } from '@/lib/quote';
 import { CityPicker } from './CityPicker';
+import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from './TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateTransport } from '@/lib/pricing';
@@ -94,9 +95,20 @@ export function QuoteForm() {
     }
   };
   const [weight, setWeight] = useState('');
-  const [mode, setMode] = useState<TransportMode>('air');
+  const [mode, setMode] = useState<SendTransportMode>('gp');
   const [type, setType] = useState<GoodsType>('standard');
   const weightInputRef = useRef<HTMLInputElement>(null);
+
+  /** Routier = Terminal D : redirection immédiate dès la sélection du mode. */
+  const goTerminalD = () => {
+    const raw = direction === 'from_dakar' ? destination : origin;
+    const cityOnly = (raw || '').split(',')[0].trim();
+    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+  };
+  const handleModeChange = (m: SendTransportMode) => {
+    setMode(m);
+    if (m === 'road') goTerminalD();
+  };
 
   // External trigger from the landing world map (or destination pills):
   // prefill the SEND tab with Dakar → <city> and focus the weight field.
@@ -131,24 +143,18 @@ export function QuoteForm() {
   const submit = () => {
     if (service === 'send') {
       // Routier = Terminal D uniquement (national + international).
-      // On quitte l'ancien moteur de pricing et on redirige vers /terminal-d,
-      // en pré-remplissant la ville si elle est saisie (Terminal D fait lui-même
-      // la correspondance : si la ville n'est pas couverte, le champ reste vide).
-      if (mode === 'road') {
-        const raw = direction === 'from_dakar' ? destination : origin;
-        const cityOnly = (raw || '').split(',')[0].trim();
-        navigate(cityOnly ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
-        return;
-      }
+      if (mode === 'road') { goTerminalD(); return; }
+      // Aérien (fret classique) et Maritime : pas encore opérationnels.
+      if (isModeSoon(mode)) return;
       if (!origin || !destination || !weight) return;
       // Hand off directly to /expedier/envoyer with the same preset
       // shape ExpedierSearchBar consumes, so the flow shows the price
-      // section without a separate /devis detour. Hash #tarifs lets
-      // SendFlow auto-scroll to the pricing step once the route is ready.
+      // section without a separate /devis detour.
       const o = resolveCityToCountry(origin, customCities);
       const d = resolveCityToCountry(destination, customCities);
       if (!o || !d) return;
-      const transport: 'AIR' | 'SEA' = mode === 'sea' ? 'SEA' : 'AIR';
+      // GP (bagage accompagné) = ancien "AIR" côté moteur de prix.
+      const transport: 'AIR' | 'SEA' = 'AIR';
 
       const preset = {
         origin: o.country, destination: d.country,
@@ -161,7 +167,7 @@ export function QuoteForm() {
       saveDraft({
         service, origin, destination,
         weightKg: Number(weight) || 0,
-        mode, type,
+        mode: 'air' as TransportMode, type,
       });
       // Land on Étape 1 (Collecte) — the sticky bar resume bar will already
       // show the route/poids/mode chosen here. We don't want to skip ahead
@@ -252,7 +258,17 @@ export function QuoteForm() {
       {/* TAB 1 — SEND */}
       {service === 'send' && (
         <div className="space-y-3">
+          <TransportModeSelector value={mode} onChange={handleModeChange} />
+          {isModeSoon(mode) && <ModeSoonNotice mode={mode} />}
+          {mode === 'road' && (
+            <div className="rounded-lg border border-border bg-secondary px-3 py-2.5 text-[12px]">
+              Le transport routier se gère sur <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
+            </div>
+          )}
+          {mode === 'gp' && (
+          <div className="space-y-3">
           <div className="flex items-center gap-2 text-[11px]">
+
             <span
               className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
               style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
@@ -315,17 +331,10 @@ export function QuoteForm() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Poids (kg) *">
               <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
-            </Field>
-            <Field label="Mode">
-              <select aria-label="Mode de transport" className="input-base w-full" value={mode} onChange={e => setMode(e.target.value as TransportMode)}>
-                <option value="air">Air</option>
-                <option value="sea">Mer LCL</option>
-                <option value="road">Route (Terminal D)</option>
-              </select>
             </Field>
             <Field label="Type">
               <select aria-label="Type de marchandise" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
@@ -333,6 +342,7 @@ export function QuoteForm() {
               </select>
             </Field>
           </div>
+
           {(() => {
             const w = Number(weight);
             if (!origin || !destination || !w || w <= 0) return null;
@@ -360,8 +370,11 @@ export function QuoteForm() {
             );
           })()}
           <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
+          </div>
+          )}
         </div>
       )}
+
 
       {/* TAB 2 — SOURCING */}
       {service === 'sourcing' && (

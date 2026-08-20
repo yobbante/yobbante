@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CityPicker } from '@/components/quote/CityPicker';
+import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from '@/components/quote/TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
@@ -102,10 +103,19 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [origin, setOrigin] = useState(buildCityLabel(hydratedSend?.origin_city, hydratedSend?.origin) || DAKAR);
   const [destination, setDestination] = useState(buildCityLabel(hydratedSend?.destination_city, hydratedSend?.destination));
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
-  // Routier public = Terminal D (page dédiée /terminal-d) → seuls Aérien/Maritime ici.
-  const [transport, setTransport] = useState<'AIR' | 'SEA'>(
-    hydratedSend?.transport === 'SEA' ? 'SEA' : 'AIR',
-  );
+  // Mode de transport = 1re question. GP par défaut (ex-"Aérien").
+  // Routier = Terminal D (page dédiée /terminal-d).
+  const [transportMode, setTransportMode] = useState<SendTransportMode>('gp');
+  const transport: 'AIR' | 'SEA' = 'AIR';
+  const goTerminalD = () => {
+    const raw = direction === 'from_dakar' ? destination : origin;
+    const cityOnly = (raw || '').split(',')[0].trim();
+    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+  };
+  const handleTransportChange = (m: SendTransportMode) => {
+    setTransportMode(m);
+    if (m === 'road') goTerminalD();
+  };
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
@@ -216,7 +226,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       window.dispatchEvent(new Event('send-preset-updated'));
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, transport, weight, mode]);
+  }, [origin, destination, weight, mode]);
 
 
   const canSubmitSend = !!origin && !!destination && !!weight;
@@ -229,7 +239,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       return [
         origin && destination ? `${origin.split(',')[0]} → ${destination.split(',')[0]}` : 'Itinéraire à définir',
         weight ? `${weight} kg` : 'Poids ?',
-        transport === 'AIR' ? 'Air' : transport === 'SEA' ? 'Maritime' : 'Routier',
+        transportMode === 'gp' ? 'GP' : transportMode === 'sea' ? 'Maritime' : transportMode === 'road' ? 'Routier' : 'Aérien',
       ];
     }
     if (mode === 'sourcing') {
@@ -244,7 +254,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       recMode === 'AIR' ? 'Aérien' : 'Maritime',
       ...(estValue ? [`${estValue} €`] : []),
     ];
-  }, [mode, origin, destination, weight, transport, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);
+  }, [mode, origin, destination, weight, transportMode, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);
 
   // ── Shared field classes ─────────────────────────────────────────
   const fieldCls = cn(
@@ -339,7 +349,18 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
             {/* ENVOYER ─────────────────────────────────────────────── */}
             {mode === 'envoyer' && (
               <div className="space-y-2 pt-1">
+                <TransportModeSelector value={transportMode} onChange={handleTransportChange} dark={isDark} />
+                {isModeSoon(transportMode) && <ModeSoonNotice mode={transportMode} dark={isDark} />}
+                {transportMode === 'road' && (
+                  <div className={cn('rounded-lg border px-3 py-2.5 text-[12px]', isDark ? 'border-white/15 text-white/80' : 'border-border bg-secondary text-foreground')}>
+                    Le transport routier se gère sur{' '}
+                    <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
+                  </div>
+                )}
+                {transportMode === 'gp' && (
+                <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+
                   <span
                     className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium border',
@@ -382,23 +403,15 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                     excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
                   />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number" inputMode="decimal" placeholder="Poids (kg)"
                     value={weight} onChange={e => setWeight(e.target.value)}
                     className={fieldCls}
                   />
-                  <select
-                    value={transport} onChange={e => setTransport(e.target.value as any)}
-                    aria-label="Mode de transport"
-                    className={fieldCls}
-                  >
-                    <option value="AIR">Aérien</option>
-                    <option value="SEA">Maritime</option>
-                  </select>
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
-                    className={cn(ctaCls, 'col-span-2 sm:col-span-1')}
+                    className={ctaCls}
                   >
                     Continuer →
                   </button>
@@ -412,8 +425,11 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                 >
                   Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
                 </a>
+                </div>
+                )}
               </div>
             )}
+
 
             {/* SOURCING ────────────────────────────────────────────── */}
             {mode === 'sourcing' && (
