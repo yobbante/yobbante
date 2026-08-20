@@ -76,6 +76,19 @@ export function CityPicker({
     return { pop: [], rest: sorted };
   }, [cities, debouncedQ]);
 
+  /**
+   * When the picker lives inside a Radix Dialog/Sheet, portalling to <body>
+   * puts the search input outside the Radix focus trap: every keystroke loses
+   * focus and the field stays empty. Portalling into the Radix content node
+   * keeps it inside the trap.
+   */
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const host = triggerRef.current?.closest<HTMLElement>('[data-radix-dialog-content],[role="dialog"]');
+    setPortalTarget(host ?? document.body);
+  }, [open]);
+
   // Lock body scroll, focus the input, and trap focus while open.
   useEffect(() => {
     if (!open) return;
@@ -142,7 +155,7 @@ export function CityPicker({
         <ChevronDown className="w-4 h-4 shrink-0 opacity-60" />
       </button>
 
-      {open && createPortal(
+      {open && portalTarget && createPortal(
         <div
           className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center"
           role="dialog"
@@ -283,7 +296,7 @@ export function CityPicker({
             </div>
           </div>
         </div>,
-        document.body,
+        portalTarget,
       )}
     </>
   );
