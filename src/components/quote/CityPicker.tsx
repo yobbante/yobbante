@@ -147,6 +147,9 @@ export function CityPicker({
           className="fixed inset-0 z-[100] flex sm:items-center sm:justify-center"
           role="dialog"
           aria-modal="true"
+          // Marker used by parent Radix dialogs/sheets to opt out of their
+          // focus trap while this portal is open (otherwise typing is stolen).
+          data-city-picker-portal=""
           aria-label={ariaLabel}
           // Le portail vit hors du DOM d'un éventuel Dialog Radix parent :
           // Radix pose `pointer-events: none` sur le body et fermerait le
