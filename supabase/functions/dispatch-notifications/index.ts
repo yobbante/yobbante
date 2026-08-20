@@ -49,9 +49,25 @@ async function sendWhatsApp(to: string, body: string): Promise<{ ok: boolean; er
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Worker auth: require service-role bearer token (used by cron / scheduler)
+  // Worker auth: service-role bearer OR the project anon key used by the database scheduler.
   const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${SERVICE_KEY}`) {
+  const apikey = req.headers.get("apikey") ?? "";
+  const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+  const isService = !!SERVICE_KEY && auth === `Bearer ${SERVICE_KEY}`;
+  const isScheduler = !!anon && (auth === `Bearer ${anon}` || apikey === anon);
+  // Legacy JWT anon keys stay valid for cron jobs after key rotation — scoped to this project.
+  let isLegacyScheduler = false;
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : apikey;
+  if (bearer) {
+    try {
+      const payload = JSON.parse(
+        atob(bearer.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+      );
+      const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+      isLegacyScheduler = payload?.role === "anon" && payload?.ref === projectRef;
+    } catch { /* invalid token */ }
+  }
+  if (!isService && !isScheduler && !isLegacyScheduler) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

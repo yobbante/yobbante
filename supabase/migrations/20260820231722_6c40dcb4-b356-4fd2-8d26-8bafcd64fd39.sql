@@ -1,0 +1,2 @@
+revoke all on function public.notify_admin_http(text, text, uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.notify_admin_http(text, text, uuid, text, integer) to service_role;

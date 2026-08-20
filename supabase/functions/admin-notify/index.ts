@@ -23,10 +23,13 @@ type Body = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // --- Auth: service-role bearer required (internal call only) ---
+  // --- Auth: service-role bearer OR internal token (DB triggers) ---
   const __SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const __auth = req.headers.get('authorization') ?? '';
-  if (!__SR || __auth !== `Bearer ${__SR}`) {
+  const __tok = Deno.env.get('INTERNAL_NOTIFY_TOKEN') ?? '';
+  const __hdrTok = req.headers.get('x-internal-token') ?? '';
+  const authorized = (!!__SR && __auth === `Bearer ${__SR}`) || (!!__tok && __hdrTok === __tok);
+  if (!authorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...(typeof corsHeaders !== 'undefined' ? corsHeaders : {}), 'Content-Type': 'application/json' },
@@ -87,24 +90,76 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Send via send-whatsapp (607 → admin)
-    const sendRes = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`,
-      {
+    // 3) Push Web (VAPID) — arrive même téléphone verrouillé / app fermée.
+    //    Envoyé systématiquement, indépendamment du sort du WhatsApp.
+    const firstLine = body.message.split('\n').find((l) => l.trim()) ?? 'Yobbanté';
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/push-send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
         },
         body: JSON.stringify({
-          recipient_type: 'admin',
-          recipient_phone: phone,
-          message: body.message,
-          trigger_type: body.notification_type,
+          audience: 'admin',
+          title: firstLine.slice(0, 60),
+          body: body.message.replace(/\n+/g, ' · ').slice(0, 160),
+          url: body.dossier_id ? `/admin/dossiers` : '/admin',
+          tag: dedupKey,
         }),
-      },
-    );
-    const sendOk = sendRes.ok;
+      });
+    } catch (e) {
+      console.error('admin-notify push failed', e);
+    }
+
+    // 4) Send via send-whatsapp (607 → admin)
+    const callWa = (payload: Record<string, unknown>) =>
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+    // 4a) Fenêtre 24h WhatsApp : Meta accepte l'appel API (wamid) puis échoue en
+    //     livraison (131047) si l'admin n'a pas écrit depuis 24h. On vérifie donc
+    //     la fenêtre AVANT d'envoyer, et on part directement en template sinon.
+    const adminTail24 = phone.replace(/\D/g, '').slice(-9);
+    const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { count: inboundCount } = await supa.from('whatsapp_inbound_messages')
+      .select('id', { count: 'exact', head: true })
+      .gte('received_at', since24h)
+      .ilike('from_phone', `%${adminTail24}%`);
+    const windowOpen = (inboundCount ?? 0) > 0;
+    const __dbg: Record<string, unknown> = { window_open: windowOpen };
+
+    let sendOk = false;
+    if (windowOpen) {
+      const sendRes = await callWa({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        message: body.message,
+        trigger_type: body.notification_type,
+      });
+      sendOk = sendRes.ok;
+      __dbg.freeform_status = sendRes.status;
+    } else {
+      // Hors fenêtre : seul un template approuvé est délivrable.
+      const tplRes = await callWa({
+        recipient_type: 'admin',
+        recipient_phone: phone,
+        template_name: 'admin_window_keepalive',
+        template_language: 'fr',
+        message: body.message,
+        fallback_text: body.message,
+        trigger_type: `${body.notification_type}_template`,
+      });
+      sendOk = tplRes.ok;
+      __dbg.template_status = tplRes.status;
+    }
+
 
     // 4) Record
     await supa.from('admin_notifications_sent').insert({
@@ -114,7 +169,7 @@ Deno.serve(async (req) => {
       phone_sent_to: phone,
     });
 
-    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey }), {
+    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, debug: __dbg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {

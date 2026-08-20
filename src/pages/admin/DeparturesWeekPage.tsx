@@ -190,42 +190,45 @@ export default function DeparturesWeekPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border px-6 py-4 flex items-center justify-between gap-3 sticky top-0 z-10 bg-background/95 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <Link to="/admin/departures" className="text-muted-foreground hover:text-foreground">
+      <header className="border-b border-border px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link to="/admin/departures" className="text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <h1 className="text-lg font-bold">Départs de la semaine</h1>
-            <p className="text-xs text-muted-foreground">3 semaines à venir · Publication sur les canaux</p>
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-lg font-bold truncate">Départs de la semaine</h1>
+            <p className="hidden sm:block text-xs text-muted-foreground">3 semaines à venir · Publication sur les canaux</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setCreating(true)} className="gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <Button onClick={() => setCreating(true)} size="sm" className="gap-2 h-8 px-2 sm:h-9 sm:px-3" title="Nouveau départ">
             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nouveau départ</span>
           </Button>
           <Link
             to="/admin/villes"
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-input text-sm hover:bg-secondary"
+            className="inline-flex items-center gap-2 h-8 sm:h-9 px-2 sm:px-3 rounded-md border border-input text-sm hover:bg-secondary"
             title="Gérer les villes personnalisées"
           >
             <Globe className="w-4 h-4" /> <span className="hidden sm:inline">Villes</span>
           </Link>
-          <Button onClick={() => setImportOpen(true)} variant="outline" className="gap-2">
+          <Button onClick={() => setImportOpen(true)} size="sm" variant="outline" className="hidden sm:inline-flex gap-2" title="Importer depuis WhatsApp">
             <MessageSquarePlus className="w-4 h-4" /> <span className="hidden sm:inline">Importer depuis WhatsApp</span>
           </Button>
-          <Button onClick={copyWhatsApp} variant="outline" className="gap-2" disabled={upcoming.length === 0}>
+          <Button onClick={copyWhatsApp} size="sm" variant="outline" className="gap-2 h-8 px-2 sm:h-9 sm:px-3" disabled={upcoming.length === 0} title="Copier texte WhatsApp">
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             <span className="hidden sm:inline">Copier texte WhatsApp</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="gap-2" disabled={upcoming.length === 0 || exportFormat !== null}>
+              <Button size="sm" className="gap-2 h-8 px-2 sm:h-9 sm:px-3" disabled={upcoming.length === 0 || exportFormat !== null} title="Exporter image">
                 <ImageIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">{exportFormat ? 'Génération…' : 'Exporter image'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setImportOpen(true)} className="gap-2 sm:hidden">
+                <MessageSquarePlus className="w-4 h-4" /> Importer depuis WhatsApp
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportImage('square')} className="gap-2">
                 <ImageIcon className="w-4 h-4" /> Carré 1080×1080 (Instagram, Facebook)
               </DropdownMenuItem>
@@ -237,18 +240,18 @@ export default function DeparturesWeekPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-6 space-y-4 sm:space-y-6">
         {/* Filters */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <Filter className="w-4 h-4 text-muted-foreground" />
+        <div className="flex gap-2 items-center overflow-x-auto pb-1 -mx-1 px-1 sm:flex-wrap sm:overflow-visible">
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
           <Input
-            placeholder="Filtrer par route…"
+            placeholder="Filtrer…"
             value={routeFilter}
             onChange={e => setRouteFilter(e.target.value)}
-            className="max-w-xs"
+            className="h-8 sm:h-10 text-sm min-w-[120px] max-w-[160px] sm:max-w-xs"
           />
           <Select value={modeFilter} onValueChange={setModeFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-[110px] sm:w-[150px] shrink-0"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous modes</SelectItem>
               <SelectItem value="air">Air</SelectItem>
@@ -257,7 +260,7 @@ export default function DeparturesWeekPage() {
             </SelectContent>
           </Select>
           <Select value={pubFilter} onValueChange={setPubFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-[120px] sm:w-[150px] shrink-0"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous statuts pub</SelectItem>
               <SelectItem value="draft">Brouillon</SelectItem>
@@ -278,10 +281,10 @@ export default function DeparturesWeekPage() {
         ) : (
           grouped.map(([date, deps]) => (
             <section key={date}>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h2 className="text-[11px] sm:text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 sm:mb-3 sticky top-[52px] sm:static bg-background/95 backdrop-blur py-1 z-[5]">
                 {formatDayHeader(date)}
               </h2>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 gap-1.5 sm:gap-3">
                 {deps.map(d => {
                   const remaining = d.available_capacity_kg;
                   const total = d.total_capacity_kg;
@@ -291,24 +294,25 @@ export default function DeparturesWeekPage() {
                     <button
                       key={d.id}
                       onClick={() => setSelected(d)}
-                      className="text-left rounded-xl border border-border p-4 bg-card hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="text-left rounded-lg sm:rounded-xl border border-border p-2.5 sm:p-4 bg-card hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="text-xs text-muted-foreground">{MODE_LABEL[d.transport_mode]}</div>
-                          <div className="font-semibold mt-1">{d.origin_city} → {d.destination_city}</div>
+                      <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+                        <div className="min-w-0">
+                          <div className="hidden sm:block text-xs text-muted-foreground">{MODE_LABEL[d.transport_mode]}</div>
+                          <div className="font-semibold text-sm sm:text-base sm:mt-1 truncate">{d.origin_city} → {d.destination_city}</div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {d.carrier_name ?? '—'} · {used}kg / {total}kg
+                          </div>
                         </div>
-                        <div className="text-right" style={{ color: '#F5C518' }}>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Réf</div>
-                          <div className="text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
+                        <div className="text-right shrink-0" style={{ color: '#F5C518' }}>
+                          <div className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">Réf</div>
+                          <div className="text-base sm:text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <span>{d.carrier_name ?? '—'}</span>
-                        <span>·</span>
-                        <span>{used}kg / {total}kg</span>
+                      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                        <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="flex-1" />
                         <span
-                          className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5 shrink-0"
                           style={{
                             background: remaining > 15 ? '#10b98122' : remaining >= 5 ? '#f59e0b22' : '#ef444422',
                             color: remaining > 15 ? '#10b981' : remaining >= 5 ? '#f59e0b' : '#ef4444',
@@ -318,20 +322,19 @@ export default function DeparturesWeekPage() {
                           {remaining}kg libre
                         </span>
                       </div>
-                      <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="mb-3" />
                       <AssignedDossiersList departureId={d.id} />
-                      <div className="flex items-center justify-end gap-1 mt-3">
+                      <div className="flex items-center justify-end gap-1 mt-1.5 sm:mt-3">
                         <span
                           role="button"
                           onClick={(e) => { e.stopPropagation(); setEditing(d); }}
-                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
+                          className="inline-flex items-center gap-1 text-[11px] sm:text-xs px-2 py-1 rounded-md border border-border hover:bg-secondary"
                         >
                           <Pencil className="w-3 h-3" /> Modifier
                         </span>
                         <span
                           role="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmDelete(d); }}
-                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border text-destructive hover:bg-destructive/10"
+                          className="inline-flex items-center gap-1 text-[11px] sm:text-xs px-2 py-1 rounded-md border border-border text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-3 h-3" /> Supprimer
                         </span>
