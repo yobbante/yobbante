@@ -363,17 +363,21 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
             <Button variant="outline" size="sm" onClick={() => setPreview(p => !p)} disabled={!canSave}>
               <Eye className="w-3.5 h-3.5 mr-1" /> Aperçu
             </Button>
+            <Button variant="outline" size="sm" onClick={() => handlePdf()} disabled={!canSave || busy}>
+              <FileText className="w-3.5 h-3.5 mr-1" /> PDF
+            </Button>
             <Button variant="secondary" size="sm" onClick={handleSave} disabled={!canSave || busy}>
               Enregistrer
             </Button>
             <Button size="sm" onClick={() => handleSend()} disabled={!canSave || busy}
                     className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
               {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-              Envoyer
+              Envoyer le PDF
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
+
 }
