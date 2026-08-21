@@ -190,14 +190,15 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="p-0 gap-0 w-[calc(100vw-1.5rem)] sm:w-full sm:max-w-xl max-h-[92dvh] flex flex-col overflow-hidden">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0 text-left">
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <FileText className="w-4 h-4 text-[#F5C518]" />
-            {editing ? `Modifier ${editing.reference}` : 'Créer un devis'}
+            <FileText className="w-4 h-4 text-[#F5C518] shrink-0" />
+            <span className="truncate">{editing ? `Modifier ${editing.reference}` : 'Créer un devis'}</span>
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4">
         {/* Devis existants */}
         {isLoading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Chargement…</div>
@@ -207,8 +208,9 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
             {existing.filter(d => d.is_current).map((d) => {
               const expired = isDevisExpired(d);
               return (
-                <div key={d.id} className="flex items-center gap-2 rounded-md border border-border p-2 text-xs">
-                  <div className="min-w-0 flex-1">
+                <div key={d.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-xs">
+                  <div className="min-w-0 flex-1 basis-full sm:basis-0">
+
                     <div className="font-semibold truncate">
                       {d.reference}{d.version > 1 && <span className="text-muted-foreground"> v{d.version}</span>} · {fcfa(d.total_fcfa)}
                       {d.total_manual && <span className="text-muted-foreground"> · ajusté</span>}
