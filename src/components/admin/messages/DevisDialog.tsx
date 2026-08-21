@@ -190,14 +190,15 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="p-0 gap-0 w-[calc(100vw-1.5rem)] sm:w-full sm:max-w-xl max-h-[92dvh] flex flex-col overflow-hidden">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0 text-left">
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <FileText className="w-4 h-4 text-[#F5C518]" />
-            {editing ? `Modifier ${editing.reference}` : 'Créer un devis'}
+            <FileText className="w-4 h-4 text-[#F5C518] shrink-0" />
+            <span className="truncate">{editing ? `Modifier ${editing.reference}` : 'Créer un devis'}</span>
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4">
         {/* Devis existants */}
         {isLoading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Chargement…</div>
@@ -207,8 +208,9 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
             {existing.filter(d => d.is_current).map((d) => {
               const expired = isDevisExpired(d);
               return (
-                <div key={d.id} className="flex items-center gap-2 rounded-md border border-border p-2 text-xs">
-                  <div className="min-w-0 flex-1">
+                <div key={d.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border p-2 text-xs">
+                  <div className="min-w-0 flex-1 basis-full sm:basis-0">
+
                     <div className="font-semibold truncate">
                       {d.reference}{d.version > 1 && <span className="text-muted-foreground"> v{d.version}</span>} · {fcfa(d.total_fcfa)}
                       {d.total_manual && <span className="text-muted-foreground"> · ajusté</span>}
@@ -259,7 +261,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
           </div>
 
           {engine === 'international' ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[11px] font-semibold text-muted-foreground">Origine</label>
                 <CityPicker value={origin} onChange={setOrigin} includeHub placeholder="Ville de départ" />
@@ -315,7 +317,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
           )}
 
           {/* Ligne libre */}
-          <div className="grid grid-cols-[1fr_110px] gap-2">
+          <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_110px] gap-2">
             <Input value={extraLabel} onChange={(e) => setExtraLabel(e.target.value)}
                    placeholder="Ligne libre (ex : emballage spécial)" className="h-8 text-xs" />
             <Input value={extraAmount} onChange={(e) => setExtraAmount(e.target.value)}
@@ -355,28 +357,32 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
               {formatDevisMessage(draftRow)}
             </pre>
           )}
+        </div>
+        </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        <div className="shrink-0 border-t border-border bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
               <X className="w-3.5 h-3.5 mr-1" /> Fermer
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setPreview(p => !p)} disabled={!canSave}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setPreview(p => !p)} disabled={!canSave}>
               <Eye className="w-3.5 h-3.5 mr-1" /> Aperçu
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handlePdf()} disabled={!canSave || busy}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => handlePdf()} disabled={!canSave || busy}>
               <FileText className="w-3.5 h-3.5 mr-1" /> PDF
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleSave} disabled={!canSave || busy}>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={handleSave} disabled={!canSave || busy}>
               Enregistrer
             </Button>
             <Button size="sm" onClick={() => handleSend()} disabled={!canSave || busy}
-                    className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                    className="col-span-2 w-full sm:w-auto bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
               {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
               Envoyer le PDF
             </Button>
           </div>
         </div>
       </DialogContent>
+
     </Dialog>
   );
 
