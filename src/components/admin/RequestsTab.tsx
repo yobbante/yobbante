@@ -20,6 +20,8 @@ import {
 import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
+import { RoadAssignBadge } from './dossiers/RoadAssignBadge';
+import { resolveTransportMode } from '@/lib/transportMode';
 import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
 import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
 import { NextActionsSheet } from './dossiers/NextActionsSheet';
@@ -479,20 +481,23 @@ export function RequestsTab({
                           </div>
                         )}
                       </td>
-                      {/* GP */}
+                      {/* GP / Chauffeur (routier) */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-
-                        <GpAssignBadge
-                          transporteurRef={(d as any).assigned_transporteur_ref}
-                          onAssignClick={() =>
-                            setQuickAssign({
-                              id: d.id,
-                              destCountry: d.destination_country,
-                              destCity: (d as any).destination_city ?? null,
-                              weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
-                            })
-                          }
-                        />
+                        {resolveTransportMode(d) === 'road' ? (
+                          <RoadAssignBadge dossierId={d.id} />
+                        ) : (
+                          <GpAssignBadge
+                            transporteurRef={(d as any).assigned_transporteur_ref}
+                            onAssignClick={() =>
+                              setQuickAssign({
+                                id: d.id,
+                                destCountry: d.destination_country,
+                                destCity: (d as any).destination_city ?? null,
+                                weight: (d as any).actual_weight_kg ?? d.estimated_weight ?? null,
+                              })
+                            }
+                          />
+                        )}
                       </td>
                       {/* Montant */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle text-right tabular-nums hidden md:table-cell">

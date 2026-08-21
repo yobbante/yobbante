@@ -399,22 +399,33 @@ export function MessagesTab() {
         .maybeSingle();
       const cur = (current.data ?? {}) as Record<string, string | null>;
       const isBlank = (v?: string | null) => !v || !v.trim() || v.trim().toUpperCase() === 'N/A';
+      const tail = (v?: string | null) => (v ?? '').replace(/\D/g, '').slice(-9);
+      const same = (v?: string | null) => !!tail(v) && tail(v) === tail(normPhone);
 
-      const patch: Record<string, string> = {};
+      // Un même numéro ne peut pas occuper deux rôles : on libère l'autre rôle,
+      // et on ne vole jamais le rôle d'un autre contact déjà renseigné.
+      const patch: Record<string, string | null> = {};
       if (role === 'sender') {
         patch.sender_phone = normPhone;
         if (convName) patch.sender_name = convName;
-        // L'expéditeur est aussi le contact principal du dossier
-        patch.contact_phone = normPhone;
+        // Si ce numéro était destinataire, on le libère (l'autre contact reprendra ce rôle)
+        if (same(cur.recipient_phone)) { patch.recipient_phone = null; patch.recipient_name = null; }
+        // Contact principal = expéditeur seulement si libre ou déjà ce numéro
+        if (isBlank(cur.contact_phone) || same(cur.contact_phone)) patch.contact_phone = normPhone;
         if (convName && isBlank(cur.buyer_name)) patch.buyer_name = convName;
       } else if (role === 'recipient') {
         patch.recipient_phone = normPhone;
         if (convName) patch.recipient_name = convName;
+        // Si ce numéro était expéditeur, on le libère
+        if (same(cur.sender_phone)) { patch.sender_phone = null; patch.sender_name = null; }
+        // On ne touche jamais au contact principal ni au nom client de l'expéditeur,
+        // sauf si le contact principal était ce même numéro devenu destinataire
+        // et qu'aucun expéditeur n'existe (rien à faire dans ce cas).
       } else {
         patch.contact_phone = normPhone;
         if (convName && isBlank(cur.buyer_name)) patch.buyer_name = convName;
-        // Si l'expéditeur n'est pas encore renseigné, on l'aligne sur le contact
-        if (isBlank(cur.sender_phone)) {
+        // Aligner l'expéditeur uniquement s'il est vide ET que ce numéro n'est pas le destinataire
+        if (isBlank(cur.sender_phone) && !same(cur.recipient_phone)) {
           patch.sender_phone = normPhone;
           if (convName) patch.sender_name = convName;
         }

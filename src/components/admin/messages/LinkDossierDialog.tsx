@@ -38,7 +38,9 @@ interface Props {
   onPick: (d: LinkableDossier, role: ContactRole) => void;
 }
 
-const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref';
+const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref, contact_phone, sender_phone, sender_name, recipient_phone, recipient_name';
+
+const tail9 = (v?: string | null) => (v ?? '').replace(/\D/g, '').slice(-9);
 const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
 export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, contactName, onPick }: Props) {
@@ -170,6 +172,32 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
                       <span className="text-xs font-semibold text-foreground">{d.tracking_id || d.reference || '—'}</span>
                       <Badge variant="outline" className="text-[9px]">{d.status}</Badge>
                     </div>
+                    {(() => {
+                      const t = tail9(phone);
+                      const roles: string[] = [];
+                      if (t && tail9((d as any).sender_phone) === t) roles.push('Expéditeur');
+                      if (t && tail9((d as any).recipient_phone) === t) roles.push('Destinataire');
+                      const other: string[] = [];
+                      if (t && (d as any).sender_phone && tail9((d as any).sender_phone) !== t)
+                        other.push(`Expéditeur : ${(d as any).sender_name || (d as any).sender_phone}`);
+                      if (t && (d as any).recipient_phone && tail9((d as any).recipient_phone) !== t)
+                        other.push(`Destinataire : ${(d as any).recipient_name || (d as any).recipient_phone}`);
+                      if (!roles.length && !other.length) return null;
+                      return (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {roles.map((r) => (
+                            <span key={r} className="text-[9px] px-1.5 py-0.5 rounded border border-[#F5C518]/40 bg-[#F5C518]/10 text-foreground">
+                              Ce contact : {r.toLowerCase()}
+                            </span>
+                          ))}
+                          {other.map((r) => (
+                            <span key={r} className="text-[9px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {((d as any).origin_city || d.origin_country || '—')} → {((d as any).destination_city || d.destination_country || '—')}
                       {d.buyer_name ? ` · ${d.buyer_name}` : ''}
