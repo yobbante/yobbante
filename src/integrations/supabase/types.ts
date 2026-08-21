@@ -1292,6 +1292,7 @@ export type Database = {
           total_displayed_price: number | null
           tracking_id: string | null
           tracking_id_format: string
+          transport_mode: string | null
           unit: string | null
           updated_at: string
           user_id: string | null
@@ -1455,6 +1456,7 @@ export type Database = {
           total_displayed_price?: number | null
           tracking_id?: string | null
           tracking_id_format?: string
+          transport_mode?: string | null
           unit?: string | null
           updated_at?: string
           user_id?: string | null
@@ -1618,6 +1620,7 @@ export type Database = {
           total_displayed_price?: number | null
           tracking_id?: string | null
           tracking_id_format?: string
+          transport_mode?: string | null
           unit?: string | null
           updated_at?: string
           user_id?: string | null
