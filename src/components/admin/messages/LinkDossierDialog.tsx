@@ -18,6 +18,14 @@ export interface LinkableDossier {
   assigned_transporteur_ref: string | null;
 }
 
+export type ContactRole = 'contact' | 'sender' | 'recipient';
+
+export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
+  contact: 'Contact principal',
+  sender: 'Expéditeur',
+  recipient: 'Destinataire',
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -25,16 +33,20 @@ interface Props {
   transporteurRef?: string | null;
   /** Phone of the conversation, used for client lookups */
   phone?: string | null;
-  onPick: (d: LinkableDossier) => void;
+  /** Nom du contact de la conversation (renseigné sur le dossier selon le rôle). */
+  contactName?: string | null;
+  onPick: (d: LinkableDossier, role: ContactRole) => void;
 }
 
 const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref';
 const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
-export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, onPick }: Props) {
+export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, contactName, onPick }: Props) {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState<LinkableDossier[]>([]);
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<ContactRole>('contact');
+
 
   useEffect(() => {
     if (!open) return;
