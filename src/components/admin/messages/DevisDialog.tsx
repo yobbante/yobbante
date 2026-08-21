@@ -165,14 +165,28 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
       if (!to) throw new Error('Aucun numéro WhatsApp associé à ce devis');
       await send.mutateAsync({ devis: target, phone: to });
 
-      toast.success('Devis envoyé sur WhatsApp');
+      toast.success('Devis PDF envoyé sur WhatsApp');
       onOpenChange(false);
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     }
   }
 
-  const busy = create.isPending || saveEdit.isPending || send.isPending;
+  /** Génère le PDF (enregistre d'abord si besoin) et l'ouvre dans un onglet. */
+  async function handlePdf(row?: DevisRow) {
+    try {
+      const target = row ?? (await persist());
+      if (!target) return;
+      if (!row) setEditing(target);
+      const { url } = await pdfUrl.mutateAsync(target.id);
+      window.open(url, '_blank', 'noopener');
+    } catch (e) {
+      toast.error('Échec génération PDF', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const busy = create.isPending || saveEdit.isPending || send.isPending || pdfUrl.isPending;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
