@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       text(String(l.label ?? ''), M, y, 10.5);
       right(fcfa(Number(l.amountFcfa) || 0), width - M, y, 10.5);
       y -= 20;
-      page.drawLine({ start: { x: M, y + 6 }, end: { x: width - M, y + 6 }, thickness: 0.5, color: LINE });
+      page.drawLine({ start: { x: M, y: y + 6 }, end: { x: width - M, y: y + 6 }, thickness: 0.5, color: LINE });
     }
 
     y -= 12;
