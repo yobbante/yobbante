@@ -55,6 +55,15 @@ Deno.serve(async (req) => {
     const reg = await pdf.embedFont(StandardFonts.Helvetica);
 
     const M = 48;
+    /** Helvetica (WinAnsi) ne peut pas encoder certains signes typographiques. */
+    const safe = (s: string) =>
+      String(s ?? '')
+        .replace(/[\u2192\u27a1]/g, '->')
+        .replace(/[\u2018\u2019\u201b]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/[\u202f\u00a0]/g, ' ')
+        .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '');
     const text = (
       s: string,
       x: number,
@@ -62,9 +71,9 @@ Deno.serve(async (req) => {
       size = 10,
       font = reg,
       color = INK,
-    ) => page.drawText(s, { x, y, size, font, color });
+    ) => page.drawText(safe(s), { x, y, size, font, color });
     const right = (s: string, xEnd: number, y: number, size = 10, font = reg, color = INK) =>
-      text(s, xEnd - font.widthOfTextAtSize(s, size), y, size, font, color);
+      text(safe(s), xEnd - font.widthOfTextAtSize(safe(s), size), y, size, font, color);
 
     // Bandeau
     page.drawRectangle({ x: 0, y: height - 110, width, height: 110, color: INK });
