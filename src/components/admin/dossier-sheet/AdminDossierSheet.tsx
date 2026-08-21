@@ -380,7 +380,37 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
             </Button>
           </>
         )}
+
+        {canDelete && (
+          <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive hover:text-destructive ml-auto">
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Supprimer
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer ce dossier ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {dossier.tracking_id || dossier.reference} sera définitivement supprimé, ainsi que son paiement,
+                  ses devis, colis, messages, notifications et toute son activité récente. Action irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteDossier.isPending}>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={(e) => { e.preventDefault(); deleteDossier.mutate(); }}
+                  disabled={deleteDossier.isPending}
+                >
+                  {deleteDossier.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Supprimer définitivement'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
+
     </SheetHeader>
   );
 }
