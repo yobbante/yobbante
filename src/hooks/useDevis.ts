@@ -147,10 +147,25 @@ export function useDevisActions() {
     onSuccess: invalidate,
   });
 
-  /** Envoi WhatsApp — unique mécanisme d'envoi pour tous les devis. */
+  /** Envoi WhatsApp — unique mécanisme d'envoi pour tous les devis.
+   *  Le devis part sous forme de PDF (template Yobbanté) avec le récapitulatif
+   *  texte en légende. Si la génération PDF échoue, on retombe sur le texte seul. */
   const send = useMutation({
-    mutationFn: async ({ devis, phone }: { devis: DevisRow; phone: string }) => {
+    mutationFn: async ({ devis, phone, withPdf = true }: { devis: DevisRow; phone: string; withPdf?: boolean }) => {
       const message = formatDevisMessage(devis);
+
+      let pdf: { url?: string; filename?: string } | null = null;
+      if (withPdf && devis.id && devis.id !== 'draft') {
+        try {
+          const { data, error } = await supabase.functions.invoke('devis-pdf', {
+            body: { devis_id: devis.id },
+          });
+          if (!error && data?.url) pdf = data as { url: string; filename: string };
+        } catch {
+          pdf = null;
+        }
+      }
+
       const { error } = await supabase.functions.invoke('send-whatsapp', {
         body: {
           recipient_phone: phone,
@@ -158,6 +173,13 @@ export function useDevisActions() {
           message,
           template: 'free_text',
           trigger_type: 'admin_devis',
+          ...(pdf?.url
+            ? {
+                media_url: pdf.url,
+                media_type: 'document',
+                media_filename: pdf.filename ?? `Devis-${devis.reference}.pdf`,
+              }
+            : {}),
         },
       });
       if (error) throw error;
@@ -175,6 +197,17 @@ export function useDevisActions() {
     onSuccess: invalidate,
   });
 
+  /** Génère (ou régénère) le PDF et renvoie son URL signée. */
+  const pdfUrl = useMutation({
+    mutationFn: async (devisId: string): Promise<{ url: string; filename: string }> => {
+      const { data, error } = await supabase.functions.invoke('devis-pdf', { body: { devis_id: devisId } });
+      if (error) throw error;
+      if (!data?.url) throw new Error(data?.error || 'PDF indisponible');
+      return data as { url: string; filename: string };
+    },
+  });
+
+
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DevisRow['status'] }) => {
       const { error } = await supabase.from('devis').update({ status }).eq('id', id);
@@ -183,7 +216,7 @@ export function useDevisActions() {
     onSuccess: invalidate,
   });
 
-  return { create, saveEdit, send, setStatus };
+  return { create, saveEdit, send, setStatus, pdfUrl };
 }
 
 export { isDevisExpired, formatDevisMessage };

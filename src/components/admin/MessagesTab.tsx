@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot, Paperclip, X, FileText } from 'lucide-react';
+import { MessageSquare, Search, Send, CheckCheck, User, Truck, Package, Loader2, ExternalLink, MapPin, PauseCircle, Link2, RefreshCcw, Plus, Clock, Lock, Unlock, PlayCircle, Bot, Paperclip, X, FileText, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/what
 import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/whatsappTemplateHelpers';
 import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
 import { DevisDialog } from './messages/DevisDialog';
+import { QuickDossierDialog } from './messages/QuickDossierDialog';
 import { NewMessageDialog } from './messages/NewMessageDialog';
 import { AudioMessage } from './messages/AudioMessage';
 import { MediaMessage } from './messages/MediaMessage';
@@ -173,6 +174,7 @@ export function MessagesTab() {
   const [gpText, setGpText] = useState('');
   const [linkedDossier, setLinkedDossier] = useState<LinkedDossier | null>(null);
   const [devisOpen, setDevisOpen] = useState(false);
+  const [quickDossierOpen, setQuickDossierOpen] = useState(false);
   const [availableDossiers, setAvailableDossiers] = useState<LinkableDossier[]>([]);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [newMsgOpen, setNewMsgOpen] = useState(false);
@@ -1093,6 +1095,12 @@ export function MessagesTab() {
                     >
                       <Link2 className="w-3 h-3" /> Lier un dossier
                     </button>
+                    <button
+                      onClick={() => setQuickDossierOpen(true)}
+                      className="text-primary hover:underline flex items-center gap-1 font-medium ml-3"
+                    >
+                      <Zap className="w-3 h-3" /> Créer un dossier
+                    </button>
                   </>
                 )}
               </div>
@@ -1448,6 +1456,16 @@ export function MessagesTab() {
         onPick={(d) => linkDossierToConv(d)}
       />
       <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
+      {openPhone && (
+        <QuickDossierDialog
+          open={quickDossierOpen}
+          onOpenChange={setQuickDossierOpen}
+          phone={openPhone}
+          contactName={activeConv?.name ?? null}
+          lastMessage={inbound.find((m) => m.from_phone === openPhone)?.message_body ?? null}
+          onCreated={(d) => linkDossierToConv(d as never)}
+        />
+      )}
       {openPhone && (
         <DevisDialog
           open={devisOpen}

@@ -56,6 +56,122 @@ function shouldDedup(phone: string, body: string): boolean {
   return false;
 }
 
+// ===================== ANTI-SPAM (persisté en base) =====================
+let _spamClient: any = null;
+function spamClient() {
+  if (!_spamClient) {
+    _spamClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+  }
+  return _spamClient;
+}
+
+// Le dedup en mémoire ne survit pas entre invocations : on double d'un
+// contrôle SQL sur whatsapp_outbound_messages.
+const REPEAT_WINDOW_MIN = 60;   // même message
+const REPEAT_MAX = 2;           // 2 fois maximum par heure
+const BURST_WINDOW_MIN = 15;    // volume
+const BURST_MAX = 8;            // au-dela -> pause + alerte
+const AUTO_PAUSE_MS = 4 * 60 * 60 * 1000;
+
+function sinceIso(minutes: number): string {
+  return new Date(Date.now() - minutes * 60_000).toISOString();
+}
+
+/** true = ne PAS envoyer (message deja repete, ou volume anormal). */
+async function antiSpamBlocked(supa: any, phone: string, body: string, trigger: string): Promise<boolean> {
+  try {
+    const norm = (body || '').trim().slice(0, 300);
+    if (!norm) return true;
+
+    // 1) Repetition du meme contenu
+    const { data: same } = await supa
+      .from('whatsapp_outbound_messages')
+      .select('id, message_body')
+      .eq('to_phone', phone)
+      .gte('created_at', sinceIso(REPEAT_WINDOW_MIN))
+      .limit(40);
+    const repeats = (same ?? []).filter((m: any) =>
+      (m.message_body || '').trim().slice(0, 300) === norm).length;
+    if (repeats >= REPEAT_MAX) {
+      console.log('ANTISPAM repeat blocked', { phone: phone.slice(-4), trigger, repeats });
+      return true;
+    }
+
+    // 2) Volume anormal sur une fenetre courte -> pause + alerte admin
+    const { count } = await supa
+      .from('whatsapp_outbound_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('to_phone', phone)
+      .gte('created_at', sinceIso(BURST_WINDOW_MIN));
+    if ((count ?? 0) >= BURST_MAX) {
+      console.log('ANTISPAM burst blocked', { phone: phone.slice(-4), trigger, count });
+      await pauseAndEscalate(supa, phone, `volume anormal (${count} messages en ${BURST_WINDOW_MIN} min)`);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error('ANTISPAM check error', e);
+    return false; // en cas d'erreur, on n'empeche pas la conversation
+  }
+}
+
+/** Met le bot en pause 4h pour ce contact et previent l'equipe. */
+async function pauseAndEscalate(supa: any, phone: string, reason: string) {
+  try {
+    const until = new Date(Date.now() + AUTO_PAUSE_MS).toISOString();
+    const { data: existing } = await supa
+      .from('client_bot_sessions').select('id').eq('phone', phone).maybeSingle();
+    if (existing?.id) {
+      await supa.from('client_bot_sessions')
+        .update({ bot_paused_until: until, pending_intent: null, pending_data: {} })
+        .eq('id', existing.id);
+    } else {
+      await supa.from('client_bot_sessions')
+        .insert({ phone, bot_paused_until: until, pending_intent: null, pending_data: {} });
+    }
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        notification_type: 'bot_auto_paused',
+        bypass_suspend: true,
+        dedup_key: `bot_pause:${phone}:${new Date().toISOString().slice(0, 13)}`,
+        message: `🤖 Bot mis en pause 4h pour ${phone}\nRaison : ${reason}\nMerci de reprendre la conversation manuellement.`,
+      }),
+    }).catch(() => null);
+    console.log('ANTISPAM paused', { phone: phone.slice(-4), reason });
+  } catch (e) {
+    console.error('ANTISPAM pause error', e);
+  }
+}
+
+/** Signaux de frustration / demande d'humain -> pause immediate. */
+const FRUSTRATION_RE =
+  /\b(stop|arrete[zr]?|arrête[zr]?|spam|ras le bol|marre|nul|inutile|bug|ca marche pas|ça marche pas|je comprends pas|comprend rien|parler (a|à) (quelqu|un humain)|un humain|humain|vrai agent|conseiller|responsable|appelez[- ]moi|rappelez[- ]moi)\b/i;
+
+/** Le client repete le meme message -> le bot ne comprend pas, on escalade. */
+async function inboundLoopDetected(supa: any, phone: string, body: string): Promise<boolean> {
+  const norm = (body || '').trim().toLowerCase().slice(0, 200);
+  if (norm.length < 3) return false;
+  const { data } = await supa
+    .from('whatsapp_inbound_messages')
+    .select('message_body')
+    .eq('from_phone', phone)
+    .gte('created_at', sinceIso(30))
+    .order('created_at', { ascending: false })
+    .limit(6);
+  const same = (data ?? []).filter((m: any) =>
+    (m.message_body || '').trim().toLowerCase().slice(0, 200) === norm).length;
+  return same >= 3;
+}
+
+
 // --- Weight validation rules ---
 const MAX_WEIGHT_KG = 500;
 const MIN_WEIGHT_KG = 0.1;
@@ -931,6 +1047,7 @@ async function sendWa(supa: any, phone: string, message: string, trigger: string
     console.log('BOT_CLIENT dedup skip', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(supa, phone, clean, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -963,6 +1080,7 @@ async function sendWaButtons(
     console.log('BOT_CLIENT dedup skip buttons', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(spamClient(), phone, cleanBody || cleanFb, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -999,6 +1117,7 @@ async function sendWaList(
     console.log('BOT_CLIENT dedup skip list', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(spamClient(), phone, cleanBody || cleanFb, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -1511,6 +1630,29 @@ Deno.serve(async (req) => {
       console.log('BOT_CLIENT paused for', phone);
       return new Response(JSON.stringify({ ok: true, paused: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    // ---- Garde-fous conversationnels : frustration / boucle ----
+    if (rawIncoming && FRUSTRATION_RE.test(rawIncoming)) {
+      await pauseAndEscalate(supa, phone, `signal de frustration ou demande d'humain : "${rawIncoming.slice(0, 120)}"`);
+      await sendWa(
+        supa, phone,
+        `Compris — je passe la main a un membre de l equipe Yobbante. Une personne vous repond au plus vite.`,
+        'bot_client_handoff_frustration',
+      );
+      return new Response(JSON.stringify({ ok: true, escalated: 'frustration' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (rawIncoming && await inboundLoopDetected(supa, phone, rawIncoming)) {
+      await pauseAndEscalate(supa, phone, 'le client repete le meme message (le bot ne comprend pas)');
+      await sendWa(
+        supa, phone,
+        `Je n ai pas bien compris votre demande. Un conseiller Yobbante prend le relais et vous repond directement.`,
+        'bot_client_handoff_loop',
+      );
+      return new Response(JSON.stringify({ ok: true, escalated: 'loop' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+
 
 
     // Session expired notice (only when there was a pending flow)

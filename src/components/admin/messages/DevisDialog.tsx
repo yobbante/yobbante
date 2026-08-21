@@ -44,7 +44,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
   const { data: existing = [], isLoading } = useDevisList({
     phone, dossierId: dossier?.id ?? null, enabled: open,
   });
-  const { create, saveEdit, send } = useDevisActions();
+  const { create, saveEdit, send, pdfUrl } = useDevisActions();
 
   const [editing, setEditing] = useState<DevisRow | null>(null);
   const [engine, setEngine] = useState<DevisEngine>('international');
@@ -165,14 +165,28 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
       if (!to) throw new Error('Aucun numéro WhatsApp associé à ce devis');
       await send.mutateAsync({ devis: target, phone: to });
 
-      toast.success('Devis envoyé sur WhatsApp');
+      toast.success('Devis PDF envoyé sur WhatsApp');
       onOpenChange(false);
     } catch (e) {
       toast.error('Échec envoi', { description: e instanceof Error ? e.message : String(e) });
     }
   }
 
-  const busy = create.isPending || saveEdit.isPending || send.isPending;
+  /** Génère le PDF (enregistre d'abord si besoin) et l'ouvre dans un onglet. */
+  async function handlePdf(row?: DevisRow) {
+    try {
+      const target = row ?? (await persist());
+      if (!target) return;
+      if (!row) setEditing(target);
+      const { url } = await pdfUrl.mutateAsync(target.id);
+      window.open(url, '_blank', 'noopener');
+    } catch (e) {
+      toast.error('Échec génération PDF', { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const busy = create.isPending || saveEdit.isPending || send.isPending || pdfUrl.isPending;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,9 +223,15 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
                   <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => loadForEdit(d)}>
                     <Pencil className="w-3 h-3" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleSend(d)} disabled={busy}>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" title="Ouvrir le PDF"
+                          onClick={() => handlePdf(d)} disabled={busy}>
+                    <FileText className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" title="Envoyer le PDF"
+                          onClick={() => handleSend(d)} disabled={busy}>
                     <Send className="w-3 h-3" />
                   </Button>
+
                 </div>
               );
             })}
@@ -343,17 +363,21 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
             <Button variant="outline" size="sm" onClick={() => setPreview(p => !p)} disabled={!canSave}>
               <Eye className="w-3.5 h-3.5 mr-1" /> Aperçu
             </Button>
+            <Button variant="outline" size="sm" onClick={() => handlePdf()} disabled={!canSave || busy}>
+              <FileText className="w-3.5 h-3.5 mr-1" /> PDF
+            </Button>
             <Button variant="secondary" size="sm" onClick={handleSave} disabled={!canSave || busy}>
               Enregistrer
             </Button>
             <Button size="sm" onClick={() => handleSend()} disabled={!canSave || busy}
                     className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
               {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-              Envoyer
+              Envoyer le PDF
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
+
 }
