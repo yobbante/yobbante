@@ -909,8 +909,19 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
   const clientNote = (dossier as any).client_departure_note as string | null;
   const decidedAt = (dossier as any).client_departure_decided_at as string | null;
 
+  const mode = resolveTransportMode(dossier);
+
   return (
     <div className="space-y-6">
+      <TransportModeEditor dossier={dossier} mode={mode} />
+
+      {mode && mode !== 'gp' && (
+        <NonGpTransportPanel dossier={dossier} mode={mode} />
+      )}
+
+      {mode !== 'gp' && mode !== null ? null : (
+      <div className="space-y-6">
+
       {/* Demande client : date plus proche */}
       {decision === 'reschedule_requested' && (
         <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 space-y-2">
