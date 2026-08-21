@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
       .gte('received_at', since24h)
       .ilike('from_phone', `%${adminTail24}%`);
     const windowOpen = (inboundCount ?? 0) > 0;
-    const __dbg: Record<string, unknown> = { window_open: windowOpen };
+
 
     let sendOk = false;
     if (windowOpen) {
