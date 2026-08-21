@@ -44,7 +44,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
   const { data: existing = [], isLoading } = useDevisList({
     phone, dossierId: dossier?.id ?? null, enabled: open,
   });
-  const { create, saveEdit, send } = useDevisActions();
+  const { create, saveEdit, send, pdfUrl } = useDevisActions();
 
   const [editing, setEditing] = useState<DevisRow | null>(null);
   const [engine, setEngine] = useState<DevisEngine>('international');
