@@ -1057,6 +1057,9 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         initialTransporteurRef={assignStep === 2 ? currentRef : null}
         initialStep={assignStep}
       />
+      </div>
+      )}
+
 
       <PricingBreakdownPanel
         gpRatePerKg={(dossier as any).gp_rate_per_kg}
