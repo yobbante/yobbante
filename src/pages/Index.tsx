@@ -107,7 +107,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <DesktopNav active={view} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
-      <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-8 pb-safe-nav md:pb-safe-none">
         {view === 'home' && <ClientSpaceView />}
         {isOrdersTab && <OrdersView fixedKind={ordersKind} />}
         {view === 'profile' && <ProfileView />}
