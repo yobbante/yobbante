@@ -18,6 +18,14 @@ export interface LinkableDossier {
   assigned_transporteur_ref: string | null;
 }
 
+export type ContactRole = 'contact' | 'sender' | 'recipient';
+
+export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
+  contact: 'Contact principal',
+  sender: 'Expéditeur',
+  recipient: 'Destinataire',
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -25,16 +33,20 @@ interface Props {
   transporteurRef?: string | null;
   /** Phone of the conversation, used for client lookups */
   phone?: string | null;
-  onPick: (d: LinkableDossier) => void;
+  /** Nom du contact de la conversation (renseigné sur le dossier selon le rôle). */
+  contactName?: string | null;
+  onPick: (d: LinkableDossier, role: ContactRole) => void;
 }
 
 const FIELDS = 'id, reference, tracking_id, status, origin_country, destination_country, origin_city, destination_city, buyer_name, assigned_transporteur_ref';
 const CLOSED = '(DELIVERED,ARCHIVED,CANCELLED,CLOSED)';
 
-export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, onPick }: Props) {
+export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, contactName, onPick }: Props) {
   const [q, setQ] = useState('');
   const [rows, setRows] = useState<LinkableDossier[]>([]);
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<ContactRole>('contact');
+
 
   useEffect(() => {
     if (!open) return;
@@ -116,7 +128,30 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
             className="pl-8 h-9 text-xs"
           />
         </div>
-        <div className="max-h-[420px] overflow-y-auto -mx-1">
+
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            Rôle de ce contact sur le dossier
+          </p>
+          <div className="flex gap-1.5">
+            {(Object.keys(CONTACT_ROLE_LABELS) as ContactRole[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRole(r)}
+                className={cn(
+                  'flex-1 text-[11px] px-2 py-1.5 rounded-md border transition-colors',
+                  role === r
+                    ? 'border-[#F5C518] bg-[#F5C518]/10 text-foreground font-semibold'
+                    : 'border-border text-muted-foreground hover:bg-muted/50',
+                )}
+              >
+                {CONTACT_ROLE_LABELS[r]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="max-h-[360px] overflow-y-auto -mx-1">
           {loading ? (
             <div className="p-6 text-center text-xs text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
           ) : rows.length === 0 ? (
@@ -126,7 +161,7 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
               {rows.map((d) => (
                 <li key={d.id}>
                   <button
-                    onClick={() => { onPick(d); onOpenChange(false); }}
+                    onClick={() => { onPick(d, role); onOpenChange(false); }}
                     className={cn(
                       'w-full text-left px-3 py-2 rounded-md border border-border hover:border-primary hover:bg-muted/50 transition-colors',
                     )}
@@ -146,7 +181,13 @@ export function LinkDossierDialog({ open, onOpenChange, transporteurRef, phone, 
             </ul>
           )}
         </div>
-        <div className="text-[10px] text-muted-foreground pt-1">Le dossier sera lié à toute la conversation.</div>
+        <div className="text-[10px] text-muted-foreground pt-1">
+          Le dossier sera lié à toute la conversation
+          {phone ? ` (${contactName ? `${contactName} · ` : ''}${phone})` : ''} en tant que{' '}
+          <span className="text-foreground font-medium">{CONTACT_ROLE_LABELS[role].toLowerCase()}</span>.
+          Un même dossier peut ainsi être lié à deux contacts (expéditeur et destinataire).
+        </div>
+
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fermer</Button>
         </div>

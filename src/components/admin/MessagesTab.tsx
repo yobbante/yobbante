@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
 import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/whatsappTemplateHelpers';
-import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
+import { LinkDossierDialog, CONTACT_ROLE_LABELS, type LinkableDossier, type ContactRole } from './messages/LinkDossierDialog';
 import { DevisDialog } from './messages/DevisDialog';
 import { QuickDossierDialog } from './messages/QuickDossierDialog';
 import { NewMessageDialog } from './messages/NewMessageDialog';
@@ -380,7 +380,7 @@ export function MessagesTab() {
   }
 
   // ---------- Persist a dossier link for the whole conversation ----------
-  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier) => {
+  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier, role: ContactRole = 'contact') => {
     if (!openPhone) return;
     try {
       await supabase
@@ -388,6 +388,16 @@ export function MessagesTab() {
         .update({ dossier_id: d.id })
         .eq('from_phone', openPhone);
       setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
+
+      // Renseigner le contact sur le dossier selon son rôle (expéditeur / destinataire)
+      const convName = inbound.find((m) => m.from_phone === openPhone)?.from_name || null;
+      if (role === 'sender' || role === 'recipient') {
+        const patch = role === 'sender'
+          ? { sender_phone: openPhone, ...(convName ? { sender_name: convName } : {}) }
+          : { recipient_phone: openPhone, ...(convName ? { recipient_name: convName } : {}) };
+        await supabase.from('dossiers').update(patch as never).eq('id', d.id);
+      }
+
       // Re-fetch full dossier for templates
       const { data: full } = await supabase
         .from('dossiers')
@@ -395,11 +405,13 @@ export function MessagesTab() {
         .eq('id', d.id)
         .maybeSingle();
       if (full) setLinkedDossier(full as unknown as LinkedDossier);
-      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié`);
+      const roleSuffix = role === 'contact' ? '' : ` (${CONTACT_ROLE_LABELS[role].toLowerCase()})`;
+      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié${roleSuffix}`);
     } catch (e) {
       toast.error('Echec liaison', { description: e instanceof Error ? e.message : String(e) });
     }
-  }, [openPhone]);
+  }, [openPhone, inbound]);
+
 
   // ---------- Load linked dossier + transporteur for active conversation ----------
   useEffect(() => {
@@ -1070,15 +1082,27 @@ export function MessagesTab() {
                         · {(linkedDossier as any).origin_city || linkedDossier.origin_country || '—'} → {(linkedDossier as any).destination_city || linkedDossier.destination_country || '—'}
                       </span>
                       <Badge variant="outline" className="h-4 text-[9px] flex-shrink-0">{linkedDossier.status}</Badge>
+                      {(linkedDossier.sender_phone || linkedDossier.recipient_phone) && (
+                        <span className="hidden md:inline text-[10px] text-muted-foreground truncate">
+                          {linkedDossier.sender_phone
+                            ? `Exp. ${linkedDossier.sender_name || linkedDossier.sender_phone}`
+                            : ''}
+                          {linkedDossier.sender_phone && linkedDossier.recipient_phone ? ' · ' : ''}
+                          {linkedDossier.recipient_phone
+                            ? `Dest. ${linkedDossier.recipient_name || linkedDossier.recipient_phone}`
+                            : ''}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => setLinkDialogOpen(true)} className="text-muted-foreground hover:text-primary flex items-center gap-1">
-                        <RefreshCcw className="w-3 h-3" /> Changer
+                        <RefreshCcw className="w-3 h-3" /> Changer / rôle
                       </button>
                       <a href={`/admin/orders?dossier=${linkedDossier.id}`} className="text-primary hover:underline flex items-center gap-1">
                         Voir <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
+
                   </>
                 ) : (
                   <>
@@ -1453,7 +1477,8 @@ export function MessagesTab() {
         onOpenChange={setLinkDialogOpen}
         transporteurRef={transporteurInfo?.reference ?? null}
         phone={openPhone}
-        onPick={(d) => linkDossierToConv(d)}
+        contactName={activeConv?.name ?? null}
+        onPick={(d, role) => linkDossierToConv(d, role)}
       />
       <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
       {openPhone && (
