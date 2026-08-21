@@ -57,6 +57,17 @@ function shouldDedup(phone: string, body: string): boolean {
 }
 
 // ===================== ANTI-SPAM (persisté en base) =====================
+let _spamClient: any = null;
+function spamClient() {
+  if (!_spamClient) {
+    _spamClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+  }
+  return _spamClient;
+}
+
 // Le dedup en mémoire ne survit pas entre invocations : on double d'un
 // contrôle SQL sur whatsapp_outbound_messages.
 const REPEAT_WINDOW_MIN = 60;   // même message
@@ -1036,6 +1047,7 @@ async function sendWa(supa: any, phone: string, message: string, trigger: string
     console.log('BOT_CLIENT dedup skip', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(supa, phone, clean, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -1068,6 +1080,7 @@ async function sendWaButtons(
     console.log('BOT_CLIENT dedup skip buttons', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(spamClient(), phone, cleanBody || cleanFb, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -1104,6 +1117,7 @@ async function sendWaList(
     console.log('BOT_CLIENT dedup skip list', { phone: phone.slice(-4), trigger });
     return;
   }
+  if (await antiSpamBlocked(spamClient(), phone, cleanBody || cleanFb, trigger)) return;
   try {
     await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
