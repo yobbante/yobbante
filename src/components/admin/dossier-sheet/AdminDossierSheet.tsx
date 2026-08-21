@@ -1079,6 +1079,153 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
   );
 }
 
+/* ---------------- Mode de transport ---------------- */
+
+function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: DossierTransportMode | null }) {
+  const qc = useQueryClient();
+  const [pending, setPending] = useState<DossierTransportMode | null>(null);
+
+  const hasGpLinks = !!(dossier.assigned_transporteur_ref || dossier.assigned_departure_id);
+
+  const change = useMutation({
+    mutationFn: async (next: DossierTransportMode) => {
+      // Sortie du mode GP : on libère le départ et le transporteur assignés
+      if (next !== 'gp' && hasGpLinks) {
+        try { await releaseDossierDeparture(dossier.id); } catch { /* départ déjà libéré */ }
+      }
+      const patch: Record<string, any> = { transport_mode: next };
+      if (next !== 'gp') {
+        patch.assigned_transporteur_ref = null;
+        patch.assigned_departure_id = null;
+        patch.client_departure_decision = null;
+        patch.client_departure_decided_at = null;
+        // le tarif GP ne s'applique plus : le prix redevient une estimation
+        patch.price_is_estimate = true;
+      }
+      const { error } = await supabase.from('dossiers').update(patch).eq('id', dossier.id);
+      if (error) throw error;
+
+      await supabase.from('dossier_events').insert({
+        dossier_id: dossier.id,
+        event_type: 'transport_mode_changed',
+        event_data: { from: mode, to: next },
+        visible_to_client: true,
+      });
+    },
+    onSuccess: (_d, next) => {
+      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
+      qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
+      qc.invalidateQueries({ queryKey: ['manual_departures'] });
+      qc.invalidateQueries({ queryKey: ['dossier-events', dossier.id] });
+      toast.success(`Mode de transport : ${transportModeLabel(next)}`);
+      setPending(null);
+    },
+    onError: (e: any) => { toast.error(e?.message || 'Échec du changement de mode'); setPending(null); },
+  });
+
+  const confirmNeeded = (next: DossierTransportMode) => next !== mode && next !== 'gp' && hasGpLinks;
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Truck className="w-4 h-4 text-[#F5C518]" />
+        <div className="font-medium text-sm">Mode de transport</div>
+        {mode && (
+          <Badge variant="outline" className="ml-auto text-[10px]">{transportModeLabel(mode)}</Badge>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {DOSSIER_TRANSPORT_MODES.map(m => {
+          const active = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              disabled={change.isPending}
+              onClick={() => {
+                if (active) return;
+                if (confirmNeeded(m.id)) setPending(m.id);
+                else change.mutate(m.id);
+              }}
+              className={`text-left rounded-lg border px-2.5 py-2 transition-all min-w-0 ${
+                active
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'border-border text-muted-foreground hover:border-foreground/40'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <m.Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[12.5px] font-semibold truncate">{m.label}</span>
+              </div>
+              <div className="text-[10px] mt-0.5 truncate opacity-80">
+                {m.status === 'soon' ? 'Bientôt disponible' : m.desc}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {!mode && (
+        <p className="text-xs text-muted-foreground">
+          Aucun mode défini pour ce dossier — sélectionnez-en un pour synchroniser le suivi, le pricing et les actions disponibles.
+        </p>
+      )}
+
+      <AlertDialog open={!!pending} onOpenChange={(v) => { if (!v) setPending(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Changer le mode de transport ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Passer en « {pending ? transportModeLabel(pending) : ''} » détachera le GP et le départ actuellement
+              assignés, effacera la décision client sur ce départ et repassera le prix en estimation.
+              Le client verra le changement dans son suivi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pending && change.mutate(pending)}>
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function NonGpTransportPanel({ dossier, mode }: { dossier: DossierRow; mode: DossierTransportMode }) {
+  if (mode === 'road') {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+        <div className="text-sm font-medium">Fret routier — Terminal D</div>
+        <p className="text-xs text-muted-foreground">
+          Ce dossier est en transport routier. La course, le chauffeur et l'enlèvement se gèrent depuis l'onglet
+          « Fret routier ».
+        </p>
+        <Button size="sm" variant="outline" className="text-xs" asChild>
+          <a href="/admin/fret" target="_blank" rel="noreferrer">
+            <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ouvrir Fret routier
+          </a>
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 space-y-1">
+      <div className="text-sm font-medium text-amber-100">
+        {transportModeLabel(mode)} — traitement manuel
+      </div>
+      <p className="text-xs text-amber-100/80">
+        Ce mode n'est pas encore automatisé : pas d'assignation GP ni de départ. Suivez le dossier manuellement
+        (statuts, documents, paiement) et informez le client via WhatsApp.
+      </p>
+    </div>
+  );
+}
+
+
 
 function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
   const { data } = useQuery({
