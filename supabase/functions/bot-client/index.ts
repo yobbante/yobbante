@@ -1631,6 +1631,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, paused: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ---- Garde-fous conversationnels : frustration / boucle ----
+    if (rawIncoming && FRUSTRATION_RE.test(rawIncoming)) {
+      await pauseAndEscalate(supa, phone, `signal de frustration ou demande d'humain : "${rawIncoming.slice(0, 120)}"`);
+      await sendWa(
+        supa, phone,
+        `Compris — je passe la main a un membre de l equipe Yobbante. Une personne vous repond au plus vite.`,
+        'bot_client_handoff_frustration',
+      );
+      return new Response(JSON.stringify({ ok: true, escalated: 'frustration' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (rawIncoming && await inboundLoopDetected(supa, phone, rawIncoming)) {
+      await pauseAndEscalate(supa, phone, 'le client repete le meme message (le bot ne comprend pas)');
+      await sendWa(
+        supa, phone,
+        `Je n ai pas bien compris votre demande. Un conseiller Yobbante prend le relais et vous repond directement.`,
+        'bot_client_handoff_loop',
+      );
+      return new Response(JSON.stringify({ ok: true, escalated: 'loop' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+
+
 
     // Session expired notice (only when there was a pending flow)
     if (expired) {
