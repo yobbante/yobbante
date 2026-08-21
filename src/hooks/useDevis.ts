@@ -216,7 +216,7 @@ export function useDevisActions() {
     onSuccess: invalidate,
   });
 
-  return { create, saveEdit, send, setStatus };
+  return { create, saveEdit, send, setStatus, pdfUrl };
 }
 
 export { isDevisExpired, formatDevisMessage };
