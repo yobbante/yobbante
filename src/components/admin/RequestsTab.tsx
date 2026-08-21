@@ -551,15 +551,15 @@ export function RequestsTab({
                             )}
 
                             <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
                                   Statut
                                 </span>
                                 <Select
                                   value={d.status}
                                   onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
                                 >
-                                  <SelectTrigger className="h-8 w-56 text-xs">
+                                  <SelectTrigger className="h-8 w-full sm:w-56 text-xs">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
