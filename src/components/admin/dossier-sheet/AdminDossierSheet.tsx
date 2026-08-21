@@ -1121,6 +1121,15 @@ function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: Dos
       const { error } = await supabase.from('dossiers').update(patch as any).eq('id', dossier.id);
       if (error) throw error;
 
+      // Synchronisation Terminal D : création auto de la course routière (ou annulation à la sortie)
+      if (next === 'road' || mode === 'road') {
+        try {
+          await supabase.functions.invoke('fret-booking', {
+            body: { dossier_id: dossier.id, action: next === 'road' ? 'attach' : 'detach' },
+          });
+        } catch { /* non bloquant */ }
+      }
+
       await supabase.from('dossier_events').insert({
         dossier_id: dossier.id,
         event_type: 'transport_mode_changed',
