@@ -227,10 +227,29 @@ function DossierSheetBody({ id }: { id: string }) {
 
 function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged: () => void }) {
   const qc = useQueryClient();
+  const { close } = useDossierSheet();
+  const { isAdmin, isStaff } = useUserRole();
+  const canDelete = isAdmin || isStaff;
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const statutOptions = getStatutsPourDossier({
     app_source: dossier.app_source,
     needs_sourcing: dossier.needs_sourcing,
   });
+
+  const deleteDossier = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('admin_delete_dossier' as any, { _dossier_id: dossier.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Dossier supprimé');
+      setConfirmDelete(false);
+      close();
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec de la suppression'),
+  });
+
 
   const setStatus = useMutation({
     mutationFn: async (next: string) => {
