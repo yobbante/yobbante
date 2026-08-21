@@ -44,7 +44,7 @@ import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, next
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   DOSSIER_TRANSPORT_MODES, resolveTransportMode, transportModeLabel,
