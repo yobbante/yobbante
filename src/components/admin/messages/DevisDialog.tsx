@@ -261,7 +261,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
           </div>
 
           {engine === 'international' ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[11px] font-semibold text-muted-foreground">Origine</label>
                 <CityPicker value={origin} onChange={setOrigin} includeHub placeholder="Ville de départ" />
@@ -317,7 +317,7 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
           )}
 
           {/* Ligne libre */}
-          <div className="grid grid-cols-[1fr_110px] gap-2">
+          <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_110px] gap-2">
             <Input value={extraLabel} onChange={(e) => setExtraLabel(e.target.value)}
                    placeholder="Ligne libre (ex : emballage spécial)" className="h-8 text-xs" />
             <Input value={extraAmount} onChange={(e) => setExtraAmount(e.target.value)}
