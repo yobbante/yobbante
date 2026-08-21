@@ -1143,6 +1143,8 @@ function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: Dos
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
       qc.invalidateQueries({ queryKey: ['manual_departures'] });
       qc.invalidateQueries({ queryKey: ['dossier-events', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['fret-course-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['fret-courses'] });
       toast.success(`Mode de transport : ${transportModeLabel(next)}`);
       setPending(null);
     },
