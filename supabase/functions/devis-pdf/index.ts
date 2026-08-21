@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     // Trajet
     page.drawRectangle({ x: M, y: y - 46, width: width - 2 * M, height: 52, color: rgb(0.97, 0.97, 0.98) });
     text('Trajet', M + 14, y - 8, 8, bold, MUTED);
-    text(`${d.origin || '—'}  →  ${d.destination || '—'}`, M + 14, y - 28, 14, bold);
+    text(`${d.origin || '—'}  ->  ${d.destination || '—'}`, M + 14, y - 28, 14, bold);
     const measure = d.colis_size
       ? `Colis ${d.colis_size}`
       : d.weight_kg
