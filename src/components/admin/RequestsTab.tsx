@@ -509,15 +509,31 @@ export function RequestsTab({
                     {/* Ligne dépliée */}
                     {isOpen && (
                       <tr key={`${d.id}-expanded`} className="bg-secondary/20">
-                        <td colSpan={6} className="px-4 py-3 border-t border-border">
+                        <td colSpan={6} className="px-3 md:px-4 py-3 border-t border-border">
                           <div className="space-y-3">
-                            <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                            {/* Infos masquées en mobile (échéance / montant) */}
+                            <div className="md:hidden flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                              <span className="text-muted-foreground">
+                                {timing.label} :{' '}
+                                <span className={cn('font-medium', TIMING_TONE_CLASS[timing.tone])}>{timing.value}</span>
+                              </span>
+                              {amountXof != null && (
+                                <span className="text-muted-foreground">
+                                  Montant :{' '}
+                                  <span className="font-medium text-foreground tabular-nums">
+                                    {new Intl.NumberFormat('fr-FR').format(amountXof)} FCFA
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="rounded-lg border border-border bg-background/60 px-3 py-2 overflow-x-auto">
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
                                 Cycle de vie du dossier
                               </div>
                               <DossierLifecycleRail status={d.status} />
                             </div>
                             <ExpandedKindBody dossier={d} kind={k} />
+
 
                             {(d.contact_email || d.contact_phone) && (
                               <div className="flex flex-wrap gap-3 text-xs">
