@@ -95,7 +95,9 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
           source: 'whatsapp',
           app_source: 'expedier',
           intake_by: userId,
-          intake_method: 'whatsapp_quick',
+          // Valeur autorisée par dossiers_intake_method_check ; la provenance
+          // WhatsApp reste portée par `source` et les notes d'admission.
+          intake_method: 'manual_intake',
           intake_notes: notes.trim() || null,
           buyer_name: fullName || phone,
           buyer_contact: tel || phone,
