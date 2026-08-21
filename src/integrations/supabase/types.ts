@@ -4317,6 +4317,10 @@ export type Database = {
         Returns: undefined
       }
       admin_apply_gp_fix: { Args: { rows: Json }; Returns: number }
+      admin_delete_dossier: {
+        Args: { _dossier_id: string }
+        Returns: undefined
+      }
       apply_edit_token: {
         Args: { p_payload: Json; p_token: string }
         Returns: Json

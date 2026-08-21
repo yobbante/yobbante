@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+
 import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
@@ -43,7 +44,7 @@ import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, next
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   DOSSIER_TRANSPORT_MODES, resolveTransportMode, transportModeLabel,
@@ -227,10 +228,29 @@ function DossierSheetBody({ id }: { id: string }) {
 
 function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged: () => void }) {
   const qc = useQueryClient();
+  const { close } = useDossierSheet();
+  const { isAdmin, isStaff } = useUserRole();
+  const canDelete = isAdmin || isStaff;
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const statutOptions = getStatutsPourDossier({
     app_source: dossier.app_source,
     needs_sourcing: dossier.needs_sourcing,
   });
+
+  const deleteDossier = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('admin_delete_dossier' as any, { _dossier_id: dossier.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Dossier supprimé');
+      setConfirmDelete(false);
+      close();
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec de la suppression'),
+  });
+
 
   const setStatus = useMutation({
     mutationFn: async (next: string) => {
@@ -361,7 +381,37 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
             </Button>
           </>
         )}
+
+        {canDelete && (
+          <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive hover:text-destructive ml-auto">
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Supprimer
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer ce dossier ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {dossier.tracking_id || dossier.reference} sera définitivement supprimé, ainsi que son paiement,
+                  ses devis, colis, messages, notifications et toute son activité récente. Action irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteDossier.isPending}>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={(e) => { e.preventDefault(); deleteDossier.mutate(); }}
+                  disabled={deleteDossier.isPending}
+                >
+                  {deleteDossier.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Supprimer définitivement'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
+
     </SheetHeader>
   );
 }
