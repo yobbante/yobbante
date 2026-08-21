@@ -223,9 +223,15 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
                   <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => loadForEdit(d)}>
                     <Pencil className="w-3 h-3" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleSend(d)} disabled={busy}>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" title="Ouvrir le PDF"
+                          onClick={() => handlePdf(d)} disabled={busy}>
+                    <FileText className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" title="Envoyer le PDF"
+                          onClick={() => handleSend(d)} disabled={busy}>
                     <Send className="w-3 h-3" />
                   </Button>
+
                 </div>
               );
             })}
