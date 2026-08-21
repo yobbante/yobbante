@@ -39,7 +39,13 @@ export function HubTab({
         <TabsTrigger
           value={value}
           aria-label={label}
-          className={cn('relative gap-1.5 px-2.5 md:px-3', className)}
+          className={cn(
+            'relative gap-1.5 px-2.5 md:px-3 flex-1 md:flex-none',
+            // Mobile : onglet actif nettement surligné (icônes seules sinon indistinctes)
+            'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm',
+            'md:data-[state=active]:bg-background md:data-[state=active]:text-foreground',
+            className,
+          )}
         >
           <Icon className="w-4 h-4 shrink-0" />
           <span className="hidden md:inline">{label}</span>
