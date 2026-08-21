@@ -380,7 +380,7 @@ export function MessagesTab() {
   }
 
   // ---------- Persist a dossier link for the whole conversation ----------
-  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier) => {
+  const linkDossierToConv = useCallback(async (d: LinkableDossier | LinkedDossier, role: ContactRole = 'contact') => {
     if (!openPhone) return;
     try {
       await supabase
@@ -388,6 +388,16 @@ export function MessagesTab() {
         .update({ dossier_id: d.id })
         .eq('from_phone', openPhone);
       setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
+
+      // Renseigner le contact sur le dossier selon son rôle (expéditeur / destinataire)
+      const convName = inbound.find((m) => m.from_phone === openPhone)?.contact_name || null;
+      if (role === 'sender' || role === 'recipient') {
+        const patch = role === 'sender'
+          ? { sender_phone: openPhone, ...(convName ? { sender_name: convName } : {}) }
+          : { recipient_phone: openPhone, ...(convName ? { recipient_name: convName } : {}) };
+        await supabase.from('dossiers').update(patch as never).eq('id', d.id);
+      }
+
       // Re-fetch full dossier for templates
       const { data: full } = await supabase
         .from('dossiers')
@@ -395,11 +405,13 @@ export function MessagesTab() {
         .eq('id', d.id)
         .maybeSingle();
       if (full) setLinkedDossier(full as unknown as LinkedDossier);
-      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié`);
+      const roleSuffix = role === 'contact' ? '' : ` (${CONTACT_ROLE_LABELS[role].toLowerCase()})`;
+      toast.success(`Dossier ${(d as any).tracking_id || (d as any).reference || ''} lié${roleSuffix}`);
     } catch (e) {
       toast.error('Echec liaison', { description: e instanceof Error ? e.message : String(e) });
     }
-  }, [openPhone]);
+  }, [openPhone, inbound]);
+
 
   // ---------- Load linked dossier + transporteur for active conversation ----------
   useEffect(() => {
