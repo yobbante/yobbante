@@ -357,28 +357,32 @@ export function DevisDialog({ open, onOpenChange, phone, dossier, initialDevis }
               {formatDevisMessage(draftRow)}
             </pre>
           )}
+        </div>
+        </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        <div className="shrink-0 border-t border-border bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
               <X className="w-3.5 h-3.5 mr-1" /> Fermer
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setPreview(p => !p)} disabled={!canSave}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setPreview(p => !p)} disabled={!canSave}>
               <Eye className="w-3.5 h-3.5 mr-1" /> Aperçu
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handlePdf()} disabled={!canSave || busy}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => handlePdf()} disabled={!canSave || busy}>
               <FileText className="w-3.5 h-3.5 mr-1" /> PDF
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleSave} disabled={!canSave || busy}>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={handleSave} disabled={!canSave || busy}>
               Enregistrer
             </Button>
             <Button size="sm" onClick={() => handleSend()} disabled={!canSave || busy}
-                    className="bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
+                    className="col-span-2 w-full sm:w-auto bg-[#F5C518] text-zinc-950 hover:bg-[#F5C518]/90">
               {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
               Envoyer le PDF
             </Button>
           </div>
         </div>
       </DialogContent>
+
     </Dialog>
   );
 
