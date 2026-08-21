@@ -1223,22 +1223,7 @@ function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: Dos
 }
 
 function NonGpTransportPanel({ dossier, mode }: { dossier: DossierRow; mode: DossierTransportMode }) {
-  if (mode === 'road') {
-    return (
-      <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-        <div className="text-sm font-medium">Fret routier — Terminal D</div>
-        <p className="text-xs text-muted-foreground">
-          Ce dossier est en transport routier. La course, le chauffeur et l'enlèvement se gèrent depuis l'onglet
-          « Fret routier ».
-        </p>
-        <Button size="sm" variant="outline" className="text-xs" asChild>
-          <a href="/admin/terrain" target="_blank" rel="noreferrer">
-            <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ouvrir Fret routier
-          </a>
-        </Button>
-      </div>
-    );
-  }
+  if (mode === 'road') return <RoadTransportPanel dossier={dossier} />;
   return (
     <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 space-y-1">
       <div className="text-sm font-medium text-amber-100">
