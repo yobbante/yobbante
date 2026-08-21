@@ -54,6 +54,22 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
 
   const fullName = `${firstName} ${lastName}`.trim();
 
+  /** L'enum warehouse_country n'accepte que ces valeurs. */
+  const WAREHOUSES = ['FR', 'CN', 'US', 'CA', 'AE', 'DE', 'SN'] as const;
+  function toWarehouse(code: string | null | undefined, fallback: 'FR' | 'SN') {
+    const c = (code || '').toUpperCase();
+    return (WAREHOUSES as readonly string[]).includes(c) ? c : fallback;
+  }
+
+  function errMessage(e: unknown): string {
+    if (e instanceof Error) return e.message;
+    if (e && typeof e === 'object') {
+      const o = e as Record<string, unknown>;
+      return [o.message, o.details, o.hint].filter(Boolean).join(' — ') || JSON.stringify(o);
+    }
+    return String(e);
+  }
+
   async function handleCreate() {
     setSaving(true);
     try {
@@ -71,7 +87,7 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
           product_description: description.trim() || 'Colis (à préciser)',
           origin_city: originCity,
           destination_city: destCity,
-          origin_country: countryForCity(originCity ?? '') || 'FR',
+          origin_country: toWarehouse(countryForCity(originCity ?? ''), 'FR'),
           destination_country: countryForCity(destCity ?? '') || 'SN',
           contact_phone: tel || phone,
           estimated_weight: weight ? parseFloat(weight.replace(',', '.')) : null,
@@ -93,11 +109,12 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
       onCreated(created as never);
       onOpenChange(false);
     } catch (e) {
-      toast.error('Échec création du dossier', { description: e instanceof Error ? e.message : String(e) });
+      toast.error('Échec création du dossier', { description: errMessage(e) });
     } finally {
       setSaving(false);
     }
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
