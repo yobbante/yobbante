@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { WA_TEMPLATES_CLIENT, getTemplate, type WaTemplateKey } from '@/lib/whatsappTemplates';
 import { TEMPLATE_CATEGORIES, buildAutoFill, computeWindowStatus } from '@/lib/whatsappTemplateHelpers';
-import { LinkDossierDialog, type LinkableDossier } from './messages/LinkDossierDialog';
+import { LinkDossierDialog, CONTACT_ROLE_LABELS, type LinkableDossier, type ContactRole } from './messages/LinkDossierDialog';
 import { DevisDialog } from './messages/DevisDialog';
 import { QuickDossierDialog } from './messages/QuickDossierDialog';
 import { NewMessageDialog } from './messages/NewMessageDialog';
@@ -390,7 +390,7 @@ export function MessagesTab() {
       setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
 
       // Renseigner le contact sur le dossier selon son rôle (expéditeur / destinataire)
-      const convName = inbound.find((m) => m.from_phone === openPhone)?.contact_name || null;
+      const convName = inbound.find((m) => m.from_phone === openPhone)?.from_name || null;
       if (role === 'sender' || role === 'recipient') {
         const patch = role === 'sender'
           ? { sender_phone: openPhone, ...(convName ? { sender_name: convName } : {}) }
@@ -1465,7 +1465,8 @@ export function MessagesTab() {
         onOpenChange={setLinkDialogOpen}
         transporteurRef={transporteurInfo?.reference ?? null}
         phone={openPhone}
-        onPick={(d) => linkDossierToConv(d)}
+        contactName={activeConv?.name ?? null}
+        onPick={(d, role) => linkDossierToConv(d, role)}
       />
       <NewMessageDialog open={newMsgOpen} onOpenChange={setNewMsgOpen} />
       {openPhone && (
