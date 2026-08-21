@@ -389,14 +389,41 @@ export function MessagesTab() {
         .eq('from_phone', openPhone);
       setInbound((prev) => prev.map((m) => (m.from_phone === openPhone ? { ...m, dossier_id: d.id } : m)));
 
-      // Renseigner le contact sur le dossier selon son rôle (expéditeur / destinataire)
-      const convName = inbound.find((m) => m.from_phone === openPhone)?.from_name || null;
-      if (role === 'sender' || role === 'recipient') {
-        const patch = role === 'sender'
-          ? { sender_phone: openPhone, ...(convName ? { sender_name: convName } : {}) }
-          : { recipient_phone: openPhone, ...(convName ? { recipient_name: convName } : {}) };
-        await supabase.from('dossiers').update(patch as never).eq('id', d.id);
+      // Renseigner le contact sur le dossier selon son rôle (contact / expéditeur / destinataire)
+      const convName = (inbound.find((m) => m.from_phone === openPhone)?.from_name || '').trim() || null;
+      const normPhone = openPhone.startsWith('+') ? openPhone : `+${openPhone.replace(/\D/g, '')}`;
+      const current = await supabase
+        .from('dossiers')
+        .select('buyer_name, contact_phone, sender_name, sender_phone, recipient_name, recipient_phone')
+        .eq('id', d.id)
+        .maybeSingle();
+      const cur = (current.data ?? {}) as Record<string, string | null>;
+      const isBlank = (v?: string | null) => !v || !v.trim() || v.trim().toUpperCase() === 'N/A';
+
+      const patch: Record<string, string> = {};
+      if (role === 'sender') {
+        patch.sender_phone = normPhone;
+        if (convName) patch.sender_name = convName;
+        // L'expéditeur est aussi le contact principal du dossier
+        patch.contact_phone = normPhone;
+        if (convName && isBlank(cur.buyer_name)) patch.buyer_name = convName;
+      } else if (role === 'recipient') {
+        patch.recipient_phone = normPhone;
+        if (convName) patch.recipient_name = convName;
+      } else {
+        patch.contact_phone = normPhone;
+        if (convName && isBlank(cur.buyer_name)) patch.buyer_name = convName;
+        // Si l'expéditeur n'est pas encore renseigné, on l'aligne sur le contact
+        if (isBlank(cur.sender_phone)) {
+          patch.sender_phone = normPhone;
+          if (convName) patch.sender_name = convName;
+        }
       }
+      if (Object.keys(patch).length > 0) {
+        const { error: upErr } = await supabase.from('dossiers').update(patch as never).eq('id', d.id);
+        if (upErr) throw upErr;
+      }
+
 
       // Re-fetch full dossier for templates
       const { data: full } = await supabase
