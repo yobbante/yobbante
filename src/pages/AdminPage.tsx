@@ -235,7 +235,7 @@ export default function AdminPage() {
         </div>
 
 
-        <main className={cn('flex-1 w-full flex flex-col min-h-0 pb-safe-nav lg:pb-safe-none', section === 'messages' ? 'p-0 max-w-none' : 'px-3 md:px-8 py-3 md:py-8 max-w-6xl')}>
+        <main className={cn('flex-1 w-full flex flex-col min-h-0', section === 'messages' ? 'p-0 max-w-none overflow-hidden' : 'overflow-y-auto overscroll-contain px-3 md:px-8 pt-3 md:pt-8 pb-safe-nav lg:pb-8 max-w-6xl')}>
 
           {isUnknownSection ? (
             <div className="py-20 text-center">
