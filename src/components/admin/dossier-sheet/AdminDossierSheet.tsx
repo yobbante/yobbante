@@ -1113,7 +1113,7 @@ function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: Dos
       if (next !== 'gp') {
         patch.assigned_transporteur_ref = null;
         patch.assigned_departure_id = null;
-        patch.client_departure_decision = null;
+        patch.client_departure_decision = 'pending';
         patch.client_departure_decided_at = null;
         // le tarif GP ne s'applique plus : le prix redevient une estimation
         patch.price_is_estimate = true;
