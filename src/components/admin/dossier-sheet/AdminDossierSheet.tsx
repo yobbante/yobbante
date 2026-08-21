@@ -1237,6 +1237,93 @@ function NonGpTransportPanel({ dossier, mode }: { dossier: DossierRow; mode: Dos
   );
 }
 
+const FRET_STATUS_LABELS: Record<string, string> = {
+  A_ENLEVER: 'À enlever',
+  PENDING_ACCEPT: 'En attente chauffeur',
+  REMIS_CHAUFFEUR: 'Remis au chauffeur',
+  EN_ROUTE: 'En route',
+  ARRIVE: 'Arrivé',
+  LIVRE: 'Livré',
+  ANNULE: 'Annulé',
+};
+
+function RoadTransportPanel({ dossier }: { dossier: DossierRow }) {
+  const qc = useQueryClient();
+  const { data: course, isLoading } = useQuery({
+    queryKey: ['fret-course-dossier', dossier.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('fret_courses' as any)
+        .select('id, ref, status, destination, chauffeur_id, pickup_address, total_fcfa')
+        .eq('dossier_id', dossier.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('fret-booking', {
+        body: { dossier_id: dossier.id, action: 'attach' },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['fret-course-dossier', dossier.id] });
+      qc.invalidateQueries({ queryKey: ['fret-courses'] });
+      toast.success('Course Terminal D créée');
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec de la création de la course'),
+  });
+
+  const active = course && course.status !== 'ANNULE';
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <Truck className="w-4 h-4 text-[#F5C518]" />
+        <div className="text-sm font-medium">Fret routier — Terminal D</div>
+        {active && (
+          <Badge variant="outline" className="ml-auto text-[10px]">
+            {FRET_STATUS_LABELS[course.status] || course.status}
+          </Badge>
+        )}
+      </div>
+
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Chargement de la course…</p>
+      ) : active ? (
+        <div className="text-xs space-y-1 text-muted-foreground">
+          <div><span className="text-foreground font-medium">{course.ref}</span> · {course.destination}</div>
+          {course.pickup_address && <div>Enlèvement : {course.pickup_address}</div>}
+          <div>{course.chauffeur_id ? 'Chauffeur assigné' : 'Aucun chauffeur assigné'}</div>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Aucune course routière active pour ce dossier.
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        {!active && (
+          <Button size="sm" className="text-xs" onClick={() => create.mutate()} disabled={create.isPending}>
+            {create.isPending ? 'Création…' : 'Créer la course Terminal D'}
+          </Button>
+        )}
+        <Button size="sm" variant="outline" className="text-xs" asChild>
+          <a href="/admin/terrain?tab=fret" target="_blank" rel="noreferrer">
+            <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ouvrir Fret routier
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 
 
 function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
