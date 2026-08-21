@@ -144,7 +144,8 @@ Deno.serve(async (req) => {
         trigger_type: body.notification_type,
       });
       sendOk = sendRes.ok;
-      __dbg.freeform_status = sendRes.status;
+      console.log('admin-notify freeform', { status: sendRes.status, type: body.notification_type });
+
     } else {
       // Hors fenêtre : seul un template approuvé est délivrable.
       const tplRes = await callWa({
