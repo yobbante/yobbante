@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
         trigger_type: `${body.notification_type}_template`,
       });
       sendOk = tplRes.ok;
-      __dbg.template_status = tplRes.status;
+      console.log('admin-notify template', { status: tplRes.status, type: body.notification_type });
     }
 
 
@@ -170,7 +170,8 @@ Deno.serve(async (req) => {
       phone_sent_to: phone,
     });
 
-    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, debug: __dbg }), {
+    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, window_open: windowOpen }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
