@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
       .gte('received_at', since24h)
       .ilike('from_phone', `%${adminTail24}%`);
     const windowOpen = (inboundCount ?? 0) > 0;
-    const __dbg: Record<string, unknown> = { window_open: windowOpen };
+
 
     let sendOk = false;
     if (windowOpen) {
@@ -144,7 +144,8 @@ Deno.serve(async (req) => {
         trigger_type: body.notification_type,
       });
       sendOk = sendRes.ok;
-      __dbg.freeform_status = sendRes.status;
+      console.log('admin-notify freeform', { status: sendRes.status, type: body.notification_type });
+
     } else {
       // Hors fenêtre : seul un template approuvé est délivrable.
       const tplRes = await callWa({
@@ -157,7 +158,7 @@ Deno.serve(async (req) => {
         trigger_type: `${body.notification_type}_template`,
       });
       sendOk = tplRes.ok;
-      __dbg.template_status = tplRes.status;
+      console.log('admin-notify template', { status: tplRes.status, type: body.notification_type });
     }
 
 
@@ -169,7 +170,8 @@ Deno.serve(async (req) => {
       phone_sent_to: phone,
     });
 
-    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, debug: __dbg }), {
+    return new Response(JSON.stringify({ ok: sendOk, dedup_key: dedupKey, window_open: windowOpen }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
