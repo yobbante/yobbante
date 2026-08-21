@@ -1082,15 +1082,27 @@ export function MessagesTab() {
                         · {(linkedDossier as any).origin_city || linkedDossier.origin_country || '—'} → {(linkedDossier as any).destination_city || linkedDossier.destination_country || '—'}
                       </span>
                       <Badge variant="outline" className="h-4 text-[9px] flex-shrink-0">{linkedDossier.status}</Badge>
+                      {(linkedDossier.sender_phone || linkedDossier.recipient_phone) && (
+                        <span className="hidden md:inline text-[10px] text-muted-foreground truncate">
+                          {linkedDossier.sender_phone
+                            ? `Exp. ${linkedDossier.sender_name || linkedDossier.sender_phone}`
+                            : ''}
+                          {linkedDossier.sender_phone && linkedDossier.recipient_phone ? ' · ' : ''}
+                          {linkedDossier.recipient_phone
+                            ? `Dest. ${linkedDossier.recipient_name || linkedDossier.recipient_phone}`
+                            : ''}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => setLinkDialogOpen(true)} className="text-muted-foreground hover:text-primary flex items-center gap-1">
-                        <RefreshCcw className="w-3 h-3" /> Changer
+                        <RefreshCcw className="w-3 h-3" /> Changer / rôle
                       </button>
                       <a href={`/admin/orders?dossier=${linkedDossier.id}`} className="text-primary hover:underline flex items-center gap-1">
                         Voir <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
+
                   </>
                 ) : (
                   <>
