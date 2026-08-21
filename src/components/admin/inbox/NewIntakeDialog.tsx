@@ -406,7 +406,9 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
 
       const insertRow: any = {
         user_id: user.id,
+        transport_mode: data.service_kind === 'envoi' ? data.transport_mode : null,
         product_description: productDescription,
+
         origin_city: originCity,
         destination_city: destCity,
         origin_country: data.service_kind === 'reception'
