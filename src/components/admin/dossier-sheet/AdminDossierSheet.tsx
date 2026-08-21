@@ -41,6 +41,14 @@ import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
 import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, nextReturnStatus, LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DOSSIER_TRANSPORT_MODES, resolveTransportMode, transportModeLabel,
+  type DossierTransportMode,
+} from '@/lib/transportMode';
 import { routeLabel } from '@/lib/routeLabel';
 import { format } from 'date-fns';
 
@@ -278,6 +286,14 @@ function DossierHeader({ dossier, onChanged }: { dossier: DossierRow; onChanged:
               {COUNTRY_FLAGS[dest as keyof typeof COUNTRY_FLAGS] ?? '🌍'} {destLabel}
             </span>
             <span className="text-muted-foreground">·</span>
+            {resolveTransportMode(dossier) && (
+              <>
+                <Badge variant="outline" className="text-[10px] h-5">
+                  {transportModeLabel(resolveTransportMode(dossier))}
+                </Badge>
+                <span className="text-muted-foreground">·</span>
+              </>
+            )}
             <span className="text-muted-foreground">
               Créé le {format(new Date(dossier.created_at), 'dd/MM/yyyy HH:mm')}
             </span>
@@ -1205,7 +1221,7 @@ function NonGpTransportPanel({ dossier, mode }: { dossier: DossierRow; mode: Dos
           « Fret routier ».
         </p>
         <Button size="sm" variant="outline" className="text-xs" asChild>
-          <a href="/admin/fret" target="_blank" rel="noreferrer">
+          <a href="/admin/terrain" target="_blank" rel="noreferrer">
             <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ouvrir Fret routier
           </a>
         </Button>
