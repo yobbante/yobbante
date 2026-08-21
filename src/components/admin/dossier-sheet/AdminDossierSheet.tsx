@@ -1118,7 +1118,7 @@ function TransportModeEditor({ dossier, mode }: { dossier: DossierRow; mode: Dos
         // le tarif GP ne s'applique plus : le prix redevient une estimation
         patch.price_is_estimate = true;
       }
-      const { error } = await supabase.from('dossiers').update(patch).eq('id', dossier.id);
+      const { error } = await supabase.from('dossiers').update(patch as any).eq('id', dossier.id);
       if (error) throw error;
 
       await supabase.from('dossier_events').insert({
