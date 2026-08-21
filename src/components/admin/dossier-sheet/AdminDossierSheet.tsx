@@ -14,6 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+import {
   Copy, Truck, MessageCircle, CreditCard, ExternalLink, Loader2,
   CheckCircle2, AlertCircle, FileText, History, Package as PackageIcon, Send,
   Scale, MapPin, Download, Upload, Trash2, X,
