@@ -268,7 +268,7 @@ export function RequestsTab({
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">{title ?? 'Demandes clients'}</h1>
             <p className="text-sm text-muted-foreground">
-              {subtitle ?? 'Inbox unifié — clic pour développer, double-clic pour ouvrir la fiche complète.'}
+              {subtitle ?? 'Inbox unifié — clic pour développer, double-clic (ou clic sur la réf) pour ouvrir la fiche.'}
             </p>
           </div>
         ) : <div />}
@@ -385,15 +385,15 @@ export function RequestsTab({
         />
       ) : (
         <div className="border border-border rounded-xl bg-card overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead className="bg-secondary/40 text-[10px] uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="text-left font-medium px-3 py-2 w-[19%]">Réf</th>
-                <th className="text-left font-medium px-3 py-2 w-[22%]">Client</th>
-                <th className="text-left font-medium px-3 py-2 w-[15%]">Statut</th>
-                <th className="text-left font-medium px-3 py-2 w-[16%]">Échéance</th>
-                <th className="text-left font-medium px-3 py-2 w-[16%] hidden md:table-cell">GP</th>
-                <th className="text-right font-medium px-3 py-2 w-[12%] hidden md:table-cell">Montant</th>
+                <th className="text-left font-medium px-2 md:px-3 py-2 w-[38%] md:w-[19%]">Réf</th>
+                <th className="text-left font-medium px-2 md:px-3 py-2 w-[36%] md:w-[22%]">Client</th>
+                <th className="text-left font-medium px-2 md:px-3 py-2 w-[26%] md:w-[15%]">Statut</th>
+                <th className="text-left font-medium px-2 md:px-3 py-2 w-[16%] hidden md:table-cell">Échéance</th>
+                <th className="text-left font-medium px-2 md:px-3 py-2 w-[16%] hidden md:table-cell">GP</th>
+                <th className="text-right font-medium px-2 md:px-3 py-2 w-[12%] hidden md:table-cell">Montant</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -410,7 +410,8 @@ export function RequestsTab({
                     <tr
                       key={d.id}
                       data-dossier-id={d.id}
-                      onClick={() => { setExpandedId(d.id); sheet.open(d.id); }}
+                      onClick={() => setExpandedId(prev => (prev === d.id ? null : d.id))}
+                      onDoubleClick={() => sheet.open(d.id)}
                       className={cn(
                         'cursor-pointer transition-colors',
                         isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30',
@@ -418,11 +419,11 @@ export function RequestsTab({
                       )}
                     >
                       {/* Réf */}
-                      <td className="px-3 py-2.5 align-middle">
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); sheet.open(d.id); }}
-                          className="font-mono text-[12px] font-semibold text-foreground hover:underline text-left inline-flex items-center gap-1.5"
+                          className="font-mono text-[11px] md:text-[12px] font-semibold text-foreground hover:underline text-left inline-flex items-center gap-1 md:gap-1.5 max-w-full"
                         >
                           <span className="text-base leading-none">{COUNTRY_FLAGS[d.origin_country] || '🌍'}</span>
                           <span className="truncate">{d.tracking_id || d.reference}</span>
@@ -433,11 +434,11 @@ export function RequestsTab({
                         </div>
                       </td>
                       {/* Client */}
-                      <td className="px-3 py-2.5 align-middle">
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setExpandedId(d.id); sheet.open(d.id); }}
-                          className="text-foreground hover:underline text-left truncate max-w-[220px] block text-[13px] font-medium"
+                          onClick={(e) => { e.stopPropagation(); setExpandedId(prev => (prev === d.id ? null : d.id)); }}
+                          className="text-foreground hover:underline text-left truncate max-w-full md:max-w-[220px] block text-[12px] md:text-[13px] font-medium"
                         >
                           {clientName}
                         </button>
@@ -445,7 +446,7 @@ export function RequestsTab({
                           <a
                             href={`tel:${d.contact_phone}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-[11px] text-muted-foreground hover:text-foreground font-mono"
+                            className="text-[10px] md:text-[11px] text-muted-foreground hover:text-foreground font-mono truncate block"
                           >
                             {d.contact_phone}
                           </a>
@@ -456,7 +457,7 @@ export function RequestsTab({
                         )}
                       </td>
                       {/* Statut */}
-                      <td className="px-3 py-2.5 align-middle">
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
                         <span className={cn(
                           'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
                           STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
@@ -465,7 +466,7 @@ export function RequestsTab({
                         </span>
                       </td>
                       {/* Échéance dynamique : départ avant, arrivée après, etc. */}
-                      <td className="px-3 py-2.5 align-middle">
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell">
                         <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
                           {timing.label}
                         </div>
@@ -479,7 +480,7 @@ export function RequestsTab({
                         )}
                       </td>
                       {/* GP */}
-                      <td className="px-3 py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
 
                         <GpAssignBadge
                           transporteurRef={(d as any).assigned_transporteur_ref}
@@ -494,7 +495,7 @@ export function RequestsTab({
                         />
                       </td>
                       {/* Montant */}
-                      <td className="px-3 py-2.5 align-middle text-right tabular-nums hidden md:table-cell">
+                      <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle text-right tabular-nums hidden md:table-cell">
                         {amountXof != null ? (
                           <span className="text-foreground font-medium text-[13px]">
                             {new Intl.NumberFormat('fr-FR').format(amountXof)} <span className="text-muted-foreground text-[10px]">FCFA</span>
@@ -806,7 +807,7 @@ function ContactLine({ label, name, phone, address }: { label: string; name?: st
     <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="text-foreground font-medium">{name || '—'}</div>
-      {phone && <a href={`tel:${phone}`} className="text-[11px] text-muted-foreground hover:text-foreground font-mono">{phone}</a>}
+      {phone && <a href={`tel:${phone}`} className="text-[10px] md:text-[11px] text-muted-foreground hover:text-foreground font-mono truncate block">{phone}</a>}
       {address && <div className="text-[11px] text-muted-foreground truncate">{address}</div>}
     </div>
   );
