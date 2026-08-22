@@ -18,7 +18,12 @@ type Body = {
   window_minutes?: number;
   bypass_suspend?: boolean;
   recipient_phone?: string;
+  /** Rendu propre de la notification push (sinon derive du message). */
+  push_title?: string;
+  push_body?: string;
+  push_url?: string;
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
