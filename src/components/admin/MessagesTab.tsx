@@ -258,6 +258,17 @@ export function MessagesTab() {
     if (msg) setOpenPhone(msg.from_phone);
   }, [searchParams, inbound]);
 
+  // ---------- Deep-link: ?conversation=<phone> (notification push) ----------
+  useEffect(() => {
+    const raw = searchParams.get('conversation');
+    if (!raw || inbound.length === 0) return;
+    const tail = raw.replace(/\D/g, '').slice(-9);
+    if (!tail) return;
+    const msg = inbound.find((m) => (m.from_phone ?? '').replace(/\D/g, '').endsWith(tail));
+    if (msg) setOpenPhone(msg.from_phone);
+  }, [searchParams, inbound]);
+
+
 
   // ---------- Group inbound by phone ----------
   const conversations: ConversationGroup[] = useMemo(() => {

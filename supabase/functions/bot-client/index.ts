@@ -1582,8 +1582,28 @@ Deno.serve(async (req) => {
 
   // L'admin doit TOUJOURS recevoir une copie de chaque message entrant,
   // quel que soit l'etat des bots (pause globale, pause par contact, etc.).
+  // Nom lisible pour la notification : on retire emojis / tags internes.
+  const cleanName = (raw?: string | null): string => {
+    const v = String(raw ?? '')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}]/gu, ' ')
+      .replace(/[\[\](){}<>#*_|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return v.length > 1 ? v.slice(0, 32) : '';
+  };
+  const prettyPhone = (p: string): string => {
+    const d = p.replace(/\D/g, '');
+    if (d.startsWith('221') && d.length === 12) {
+      const n = d.slice(3);
+      return `+221 ${n.slice(0, 2)} ${n.slice(2, 5)} ${n.slice(5, 7)} ${n.slice(7)}`;
+    }
+    return `+${d}`;
+  };
+
   const forwardToAdmin = async (label: string) => {
     try {
+      const display = cleanName(input.from_name) || prettyPhone(phone);
+      const preview = (rawIncoming || '[pièce jointe]').replace(/\s+/g, ' ').trim().slice(0, 100);
       await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/admin-notify`, {
         method: 'POST',
         headers: {
@@ -1596,12 +1616,16 @@ Deno.serve(async (req) => {
           window_minutes: 1,
           dedup_key: `inbound:${phone}:${Date.now()}`,
           message: `Message client ${input.from_name ?? ''} ${phone} (${label})\n\n${rawIncoming || '[media]'}`,
+          push_title: display,
+          push_body: preview,
+          push_url: `/admin/messages?conversation=${encodeURIComponent(phone)}`,
         }),
       });
     } catch (e) {
       console.error('BOT_CLIENT admin copy failed', e);
     }
   };
+
 
   try {
     const { data: gset } = await supa
