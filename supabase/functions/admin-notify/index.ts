@@ -98,6 +98,11 @@ Deno.serve(async (req) => {
     // 3) Push Web (VAPID) — arrive même téléphone verrouillé / app fermée.
     //    Envoyé systématiquement, indépendamment du sort du WhatsApp.
     const firstLine = body.message.split('\n').find((l) => l.trim()) ?? 'Yobbanté';
+    const pushTitle = (body.push_title?.trim() || firstLine).slice(0, 60);
+    const pushBody = (body.push_body?.trim()
+      || body.message.split('\n').slice(1).join(' ').trim()
+      || body.message.replace(/\n+/g, ' · ')).slice(0, 140);
+    const pushUrl = body.push_url || (body.dossier_id ? '/admin/dossiers' : '/admin');
     try {
       await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/push-send`, {
         method: 'POST',
@@ -107,12 +112,13 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           audience: 'admin',
-          title: firstLine.slice(0, 60),
-          body: body.message.replace(/\n+/g, ' · ').slice(0, 160),
-          url: body.dossier_id ? `/admin/dossiers` : '/admin',
+          title: pushTitle,
+          body: pushBody,
+          url: pushUrl,
           tag: dedupKey,
         }),
       });
+
     } catch (e) {
       console.error('admin-notify push failed', e);
     }
