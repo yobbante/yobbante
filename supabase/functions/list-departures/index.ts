@@ -21,7 +21,7 @@ type Departure = {
   destination_country: string;
   destination_city: string;
   departure_date: string;
-  transport: 'AIR' | 'SEA' | 'ROAD';
+  transport: 'AIR' | 'SEA' | 'ROAD' | 'GP';
 };
 
 function addDays(base: Date, n: number): Date {
@@ -55,7 +55,7 @@ function getMockDepartures(): Departure[] {
   }));
 }
 
-function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' {
+function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' | 'GP' {
   let s = '';
   if (typeof v === 'string') s = v;
   else if (v && typeof v === 'object') {
@@ -63,6 +63,7 @@ function normalizeTransport(v: unknown): 'AIR' | 'SEA' | 'ROAD' {
     s = String(o.code || o.name || o.value || o.label || '');
   }
   s = s.toUpperCase();
+  if (s === 'GP' || s.includes('GP') || s.includes('BAGAGE') || s.includes('ACCOMPAGN')) return 'GP';
   if (s.startsWith('A') || s.includes('AIR') || s.includes('AVION') || s.includes('AÉR')) return 'AIR';
   if (s.startsWith('R') || s.includes('ROAD') || s.includes('ROUT') || s.includes('CAMION')) return 'ROAD';
   return 'SEA';
