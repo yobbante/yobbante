@@ -12,12 +12,16 @@ type TickerItem = {
 const FALLBACK_TEXT = 'FRANCE · SÉNÉGAL · USA · MAROC · DUBAI · CHINE';
 
 function formatMode(m?: string | null): string {
-  const v = (m || '').toLowerCase();
-  if (v.includes('air') || v === 'aérien' || v === 'aerien') return 'Aérien';
-  if (v.includes('sea') || v.includes('mar')) return 'Maritime';
-  if (v.includes('express') || v.includes('road') || v.includes('rout')) return 'Express';
-  return m || 'Aérien';
+  const v = (m || '').trim().toLowerCase();
+  if (!v) return 'GP';
+  if (v === 'gp' || v.includes('bagage') || v.includes('accompagn')) return 'GP';
+  if (v.includes('road') || v.includes('rout') || v.includes('terminal')) return 'Routier';
+  if (v.includes('sea') || v.includes('mar') || v.includes('bateau')) return 'Maritime';
+  if (v.includes('air') || v.includes('aer') || v.includes('aér') || v.includes('avion')) return 'Aérien';
+  if (v.includes('express')) return 'Express';
+  return m || 'GP';
 }
+
 
 function formatDate(iso: string): string {
   const d = new Date(iso.length <= 10 ? iso + 'T00:00:00' : iso);
@@ -71,29 +75,35 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
     }
   } catch { /* skip silently */ }
 
-  try {
-    const { data: live } = await supabase.functions.invoke('list-departures');
-    const deps = (live as any)?.departures as Array<any> | undefined;
-    if (Array.isArray(deps)) {
-      for (const k of deps) {
-        if (!k?.departure_date || k.departure_date < today) continue;
-        items.push({
-          ville_depart: k.origin_city,
-          ville_arrivee: k.destination_city,
-          date_depart: k.departure_date,
-          mode_transport: k.transport,
-          transporteur: 'Yobbanté',
-        });
+  // Fallback uniquement : la fonction `list-departures` peut renvoyer des
+  // données de démo (source: 'mock') — on ne les affiche jamais par-dessus
+  // les vrais départs enregistrés.
+  if (items.length === 0) {
+    try {
+      const { data: live } = await supabase.functions.invoke('list-departures');
+      const deps = (live as any)?.departures as Array<any> | undefined;
+      if ((live as any)?.source !== 'mock' && Array.isArray(deps)) {
+        for (const k of deps) {
+          if (!k?.departure_date || k.departure_date < today) continue;
+          items.push({
+            ville_depart: k.origin_city,
+            ville_arrivee: k.destination_city,
+            date_depart: k.departure_date,
+            mode_transport: k.transport,
+            transporteur: 'Yobbanté',
+          });
+        }
       }
-    }
-  } catch { /* skip silently */ }
+    } catch { /* skip silently */ }
+  }
 
-  // Dedup by route only (origin + destination) — keep earliest date
+
+  // Dedup par route + mode de transport — garde la date la plus proche
   const seen = new Set<string>();
   const dedup: TickerItem[] = [];
   const sorted = [...items].sort((a, b) => a.date_depart.localeCompare(b.date_depart));
   for (const it of sorted) {
-    const key = `${it.ville_depart}|${it.ville_arrivee}`;
+    const key = `${it.ville_depart}|${it.ville_arrivee}|${formatMode(it.mode_transport)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     dedup.push(it);
