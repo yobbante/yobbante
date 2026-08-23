@@ -98,12 +98,12 @@ async function fetchTickerDepartures(): Promise<TickerItem[]> {
   }
 
 
-  // Dedup by route only (origin + destination) — keep earliest date
+  // Dedup par route + mode de transport — garde la date la plus proche
   const seen = new Set<string>();
   const dedup: TickerItem[] = [];
   const sorted = [...items].sort((a, b) => a.date_depart.localeCompare(b.date_depart));
   for (const it of sorted) {
-    const key = `${it.ville_depart}|${it.ville_arrivee}`;
+    const key = `${it.ville_depart}|${it.ville_arrivee}|${formatMode(it.mode_transport)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     dedup.push(it);
