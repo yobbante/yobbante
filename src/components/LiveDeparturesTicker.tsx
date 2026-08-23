@@ -12,12 +12,16 @@ type TickerItem = {
 const FALLBACK_TEXT = 'FRANCE · SÉNÉGAL · USA · MAROC · DUBAI · CHINE';
 
 function formatMode(m?: string | null): string {
-  const v = (m || '').toLowerCase();
-  if (v.includes('air') || v === 'aérien' || v === 'aerien') return 'Aérien';
-  if (v.includes('sea') || v.includes('mar')) return 'Maritime';
-  if (v.includes('express') || v.includes('road') || v.includes('rout')) return 'Express';
-  return m || 'Aérien';
+  const v = (m || '').trim().toLowerCase();
+  if (!v) return 'GP';
+  if (v === 'gp' || v.includes('bagage') || v.includes('accompagn')) return 'GP';
+  if (v.includes('road') || v.includes('rout') || v.includes('terminal')) return 'Routier';
+  if (v.includes('sea') || v.includes('mar') || v.includes('bateau')) return 'Maritime';
+  if (v.includes('air') || v.includes('aer') || v.includes('aér') || v.includes('avion')) return 'Aérien';
+  if (v.includes('express')) return 'Express';
+  return m || 'GP';
 }
+
 
 function formatDate(iso: string): string {
   const d = new Date(iso.length <= 10 ? iso + 'T00:00:00' : iso);
