@@ -850,9 +850,30 @@ Merci de votre confiance.`;
                   <TransportModeSelector
                     value={data.transport_mode}
                     onChange={(m) => update({ transport_mode: m })}
+                    liveModes={[...ADMIN_LIVE_MODES]}
                   />
 
-                  {isModeSoon(data.transport_mode) && <ModeSoonNotice mode={data.transport_mode} />}
+                  {isModeSoon(data.transport_mode, [...ADMIN_LIVE_MODES]) && (
+                    <ModeSoonNotice mode={data.transport_mode} />
+                  )}
+
+                  {data.transport_mode === 'air' && (
+                    <AirFreightFields
+                      value={{
+                        air_city: data.air_city,
+                        weight_kg: data.weight_kg,
+                        air_length_cm: data.air_length_cm,
+                        air_width_cm: data.air_width_cm,
+                        air_height_cm: data.air_height_cm,
+                        description: data.description,
+                        declared_value: data.declared_value,
+                      }}
+                      update={(p) => update(p)}
+                      files={airFiles}
+                      onFilesChange={setAirFiles}
+                    />
+                  )}
+
 
                   {data.transport_mode === 'road' && (
                     <div className="rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
