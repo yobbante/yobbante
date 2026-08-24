@@ -20,9 +20,15 @@ import { useIntakeDraft } from '@/hooks/useIntakeDraft';
 import { calculerFraisEnlevement } from '@/lib/dakarZones';
 import { CityPicker } from '@/components/quote/CityPicker';
 import { TransportModeSelector, ModeSoonNotice, isModeSoon } from '@/components/quote/TransportModeSelector';
+import { AirFreightFields } from '@/components/admin/inbox/AirFreightFields';
+import { estimateAirFreight, findAirZone, fmtFcfaAir } from '@/lib/airFreight';
 import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
+
+/** L'aérien est ouvert côté admin (tests internes) mais reste "bientôt" côté public. */
+const ADMIN_LIVE_MODES = ['gp', 'air', 'road'] as const;
+
 
 interface Props {
   open: boolean;
