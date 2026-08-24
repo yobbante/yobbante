@@ -55,7 +55,8 @@ export function TransportModeSelector({ value, onChange, dark = false, className
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" role="radiogroup" aria-label="Mode de transport">
         {SEND_TRANSPORT_MODES.map(m => {
           const active = value === m.id;
-          const soon = m.status === 'soon';
+          const soon = isModeSoon(m.id, liveModes);
+
           return (
             <button
               key={m.id}
