@@ -68,6 +68,11 @@ type IntakeData = {
   manual_currency: 'XOF' | 'EUR';
   initial_status: 'SUBMITTED' | 'CONFIRMED';
   send_whatsapp: boolean;
+  // Aérien (fret classique) — mode interne
+  air_city: string;
+  air_length_cm: string;
+  air_width_cm: string;
+  air_height_cm: string;
   // Fix 3 — Quel départ ?
   departure_mode: DepartureMode | null;
   departure_short_ref: string;
@@ -87,9 +92,11 @@ const INITIAL: IntakeData = {
   origin_country_reception: '', tracking_number: '',
   intake_notes: '', price_mode: 'auto', manual_price: '', manual_currency: 'XOF',
   initial_status: 'SUBMITTED', send_whatsapp: true,
+  air_city: '', air_length_cm: '', air_width_cm: '', air_height_cm: '',
   departure_mode: null, departure_short_ref: '', selected_departure_id: null,
   selected_departure_label: '', selected_transporteur_ref: '',
 };
+
 
 const TOTAL_STEPS = 5;
 
