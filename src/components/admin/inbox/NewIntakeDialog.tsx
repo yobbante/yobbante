@@ -508,10 +508,42 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       if (error) throw error;
 
       await clearDraft();
+
+      // Aérien : upload des pièces jointes (facture, photos) après création.
+      if (isAir && airFiles.length) {
+        let uploaded = 0;
+        for (const file of airFiles) {
+          try {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${created.id}/${Date.now()}-${safeName}`;
+            const { error: upErr } = await supabase.storage
+              .from('dossier-documents')
+              .upload(path, file, { contentType: file.type || undefined, upsert: false });
+            if (upErr) throw upErr;
+            const { error: insErr } = await supabase.from('dossier_documents').insert({
+              dossier_id: created.id,
+              file_path: path,
+              file_name: file.name,
+              mime_type: file.type || null,
+              size_bytes: file.size,
+              kind: /facture|invoice/i.test(file.name) ? 'invoice' : 'other',
+              uploaded_by: user.id,
+            });
+            if (insErr) throw insErr;
+            uploaded++;
+          } catch (e: any) {
+            toast.error(`Document "${file.name}" non envoyé : ${e?.message || 'erreur'}`);
+          }
+        }
+        if (uploaded) toast.success(`${uploaded} document(s) attaché(s)`);
+        setAirFiles([]);
+      }
+
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
 
-      toast.success(`Dossier ${created.reference} créé`);
+      toast.success(`Dossier ${created.reference} créé${isAir ? ' — Devis à confirmer' : ''}`);
+
 
       if (sendWhatsApp && data.client_phone) {
         const trackingUrl = `https://yobbante.com/suivre/${created.reference}`;
