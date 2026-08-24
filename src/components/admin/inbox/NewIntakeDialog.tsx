@@ -422,15 +422,35 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? (data.manual_currency === 'EUR' ? parseFloat(data.manual_price) : parseFloat(data.manual_price) / 655.957)
         : estimatedPrice;
 
-      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART
-      const computedStatus = data.departure_mode === 'gp'
-        ? 'EN_RECHERCHE_DEPART'
-        : data.initial_status;
+      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART.
+      // Aérien : toujours "Devis à confirmer" (estimation non engageante).
+      const computedStatus = isAir
+        ? 'QUOTE_REQUESTED'
+        : data.departure_mode === 'gp'
+          ? 'EN_RECHERCHE_DEPART'
+          : data.initial_status;
 
       // Villes saisies (CityPicker) → source de vérité. Les pays en sont dérivés,
       // dans le MÊME ordre : origine → origin_*, destination → destination_*.
-      const originCity = data.service_kind === 'envoi' ? (data.origin_city.trim() || null) : null;
-      const destCity = data.service_kind === 'envoi' ? (data.destination_city.trim() || null) : null;
+      const originCity = data.service_kind === 'envoi'
+        ? ((isAir ? data.air_city.trim() : data.origin_city.trim()) || null)
+        : null;
+      const destCity = data.service_kind === 'envoi'
+        ? ((isAir ? (data.destination_city.trim() || 'Dakar') : data.destination_city.trim()) || null)
+        : null;
+
+      const airNotes = isAir ? [
+        `Mode: Aérien (fret classique)`,
+        data.air_city && `Ville aérienne: ${data.air_city}${airEstimate.zone ? ` (${airEstimate.zone.label})` : ''}`,
+        (data.air_length_cm || data.air_width_cm || data.air_height_cm) &&
+          `Dimensions: ${data.air_length_cm || '?'}×${data.air_width_cm || '?'}×${data.air_height_cm || '?'} cm`,
+        airEstimate.volumetricKg != null && `Poids volumétrique: ${airEstimate.volumetricKg} kg`,
+        airEstimate.taxableKg != null && `Poids taxable: ${airEstimate.taxableKg} kg (${airEstimate.basis === 'volumetric' ? 'volumétrique' : 'réel'})`,
+        airEstimate.price != null
+          ? `Estimation indicative: ${fmtFcfaAir(airEstimate.price)}`
+          : airEstimate.manualQuote && 'Estimation: devis sur mesure (>300 kg)',
+        'Estimation indicative — devis final après vérification des documents.',
+      ].filter(Boolean) as string[] : [];
 
       const insertRow: any = {
         user_id: user.id,
@@ -463,7 +483,9 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           data.tracking_number && `Tracking: ${data.tracking_number}`,
           data.declared_value && `Valeur déclarée: ${data.declared_value} €`,
           data.selected_departure_label && `Départ: ${data.selected_departure_label}`,
+          ...airNotes,
         ].filter(Boolean).join('\n') || null,
+
         status: computedStatus,
         source: data.source,
         source_reference: data.source_reference || null,
