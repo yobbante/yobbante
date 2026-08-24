@@ -20,9 +20,15 @@ import { useIntakeDraft } from '@/hooks/useIntakeDraft';
 import { calculerFraisEnlevement } from '@/lib/dakarZones';
 import { CityPicker } from '@/components/quote/CityPicker';
 import { TransportModeSelector, ModeSoonNotice, isModeSoon } from '@/components/quote/TransportModeSelector';
+import { AirFreightFields } from '@/components/admin/inbox/AirFreightFields';
+import { estimateAirFreight, findAirZone, fmtFcfaAir } from '@/lib/airFreight';
 import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
+
+/** L'aérien est ouvert côté admin (tests internes) mais reste "bientôt" côté public. */
+const ADMIN_LIVE_MODES = ['gp', 'air', 'road'] as const;
+
 
 interface Props {
   open: boolean;
@@ -68,6 +74,11 @@ type IntakeData = {
   manual_currency: 'XOF' | 'EUR';
   initial_status: 'SUBMITTED' | 'CONFIRMED';
   send_whatsapp: boolean;
+  // Aérien (fret classique) — mode interne
+  air_city: string;
+  air_length_cm: string;
+  air_width_cm: string;
+  air_height_cm: string;
   // Fix 3 — Quel départ ?
   departure_mode: DepartureMode | null;
   departure_short_ref: string;
@@ -87,9 +98,11 @@ const INITIAL: IntakeData = {
   origin_country_reception: '', tracking_number: '',
   intake_notes: '', price_mode: 'auto', manual_price: '', manual_currency: 'XOF',
   initial_status: 'SUBMITTED', send_whatsapp: true,
+  air_city: '', air_length_cm: '', air_width_cm: '', air_height_cm: '',
   departure_mode: null, departure_short_ref: '', selected_departure_id: null,
   selected_departure_label: '', selected_transporteur_ref: '',
 };
+
 
 const TOTAL_STEPS = 5;
 
@@ -305,8 +318,22 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [resumePromptShown, setResumePromptShown] = useState(false);
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [airFiles, setAirFiles] = useState<File[]>([]);
   const qc = useQueryClient();
   const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
+
+  const isAir = data.service_kind === 'envoi' && data.transport_mode === 'air';
+  const airEstimate = useMemo(
+    () => estimateAirFreight({
+      zone: findAirZone(data.air_city),
+      realKg: parseFloat(data.weight_kg),
+      lengthCm: parseFloat(data.air_length_cm),
+      widthCm: parseFloat(data.air_width_cm),
+      heightCm: parseFloat(data.air_height_cm),
+    }),
+    [data.air_city, data.weight_kg, data.air_length_cm, data.air_width_cm, data.air_height_cm],
+  );
+
 
   useEffect(() => {
     if (open && hasExisting && !resumePromptShown) {
@@ -327,12 +354,13 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     if (step === 2) {
       if (!data.service_kind) return false;
       if (data.service_kind === 'envoi') {
-        // Routier = Terminal D uniquement : ce wizard crée un dossier générique
-        // (pricingEngine + départs aériens), incompatible avec fret_courses.
-        // Routier → Terminal D ; Aérien (fret classique) et Maritime pas encore ouverts.
+        // Routier = Terminal D uniquement (grille + course dédiées).
+        // Aérien = ouvert en interne : aucun champ obligatoire pour l'admin.
+        if (data.transport_mode === 'air') return true;
         if (data.transport_mode !== 'gp') return false;
         return !!(data.origin_city && data.destination_city && data.weight_kg);
       }
+
 
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
@@ -394,15 +422,35 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         ? (data.manual_currency === 'EUR' ? parseFloat(data.manual_price) : parseFloat(data.manual_price) / 655.957)
         : estimatedPrice;
 
-      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART
-      const computedStatus = data.departure_mode === 'gp'
-        ? 'EN_RECHERCHE_DEPART'
-        : data.initial_status;
+      // Status logic: gp-only mode forces EN_RECHERCHE_DEPART.
+      // Aérien : toujours "Devis à confirmer" (estimation non engageante).
+      const computedStatus = isAir
+        ? 'QUOTE_REQUESTED'
+        : data.departure_mode === 'gp'
+          ? 'EN_RECHERCHE_DEPART'
+          : data.initial_status;
 
       // Villes saisies (CityPicker) → source de vérité. Les pays en sont dérivés,
       // dans le MÊME ordre : origine → origin_*, destination → destination_*.
-      const originCity = data.service_kind === 'envoi' ? (data.origin_city.trim() || null) : null;
-      const destCity = data.service_kind === 'envoi' ? (data.destination_city.trim() || null) : null;
+      const originCity = data.service_kind === 'envoi'
+        ? ((isAir ? data.air_city.trim() : data.origin_city.trim()) || null)
+        : null;
+      const destCity = data.service_kind === 'envoi'
+        ? ((isAir ? (data.destination_city.trim() || 'Dakar') : data.destination_city.trim()) || null)
+        : null;
+
+      const airNotes = isAir ? [
+        `Mode: Aérien (fret classique)`,
+        data.air_city && `Ville aérienne: ${data.air_city}${airEstimate.zone ? ` (${airEstimate.zone.label})` : ''}`,
+        (data.air_length_cm || data.air_width_cm || data.air_height_cm) &&
+          `Dimensions: ${data.air_length_cm || '?'}×${data.air_width_cm || '?'}×${data.air_height_cm || '?'} cm`,
+        airEstimate.volumetricKg != null && `Poids volumétrique: ${airEstimate.volumetricKg} kg`,
+        airEstimate.taxableKg != null && `Poids taxable: ${airEstimate.taxableKg} kg (${airEstimate.basis === 'volumetric' ? 'volumétrique' : 'réel'})`,
+        airEstimate.price != null
+          ? `Estimation indicative: ${fmtFcfaAir(airEstimate.price)}`
+          : airEstimate.manualQuote && 'Estimation: devis sur mesure (>300 kg)',
+        'Estimation indicative — devis final après vérification des documents.',
+      ].filter(Boolean) as string[] : [];
 
       const insertRow: any = {
         user_id: user.id,
@@ -435,7 +483,9 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           data.tracking_number && `Tracking: ${data.tracking_number}`,
           data.declared_value && `Valeur déclarée: ${data.declared_value} €`,
           data.selected_departure_label && `Départ: ${data.selected_departure_label}`,
+          ...airNotes,
         ].filter(Boolean).join('\n') || null,
+
         status: computedStatus,
         source: data.source,
         source_reference: data.source_reference || null,
@@ -458,10 +508,42 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       if (error) throw error;
 
       await clearDraft();
+
+      // Aérien : upload des pièces jointes (facture, photos) après création.
+      if (isAir && airFiles.length) {
+        let uploaded = 0;
+        for (const file of airFiles) {
+          try {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${created.id}/${Date.now()}-${safeName}`;
+            const { error: upErr } = await supabase.storage
+              .from('dossier-documents')
+              .upload(path, file, { contentType: file.type || undefined, upsert: false });
+            if (upErr) throw upErr;
+            const { error: insErr } = await supabase.from('dossier_documents').insert({
+              dossier_id: created.id,
+              file_path: path,
+              file_name: file.name,
+              mime_type: file.type || null,
+              size_bytes: file.size,
+              kind: /facture|invoice/i.test(file.name) ? 'invoice' : 'other',
+              uploaded_by: user.id,
+            });
+            if (insErr) throw insErr;
+            uploaded++;
+          } catch (e: any) {
+            toast.error(`Document "${file.name}" non envoyé : ${e?.message || 'erreur'}`);
+          }
+        }
+        if (uploaded) toast.success(`${uploaded} document(s) attaché(s)`);
+        setAirFiles([]);
+      }
+
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
 
-      toast.success(`Dossier ${created.reference} créé`);
+      toast.success(`Dossier ${created.reference} créé${isAir ? ' — Devis à confirmer' : ''}`);
+
 
       if (sendWhatsApp && data.client_phone) {
         const trackingUrl = `https://yobbante.com/suivre/${created.reference}`;
@@ -768,9 +850,30 @@ Merci de votre confiance.`;
                   <TransportModeSelector
                     value={data.transport_mode}
                     onChange={(m) => update({ transport_mode: m })}
+                    liveModes={[...ADMIN_LIVE_MODES]}
                   />
 
-                  {isModeSoon(data.transport_mode) && <ModeSoonNotice mode={data.transport_mode} />}
+                  {isModeSoon(data.transport_mode, [...ADMIN_LIVE_MODES]) && (
+                    <ModeSoonNotice mode={data.transport_mode} />
+                  )}
+
+                  {data.transport_mode === 'air' && (
+                    <AirFreightFields
+                      value={{
+                        air_city: data.air_city,
+                        weight_kg: data.weight_kg,
+                        air_length_cm: data.air_length_cm,
+                        air_width_cm: data.air_width_cm,
+                        air_height_cm: data.air_height_cm,
+                        description: data.description,
+                        declared_value: data.declared_value,
+                      }}
+                      update={(p) => update(p)}
+                      files={airFiles}
+                      onFilesChange={setAirFiles}
+                    />
+                  )}
+
 
                   {data.transport_mode === 'road' && (
                     <div className="rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">

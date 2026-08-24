@@ -25,8 +25,10 @@ export const SEND_TRANSPORT_MODES: {
   { id: 'road', label: 'Routier',  desc: 'Terminal D',               Icon: Truck,   status: 'live' },
 ];
 
-export const isModeSoon = (m: SendTransportMode) =>
-  SEND_TRANSPORT_MODES.find(x => x.id === m)?.status === 'soon';
+export const isModeSoon = (m: SendTransportMode, liveModes?: SendTransportMode[]) =>
+  liveModes?.includes(m)
+    ? false
+    : SEND_TRANSPORT_MODES.find(x => x.id === m)?.status === 'soon';
 
 interface Props {
   value: SendTransportMode;
@@ -34,9 +36,12 @@ interface Props {
   /** dark theme variant (used inside the /expedier sticky bar in dark mode) */
   dark?: boolean;
   className?: string;
+  /** Modes forcés "opérationnels" (ex : aérien ouvert côté admin pour les tests). */
+  liveModes?: SendTransportMode[];
 }
 
-export function TransportModeSelector({ value, onChange, dark = false, className }: Props) {
+export function TransportModeSelector({ value, onChange, dark = false, className, liveModes }: Props) {
+
   return (
     <div className={className}>
       <div
@@ -50,7 +55,8 @@ export function TransportModeSelector({ value, onChange, dark = false, className
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" role="radiogroup" aria-label="Mode de transport">
         {SEND_TRANSPORT_MODES.map(m => {
           const active = value === m.id;
-          const soon = m.status === 'soon';
+          const soon = isModeSoon(m.id, liveModes);
+
           return (
             <button
               key={m.id}
