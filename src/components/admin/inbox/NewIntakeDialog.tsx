@@ -354,12 +354,13 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
     if (step === 2) {
       if (!data.service_kind) return false;
       if (data.service_kind === 'envoi') {
-        // Routier = Terminal D uniquement : ce wizard crée un dossier générique
-        // (pricingEngine + départs aériens), incompatible avec fret_courses.
-        // Routier → Terminal D ; Aérien (fret classique) et Maritime pas encore ouverts.
+        // Routier = Terminal D uniquement (grille + course dédiées).
+        // Aérien = ouvert en interne : aucun champ obligatoire pour l'admin.
+        if (data.transport_mode === 'air') return true;
         if (data.transport_mode !== 'gp') return false;
         return !!(data.origin_city && data.destination_city && data.weight_kg);
       }
+
 
       if (data.service_kind === 'sourcing') return !!(data.product && data.sourcing_country);
       if (data.service_kind === 'reception') return !!(data.origin_country_reception && data.description);
