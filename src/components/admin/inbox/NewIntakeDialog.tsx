@@ -318,8 +318,22 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [resumePromptShown, setResumePromptShown] = useState(false);
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [airFiles, setAirFiles] = useState<File[]>([]);
   const qc = useQueryClient();
   const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
+
+  const isAir = data.service_kind === 'envoi' && data.transport_mode === 'air';
+  const airEstimate = useMemo(
+    () => estimateAirFreight({
+      zone: findAirZone(data.air_city),
+      realKg: parseFloat(data.weight_kg),
+      lengthCm: parseFloat(data.air_length_cm),
+      widthCm: parseFloat(data.air_width_cm),
+      heightCm: parseFloat(data.air_height_cm),
+    }),
+    [data.air_city, data.weight_kg, data.air_length_cm, data.air_width_cm, data.air_height_cm],
+  );
+
 
   useEffect(() => {
     if (open && hasExisting && !resumePromptShown) {
