@@ -548,7 +548,26 @@ export function QuoteForm() {
           <SubmitBtn onClick={submit}>Créer mon adresse relais →</SubmitBtn>
         </div>
       )}
+
+      <ManualQuoteDialog
+        open={airQuoteOpen}
+        onOpenChange={setAirQuoteOpen}
+        prefill={{
+          origin_city: airCity || '—',
+          origin_country: null,
+          destination_city: 'Dakar',
+          destination_country: 'SN',
+          weight_kg: Number(weight) || 0,
+          transport_mode: 'air',
+          description: [
+            airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
+            (airL || airW || airH) && `Dimensions ${airL || '?'}×${airW || '?'}×${airH || '?'} cm`,
+            airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
+          ].filter(Boolean).join(' · ') || null,
+        }}
+      />
     </div>
+
   );
 }
 
