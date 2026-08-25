@@ -108,6 +108,24 @@ export function QuoteForm() {
   const [type, setType] = useState<GoodsType>('standard');
   const weightInputRef = useRef<HTMLInputElement>(null);
 
+  // Aérien (fret classique) — estimation indicative + demande de devis.
+  const [airCity, setAirCity] = useState('');
+  const [airL, setAirL] = useState('');
+  const [airW, setAirW] = useState('');
+  const [airH, setAirH] = useState('');
+  const [airQuoteOpen, setAirQuoteOpen] = useState(false);
+  const airEstimate = useMemo(
+    () => estimateAirFreight({
+      zone: findAirZone(airCity),
+      realKg: parseFloat(weight),
+      lengthCm: parseFloat(airL),
+      widthCm: parseFloat(airW),
+      heightCm: parseFloat(airH),
+    }),
+    [airCity, weight, airL, airW, airH],
+  );
+
+
   /** Routier = Terminal D : redirection immédiate dès la sélection du mode. */
   const goTerminalD = () => {
     const raw = direction === 'from_dakar' ? destination : origin;
