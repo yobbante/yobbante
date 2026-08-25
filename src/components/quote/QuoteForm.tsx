@@ -172,7 +172,8 @@ export function QuoteForm() {
       // Routier = Terminal D uniquement (national + international).
       if (mode === 'road') { goTerminalD(); return; }
       // Aérien (fret classique) et Maritime : pas encore opérationnels.
-      if (isModeSoon(mode)) return;
+      if (mode === 'air') { setAirQuoteOpen(true); return; }
+      if (isModeSoon(mode, PUBLIC_LIVE_MODES)) return;
       if (!origin || !destination || !weight) return;
       // Hand off directly to /expedier/envoyer with the same preset
       // shape ExpedierSearchBar consumes, so the flow shows the price
