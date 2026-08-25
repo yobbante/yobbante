@@ -285,13 +285,71 @@ export function QuoteForm() {
       {/* TAB 1 — SEND */}
       {service === 'send' && (
         <div className="space-y-3">
-          <TransportModeSelector value={mode} onChange={handleModeChange} />
-          {isModeSoon(mode) && <ModeSoonNotice mode={mode} />}
+          <TransportModeSelector value={mode} onChange={handleModeChange} liveModes={PUBLIC_LIVE_MODES} />
+          {isModeSoon(mode, PUBLIC_LIVE_MODES) && <ModeSoonNotice mode={mode} />}
           {mode === 'road' && (
             <div className="rounded-lg border border-border bg-secondary px-3 py-2.5 text-[12px]">
               Le transport routier se gère sur <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
             </div>
           )}
+          {mode === 'air' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <Field label="Ville de départ (aérien) *">
+                  <select
+                    aria-label="Ville de départ aérien"
+                    className="input-base w-full"
+                    value={airCity}
+                    onChange={e => setAirCity(e.target.value)}
+                  >
+                    <option value="">Choisir une ville…</option>
+                    {AIR_CITIES.map(c => (
+                      <option key={c.city} value={c.city}>{c.city} · {c.zoneLabel}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Poids réel (kg) *">
+                  <input
+                    type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 20"
+                    value={weight} onChange={e => setWeight(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                <Field label="Long. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="40" value={airL} onChange={e => setAirL(e.target.value)} />
+                </Field>
+                <Field label="Larg. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airW} onChange={e => setAirW(e.target.value)} />
+                </Field>
+                <Field label="Haut. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airH} onChange={e => setAirH(e.target.value)} />
+                </Field>
+              </div>
+              <p className="text-[10.5px] text-muted-foreground leading-snug">{AIR_VOLUMETRIC_HINT}</p>
+
+              <div
+                className="rounded-[10px] px-3 py-2.5"
+                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
+              >
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Estimation indicative
+                </div>
+                <div className="text-[15px] font-bold text-foreground leading-tight">
+                  {airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : '—'}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {airEstimate.detail || AIR_QUOTE_DISCLAIMER}
+                </div>
+                {airEstimate.price != null && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{AIR_QUOTE_DISCLAIMER}</div>
+                )}
+              </div>
+
+              <SubmitBtn onClick={() => setAirQuoteOpen(true)}>Demander un devis aérien →</SubmitBtn>
+            </div>
+          )}
+
           {mode === 'gp' && (
           <div className="space-y-3">
           <div className="flex items-center gap-2 text-[11px]">
