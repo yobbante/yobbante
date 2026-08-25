@@ -11,6 +11,15 @@ import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { estimateTransport } from '@/lib/pricing';
 import { lowestStartingPriceFcfa } from '@/lib/startingPrice';
+import { ManualQuoteDialog } from '@/components/flows/ManualQuoteDialog';
+import {
+  AIR_CITIES, AIR_QUOTE_DISCLAIMER, AIR_VOLUMETRIC_HINT,
+  estimateAirFreight, findAirZone, fmtFcfaAir,
+} from '@/lib/airFreight';
+
+/** Modes ouverts au public (l'aérien est désormais cliquable : devis indicatif + demande). */
+const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'road'];
+
 
 const SEND_PRESET_KEY = 'send-flow:preset';
 
