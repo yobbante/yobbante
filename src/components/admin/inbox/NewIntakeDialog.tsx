@@ -1088,16 +1088,17 @@ Merci de votre confiance.`;
           <div className="flex justify-between gap-2 pt-4 border-t">
             <Button
               variant="ghost"
-              onClick={() => step === 0 ? onOpenChange(false) : setStep(step - 1)}
+              onClick={() => step === 0 ? onOpenChange(false) : setStep(isAir && step === 4 ? 2 : step - 1)}
               disabled={saving}
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               {step === 0 ? 'Annuler' : 'Retour'}
             </Button>
             {step < TOTAL_STEPS - 1 ? (
-              <Button onClick={() => setStep(step + 1)} disabled={!canNext}>
+              <Button onClick={() => setStep(isAir && step === 2 ? 4 : step + 1)} disabled={!canNext}>
                 Suivant <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
+
             ) : (
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
