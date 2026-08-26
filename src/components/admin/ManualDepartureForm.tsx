@@ -773,11 +773,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void }) {
+function DateField({ label, value, onChange, minDate }: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void; minDate?: Date }) {
+  const [open, setOpen] = useState(false);
   return (
     <div>
       <Label>{label}</Label>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !value && 'text-muted-foreground')}>
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -785,9 +786,18 @@ function DateField({ label, value, onChange }: { label: string; value: Date | un
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar mode="single" selected={value} onSelect={onChange} initialFocus className={cn('p-3 pointer-events-auto')} />
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={(d) => { onChange(d); if (d) setOpen(false); }}
+            disabled={minDate ? (d: Date) => d < minDate : undefined}
+            defaultMonth={value ?? minDate}
+            initialFocus
+            className={cn('p-3 pointer-events-auto')}
+          />
         </PopoverContent>
       </Popover>
     </div>
   );
 }
+
