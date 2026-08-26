@@ -228,6 +228,23 @@ export function RequestsTab({
     onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
   });
 
+  /** Prix validé — modifiable partout (ex. correction après pesée réelle). */
+  const updateAmount = useMutation({
+    mutationFn: async ({ id, xof }: { id: string; xof: number | null }) => {
+      const { error } = await supabase.from('dossiers').update({ final_amount_xof: xof }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Montant mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      qc.invalidateQueries({ queryKey: ['admin-overview'] });
+      qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec mise à jour du montant'),
+  });
+
+
+
   const counts = useMemo(() => {
     const scope = dossiers.filter(d => !excludedSet.has(d.status));
     const c: Record<TypeFilter, number> = { all: scope.length, send: 0, receive: 0, sourcing: 0 };
