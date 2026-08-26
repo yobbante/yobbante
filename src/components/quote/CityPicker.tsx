@@ -10,7 +10,9 @@ export interface CityOption {
   city: string;
   country: string;
   countryLabel: string;
+  flag?: string;
 }
+
 
 interface CityPickerProps {
   value: string;
