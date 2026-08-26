@@ -37,6 +37,7 @@ import { sendGpMessage } from '@/lib/sendGpMessage';
 import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assignGpAndNotify';
 import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
+import { dossierAmount } from '@/lib/dossierAmount';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
