@@ -111,34 +111,105 @@ export function QuoteForm() {
   const [type, setType] = useState<GoodsType>('standard');
   const weightInputRef = useRef<HTMLInputElement>(null);
 
-  // Aérien (fret classique) — estimation indicative + demande de devis.
-  const [airCity, setAirCity] = useState('');
+  // Dimensions (fret aérien / maritime) — poids volumétrique.
   const [airL, setAirL] = useState('');
   const [airW, setAirW] = useState('');
   const [airH, setAirH] = useState('');
   const [airQuoteOpen, setAirQuoteOpen] = useState(false);
+
+  /** Ville hors Dakar de la route en cours. */
+  const otherCityLabel = direction === 'from_dakar' ? destination : origin;
+  const otherCity = (otherCityLabel || '').split(',')[0].trim();
+  const routeLabelShort = direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar';
+
   const airEstimate = useMemo(
     () => estimateAirFreight({
-      zone: findAirZone(airCity),
+      zone: findAirZone(otherCity),
       realKg: parseFloat(weight),
       lengthCm: parseFloat(airL),
       widthCm: parseFloat(airW),
       heightCm: parseFloat(airH),
     }),
-    [airCity, weight, airL, airW, airH],
+    [otherCity, weight, airL, airW, airH],
   );
 
+  // Villes desservies par mode — même sélecteur, catalogue différent.
+  const { destinations: fretDestinations } = useFretTarifs();
+  const modeOptions = useMemo<CityOption[] | undefined>(() => {
+    if (mode === 'gp') return undefined; // catalogue mondial complet
+    const dakar: CityOption = { id: 'SN-Dakar', city: 'Dakar', country: 'SN', countryLabel: 'Sénégal' };
+    if (mode === 'air') {
+      return [dakar, ...AIR_CITIES.map(c => ({
+        id: `AIR-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    if (mode === 'sea') {
+      return [dakar, ...SEA_PORTS.map(p => ({
+        id: `SEA-${p.city}`, city: p.city, country: p.country, countryLabel: p.countryLabel,
+      }))];
+    }
+    // road (Terminal D)
+    return [dakar, ...fretDestinations.map(d => ({
+      id: `ROAD-${d.id}`,
+      city: d.name,
+      country: d.country_code ?? 'SN',
+      countryLabel: d.scope === 'national' ? 'Sénégal' : 'Pays voisins',
+    }))];
+  }, [mode, fretDestinations]);
 
-  /** Routier = Terminal D : redirection immédiate dès la sélection du mode. */
+  const modeCitiesHint = useMemo(() => {
+    if (mode === 'gp') return 'Navettes GP · toutes destinations couvertes';
+    if (mode === 'air') return `Aérien · ${AIR_CITIES.length} villes desservies`;
+    if (mode === 'sea') return `Maritime · ${SEA_PORTS.length} ports desservis`;
+    return `Routier · ${fretDestinations.length || '50+'} destinations Terminal D`;
+  }, [mode, fretDestinations.length]);
+
+  /** Routier = Terminal D : le flow continue sur la page dédiée. */
   const goTerminalD = () => {
-    const raw = direction === 'from_dakar' ? destination : origin;
-    const cityOnly = (raw || '').split(',')[0].trim();
-    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+    navigate(otherCity && otherCity !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(otherCity)}` : '/terminal-d');
   };
   const handleModeChange = (m: SendTransportMode) => {
     setMode(m);
-    if (m === 'road') goTerminalD();
+    // Réinitialise la ville hors Dakar : les villes desservies changent selon le mode.
+    if (direction === 'from_dakar') setDestination('');
+    else setOrigin('');
   };
+
+  const estimateCard = useMemo(() => {
+    const w = Number(weight);
+    if (!origin || !destination) return null;
+    if (mode === 'gp') {
+      if (!w || w <= 0) return null;
+      const o = resolveCityToCountry(origin, customCities);
+      const d = resolveCityToCountry(destination, customCities);
+      const starting = lowestStartingPriceFcfa(w, o?.country, d?.country);
+      return {
+        title: 'À partir de',
+        value: `${starting.toLocaleString('fr-FR')} FCFA`,
+        detail: `${o?.city ?? '—'} → ${d?.city ?? '—'} · ${w} kg · prix confirmé à l'étape suivante`,
+      };
+    }
+    if (mode === 'air') {
+      return {
+        title: 'Estimation indicative',
+        value: airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : '—',
+        detail: airEstimate.detail || AIR_QUOTE_DISCLAIMER,
+      };
+    }
+    if (mode === 'sea') {
+      return {
+        title: 'Maritime',
+        value: 'Devis sur mesure',
+        detail: 'Groupage LCL · 18-25 jours · tarif confirmé par notre équipe.',
+      };
+    }
+    return {
+      title: 'Terminal D',
+      value: 'Prix calculé à l’étape suivante',
+      detail: `Dakar ↔ ${otherCity || '—'} · enlèvement à domicile inclus.`,
+    };
+  }, [mode, origin, destination, weight, customCities, airEstimate, otherCity]);
+
 
   // External trigger from the landing world map (or destination pills):
   // prefill the SEND tab with Dakar → <city> and focus the weight field.
