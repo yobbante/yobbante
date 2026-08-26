@@ -128,7 +128,35 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
             />
           </TabsContent>
 
+          <TabsContent value="gp" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['gp']}
+              title="Dossiers GP"
+              subtitle="Bagage accompagné — dossiers rattachés à un transporteur GP."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
+          <TabsContent value="aerien" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['air']}
+              title="Dossiers aériens"
+              subtitle="Fret aérien — devis indicatifs et dossiers confirmés."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
+          <TabsContent value="maritime" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['sea']}
+              title="Dossiers maritimes"
+              subtitle="Fret maritime (LCL) — en préparation."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
           <TabsContent value="routier"   className="mt-3 md:mt-4"><FretDossiersList /></TabsContent>
+
           <TabsContent value="reception" className="mt-3 md:mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-3 md:mt-4"><SourcingTab /></TabsContent>
           <TabsContent value="audit"     className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
