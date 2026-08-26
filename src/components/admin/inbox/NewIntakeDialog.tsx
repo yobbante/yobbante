@@ -321,6 +321,8 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [airFiles, setAirFiles] = useState<File[]>([]);
+  const [pickedClient, setPickedClient] = useState<ClientHit | null>(null);
+
   const qc = useQueryClient();
   const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
 
