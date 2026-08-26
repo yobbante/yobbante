@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { countryForCity } from '@/lib/worldCities';
 import { toast } from 'sonner';
 import { Loader2, UserPlus, Zap } from 'lucide-react';
+import { ClientSearchPicker, type ClientHit } from '@/components/admin/ClientSearchPicker';
+
 
 interface Props {
   open: boolean;
@@ -38,6 +40,7 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [picked, setPicked] = useState<ClientHit | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -45,12 +48,14 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
     setFirstName(parts[0] ?? '');
     setLastName(parts.slice(1).join(' '));
     setTel(phone || '');
+    setPicked(null);
     setOrigin('');
     setDestination('Dakar');
     setWeight('');
     setDescription('');
     setNotes(lastMessage ? `Demande WhatsApp : ${lastMessage.slice(0, 400)}` : '');
   }, [open, phone, contactName, lastMessage]);
+
 
   const fullName = `${firstName} ${lastName}`.trim();
 
@@ -128,6 +133,20 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
         </DialogHeader>
 
         <div className="space-y-3">
+          <ClientSearchPicker
+            selected={picked}
+            onSelect={(c) => {
+              setPicked(c);
+              const parts = (c.name || '').trim().split(/\s+/).filter(Boolean);
+              setFirstName(parts[0] ?? '');
+              setLastName(parts.slice(1).join(' '));
+              if (c.phone) setTel(c.phone);
+            }}
+            onClear={() => setPicked(null)}
+          />
+
+          {!picked && (
+          <>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[11px] font-semibold text-muted-foreground">Prénom</label>
@@ -143,6 +162,9 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
             <label className="text-[11px] font-semibold text-muted-foreground">Téléphone</label>
             <Input value={tel} onChange={(e) => setTel(e.target.value)} className="h-8 text-xs mt-1" />
           </div>
+          </>
+          )}
+
 
           <div className="grid grid-cols-2 gap-2">
             <div>

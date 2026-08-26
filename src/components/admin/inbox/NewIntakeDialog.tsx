@@ -25,6 +25,8 @@ import { estimateAirFreight, findAirZone, fmtFcfaAir } from '@/lib/airFreight';
 import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
+import { ClientSearchPicker, type ClientHit } from '@/components/admin/ClientSearchPicker';
+
 
 /** L'aérien est ouvert côté admin (tests internes) mais reste "bientôt" côté public. */
 const ADMIN_LIVE_MODES = ['gp', 'air', 'road'] as const;
@@ -319,6 +321,8 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [airFiles, setAirFiles] = useState<File[]>([]);
+  const [pickedClient, setPickedClient] = useState<ClientHit | null>(null);
+
   const qc = useQueryClient();
   const { match: clientMatch, loading: clientLookupLoading } = useClientLookup(data.client_phone);
 
@@ -753,6 +757,20 @@ Merci de votre confiance.`;
           {step === 1 && (
             <div className="space-y-3">
               <h3 className="text-base font-semibold">Qui est le client ?</h3>
+              <ClientSearchPicker
+                selected={pickedClient}
+                onSelect={(c) => {
+                  setPickedClient(c);
+                  update({
+                    client_name: c.name || data.client_name,
+                    client_phone: c.phone || data.client_phone,
+                    client_email: c.email || data.client_email,
+                    client_city: c.city || data.client_city,
+                  });
+                }}
+                onClear={() => setPickedClient(null)}
+              />
+              {!pickedClient && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">WhatsApp *</Label>
@@ -762,6 +780,7 @@ Merci de votre confiance.`;
                   <Label className="text-xs">Nom complet *</Label>
                   <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
                 </div>
+
                 <div>
                   <Label className="text-xs">Email</Label>
                   <Input type="email" value={data.client_email} onChange={e => update({ client_email: e.target.value })} />
@@ -771,11 +790,12 @@ Merci de votre confiance.`;
                   <Input value={data.client_city} onChange={e => update({ client_city: e.target.value })} placeholder="Dakar" />
                 </div>
               </div>
+              )}
 
-              {clientLookupLoading && (
+              {!pickedClient && clientLookupLoading && (
                 <p className="text-[11px] text-muted-foreground">Recherche client…</p>
               )}
-              {clientMatch && (
+              {!pickedClient && clientMatch && (
                 <Card className="p-3 border-primary/40 bg-primary/5 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     <UserCheck className="w-4 h-4 text-primary" />
@@ -801,9 +821,10 @@ Merci de votre confiance.`;
                   </Button>
                 </Card>
               )}
-              {data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
+              {!pickedClient && data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
                 <Badge variant="secondary" className="text-[11px]">Nouveau client</Badge>
               )}
+
 
               <RadioGroup
                 value={data.client_type}
