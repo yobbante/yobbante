@@ -753,6 +753,20 @@ Merci de votre confiance.`;
           {step === 1 && (
             <div className="space-y-3">
               <h3 className="text-base font-semibold">Qui est le client ?</h3>
+              <ClientSearchPicker
+                selected={pickedClient}
+                onSelect={(c) => {
+                  setPickedClient(c);
+                  update({
+                    client_name: c.name || data.client_name,
+                    client_phone: c.phone || data.client_phone,
+                    client_email: c.email || data.client_email,
+                    client_city: c.city || data.client_city,
+                  });
+                }}
+                onClear={() => setPickedClient(null)}
+              />
+              {!pickedClient && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">WhatsApp *</Label>
@@ -762,6 +776,7 @@ Merci de votre confiance.`;
                   <Label className="text-xs">Nom complet *</Label>
                   <Input value={data.client_name} onChange={e => update({ client_name: e.target.value })} placeholder="Prénom Nom" />
                 </div>
+
                 <div>
                   <Label className="text-xs">Email</Label>
                   <Input type="email" value={data.client_email} onChange={e => update({ client_email: e.target.value })} />
