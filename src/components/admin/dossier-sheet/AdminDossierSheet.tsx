@@ -37,6 +37,7 @@ import { sendGpMessage } from '@/lib/sendGpMessage';
 import { assignTransporteurAndNotify, releaseDossierDeparture } from '@/lib/assignGpAndNotify';
 import { AssignDepartureDialog } from '@/components/admin/dossiers/AssignDepartureDialog';
 import PricingBreakdownPanel from '@/components/admin/PricingBreakdownPanel';
+import { dossierAmount } from '@/lib/dossierAmount';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
@@ -1140,6 +1141,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         weightKg={dossier.actual_weight_kg ?? dossier.estimated_weight}
         isExpress={(dossier as any).is_express}
         isEstimate={(dossier as any).price_is_estimate ?? true}
+        manualTotalXof={dossierAmount(dossier as any).isFinal ? dossierAmount(dossier as any).xof : null}
       />
     </div>
   );

@@ -224,6 +224,7 @@ export function RequestsTab({
       toast.success('Statut mis à jour');
       qc.invalidateQueries({ queryKey: ['admin-requests'] });
       qc.invalidateQueries({ queryKey: ['admin-overview'] });
+      qc.invalidateQueries({ queryKey: ['fret-courses'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
   });
@@ -239,6 +240,9 @@ export function RequestsTab({
       qc.invalidateQueries({ queryKey: ['admin-requests'] });
       qc.invalidateQueries({ queryKey: ['admin-overview'] });
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
+      qc.invalidateQueries({ queryKey: ['fret-courses'] });
+      qc.invalidateQueries({ queryKey: ['admin-revenus'] });
+      qc.invalidateQueries({ queryKey: ['dossier'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Échec mise à jour du montant'),
   });
