@@ -703,8 +703,13 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   <div className="grid grid-cols-2 gap-2">
                     <DateField
                       label="Départ retour"
+                      minDate={departureDate ? addDays(departureDate, 1) : undefined}
                       value={returnDate}
                       onChange={(d) => {
+                        if (d && departureDate && d < addDays(departureDate, 1)) {
+                          toast.error('Le départ retour doit être au minimum J+1 après le départ aller.');
+                          return;
+                        }
                         setReturnDate(d);
                         if (d) {
                           setReturnArrival(estimateArrivalDate({
@@ -715,7 +720,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                         }
                       }}
                     />
-                    <DateField label="Arrivée retour" value={returnArrival} onChange={setReturnArrival} />
+                    <DateField label="Arrivée retour" value={returnArrival} onChange={setReturnArrival} minDate={returnDate} />
+
                   </div>
                 )}
               </div>
