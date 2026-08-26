@@ -21,13 +21,15 @@ import { getStatutsPourDossier } from '@/lib/dossierStatuts';
 import { getDossierBadges } from '@/lib/dossierBadges';
 import { GpAssignBadge } from './dossiers/GpAssignBadge';
 import { RoadAssignBadge } from './dossiers/RoadAssignBadge';
-import { resolveTransportMode } from '@/lib/transportMode';
+import { resolveTransportMode, type DossierTransportMode } from '@/lib/transportMode';
 import { AssignDepartureDialog } from './dossiers/AssignDepartureDialog';
 import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
 import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
+import { dossierAmount } from '@/lib/dossierAmount';
+import { InlineAmount } from './dossiers/dossierTableUi';
 
 
 
@@ -91,7 +93,7 @@ export interface RequestsTabProps {
   /** Optional override for the subtitle. */
   subtitle?: string;
   /** Ne garder que ces modes de transport (gp / air / sea / road). */
-  transportModes?: TransportModeId[];
+  transportModes?: DossierTransportMode[];
 }
 
 export function RequestsTab({
@@ -237,6 +239,10 @@ export function RequestsTab({
     return dossiers.filter(d => {
       if (excludedSet.has(d.status)) return false;
       if (kind !== 'all' && getKind(d) !== kind) return false;
+      if (transportModes && transportModes.length > 0) {
+        const m = resolveTransportMode(d);
+        if (!m || !transportModes.includes(m)) return false;
+      }
       if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false;
       if (q) {
         const s = q.toLowerCase();
@@ -250,7 +256,7 @@ export function RequestsTab({
       }
       return true;
     });
-  }, [dossiers, q, kind, statusFilter, excludedSet]);
+  }, [dossiers, q, kind, statusFilter, excludedSet, transportModes]);
 
   const statusCounts = useMemo(() => {
     const c = new Map<DossierStatus, number>();
@@ -407,8 +413,8 @@ export function RequestsTab({
                 const k = getKind(d);
                 const isOpen = expandedId === d.id;
                 const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
-                const amountXof = (d as any).final_amount_xof
-                  ?? ((d as any).estimated_cost != null ? Math.round(Number((d as any).estimated_cost) * 655.957) : null);
+                const amountInfo = dossierAmount(d as any);
+                const amountXof = amountInfo.xof;
                 const timing = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
 
                 return (
@@ -505,13 +511,11 @@ export function RequestsTab({
                       </td>
                       {/* Montant */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle text-right tabular-nums hidden md:table-cell">
-                        {amountXof != null ? (
-                          <span className="text-foreground font-medium text-[13px]">
-                            {new Intl.NumberFormat('fr-FR').format(amountXof)} <span className="text-muted-foreground text-[10px]">FCFA</span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
+                        <InlineAmount
+                          value={amountXof}
+                          isFinal={amountInfo.isFinal}
+                          onSave={(v) => updateAmount.mutateAsync({ id: d.id, xof: v })}
+                        />
                       </td>
                     </tr>
 
@@ -526,14 +530,14 @@ export function RequestsTab({
                                 {timing.label} :{' '}
                                 <span className={cn('font-medium', TIMING_TONE_CLASS[timing.tone])}>{timing.value}</span>
                               </span>
-                              {amountXof != null && (
-                                <span className="text-muted-foreground">
-                                  Montant :{' '}
-                                  <span className="font-medium text-foreground tabular-nums">
-                                    {new Intl.NumberFormat('fr-FR').format(amountXof)} FCFA
-                                  </span>
-                                </span>
-                              )}
+                              <span className="text-muted-foreground inline-flex items-center gap-1">
+                                Montant :{' '}
+                                <InlineAmount
+                                  value={amountXof}
+                                  isFinal={amountInfo.isFinal}
+                                  onSave={(v) => updateAmount.mutateAsync({ id: d.id, xof: v })}
+                                />
+                              </span>
                             </div>
                             <div className="rounded-lg border border-border bg-background/60 px-3 py-2 overflow-x-auto">
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
