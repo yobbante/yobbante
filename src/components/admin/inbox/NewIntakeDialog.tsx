@@ -786,11 +786,12 @@ Merci de votre confiance.`;
                   <Input value={data.client_city} onChange={e => update({ client_city: e.target.value })} placeholder="Dakar" />
                 </div>
               </div>
+              )}
 
-              {clientLookupLoading && (
+              {!pickedClient && clientLookupLoading && (
                 <p className="text-[11px] text-muted-foreground">Recherche client…</p>
               )}
-              {clientMatch && (
+              {!pickedClient && clientMatch && (
                 <Card className="p-3 border-primary/40 bg-primary/5 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     <UserCheck className="w-4 h-4 text-primary" />
@@ -816,9 +817,10 @@ Merci de votre confiance.`;
                   </Button>
                 </Card>
               )}
-              {data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
+              {!pickedClient && data.client_phone.replace(/\D/g, '').length >= 8 && !clientLookupLoading && !clientMatch && (
                 <Badge variant="secondary" className="text-[11px]">Nouveau client</Badge>
               )}
+
 
               <RadioGroup
                 value={data.client_type}
