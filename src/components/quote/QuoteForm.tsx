@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Search, Inbox, ArrowRightLeft, MapPin } from 'lucide-react';
+import { Package, Search, Inbox, MapPin } from 'lucide-react';
 import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
 } from '@/lib/quote';
-import { CityPicker } from './CityPicker';
-import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from './TransportModeSelector';
+import { CityPicker, type CityOption } from './CityPicker';
+import { TransportModeSelector, type SendTransportMode } from './TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
+import { useFretTarifs } from '@/hooks/useFretTarifs';
 import { estimateTransport } from '@/lib/pricing';
 import { lowestStartingPriceFcfa } from '@/lib/startingPrice';
 import { ManualQuoteDialog } from '@/components/flows/ManualQuoteDialog';
@@ -17,8 +18,23 @@ import {
   estimateAirFreight, findAirZone, fmtFcfaAir,
 } from '@/lib/airFreight';
 
-/** Modes ouverts au public (l'aérien est désormais cliquable : devis indicatif + demande). */
-const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'road'];
+/** Modes ouverts au public — les 4 modes partagent désormais le même parcours. */
+const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'sea', 'road'];
+
+/** Ports desservis en groupage maritime (LCL) vers/depuis Dakar. */
+const SEA_PORTS: { city: string; country: string; countryLabel: string }[] = [
+  { city: 'Le Havre', country: 'FR', countryLabel: 'France' },
+  { city: 'Marseille', country: 'FR', countryLabel: 'France' },
+  { city: 'Anvers', country: 'BE', countryLabel: 'Belgique' },
+  { city: 'Barcelone', country: 'ES', countryLabel: 'Espagne' },
+  { city: 'Casablanca', country: 'MA', countryLabel: 'Maroc' },
+  { city: 'Shanghai', country: 'CN', countryLabel: 'Chine' },
+  { city: 'Guangzhou', country: 'CN', countryLabel: 'Chine' },
+  { city: 'Dubaï', country: 'AE', countryLabel: 'Émirats arabes unis' },
+  { city: 'Istanbul', country: 'TR', countryLabel: 'Turquie' },
+  { city: 'New York', country: 'US', countryLabel: 'USA' },
+];
+
 
 
 const SEND_PRESET_KEY = 'send-flow:preset';
