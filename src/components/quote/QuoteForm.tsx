@@ -542,18 +542,19 @@ export function QuoteForm() {
         open={airQuoteOpen}
         onOpenChange={setAirQuoteOpen}
         prefill={{
-          origin_city: airCity || '—',
-          origin_country: null,
-          destination_city: 'Dakar',
-          destination_country: 'SN',
+          origin_city: (origin || '—').split(',')[0].trim(),
+          origin_country: direction === 'from_dakar' ? 'SN' : null,
+          destination_city: (destination || '—').split(',')[0].trim(),
+          destination_country: direction === 'to_dakar' ? 'SN' : null,
           weight_kg: Number(weight) || 0,
-          transport_mode: 'air',
+          transport_mode: mode === 'sea' ? 'sea' : 'air',
           description: [
-            airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
+            mode === 'air' && airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
             (airL || airW || airH) && `Dimensions ${airL || '?'}×${airW || '?'}×${airH || '?'} cm`,
-            airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
+            mode === 'air' && airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
           ].filter(Boolean).join(' · ') || null,
         }}
+
       />
     </div>
 
