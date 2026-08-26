@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -93,6 +93,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [mode, setMode] = useState<TransportMode>('air');
   const [departureDate, setDepartureDate] = useState<Date | undefined>();
   const [arrivalEstimate, setArrivalEstimate] = useState<Date | undefined>();
+  // Aller-retour : crée en une fois le départ retour (sens inversé).
+  const [roundTrip, setRoundTrip] = useState(false);
+  const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
+  const [returnArrival, setReturnArrival] = useState<Date | undefined>(undefined);
   const [useFixedPrice, setUseFixedPrice] = useState(false);
   const [priceOverride, setPriceOverride] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
@@ -339,6 +343,27 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         savedDeparture = await create.mutateAsync(input);
       }
 
+      // 2b) Aller-retour : on enchaîne immédiatement le départ inverse.
+      if (!isEdit && roundTrip) {
+        const retDeparture = returnDate ?? addDays(safeDepartureDate, 7);
+        const retArrival = returnArrival ?? estimateArrivalDate({
+          destinationCountry: input.origin_country ?? 'SN',
+          destinationCity: input.origin_city,
+          departureDate: retDeparture,
+        });
+        await create.mutateAsync({
+          ...input,
+          origin_country: input.destination_country,
+          origin_city: input.destination_city,
+          destination_country: input.origin_country,
+          destination_city: input.origin_city,
+          departure_date: format(retDeparture, 'yyyy-MM-dd'),
+          arrival_estimate: retArrival ? format(retArrival, 'yyyy-MM-dd') : null,
+          notes: [input.notes, 'Retour (aller-retour)'].filter(Boolean).join(' · '),
+        });
+        toast.success('Départ retour créé automatiquement.');
+      }
+
       // 3) Fire-and-forget WhatsApp notification only when transporter info exists
       if (hasTransporter && tTel1.trim() && tNom.trim()) {
         const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
@@ -395,6 +420,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         setMode('gp');
         setDepartureDate(undefined);
         setArrivalEstimate(undefined);
+        setRoundTrip(false); setReturnDate(undefined); setReturnArrival(undefined);
         setUseFixedPrice(false); setPriceOverride('');
         setNotes('');
         // Ne pas fermer — l'admin peut enchaîner un autre départ.
@@ -646,6 +672,53 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               >
                 <Sparkles className="w-3 h-3" /> Recalculer l'arrivée estimée
               </button>
+            )}
+
+            {!isEdit && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label className="cursor-pointer">Aller-retour</Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Crée aussi le départ inverse ({destCity || 'destination'} → {originCity || 'Dakar'}) en une seule fiche.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={roundTrip}
+                    onCheckedChange={(v) => {
+                      setRoundTrip(v);
+                      if (v && !returnDate && departureDate) {
+                        const rd = addDays(departureDate, 7);
+                        setReturnDate(rd);
+                        setReturnArrival(estimateArrivalDate({
+                          destinationCountry: direction === 'from_dakar' ? 'SN' : destCountry,
+                          destinationCity: direction === 'from_dakar' ? 'Dakar' : destCity,
+                          departureDate: rd,
+                        }));
+                      }
+                    }}
+                  />
+                </div>
+                {roundTrip && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateField
+                      label="Départ retour"
+                      value={returnDate}
+                      onChange={(d) => {
+                        setReturnDate(d);
+                        if (d) {
+                          setReturnArrival(estimateArrivalDate({
+                            destinationCountry: direction === 'from_dakar' ? 'SN' : destCountry,
+                            destinationCity: direction === 'from_dakar' ? 'Dakar' : destCity,
+                            departureDate: d,
+                          }));
+                        }
+                      }}
+                    />
+                    <DateField label="Arrivée retour" value={returnArrival} onChange={setReturnArrival} />
+                  </div>
+                )}
+              </div>
             )}
           </Section>
 

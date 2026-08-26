@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon } from 'lucide-react';
+import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon, Plane, Ship, Users } from 'lucide-react';
 import { HubHeader, HubTab } from './hub-ui';
 
 
@@ -20,9 +20,10 @@ import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 import { ClientAuditPanel } from './ClientAuditPanel';
 import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
-const TABS = ['tous', 'demandes', 'routier', 'reception', 'sourcing', 'audit'] as const;
+const TABS = ['tous', 'demandes', 'gp', 'aerien', 'maritime', 'routier', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
 const DEFAULT_TAB: TabId = 'demandes';
+
 
 export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
   const [sp, setSp] = useSearchParams();
@@ -83,7 +84,11 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
                   </span>
                 ) : undefined}
               />
+              <HubTab value="gp"        icon={Users}       label="GP" />
+              <HubTab value="aerien"    icon={Plane}       label="Aérien" />
+              <HubTab value="maritime"  icon={Ship}        label="Maritime" />
               <HubTab value="routier"   icon={RouteIcon}   label="Routier" />
+
               <HubTab value="reception" icon={PackageOpen} label="Réception" />
               <HubTab value="sourcing"  icon={ShoppingCart} label="Sourcing" />
               <HubTab value="audit"     icon={ShieldCheck}  label="Audit & Test" />
@@ -123,7 +128,35 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
             />
           </TabsContent>
 
+          <TabsContent value="gp" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['gp']}
+              title="Dossiers GP"
+              subtitle="Bagage accompagné — dossiers rattachés à un transporteur GP."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
+          <TabsContent value="aerien" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['air']}
+              title="Dossiers aériens"
+              subtitle="Fret aérien — devis indicatifs et dossiers confirmés."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
+          <TabsContent value="maritime" className="mt-3 md:mt-4">
+            <RequestsTab
+              hideHeader
+              transportModes={['sea']}
+              title="Dossiers maritimes"
+              subtitle="Fret maritime (LCL) — en préparation."
+              excludeStatuses={['CANCELLED', 'ARCHIVED']}
+            />
+          </TabsContent>
           <TabsContent value="routier"   className="mt-3 md:mt-4"><FretDossiersList /></TabsContent>
+
           <TabsContent value="reception" className="mt-3 md:mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-3 md:mt-4"><SourcingTab /></TabsContent>
           <TabsContent value="audit"     className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
