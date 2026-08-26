@@ -84,7 +84,11 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
                   </span>
                 ) : undefined}
               />
+              <HubTab value="gp"        icon={Users}       label="GP" />
+              <HubTab value="aerien"    icon={Plane}       label="Aérien" />
+              <HubTab value="maritime"  icon={Ship}        label="Maritime" />
               <HubTab value="routier"   icon={RouteIcon}   label="Routier" />
+
               <HubTab value="reception" icon={PackageOpen} label="Réception" />
               <HubTab value="sourcing"  icon={ShoppingCart} label="Sourcing" />
               <HubTab value="audit"     icon={ShieldCheck}  label="Audit & Test" />
