@@ -26,6 +26,8 @@ interface Props {
   weightKg?: number | null;
   isExpress?: boolean;
   isEstimate?: boolean;
+  /** Prix validé saisi manuellement (final_amount_xof / total_fcfa) — prioritaire. */
+  manualTotalXof?: number | null;
 }
 
 const ZONE_LABEL: Record<string, string> = {
@@ -42,6 +44,11 @@ export default function PricingBreakdownPanel(props: Props) {
     props.enlevementAmount ?? enlevementForZone(props.pickupZone);
   const gpRate = props.gpRatePerKg ?? 0;
   const margePerKg = gpRate * (marginPct / 100);
+  const manual = props.manualTotalXof ?? null;
+  const effectiveTotal = manual ?? props.totalDisplayedPrice ?? null;
+  const cost = props.totalCostPrice ?? null;
+  const netMargin =
+    manual != null && cost != null ? manual - cost : props.yobbanteGrossMargin ?? null;
   const zoneLabel = ZONE_LABEL[String(props.pickupZone ?? 'dakar_centre')] ?? 'Dakar centre';
 
   return (
@@ -76,11 +83,24 @@ export default function PricingBreakdownPanel(props: Props) {
 
           <div className="col-span-2 border-t border-amber-500/20 my-1" />
 
-          <Row label="TOTAL CLIENT" value={formatFcfa(props.totalDisplayedPrice)} highlight />
+          <Row label="TOTAL CLIENT" value={formatFcfa(effectiveTotal)} highlight />
+          {manual != null && props.totalDisplayedPrice != null && manual !== props.totalDisplayedPrice ? (
+            <Row
+              label="Calcul automatique (remplacé)"
+              value={<span className="line-through">{formatFcfa(props.totalDisplayedPrice)}</span>}
+              muted
+            />
+          ) : null}
           <Row label="Coût GP" value={formatFcfa(props.totalCostPrice)} muted />
-          <Row label="Marge nette Yobbanté" value={formatFcfa(props.yobbanteGrossMargin)} highlight />
+          <Row label="Marge nette Yobbanté" value={formatFcfa(netMargin)} highlight />
 
-          {props.isEstimate && (
+          {manual != null && (
+            <div className="col-span-2 text-xs text-emerald-400/90">
+              ✅ Tarif validé manuellement — c'est ce montant qui s'affiche partout (finances, client, devis).
+            </div>
+          )}
+
+          {props.isEstimate && manual == null && (
             <div className="col-span-2 text-xs text-amber-400/80 italic">
               ⚠️ Prix estimatif — pas encore confirmé (GP non assigné ou sans tarif).
             </div>

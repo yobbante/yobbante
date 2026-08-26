@@ -1140,6 +1140,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
         weightKg={dossier.actual_weight_kg ?? dossier.estimated_weight}
         isExpress={(dossier as any).is_express}
         isEstimate={(dossier as any).price_is_estimate ?? true}
+        manualTotalXof={dossierAmount(dossier as any).isFinal ? dossierAmount(dossier as any).xof : null}
       />
     </div>
   );
