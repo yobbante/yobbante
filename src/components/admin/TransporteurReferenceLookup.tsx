@@ -27,6 +27,38 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQ, setPickerQ] = useState('');
+  const [searchQ, setSearchQ] = useState(value ?? '');
+
+  useEffect(() => {
+    // keep the search box in sync when the ref is set from outside (prefill / picker)
+    if (/^[0-9]{4}$/.test(value) && searchQ !== value) setSearchQ(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const searchTerm = searchQ.trim().toLowerCase();
+  const doSearch = searchTerm.length >= 2 && !/^[0-9]{1,4}$/.test(searchTerm);
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['transporteurs-search', searchTerm],
+    enabled: doSearch,
+    queryFn: async (): Promise<Transporteur[]> => {
+      const { data } = await supabase
+        .from('transporteurs' as any)
+        .select('*')
+        .eq('actif', true)
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      const list = (data ?? []) as unknown as Transporteur[];
+      return list.filter(g =>
+        (g.reference ?? '').includes(searchTerm) ||
+        (g.nom ?? '').toLowerCase().includes(searchTerm) ||
+        (g.prenom ?? '').toLowerCase().includes(searchTerm) ||
+        (`${g.prenom ?? ''} ${g.nom ?? ''}`).toLowerCase().includes(searchTerm) ||
+        (g.telephone_1 ?? '').includes(searchTerm) ||
+        uniqueCitiesFromNavettes(g.navettes).some(c => c.toLowerCase().includes(searchTerm)),
+      ).slice(0, 25);
+    },
+  });
 
   useEffect(() => {
     let cancelled = false;
