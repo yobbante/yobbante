@@ -150,22 +150,6 @@ export default function LandingPage() {
         }}
       >
         <div className="w-full max-w-[1180px] mx-auto flex flex-col items-center text-center">
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '6px 14px',
-              borderRadius: 999,
-              background: '#F4F4F5',
-              color: '#52525B',
-              fontSize: 13,
-              letterSpacing: '0.06em',
-              fontWeight: 500,
-            }}
-          >
-            Dakar · Abidjan · Paris · New York · Dubai
-          </span>
 
           <h1
             style={{
@@ -189,6 +173,19 @@ export default function LandingPage() {
 
           <p
             style={{
+              fontSize: 15,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.45)',
+              fontWeight: 300,
+              margin: '4px 0 16px',
+            }}
+          >
+            Dakar · Abidjan · Paris · New York · Dubai · London · Montréal
+          </p>
+
+          <p
+            style={{
               maxWidth: 440,
               fontSize: 18,
               lineHeight: 1.55,
@@ -196,9 +193,11 @@ export default function LandingPage() {
               margin: '0 0 36px',
             }}
           >
-            Vos colis voyagent avec des personnes de confiance. Prix
-            instantané. Pas d'appel.
+            Entre Dakar et le monde — dans les deux sens.
+            <br />
+            Prix instantané. Sans attente.
           </p>
+
 
           {/* Search card (kept) */}
           <div
