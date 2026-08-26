@@ -283,113 +283,29 @@ export function QuoteForm() {
         })}
       </div>
 
-      {/* TAB 1 — SEND */}
+      {/* TAB 1 — SEND : un seul et même parcours pour les 4 modes */}
       {service === 'send' && (
         <div className="space-y-3">
           <TransportModeSelector value={mode} onChange={handleModeChange} liveModes={PUBLIC_LIVE_MODES} />
-          {isModeSoon(mode, PUBLIC_LIVE_MODES) && <ModeSoonNotice mode={mode} />}
-          {mode === 'road' && (
-            <div className="rounded-lg border border-border bg-secondary px-3 py-2.5 text-[12px]">
-              Le transport routier se gère sur <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
-            </div>
-          )}
-          {mode === 'air' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <Field label="Ville de départ (aérien) *">
-                  <select
-                    aria-label="Ville de départ aérien"
-                    className="input-base w-full"
-                    value={airCity}
-                    onChange={e => setAirCity(e.target.value)}
-                  >
-                    <option value="">Choisir une ville…</option>
-                    {AIR_CITIES.map(c => (
-                      <option key={c.city} value={c.city}>{c.city} · {c.zoneLabel}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Poids réel (kg) *">
-                  <input
-                    type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 20"
-                    value={weight} onChange={e => setWeight(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                <Field label="Long. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="40" value={airL} onChange={e => setAirL(e.target.value)} />
-                </Field>
-                <Field label="Larg. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airW} onChange={e => setAirW(e.target.value)} />
-                </Field>
-                <Field label="Haut. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airH} onChange={e => setAirH(e.target.value)} />
-                </Field>
-              </div>
-              <p className="text-[10.5px] text-muted-foreground leading-snug">{AIR_VOLUMETRIC_HINT}</p>
 
-              <div
-                className="rounded-[10px] px-3 py-2.5"
-                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
-              >
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                  Estimation indicative
-                </div>
-                <div className="text-[15px] font-bold text-foreground leading-tight">
-                  {airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : '—'}
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  {airEstimate.detail || AIR_QUOTE_DISCLAIMER}
-                </div>
-                {airEstimate.price != null && (
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{AIR_QUOTE_DISCLAIMER}</div>
-                )}
-              </div>
-
-              <SubmitBtn onClick={() => setAirQuoteOpen(true)}>Demander un devis aérien →</SubmitBtn>
-            </div>
-          )}
-
-          {mode === 'gp' && (
-          <div className="space-y-3">
+          {/* Route — Dakar est automatiquement verrouillé sur une extrémité */}
           <div className="flex items-center gap-2 text-[11px]">
-
             <span
               className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
               style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
-              title="Dakar est toujours une extrémité de la route"
             >
               <MapPin className="w-3 h-3" />
-              {direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar'}
+              {routeLabelShort}
             </span>
-            <button
-              type="button"
-              onClick={swapDirection}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground hover:text-foreground"
-              style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-              aria-label="Inverser le sens"
-            >
-              <ArrowRightLeft className="w-3 h-3" />
-              Inverser
-            </button>
+            <span className="text-muted-foreground truncate">{modeCitiesHint}</span>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Origine *">
               <CityPicker
                 value={origin}
-                onChange={(v) => {
-                  if (v === DAKAR) {
-                    setDirection('from_dakar');
-                    setOrigin(DAKAR);
-                    if (destination === DAKAR) setDestination('');
-                  } else {
-                    // Choisir une autre ville en origine ⇒ Dakar devient destination
-                    setDirection('to_dakar');
-                    setOrigin(v);
-                    setDestination(DAKAR);
-                  }
-                }}
+                onChange={(v) => pickCity('origin', v)}
+                options={modeOptions}
                 placeholder="Choisir une ville d'origine…"
                 ariaLabel="Choisir la ville d'origine"
                 excludeCity={direction === 'to_dakar' ? 'Dakar' : undefined}
@@ -398,18 +314,8 @@ export function QuoteForm() {
             <Field label="Destination *">
               <CityPicker
                 value={destination}
-                onChange={(v) => {
-                  if (v === DAKAR) {
-                    setDirection('to_dakar');
-                    setDestination(DAKAR);
-                    if (origin === DAKAR) setOrigin('');
-                  } else {
-                    // Choisir une autre ville en destination ⇒ Dakar devient origine
-                    setDirection('from_dakar');
-                    setDestination(v);
-                    setOrigin(DAKAR);
-                  }
-                }}
+                onChange={(v) => pickCity('destination', v)}
+                options={modeOptions}
                 placeholder="Choisir une ville de destination…"
                 ariaLabel="Choisir la ville de destination"
                 excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
@@ -422,44 +328,51 @@ export function QuoteForm() {
               <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
             </Field>
-            <Field label="Type">
-              <select aria-label="Type de marchandise" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
+            <Field label="Type de colis">
+              <select aria-label="Type de colis" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
                 {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
           </div>
 
-          {(() => {
-            const w = Number(weight);
-            if (!origin || !destination || !w || w <= 0) return null;
-            const o = resolveCityToCountry(origin, customCities);
-            const d = resolveCityToCountry(destination, customCities);
-            const starting = lowestStartingPriceFcfa(w, o?.country, d?.country);
-            const corridorLabel = `${o?.city ?? '—'} → ${d?.city ?? '—'}`;
-            return (
-              <div
-                className="rounded-[10px] px-3 py-2.5 flex items-center justify-between gap-3"
-                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
-              >
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    À partir de
-                  </div>
-                  <div className="text-[15px] font-bold text-foreground leading-tight truncate">
-                    {starting.toLocaleString('fr-FR')} FCFA
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                    {corridorLabel} · {w} kg · prix confirmé à l'étape suivante
-                  </div>
-                </div>
+          {/* Dimensions — utiles uniquement en fret aérien / maritime (poids volumétrique) */}
+          {(mode === 'air' || mode === 'sea') && (
+            <>
+              <div className="grid grid-cols-3 gap-2.5">
+                <Field label="Long. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="40" value={airL} onChange={e => setAirL(e.target.value)} />
+                </Field>
+                <Field label="Larg. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airW} onChange={e => setAirW(e.target.value)} />
+                </Field>
+                <Field label="Haut. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airH} onChange={e => setAirH(e.target.value)} />
+                </Field>
               </div>
-            );
-          })()}
-          <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
-          </div>
+              <p className="text-[10.5px] text-muted-foreground leading-snug">{AIR_VOLUMETRIC_HINT}</p>
+            </>
           )}
+
+          {/* Estimation — même encart pour tous les modes */}
+          {estimateCard && (
+            <div
+              className="rounded-[10px] px-3 py-2.5"
+              style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
+            >
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                {estimateCard.title}
+              </div>
+              <div className="text-[15px] font-bold text-foreground leading-tight truncate">
+                {estimateCard.value}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">{estimateCard.detail}</div>
+            </div>
+          )}
+
+          <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
         </div>
       )}
+
 
 
       {/* TAB 2 — SOURCING */}
