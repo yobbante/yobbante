@@ -5,6 +5,15 @@ import { ALL_CITIES, HUB_DAKAR } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { cn } from '@/lib/utils';
 
+export interface CityOption {
+  id: string;
+  city: string;
+  country: string;
+  countryLabel: string;
+  flag?: string;
+}
+
+
 interface CityPickerProps {
   value: string;
   onChange: (v: string) => void;
@@ -14,6 +23,8 @@ interface CityPickerProps {
   excludeCity?: string;
   /** Inclure Dakar (hub) dans la liste — utile côté admin où les 2 sens existent */
   includeHub?: boolean;
+  /** Remplace entièrement le catalogue de villes (villes desservies par mode) */
+  options?: CityOption[];
   className?: string;
 }
 
@@ -33,8 +44,9 @@ const FOCUSABLE_SEL =
 
 export function CityPicker({
   value, onChange, placeholder = 'Choisir une ville…',
-  ariaLabel = 'Choisir une ville', excludeCity, includeHub = false, className,
+  ariaLabel = 'Choisir une ville', excludeCity, includeHub = false, options, className,
 }: CityPickerProps) {
+
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -51,7 +63,10 @@ export function CityPicker({
   const { cities: customCities } = useCustomCities();
   const cities = useMemo(() => {
     const seen = new Set<string>();
-    return [...(includeHub ? [HUB_DAKAR] : []), ...ALL_CITIES, ...customCities]
+    const base = options
+      ? options
+      : [...(includeHub ? [HUB_DAKAR] : []), ...ALL_CITIES, ...customCities];
+    return base
       .filter(c => !excludeCity || c.city !== excludeCity)
       .filter(c => {
         const key = `${c.country}-${c.city}`.toLowerCase();
@@ -59,7 +74,8 @@ export function CityPicker({
         seen.add(key);
         return true;
       });
-  }, [excludeCity, customCities, includeHub]);
+  }, [excludeCity, customCities, includeHub, options]);
+
 
   const filtered = useMemo(() => {
     const nq = norm(debouncedQ.trim());

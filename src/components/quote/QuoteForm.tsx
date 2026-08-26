@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Search, Inbox, ArrowRightLeft, MapPin } from 'lucide-react';
+import { Package, Search, Inbox, MapPin } from 'lucide-react';
 import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
 } from '@/lib/quote';
-import { CityPicker } from './CityPicker';
-import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from './TransportModeSelector';
+import { CityPicker, type CityOption } from './CityPicker';
+import { TransportModeSelector, type SendTransportMode } from './TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
+import { useFretTarifs } from '@/hooks/useFretTarifs';
 import { estimateTransport } from '@/lib/pricing';
 import { lowestStartingPriceFcfa } from '@/lib/startingPrice';
 import { ManualQuoteDialog } from '@/components/flows/ManualQuoteDialog';
@@ -17,8 +18,23 @@ import {
   estimateAirFreight, findAirZone, fmtFcfaAir,
 } from '@/lib/airFreight';
 
-/** Modes ouverts au public (l'aérien est désormais cliquable : devis indicatif + demande). */
-const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'road'];
+/** Modes ouverts au public — les 4 modes partagent désormais le même parcours. */
+const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'sea', 'road'];
+
+/** Ports desservis en groupage maritime (LCL) vers/depuis Dakar. */
+const SEA_PORTS: { city: string; country: string; countryLabel: string }[] = [
+  { city: 'Le Havre', country: 'FR', countryLabel: 'France' },
+  { city: 'Marseille', country: 'FR', countryLabel: 'France' },
+  { city: 'Anvers', country: 'BE', countryLabel: 'Belgique' },
+  { city: 'Barcelone', country: 'ES', countryLabel: 'Espagne' },
+  { city: 'Casablanca', country: 'MA', countryLabel: 'Maroc' },
+  { city: 'Shanghai', country: 'CN', countryLabel: 'Chine' },
+  { city: 'Guangzhou', country: 'CN', countryLabel: 'Chine' },
+  { city: 'Dubaï', country: 'AE', countryLabel: 'Émirats arabes unis' },
+  { city: 'Istanbul', country: 'TR', countryLabel: 'Turquie' },
+  { city: 'New York', country: 'US', countryLabel: 'USA' },
+];
+
 
 
 const SEND_PRESET_KEY = 'send-flow:preset';
@@ -83,59 +99,133 @@ export function QuoteForm() {
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
   const [origin, setOrigin] = useState(DAKAR);
   const [destination, setDestination] = useState('');
-  const swapDirection = () => {
-    const bothFilled = origin && destination;
-    if (bothFilled) {
-      // Échange simple en gardant les deux villes
-      const prevOrigin = origin;
-      setOrigin(destination);
-      setDestination(prevOrigin);
-      setDirection(direction === 'from_dakar' ? 'to_dakar' : 'from_dakar');
+  /**
+   * Sélection fluide : plus de bouton « Inverser ».
+   * Dakar reste toujours à une extrémité — dès qu'on choisit une autre ville,
+   * l'autre champ bascule automatiquement sur Dakar.
+   */
+  const pickCity = (field: 'origin' | 'destination', v: string) => {
+    if (v === DAKAR) {
+      if (field === 'origin') {
+        setDirection('from_dakar'); setOrigin(DAKAR);
+        if (destination === DAKAR) setDestination('');
+      } else {
+        setDirection('to_dakar'); setDestination(DAKAR);
+        if (origin === DAKAR) setOrigin('');
+      }
       return;
     }
-    if (direction === 'from_dakar') {
-      setDirection('to_dakar');
-      setOrigin('');
-      setDestination(DAKAR);
+    if (field === 'origin') {
+      setDirection('to_dakar'); setOrigin(v); setDestination(DAKAR);
     } else {
-      setDirection('from_dakar');
-      setOrigin(DAKAR);
-      setDestination('');
+      setDirection('from_dakar'); setDestination(v); setOrigin(DAKAR);
     }
   };
+
   const [weight, setWeight] = useState('');
   const [mode, setMode] = useState<SendTransportMode>('gp');
   const [type, setType] = useState<GoodsType>('standard');
   const weightInputRef = useRef<HTMLInputElement>(null);
 
-  // Aérien (fret classique) — estimation indicative + demande de devis.
-  const [airCity, setAirCity] = useState('');
+  // Dimensions (fret aérien / maritime) — poids volumétrique.
   const [airL, setAirL] = useState('');
   const [airW, setAirW] = useState('');
   const [airH, setAirH] = useState('');
   const [airQuoteOpen, setAirQuoteOpen] = useState(false);
+
+  /** Ville hors Dakar de la route en cours. */
+  const otherCityLabel = direction === 'from_dakar' ? destination : origin;
+  const otherCity = (otherCityLabel || '').split(',')[0].trim();
+  const routeLabelShort = direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar';
+
   const airEstimate = useMemo(
     () => estimateAirFreight({
-      zone: findAirZone(airCity),
+      zone: findAirZone(otherCity),
       realKg: parseFloat(weight),
       lengthCm: parseFloat(airL),
       widthCm: parseFloat(airW),
       heightCm: parseFloat(airH),
     }),
-    [airCity, weight, airL, airW, airH],
+    [otherCity, weight, airL, airW, airH],
   );
 
+  // Villes desservies par mode — même sélecteur, catalogue différent.
+  const { destinations: fretDestinations } = useFretTarifs();
+  const modeOptions = useMemo<CityOption[] | undefined>(() => {
+    if (mode === 'gp') return undefined; // catalogue mondial complet
+    const dakar: CityOption = { id: 'SN-Dakar', city: 'Dakar', country: 'SN', countryLabel: 'Sénégal' };
+    if (mode === 'air') {
+      return [dakar, ...AIR_CITIES.map(c => ({
+        id: `AIR-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    if (mode === 'sea') {
+      return [dakar, ...SEA_PORTS.map(p => ({
+        id: `SEA-${p.city}`, city: p.city, country: p.country, countryLabel: p.countryLabel,
+      }))];
+    }
+    // road (Terminal D)
+    return [dakar, ...fretDestinations.map(d => ({
+      id: `ROAD-${d.id}`,
+      city: d.name,
+      country: d.country_code ?? 'SN',
+      countryLabel: d.scope === 'national' ? 'Sénégal' : 'Pays voisins',
+    }))];
+  }, [mode, fretDestinations]);
 
-  /** Routier = Terminal D : redirection immédiate dès la sélection du mode. */
+  const modeCitiesHint = useMemo(() => {
+    if (mode === 'gp') return 'Navettes GP · toutes destinations couvertes';
+    if (mode === 'air') return `Aérien · ${AIR_CITIES.length} villes desservies`;
+    if (mode === 'sea') return `Maritime · ${SEA_PORTS.length} ports desservis`;
+    return `Routier · ${fretDestinations.length || '50+'} destinations Terminal D`;
+  }, [mode, fretDestinations.length]);
+
+  /** Routier = Terminal D : le flow continue sur la page dédiée. */
   const goTerminalD = () => {
-    const raw = direction === 'from_dakar' ? destination : origin;
-    const cityOnly = (raw || '').split(',')[0].trim();
-    navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
+    navigate(otherCity && otherCity !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(otherCity)}` : '/terminal-d');
   };
   const handleModeChange = (m: SendTransportMode) => {
     setMode(m);
-    if (m === 'road') goTerminalD();
+    // Réinitialise la ville hors Dakar : les villes desservies changent selon le mode.
+    if (direction === 'from_dakar') setDestination('');
+    else setOrigin('');
   };
+
+  const estimateCard = useMemo(() => {
+    const w = Number(weight);
+    if (!origin || !destination) return null;
+    if (mode === 'gp') {
+      if (!w || w <= 0) return null;
+      const o = resolveCityToCountry(origin, customCities);
+      const d = resolveCityToCountry(destination, customCities);
+      const starting = lowestStartingPriceFcfa(w, o?.country, d?.country);
+      return {
+        title: 'À partir de',
+        value: `${starting.toLocaleString('fr-FR')} FCFA`,
+        detail: `${o?.city ?? '—'} → ${d?.city ?? '—'} · ${w} kg · prix confirmé à l'étape suivante`,
+      };
+    }
+    if (mode === 'air') {
+      return {
+        title: 'Estimation indicative',
+        value: airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : '—',
+        detail: airEstimate.detail || AIR_QUOTE_DISCLAIMER,
+      };
+    }
+    if (mode === 'sea') {
+      return {
+        title: 'Maritime',
+        value: 'Devis sur mesure',
+        detail: 'Groupage LCL · 18-25 jours · tarif confirmé par notre équipe.',
+      };
+    }
+    return {
+      title: 'Terminal D',
+      value: 'Prix calculé à l’étape suivante',
+      detail: `Dakar ↔ ${otherCity || '—'} · enlèvement à domicile inclus.`,
+    };
+  }, [mode, origin, destination, weight, customCities, airEstimate, otherCity]);
+
 
   // External trigger from the landing world map (or destination pills):
   // prefill the SEND tab with Dakar → <city> and focus the weight field.
@@ -169,12 +259,13 @@ export function QuoteForm() {
 
   const submit = () => {
     if (service === 'send') {
-      // Routier = Terminal D uniquement (national + international).
+      if (!origin || !destination) return;
+      // Routier = Terminal D : le parcours continue sur la page dédiée.
       if (mode === 'road') { goTerminalD(); return; }
-      // Aérien (fret classique) et Maritime : pas encore opérationnels.
-      if (mode === 'air') { setAirQuoteOpen(true); return; }
-      if (isModeSoon(mode, PUBLIC_LIVE_MODES)) return;
-      if (!origin || !destination || !weight) return;
+      // Aérien / Maritime : même parcours, finalisé par une demande de devis.
+      if (mode === 'air' || mode === 'sea') { setAirQuoteOpen(true); return; }
+      if (!weight) return;
+
       // Hand off directly to /expedier/envoyer with the same preset
       // shape ExpedierSearchBar consumes, so the flow shows the price
       // section without a separate /devis detour.
@@ -283,113 +374,29 @@ export function QuoteForm() {
         })}
       </div>
 
-      {/* TAB 1 — SEND */}
+      {/* TAB 1 — SEND : un seul et même parcours pour les 4 modes */}
       {service === 'send' && (
         <div className="space-y-3">
           <TransportModeSelector value={mode} onChange={handleModeChange} liveModes={PUBLIC_LIVE_MODES} />
-          {isModeSoon(mode, PUBLIC_LIVE_MODES) && <ModeSoonNotice mode={mode} />}
-          {mode === 'road' && (
-            <div className="rounded-lg border border-border bg-secondary px-3 py-2.5 text-[12px]">
-              Le transport routier se gère sur <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
-            </div>
-          )}
-          {mode === 'air' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <Field label="Ville de départ (aérien) *">
-                  <select
-                    aria-label="Ville de départ aérien"
-                    className="input-base w-full"
-                    value={airCity}
-                    onChange={e => setAirCity(e.target.value)}
-                  >
-                    <option value="">Choisir une ville…</option>
-                    {AIR_CITIES.map(c => (
-                      <option key={c.city} value={c.city}>{c.city} · {c.zoneLabel}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Poids réel (kg) *">
-                  <input
-                    type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 20"
-                    value={weight} onChange={e => setWeight(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                <Field label="Long. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="40" value={airL} onChange={e => setAirL(e.target.value)} />
-                </Field>
-                <Field label="Larg. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airW} onChange={e => setAirW(e.target.value)} />
-                </Field>
-                <Field label="Haut. (cm)">
-                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airH} onChange={e => setAirH(e.target.value)} />
-                </Field>
-              </div>
-              <p className="text-[10.5px] text-muted-foreground leading-snug">{AIR_VOLUMETRIC_HINT}</p>
 
-              <div
-                className="rounded-[10px] px-3 py-2.5"
-                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
-              >
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                  Estimation indicative
-                </div>
-                <div className="text-[15px] font-bold text-foreground leading-tight">
-                  {airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : '—'}
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  {airEstimate.detail || AIR_QUOTE_DISCLAIMER}
-                </div>
-                {airEstimate.price != null && (
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{AIR_QUOTE_DISCLAIMER}</div>
-                )}
-              </div>
-
-              <SubmitBtn onClick={() => setAirQuoteOpen(true)}>Demander un devis aérien →</SubmitBtn>
-            </div>
-          )}
-
-          {mode === 'gp' && (
-          <div className="space-y-3">
+          {/* Route — Dakar est automatiquement verrouillé sur une extrémité */}
           <div className="flex items-center gap-2 text-[11px]">
-
             <span
               className="inline-flex items-center gap-1 rounded-full px-2 py-1 font-medium"
               style={{ background: 'hsl(var(--background))', border: '0.5px solid hsl(var(--color-border-tertiary))', color: 'hsl(var(--foreground))' }}
-              title="Dakar est toujours une extrémité de la route"
             >
               <MapPin className="w-3 h-3" />
-              {direction === 'from_dakar' ? '🇸🇳 Dakar →' : '→ 🇸🇳 Dakar'}
+              {routeLabelShort}
             </span>
-            <button
-              type="button"
-              onClick={swapDirection}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-muted-foreground hover:text-foreground"
-              style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-              aria-label="Inverser le sens"
-            >
-              <ArrowRightLeft className="w-3 h-3" />
-              Inverser
-            </button>
+            <span className="text-muted-foreground truncate">{modeCitiesHint}</span>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Field label="Origine *">
               <CityPicker
                 value={origin}
-                onChange={(v) => {
-                  if (v === DAKAR) {
-                    setDirection('from_dakar');
-                    setOrigin(DAKAR);
-                    if (destination === DAKAR) setDestination('');
-                  } else {
-                    // Choisir une autre ville en origine ⇒ Dakar devient destination
-                    setDirection('to_dakar');
-                    setOrigin(v);
-                    setDestination(DAKAR);
-                  }
-                }}
+                onChange={(v) => pickCity('origin', v)}
+                options={modeOptions}
                 placeholder="Choisir une ville d'origine…"
                 ariaLabel="Choisir la ville d'origine"
                 excludeCity={direction === 'to_dakar' ? 'Dakar' : undefined}
@@ -398,18 +405,8 @@ export function QuoteForm() {
             <Field label="Destination *">
               <CityPicker
                 value={destination}
-                onChange={(v) => {
-                  if (v === DAKAR) {
-                    setDirection('to_dakar');
-                    setDestination(DAKAR);
-                    if (origin === DAKAR) setOrigin('');
-                  } else {
-                    // Choisir une autre ville en destination ⇒ Dakar devient origine
-                    setDirection('from_dakar');
-                    setDestination(v);
-                    setOrigin(DAKAR);
-                  }
-                }}
+                onChange={(v) => pickCity('destination', v)}
+                options={modeOptions}
                 placeholder="Choisir une ville de destination…"
                 ariaLabel="Choisir la ville de destination"
                 excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
@@ -422,44 +419,51 @@ export function QuoteForm() {
               <input ref={weightInputRef} type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 5"
                 value={weight} onChange={e => setWeight(e.target.value)} />
             </Field>
-            <Field label="Type">
-              <select aria-label="Type de marchandise" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
+            <Field label="Type de colis">
+              <select aria-label="Type de colis" className="input-base w-full" value={type} onChange={e => setType(e.target.value as GoodsType)}>
                 {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
           </div>
 
-          {(() => {
-            const w = Number(weight);
-            if (!origin || !destination || !w || w <= 0) return null;
-            const o = resolveCityToCountry(origin, customCities);
-            const d = resolveCityToCountry(destination, customCities);
-            const starting = lowestStartingPriceFcfa(w, o?.country, d?.country);
-            const corridorLabel = `${o?.city ?? '—'} → ${d?.city ?? '—'}`;
-            return (
-              <div
-                className="rounded-[10px] px-3 py-2.5 flex items-center justify-between gap-3"
-                style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
-              >
-                <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-                    À partir de
-                  </div>
-                  <div className="text-[15px] font-bold text-foreground leading-tight truncate">
-                    {starting.toLocaleString('fr-FR')} FCFA
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                    {corridorLabel} · {w} kg · prix confirmé à l'étape suivante
-                  </div>
-                </div>
+          {/* Dimensions — utiles uniquement en fret aérien / maritime (poids volumétrique) */}
+          {(mode === 'air' || mode === 'sea') && (
+            <>
+              <div className="grid grid-cols-3 gap-2.5">
+                <Field label="Long. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="40" value={airL} onChange={e => setAirL(e.target.value)} />
+                </Field>
+                <Field label="Larg. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airW} onChange={e => setAirW(e.target.value)} />
+                </Field>
+                <Field label="Haut. (cm)">
+                  <input type="number" inputMode="decimal" className="input-base w-full" placeholder="30" value={airH} onChange={e => setAirH(e.target.value)} />
+                </Field>
               </div>
-            );
-          })()}
-          <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
-          </div>
+              <p className="text-[10.5px] text-muted-foreground leading-snug">{AIR_VOLUMETRIC_HINT}</p>
+            </>
           )}
+
+          {/* Estimation — même encart pour tous les modes */}
+          {estimateCard && (
+            <div
+              className="rounded-[10px] px-3 py-2.5"
+              style={{ background: '#FFF8DC', border: '0.5px solid #F5C518' }}
+            >
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                {estimateCard.title}
+              </div>
+              <div className="text-[15px] font-bold text-foreground leading-tight truncate">
+                {estimateCard.value}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">{estimateCard.detail}</div>
+            </div>
+          )}
+
+          <SubmitBtn onClick={submit}>Obtenir mon prix →</SubmitBtn>
         </div>
       )}
+
 
 
       {/* TAB 2 — SOURCING */}
@@ -554,18 +558,19 @@ export function QuoteForm() {
         open={airQuoteOpen}
         onOpenChange={setAirQuoteOpen}
         prefill={{
-          origin_city: airCity || '—',
-          origin_country: null,
-          destination_city: 'Dakar',
-          destination_country: 'SN',
+          origin_city: (origin || '—').split(',')[0].trim(),
+          origin_country: direction === 'from_dakar' ? 'SN' : null,
+          destination_city: (destination || '—').split(',')[0].trim(),
+          destination_country: direction === 'to_dakar' ? 'SN' : null,
           weight_kg: Number(weight) || 0,
-          transport_mode: 'air',
+          transport_mode: mode === 'sea' ? 'sea' : 'air',
           description: [
-            airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
+            mode === 'air' && airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
             (airL || airW || airH) && `Dimensions ${airL || '?'}×${airW || '?'}×${airH || '?'} cm`,
-            airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
+            mode === 'air' && airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
           ].filter(Boolean).join(' · ') || null,
         }}
+
       />
     </div>
 
