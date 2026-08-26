@@ -40,14 +40,16 @@ export function HubTab({
           value={value}
           aria-label={label}
           className={cn(
-            'relative gap-1.5 px-2.5 md:px-3 flex-1 md:flex-none',
-            // Mobile : onglet actif nettement surligné (icônes seules sinon indistinctes)
-            'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm',
-            'md:data-[state=active]:bg-background md:data-[state=active]:text-foreground',
+            'relative gap-1.5 px-2.5 md:px-3 flex-1 md:flex-none transition-colors',
+            // Indicateur actif visible : barre sous l'icône en mobile, fond en desktop
+            'data-[state=active]:text-foreground',
+            'after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-0.5 after:w-4/5 after:rounded-full after:bg-primary after:opacity-0 data-[state=active]:after:opacity-100',
+            'md:after:hidden md:data-[state=active]:bg-background md:data-[state=active]:shadow-sm',
+            'dark:data-[state=active]:text-white',
             className,
           )}
         >
-          <Icon className="w-4 h-4 shrink-0" />
+          <Icon className={cn('w-4 h-4 shrink-0', 'data-[state=active]:text-primary')} />
           <span className="hidden md:inline">{label}</span>
           {badge}
         </TabsTrigger>
