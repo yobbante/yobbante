@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
+import { dossierAmount } from '@/lib/dossierAmount';
+import { InlineAmount } from './dossiers/dossierTableUi';
 import { PaytechTransactionsPanel } from './PaytechTransactionsPanel';
 import { PENDING_PAYMENT_EXCLUDED_PG } from '@/lib/adminFilters';
 
@@ -24,6 +26,7 @@ type PaidDossier = {
   destination_city: string | null;
   destination_country: string | null;
   final_amount_xof: number | null;
+  estimated_cost: number | null;
   payment_method: string | null;
   payment_provider_ref: string | null;
   paid_at: string | null;
@@ -40,6 +43,7 @@ type PendingDossier = {
   destination_city: string | null;
   destination_country: string | null;
   final_amount_xof: number | null;
+  estimated_cost: number | null;
   status?: string | null;
   weighed_at: string | null;
   payment_reminders_count: number;
@@ -80,12 +84,12 @@ export function RevenusTab() {
       const [{ data: cur }, { data: prev }, { data: pendingCount }] = await Promise.all([
         supabase
           .from('dossiers')
-          .select('final_amount_xof, payment_status, paid_at')
+          .select('final_amount_xof, estimated_cost, payment_status, paid_at')
           .gte('paid_at', som)
           .eq('payment_status', 'paid'),
         supabase
           .from('dossiers')
-          .select('final_amount_xof, paid_at')
+          .select('final_amount_xof, estimated_cost, paid_at')
           .gte('paid_at', sopm)
           .lt('paid_at', som)
           .eq('payment_status', 'paid'),
@@ -96,8 +100,8 @@ export function RevenusTab() {
           .not('status', 'in', PENDING_PAYMENT_EXCLUDED_PG as any),
       ]);
 
-      const revenuMois = (cur ?? []).reduce((s: number, r: any) => s + Number(r.final_amount_xof ?? 0), 0);
-      const revenuPrev = (prev ?? []).reduce((s: number, r: any) => s + Number(r.final_amount_xof ?? 0), 0);
+      const revenuMois = (cur ?? []).reduce((s: number, r: any) => s + (dossierAmount(r).xof ?? 0), 0);
+      const revenuPrev = (prev ?? []).reduce((s: number, r: any) => s + (dossierAmount(r).xof ?? 0), 0);
       const nbPayes = (cur ?? []).length;
       const panierMoyen = nbPayes > 0 ? Math.round(revenuMois / nbPayes) : 0;
       const variation = revenuPrev > 0 ? ((revenuMois - revenuPrev) / revenuPrev) * 100 : null;
@@ -111,7 +115,7 @@ export function RevenusTab() {
     queryFn: async (): Promise<PaidDossier[]> => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, payment_method, payment_provider_ref, paid_at, invoice_url, invoice_number')
+        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, estimated_cost, payment_method, payment_provider_ref, paid_at, invoice_url, invoice_number')
         .eq('payment_status', 'paid')
         .gte('paid_at', som)
         .order('paid_at', { ascending: false })
@@ -127,7 +131,7 @@ export function RevenusTab() {
     queryFn: async (): Promise<PendingDossier[]> => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, status, weighed_at, payment_reminders_count, last_payment_reminder_at')
+        .select('id, reference, tracking_id, contact_phone, contact_email, destination_city, destination_country, final_amount_xof, estimated_cost, status, weighed_at, payment_reminders_count, last_payment_reminder_at')
         .eq('payment_status', 'pending')
         .not('status', 'in', PENDING_PAYMENT_EXCLUDED_PG as any)
         .order('created_at', { ascending: true })
@@ -138,6 +142,23 @@ export function RevenusTab() {
   });
 
   // ---- Mutations ----
+  /** Prix éditable ici → écrit dans final_amount_xof, la source de vérité partagée. */
+  const saveAmount = useMutation({
+    mutationFn: async ({ id, xof }: { id: string; xof: number | null }) => {
+      const { error } = await supabase
+        .from('dossiers')
+        .update({ final_amount_xof: xof })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      ['revenus-kpis', 'revenus-paid', 'revenus-pending', 'admin-dossiers', 'dossiers', 'admin-overview']
+        .forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+      toast.success('Tarif mis à jour partout');
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Échec mise à jour du tarif'),
+  });
+
   const markPaid = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -207,7 +228,7 @@ export function RevenusTab() {
       r.reference,
       r.tracking_id ?? '',
       `${r.destination_city ?? ''} ${r.destination_country ?? ''}`.trim(),
-      String(r.final_amount_xof ?? 0),
+      String(dossierAmount(r).xof ?? 0),
       r.payment_method ? PAYMENT_METHOD_LABEL[r.payment_method] ?? r.payment_method : '',
       r.payment_provider_ref ?? '',
       r.invoice_number ?? '',
@@ -250,7 +271,7 @@ export function RevenusTab() {
   }, [pending, search]);
 
   const totalPendingXof = useMemo(
-    () => pending.reduce((s, r) => s + Number(r.final_amount_xof ?? 0), 0),
+    () => pending.reduce((s, r) => s + (dossierAmount(r).xof ?? 0), 0),
     [pending],
   );
 
@@ -378,7 +399,14 @@ export function RevenusTab() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-[#F5C518]">{formatXof(r.final_amount_xof ?? 0)}</div>
+                  <div className="font-bold text-[#F5C518]">
+                    <InlineAmount
+                      value={dossierAmount(r).xof}
+                      isFinal={dossierAmount(r).isFinal}
+                      onSave={(v) => saveAmount.mutateAsync({ id: r.id, xof: v })}
+                      className="text-[#F5C518] font-bold text-sm"
+                    />
+                  </div>
                   {r.invoice_url && (
                     <a
                       href={r.invoice_url}
@@ -439,7 +467,12 @@ export function RevenusTab() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right mr-2">
-                    <div className="font-bold text-foreground">{formatXof(r.final_amount_xof ?? 0)}</div>
+                    <InlineAmount
+                      value={dossierAmount(r).xof}
+                      isFinal={dossierAmount(r).isFinal}
+                      onSave={(v) => saveAmount.mutateAsync({ id: r.id, xof: v })}
+                      className="font-bold text-sm"
+                    />
                   </div>
                   <Button
                     size="sm"
