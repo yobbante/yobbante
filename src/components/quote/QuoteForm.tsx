@@ -83,26 +83,29 @@ export function QuoteForm() {
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>('from_dakar');
   const [origin, setOrigin] = useState(DAKAR);
   const [destination, setDestination] = useState('');
-  const swapDirection = () => {
-    const bothFilled = origin && destination;
-    if (bothFilled) {
-      // Échange simple en gardant les deux villes
-      const prevOrigin = origin;
-      setOrigin(destination);
-      setDestination(prevOrigin);
-      setDirection(direction === 'from_dakar' ? 'to_dakar' : 'from_dakar');
+  /**
+   * Sélection fluide : plus de bouton « Inverser ».
+   * Dakar reste toujours à une extrémité — dès qu'on choisit une autre ville,
+   * l'autre champ bascule automatiquement sur Dakar.
+   */
+  const pickCity = (field: 'origin' | 'destination', v: string) => {
+    if (v === DAKAR) {
+      if (field === 'origin') {
+        setDirection('from_dakar'); setOrigin(DAKAR);
+        if (destination === DAKAR) setDestination('');
+      } else {
+        setDirection('to_dakar'); setDestination(DAKAR);
+        if (origin === DAKAR) setOrigin('');
+      }
       return;
     }
-    if (direction === 'from_dakar') {
-      setDirection('to_dakar');
-      setOrigin('');
-      setDestination(DAKAR);
+    if (field === 'origin') {
+      setDirection('to_dakar'); setOrigin(v); setDestination(DAKAR);
     } else {
-      setDirection('from_dakar');
-      setOrigin(DAKAR);
-      setDestination('');
+      setDirection('from_dakar'); setDestination(v); setOrigin(DAKAR);
     }
   };
+
   const [weight, setWeight] = useState('');
   const [mode, setMode] = useState<SendTransportMode>('gp');
   const [type, setType] = useState<GoodsType>('standard');
