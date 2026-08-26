@@ -25,6 +25,8 @@ import { estimateAirFreight, findAirZone, fmtFcfaAir } from '@/lib/airFreight';
 import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
+import { ClientSearchPicker, type ClientHit } from '@/components/admin/ClientSearchPicker';
+
 
 /** L'aérien est ouvert côté admin (tests internes) mais reste "bientôt" côté public. */
 const ADMIN_LIVE_MODES = ['gp', 'air', 'road'] as const;
