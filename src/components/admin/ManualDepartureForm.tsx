@@ -345,7 +345,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
       // 2b) Aller-retour : on enchaîne immédiatement le départ inverse.
       if (!isEdit && roundTrip) {
-        const retDeparture = returnDate ?? addDays(safeDepartureDate, 7);
+        const minReturn = addDays(safeDepartureDate, 1);
+        let retDeparture = returnDate ?? addDays(safeDepartureDate, 7);
+        if (retDeparture < minReturn) {
+          retDeparture = minReturn;
+          toast.info('Départ retour ajusté à J+1 après le départ aller.');
+        }
         const retArrival = returnArrival ?? estimateArrivalDate({
           destinationCountry: input.origin_country ?? 'SN',
           destinationCity: input.origin_city,
@@ -703,8 +708,13 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   <div className="grid grid-cols-2 gap-2">
                     <DateField
                       label="Départ retour"
+                      minDate={departureDate ? addDays(departureDate, 1) : undefined}
                       value={returnDate}
                       onChange={(d) => {
+                        if (d && departureDate && d < addDays(departureDate, 1)) {
+                          toast.error('Le départ retour doit être au minimum J+1 après le départ aller.');
+                          return;
+                        }
                         setReturnDate(d);
                         if (d) {
                           setReturnArrival(estimateArrivalDate({
@@ -715,7 +725,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                         }
                       }}
                     />
-                    <DateField label="Arrivée retour" value={returnArrival} onChange={setReturnArrival} />
+                    <DateField label="Arrivée retour" value={returnArrival} onChange={setReturnArrival} minDate={returnDate} />
+
                   </div>
                 )}
               </div>
@@ -773,11 +784,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function DateField({ label, value, onChange }: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void }) {
+function DateField({ label, value, onChange, minDate }: { label: string; value: Date | undefined; onChange: (d: Date | undefined) => void; minDate?: Date }) {
+  const [open, setOpen] = useState(false);
   return (
     <div>
       <Label>{label}</Label>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !value && 'text-muted-foreground')}>
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -785,9 +797,18 @@ function DateField({ label, value, onChange }: { label: string; value: Date | un
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <Calendar mode="single" selected={value} onSelect={onChange} initialFocus className={cn('p-3 pointer-events-auto')} />
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={(d) => { onChange(d); if (d) setOpen(false); }}
+            disabled={minDate ? (d: Date) => d < minDate : undefined}
+            defaultMonth={value ?? minDate}
+            initialFocus
+            className={cn('p-3 pointer-events-auto')}
+          />
         </PopoverContent>
       </Popover>
     </div>
   );
 }
+

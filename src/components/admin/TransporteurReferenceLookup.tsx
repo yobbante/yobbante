@@ -27,6 +27,38 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
   const [loading, setLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQ, setPickerQ] = useState('');
+  const [searchQ, setSearchQ] = useState(value ?? '');
+
+  useEffect(() => {
+    // keep the search box in sync when the ref is set from outside (prefill / picker)
+    if (/^[0-9]{4}$/.test(value) && searchQ !== value) setSearchQ(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const searchTerm = searchQ.trim().toLowerCase();
+  const doSearch = searchTerm.length >= 2 && !/^[0-9]{1,4}$/.test(searchTerm);
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['transporteurs-search', searchTerm],
+    enabled: doSearch,
+    queryFn: async (): Promise<Transporteur[]> => {
+      const { data } = await supabase
+        .from('transporteurs' as any)
+        .select('*')
+        .eq('actif', true)
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      const list = (data ?? []) as unknown as Transporteur[];
+      return list.filter(g =>
+        (g.reference ?? '').includes(searchTerm) ||
+        (g.nom ?? '').toLowerCase().includes(searchTerm) ||
+        (g.prenom ?? '').toLowerCase().includes(searchTerm) ||
+        (`${g.prenom ?? ''} ${g.nom ?? ''}`).toLowerCase().includes(searchTerm) ||
+        (g.telephone_1 ?? '').includes(searchTerm) ||
+        uniqueCitiesFromNavettes(g.navettes).some(c => c.toLowerCase().includes(searchTerm)),
+      ).slice(0, 25);
+    },
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -147,13 +179,49 @@ export function TransporteurReferenceLookup({ value, onChange, onMatch, destinat
         </Popover>
       </div>
 
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 4))}
-        placeholder="4 chiffres ex: 2241"
-        inputMode="numeric"
-        maxLength={4}
-      />
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <Input
+          value={searchQ}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setSearchQ(raw);
+            const digits = raw.replace(/\D/g, '');
+            if (/^[0-9]{1,4}$/.test(raw.trim())) onChange(digits.slice(0, 4));
+            else if (raw.trim() === '') onChange('');
+          }}
+          placeholder="Réf (4 chiffres), nom, prénom ou ville desservie…"
+          className="pl-8"
+        />
+        {searchQ.trim().length >= 2 && !/^[0-9]{1,4}$/.test(searchQ.trim()) && (
+          <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg max-h-[280px] overflow-y-auto">
+            {searchResults.length === 0 ? (
+              <div className="p-3 text-xs text-muted-foreground text-center">Aucun transporteur trouvé.</div>
+            ) : searchResults.map(g => {
+              const cities = uniqueCitiesFromNavettes(g.navettes);
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => { onChange(g.reference); setSearchQ(g.reference); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-secondary/50 text-left border-b border-border/40 last:border-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm truncate">{[g.prenom, g.nom].filter(Boolean).join(' ') || 'Sans nom'}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">GP{g.reference.padStart(4, '0')}</span>
+                    </div>
+                    {cities.length > 0 && (
+                      <div className="text-[11px] text-muted-foreground truncate">{cities.slice(0, 5).join(' · ')}</div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
 
       {!checked && (
         <p className="text-[11px] text-muted-foreground">
