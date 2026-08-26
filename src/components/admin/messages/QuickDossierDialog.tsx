@@ -40,6 +40,7 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [picked, setPicked] = useState<ClientHit | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -47,12 +48,14 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
     setFirstName(parts[0] ?? '');
     setLastName(parts.slice(1).join(' '));
     setTel(phone || '');
+    setPicked(null);
     setOrigin('');
     setDestination('Dakar');
     setWeight('');
     setDescription('');
     setNotes(lastMessage ? `Demande WhatsApp : ${lastMessage.slice(0, 400)}` : '');
   }, [open, phone, contactName, lastMessage]);
+
 
   const fullName = `${firstName} ${lastName}`.trim();
 
