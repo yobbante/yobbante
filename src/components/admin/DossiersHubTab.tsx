@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon } from 'lucide-react';
+import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon, Plane, Ship, Users } from 'lucide-react';
 import { HubHeader, HubTab } from './hub-ui';
 
 
@@ -20,9 +20,10 @@ import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 import { ClientAuditPanel } from './ClientAuditPanel';
 import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
-const TABS = ['tous', 'demandes', 'routier', 'reception', 'sourcing', 'audit'] as const;
+const TABS = ['tous', 'demandes', 'gp', 'aerien', 'maritime', 'routier', 'reception', 'sourcing', 'audit'] as const;
 type TabId = typeof TABS[number];
 const DEFAULT_TAB: TabId = 'demandes';
+
 
 export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
   const [sp, setSp] = useSearchParams();
