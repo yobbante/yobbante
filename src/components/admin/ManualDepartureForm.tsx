@@ -345,7 +345,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
       // 2b) Aller-retour : on enchaîne immédiatement le départ inverse.
       if (!isEdit && roundTrip) {
-        const retDeparture = returnDate ?? addDays(safeDepartureDate, 7);
+        const minReturn = addDays(safeDepartureDate, 1);
+        let retDeparture = returnDate ?? addDays(safeDepartureDate, 7);
+        if (retDeparture < minReturn) {
+          retDeparture = minReturn;
+          toast.info('Départ retour ajusté à J+1 après le départ aller.');
+        }
         const retArrival = returnArrival ?? estimateArrivalDate({
           destinationCountry: input.origin_country ?? 'SN',
           destinationCity: input.origin_city,
