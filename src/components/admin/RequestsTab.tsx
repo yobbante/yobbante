@@ -90,6 +90,8 @@ export interface RequestsTabProps {
   title?: string;
   /** Optional override for the subtitle. */
   subtitle?: string;
+  /** Ne garder que ces modes de transport (gp / air / sea / road). */
+  transportModes?: TransportModeId[];
 }
 
 export function RequestsTab({
@@ -99,7 +101,9 @@ export function RequestsTab({
   excludeStatuses,
   title,
   subtitle,
+  transportModes,
 }: RequestsTabProps = {}) {
+
   const sheet = useDossierSheet();
   const qc = useQueryClient();
   const [q, setQ] = useState('');
