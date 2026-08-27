@@ -22,6 +22,11 @@ import { CityPicker } from '@/components/quote/CityPicker';
 import { TransportModeSelector, ModeSoonNotice, isModeSoon } from '@/components/quote/TransportModeSelector';
 import { AirFreightFields } from '@/components/admin/inbox/AirFreightFields';
 import { estimateAirFreight, findAirZone, fmtFcfaAir } from '@/lib/airFreight';
+import { SeaFreightFields } from '@/components/admin/inbox/SeaFreightFields';
+import {
+  estimateSeaFreight, findSeaZone, fmtFcfaSea, seaTransitLabel,
+  type ContainerSize, type SeaShipmentType,
+} from '@/lib/seaFreight';
 import { countryForCity } from '@/lib/worldCities';
 import { Badge } from '@/components/ui/badge';
 import { History, UserCheck } from 'lucide-react';
@@ -29,7 +34,7 @@ import { ClientSearchPicker, type ClientHit } from '@/components/admin/ClientSea
 
 
 /** L'aérien est ouvert côté admin (tests internes) mais reste "bientôt" côté public. */
-const ADMIN_LIVE_MODES = ['gp', 'air', 'road'] as const;
+const ADMIN_LIVE_MODES = ['gp', 'air', 'sea', 'road'] as const;
 
 
 interface Props {
@@ -81,6 +86,15 @@ type IntakeData = {
   air_length_cm: string;
   air_width_cm: string;
   air_height_cm: string;
+  // Maritime (LCL / FCL) — mode interne
+  sea_city: string;
+  sea_type: SeaShipmentType;
+  sea_volume_m3: string;
+  sea_length_cm: string;
+  sea_width_cm: string;
+  sea_height_cm: string;
+  sea_containers: string;
+  sea_container_size: ContainerSize;
   // Fix 3 — Quel départ ?
   departure_mode: DepartureMode | null;
   departure_short_ref: string;
@@ -101,6 +115,8 @@ const INITIAL: IntakeData = {
   intake_notes: '', price_mode: 'auto', manual_price: '', manual_currency: 'XOF',
   initial_status: 'SUBMITTED', send_whatsapp: true,
   air_city: '', air_length_cm: '', air_width_cm: '', air_height_cm: '',
+  sea_city: '', sea_type: 'lcl', sea_volume_m3: '', sea_length_cm: '', sea_width_cm: '',
+  sea_height_cm: '', sea_containers: '', sea_container_size: '20',
   departure_mode: null, departure_short_ref: '', selected_departure_id: null,
   selected_departure_label: '', selected_transporteur_ref: '',
 };
@@ -321,6 +337,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
   const [createdDossier, setCreatedDossier] = useState<{ id: string; reference: string; hasDeparture: boolean } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [airFiles, setAirFiles] = useState<File[]>([]);
+  const [seaFiles, setSeaFiles] = useState<File[]>([]);
   const [pickedClient, setPickedClient] = useState<ClientHit | null>(null);
 
   const qc = useQueryClient();
@@ -336,6 +353,23 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       heightCm: parseFloat(data.air_height_cm),
     }),
     [data.air_city, data.weight_kg, data.air_length_cm, data.air_width_cm, data.air_height_cm],
+  );
+
+  const isSea = data.service_kind === 'envoi' && data.transport_mode === 'sea';
+  const seaEstimate = useMemo(
+    () => estimateSeaFreight({
+      zone: findSeaZone(data.sea_city),
+      type: data.sea_type,
+      realKg: parseFloat(data.weight_kg),
+      volumeM3: parseFloat(data.sea_volume_m3),
+      lengthCm: parseFloat(data.sea_length_cm),
+      widthCm: parseFloat(data.sea_width_cm),
+      heightCm: parseFloat(data.sea_height_cm),
+      containers: parseFloat(data.sea_containers),
+      containerSize: data.sea_container_size,
+    }),
+    [data.sea_city, data.sea_type, data.weight_kg, data.sea_volume_m3, data.sea_length_cm,
+      data.sea_width_cm, data.sea_height_cm, data.sea_containers, data.sea_container_size],
   );
 
 
@@ -361,6 +395,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         // Routier = Terminal D uniquement (grille + course dédiées).
         // Aérien = ouvert en interne : aucun champ obligatoire pour l'admin.
         if (data.transport_mode === 'air') return true;
+        if (data.transport_mode === 'sea') return true;
         if (data.transport_mode !== 'gp') return false;
         return !!(data.origin_city && data.destination_city && data.weight_kg);
       }
@@ -428,7 +463,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
 
       // Status logic: gp-only mode forces EN_RECHERCHE_DEPART.
       // Aérien : toujours "Devis à confirmer" (estimation non engageante).
-      const computedStatus = isAir
+      const computedStatus = (isAir || isSea)
         ? 'QUOTE_REQUESTED'
         : data.departure_mode === 'gp'
           ? 'EN_RECHERCHE_DEPART'
@@ -437,10 +472,10 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       // Villes saisies (CityPicker) → source de vérité. Les pays en sont dérivés,
       // dans le MÊME ordre : origine → origin_*, destination → destination_*.
       const originCity = data.service_kind === 'envoi'
-        ? ((isAir ? data.air_city.trim() : data.origin_city.trim()) || null)
+        ? ((isAir ? data.air_city.trim() : isSea ? data.sea_city.trim() : data.origin_city.trim()) || null)
         : null;
       const destCity = data.service_kind === 'envoi'
-        ? ((isAir ? (data.destination_city.trim() || 'Dakar') : data.destination_city.trim()) || null)
+        ? (((isAir || isSea) ? (data.destination_city.trim() || 'Dakar') : data.destination_city.trim()) || null)
         : null;
 
       const airNotes = isAir ? [
@@ -454,6 +489,21 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           ? `Estimation indicative: ${fmtFcfaAir(airEstimate.price)}`
           : airEstimate.manualQuote && 'Estimation: devis sur mesure (>300 kg)',
         'Estimation indicative — devis final après vérification des documents.',
+      ].filter(Boolean) as string[] : [];
+
+      const seaNotes = isSea ? [
+        `Mode: Maritime (${data.sea_type === 'fcl' ? 'conteneur complet FCL' : 'groupage LCL'})`,
+        data.sea_city && `Port/ville maritime: ${data.sea_city}${seaEstimate.zone ? ` (${seaEstimate.zone.label})` : ''}`,
+        data.sea_type === 'fcl'
+          ? (seaEstimate.containers && `Conteneurs: ${seaEstimate.containers} × ${seaEstimate.containerSize} pieds`)
+          : (seaEstimate.taxableM3 != null &&
+              `Volume taxable: ${seaEstimate.taxableM3} m³ (${seaEstimate.basis === 'weight' ? 'poids retenu — 1 t = 1 m³' : 'volume retenu'})`),
+        data.sea_volume_m3 && `Volume déclaré: ${data.sea_volume_m3} m³`,
+        (data.sea_length_cm || data.sea_width_cm || data.sea_height_cm) &&
+          `Dimensions: ${data.sea_length_cm || '?'}×${data.sea_width_cm || '?'}×${data.sea_height_cm || '?'} cm`,
+        seaEstimate.price != null && `Estimation indicative: ${fmtFcfaSea(seaEstimate.price)}`,
+        seaTransitLabel(seaEstimate.zone),
+        seaEstimate.disclaimer,
       ].filter(Boolean) as string[] : [];
 
       const insertRow: any = {
@@ -488,6 +538,7 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
           data.declared_value && `Valeur déclarée: ${data.declared_value} €`,
           data.selected_departure_label && `Départ: ${data.selected_departure_label}`,
           ...airNotes,
+          ...seaNotes,
         ].filter(Boolean).join('\n') || null,
 
         status: computedStatus,
@@ -514,9 +565,10 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
       await clearDraft();
 
       // Aérien : upload des pièces jointes (facture, photos) après création.
-      if (isAir && airFiles.length) {
+      const attachments = isAir ? airFiles : isSea ? seaFiles : [];
+      if ((isAir || isSea) && attachments.length) {
         let uploaded = 0;
-        for (const file of airFiles) {
+        for (const file of attachments) {
           try {
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${created.id}/${Date.now()}-${safeName}`;
@@ -541,12 +593,13 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         }
         if (uploaded) toast.success(`${uploaded} document(s) attaché(s)`);
         setAirFiles([]);
+        setSeaFiles([]);
       }
 
       qc.invalidateQueries({ queryKey: ['inbox-dossiers'] });
       qc.invalidateQueries({ queryKey: ['dossiers'] });
 
-      toast.success(`Dossier ${created.reference} créé${isAir ? ' — Devis à confirmer' : ''}`);
+      toast.success(`Dossier ${created.reference} créé${(isAir || isSea) ? ' — Devis à confirmer' : ''}`);
 
 
       if (sendWhatsApp && data.client_phone) {
@@ -896,6 +949,27 @@ Merci de votre confiance.`;
                   )}
 
 
+                  {data.transport_mode === 'sea' && (
+                    <SeaFreightFields
+                      value={{
+                        sea_city: data.sea_city,
+                        sea_type: data.sea_type,
+                        weight_kg: data.weight_kg,
+                        sea_volume_m3: data.sea_volume_m3,
+                        sea_length_cm: data.sea_length_cm,
+                        sea_width_cm: data.sea_width_cm,
+                        sea_height_cm: data.sea_height_cm,
+                        sea_containers: data.sea_containers,
+                        sea_container_size: data.sea_container_size,
+                        description: data.description,
+                        declared_value: data.declared_value,
+                      }}
+                      update={(p) => update(p)}
+                      files={seaFiles}
+                      onFilesChange={setSeaFiles}
+                    />
+                  )}
+
                   {data.transport_mode === 'road' && (
                     <div className="rounded-[10px] border border-amber-500/40 bg-amber-500/10 p-3">
                       <div className="flex items-start gap-2">
@@ -1109,14 +1183,14 @@ Merci de votre confiance.`;
           <div className="flex justify-between gap-2 pt-4 border-t">
             <Button
               variant="ghost"
-              onClick={() => step === 0 ? onOpenChange(false) : setStep(isAir && step === 4 ? 2 : step - 1)}
+              onClick={() => step === 0 ? onOpenChange(false) : setStep((isAir || isSea) && step === 4 ? 2 : step - 1)}
               disabled={saving}
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               {step === 0 ? 'Annuler' : 'Retour'}
             </Button>
             {step < TOTAL_STEPS - 1 ? (
-              <Button onClick={() => setStep(isAir && step === 2 ? 4 : step + 1)} disabled={!canNext}>
+              <Button onClick={() => setStep((isAir || isSea) && step === 2 ? 4 : step + 1)} disabled={!canNext}>
                 Suivant <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
 
