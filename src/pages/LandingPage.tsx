@@ -171,18 +171,29 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p
+          <div
+            className="hero-city-ticker"
             style={{
-              fontSize: 15,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              color: 'rgba(255,255,255,0.45)',
+              width: '100%',
+              maxWidth: 560,
+              margin: '24px 0',
+              overflow: 'hidden',
+              color: 'rgba(0,0,0,0.35)',
+              fontSize: 14,
               fontWeight: 300,
-              margin: '4px 0 16px',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
             }}
           >
-            Dakar · Abidjan · Paris · New York · Dubai · London · Montréal
-          </p>
+            <div className="hero-city-ticker-track" style={{ display: 'flex', whiteSpace: 'nowrap', width: 'max-content' }}>
+              <span style={{ display: 'flex', alignItems: 'center', paddingRight: 24 }}>
+                Dakar · Abidjan · Paris · New York · Dubai · London · Montréal ·&nbsp;
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', paddingRight: 24 }}>
+                Dakar · Abidjan · Paris · New York · Dubai · London · Montréal ·&nbsp;
+              </span>
+            </div>
+          </div>
 
           <p
             style={{
