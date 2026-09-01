@@ -234,6 +234,12 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
 
   // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
+    // Aérien / Maritime : débouche sur le flow "Devis sur mesure" (pas de paiement direct).
+    if (transportMode === 'air' || transportMode === 'sea') {
+      if (!origin || !destination) return;
+      setQuoteOpen(true);
+      return;
+    }
     const o = resolveCityToCountry(origin, customCities);
     const d = resolveCityToCountry(destination, customCities);
     if (!o || !d || !weight) return;
@@ -276,6 +282,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const liveSyncMounted = useRef(false);
   useEffect(() => {
     if (mode !== 'envoyer') return;
+    // Seul le mode GP alimente le SendFlow — aérien/maritime partent en devis.
+    if (transportMode !== 'gp') return;
     if (!liveSyncMounted.current) { liveSyncMounted.current = true; return; }
     const o = resolveCityToCountry(origin, customCities);
     const d = resolveCityToCountry(destination, customCities);
