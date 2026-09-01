@@ -1,5 +1,6 @@
 // Templates messages WhatsApp client (607). Textes sans accents.
-import { DOSSIER_STATUS_LABELS, type DossierStatus } from './types';
+import { DOSSIER_STATUS_LABELS, COUNTRY_NAMES, type DossierStatus } from './types';
+
 
 export interface TemplateContext {
   prenom?: string | null;
