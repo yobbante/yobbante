@@ -20,16 +20,7 @@ const KIND_FILTERS: { id: PaymentKind | 'all'; label: string }[] = [
   { id: 'road', label: 'Routier' },
 ];
 
-const MODE_FILTERS: { id: TransportMode | 'all'; label: string }[] = [
-  { id: 'all', label: 'Tous modes' },
-  { id: 'gp', label: 'GP' },
-  { id: 'air', label: 'Aérien' },
-  { id: 'sea', label: 'Maritime' },
-  { id: 'road', label: 'Routier' },
-];
-
 const STATUS_FILTERS = [
-  { id: 'all', label: 'Tous statuts' },
   { id: 'paid', label: 'Réglés' },
   { id: 'pending', label: 'En attente' },
 ] as const;
@@ -39,21 +30,19 @@ export function PaymentsAllTab() {
   const { data: rows = [], isLoading, refetch, isFetching } = useAllPayments(12);
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<PaymentKind | 'all'>('all');
-  const [mode, setMode] = useState<TransportMode | 'all'>('all');
-  const [status, setStatus] = useState<(typeof STATUS_FILTERS)[number]['id']>('all');
+  const [status, setStatus] = useState<'all' | 'paid' | 'pending'>('all');
   const [selected, setSelected] = useState<PaymentRow | null>(null);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (kind !== 'all' && r.kind !== kind) return false;
-      if (mode !== 'all' && r.mode !== mode) return false;
       if (status === 'paid' && !r.paid) return false;
       if (status === 'pending' && r.paid) return false;
       if (!needle) return true;
       return [r.ref, r.clientName, r.route, r.method ?? ''].join(' ').toLowerCase().includes(needle);
     });
-  }, [rows, q, kind, mode, status]);
+  }, [rows, q, kind, status]);
 
   const totals = useMemo(() => {
     let inPaid = 0, inDue = 0, outPaid = 0, outDue = 0;
