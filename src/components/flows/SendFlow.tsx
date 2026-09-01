@@ -873,7 +873,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           <div className="min-w-0">
             <p className="text-sm sm:text-base font-semibold text-foreground">Envoi vers {destCity.city} sélectionné</p>
             <p className="mt-0.5 text-xs sm:text-[13px] text-muted-foreground">
-              Basé sur un départ {preset.transport === 'AIR' ? 'aérien' : preset.transport === 'SEA' ? 'maritime' : 'routier'}
+              Basé sur un départ {preset.transport === 'AIR' ? 'aérien' : preset.transport === 'SEA' ? 'maritime' : preset.transport === 'GP' ? 'GP (bagage accompagné)' : 'routier'}
               {preset.departure_date
                 ? ` disponible le ${new Date(preset.departure_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
                 : ' disponible prochainement'}

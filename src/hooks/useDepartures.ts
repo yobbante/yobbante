@@ -8,7 +8,7 @@ export type KonnektDeparture = {
   destination_country: string;
   destination_city: string;
   departure_date: string;
-  transport: 'AIR' | 'SEA' | 'ROAD';
+  transport: 'AIR' | 'SEA' | 'ROAD' | 'GP';
 };
 
 export type DeparturesResponse = {
