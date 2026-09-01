@@ -97,10 +97,13 @@ export function PaymentDetailSheet({
   }, [autoCarrier]);
 
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forcePaid?: boolean }) => {
       if (!payment) return;
+      const isPaid = opts?.forcePaid ?? paid;
       const value = Math.max(0, Math.round(Number(amount) || 0));
-      const paidAtIso = paid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
+      const paidAtIso = isPaid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
+      const paid = isPaid; // eslint-disable-line @typescript-eslint/no-shadow
+
 
       if (payment.source === 'dossier') {
         const patch: Record<string, unknown> = {};
