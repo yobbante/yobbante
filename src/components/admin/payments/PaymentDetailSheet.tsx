@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
+import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLifecycleDialogs';
+import { canCancel } from '@/lib/dossierLifecycle';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
@@ -41,6 +43,25 @@ export function PaymentDetailSheet({
   const [method, setMethod] = useState<string>('');
   const [paidDate, setPaidDate] = useState('');
   const [carrierName, setCarrierName] = useState('');
+  const [carrierCost, setCarrierCost] = useState('');
+  const [carrierPaid, setCarrierPaid] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  // Dossier lié : statut + coût transporteur alloué (source unique, synchronisée).
+  const dossierId = payment?.dossierId ?? null;
+  const { data: dossier } = useQuery({
+    queryKey: ['admin-dossier', dossierId, 'payment-sheet'],
+    enabled: open && !!dossierId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_name')
+        .eq('id', dossierId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
 
   useEffect(() => {
     if (!payment) return;
@@ -50,6 +71,14 @@ export function PaymentDetailSheet({
     setPaidDate(toDateInput(payment.paidAt));
     setCarrierName(payment.kind === 'carrier' ? payment.clientName : '');
   }, [payment]);
+
+  useEffect(() => {
+    if (!dossier) return;
+    if (payment?.kind !== 'carrier') setCarrierName(dossier.carrier_name ?? '');
+    setCarrierCost(dossier.carrier_cost_xof != null ? String(dossier.carrier_cost_xof) : '');
+    setCarrierPaid(!!dossier.carrier_paid);
+  }, [dossier, payment?.kind]);
+
 
   const save = useMutation({
     mutationFn: async () => {
@@ -76,8 +105,18 @@ export function PaymentDetailSheet({
           patch.carrier_name = carrierName || null;
           if (method) patch.carrier_payment_method = method;
         }
+        // Transporteur alloué au dossier (éditable depuis n'importe quel paiement du dossier)
+        if (payment.kind !== 'carrier' && dossierId) {
+          const cost = carrierCost === '' ? null : Math.max(0, Math.round(Number(carrierCost) || 0));
+          patch.carrier_name = carrierName || null;
+          patch.carrier_cost_xof = cost;
+          patch.carrier_paid = carrierPaid;
+          patch.carrier_paid_at = carrierPaid ? (dossier?.carrier_paid ? undefined : new Date().toISOString()) : null;
+          if (patch.carrier_paid_at === undefined) delete patch.carrier_paid_at;
+        }
         const { error } = await supabase.from('dossiers').update(patch as never).eq('id', payment.sourceId);
         if (error) throw error;
+
       } else {
         const patch: Record<string, unknown> =
           payment.kind === 'road'
@@ -195,6 +234,36 @@ export function PaymentDetailSheet({
             </div>
           )}
 
+          {/* Transporteur alloué au dossier — écrit sur le dossier, donc synchronisé partout */}
+          {payment.kind !== 'carrier' && payment.source === 'dossier' && dossierId && (
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                Transporteur alloué
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="alloc-carrier" className="text-xs text-muted-foreground">Nom / compagnie</Label>
+                <Input
+                  id="alloc-carrier" value={carrierName}
+                  onChange={(e) => setCarrierName(e.target.value)}
+                  placeholder={dossier?.gp_name || 'GP, compagnie aérienne, transitaire…'}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="alloc-cost" className="text-xs text-muted-foreground">Prix payé au transporteur (XOF)</Label>
+                <Input
+                  id="alloc-cost" inputMode="numeric" value={carrierCost}
+                  onChange={(e) => setCarrierCost(e.target.value.replace(/[^\d]/g, ''))}
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs">Déjà réglé au transporteur</span>
+                <Switch checked={carrierPaid} onCheckedChange={setCarrierPaid} />
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-1">
             <Button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1">
               {save.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
@@ -208,11 +277,40 @@ export function PaymentDetailSheet({
               </Button>
             )}
           </div>
+
+          {dossierId && dossier?.status && dossier.status !== 'CANCELLED' && (
+            <Button
+              variant="outline"
+              className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+              disabled={!canCancel(dossier.status)}
+              onClick={() => setCancelOpen(true)}
+            >
+              <Ban className="w-4 h-4 mr-1" />
+              {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
+            </Button>
+          )}
+          {dossier?.status === 'CANCELLED' && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500 text-center">
+              Dossier annulé
+            </div>
+          )}
         </div>
+
+        {dossierId && (
+          <CancelDossierDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            dossierId={dossierId}
+            currentStatus={dossier?.status ?? ''}
+            displayRef={payment.ref}
+            onDone={() => { invalidateFinance(qc); onOpenChange(false); }}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
 }
+
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
