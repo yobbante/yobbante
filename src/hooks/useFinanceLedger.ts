@@ -21,6 +21,7 @@ export type FinanceLedger = {
   current: MonthLedger;
   dueGpXof: number;               // restant à payer aux GP (toutes périodes)
   dueRoadXof: number;             // restant à payer aux chauffeurs
+  dueCarrierXof: number;          // restant à payer aux compagnies aérien/maritime
   missingRoadRateCount: number;   // courses livrées sans coût chauffeur saisi
 };
 
@@ -50,7 +51,7 @@ export function useFinanceLedger(monthsBack = 6) {
   return useQuery({
     queryKey: ['finance-ledger', monthsBack, since],
     queryFn: async (): Promise<FinanceLedger> => {
-      const [paidR, gpR, roadR, gpDueR, roadDueR] = await Promise.all([
+      const [paidR, gpR, roadR, gpDueR, roadDueR, carrierR, carrierDueR] = await Promise.all([
         // Revenus encaissés
         supabase.from('dossiers')
           .select('final_amount_xof, estimated_cost, paid_at')
@@ -74,6 +75,16 @@ export function useFinanceLedger(monthsBack = 6) {
         supabase.from('fret_courses' as any)
           .select('chauffeur_cost_fcfa, status')
           .eq('chauffeur_paid', false),
+        // Coûts transporteurs aérien / maritime
+        supabase.from('dossiers')
+          .select('carrier_cost_xof, carrier_paid_at, delivered_at, created_at')
+          .not('carrier_cost_xof', 'is', null)
+          .gte('created_at', since),
+        // Restes à payer transporteurs aérien / maritime
+        supabase.from('dossiers')
+          .select('carrier_cost_xof')
+          .eq('carrier_paid', false)
+          .not('carrier_cost_xof', 'is', null),
       ]);
 
       const buckets = new Map<MonthKey, MonthLedger>();
@@ -83,7 +94,7 @@ export function useFinanceLedger(monthsBack = 6) {
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         buckets.set(key, {
           month: key, label: monthLabel(key),
-          revenueXof: 0, costGpXof: 0, costRoadXof: 0, costTotalXof: 0, marginXof: 0, tvaXof: 0,
+          revenueXof: 0, costGpXof: 0, costRoadXof: 0, costCarrierXof: 0, costTotalXof: 0, marginXof: 0, tvaXof: 0,
         });
       }
       const bucket = (iso: string | null | undefined) => {
@@ -109,8 +120,13 @@ export function useFinanceLedger(monthsBack = 6) {
         if (!c.dossier_id && c.status === 'LIVRE') b.revenueXof += Number(c.total_fcfa || 0);
       });
 
+      ((carrierR as any).data || []).forEach((d: any) => {
+        const b = bucket(d.carrier_paid_at ?? d.delivered_at ?? d.created_at);
+        if (b) b.costCarrierXof += Number(d.carrier_cost_xof || 0);
+      });
+
       const months = Array.from(buckets.values()).map((m) => {
-        m.costTotalXof = m.costGpXof + m.costRoadXof;
+        m.costTotalXof = m.costGpXof + m.costRoadXof + m.costCarrierXof;
         m.marginXof = m.revenueXof - m.costTotalXof;
         m.tvaXof = Math.max(0, Math.round(m.marginXof * TVA_RATE));
         return m;
@@ -123,11 +139,15 @@ export function useFinanceLedger(monthsBack = 6) {
         (c) => c.status === 'LIVRE' && !Number(c.chauffeur_cost_fcfa || 0),
       ).length;
 
+      const dueCarrierXof = (((carrierDueR as any).data || []) as any[])
+        .reduce((s, d) => s + Number(d.carrier_cost_xof || 0), 0);
+
       return {
         months,
         current: months[months.length - 1],
         dueGpXof,
         dueRoadXof,
+        dueCarrierXof,
         missingRoadRateCount,
       };
     },
