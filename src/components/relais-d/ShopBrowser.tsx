@@ -102,7 +102,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
 
       const dossier = await createDossier.mutateAsync({
         product_description: `Relais D — Commander en ligne · ${cart.length} article(s) · ${groups.map(([s]) => s).join(', ')}`,
-        origin_country: (cart[0]?.relay as string) || 'FR',
+        origin_country: ((cart[0]?.relay as string) || 'FR') as any,
         destination_country: 'SN',
         needs_sourcing: true,
         contact_phone: info.phone || null,
