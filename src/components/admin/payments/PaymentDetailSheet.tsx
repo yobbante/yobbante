@@ -8,12 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink, Ban, Truck } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
 import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLifecycleDialogs';
-import { canCancel } from '@/lib/dossierLifecycle';
+import { canCancel, isTerminal } from '@/lib/dossierLifecycle';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
