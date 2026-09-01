@@ -12,6 +12,7 @@ import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 import { normalizeTrackingId } from '@/lib/trackingId';
 import { FretTrackView } from '@/components/fret/FretTrackView';
+import { TrackAccountCta } from '@/components/track/TrackAccountCta';
 
 
 interface TimelineEvent {
@@ -426,20 +427,10 @@ export default function TrackPage() {
 
         ) : null}
 
-        {data && hasAccount === false && (
-          <aside className="mt-8 rounded-xl border border-border bg-card/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Créez un compte pour retrouver tous vos envois au même endroit.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/auth?mode=signup')}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/70 transition-colors"
-            >
-              Créer mon compte
-            </button>
-          </aside>
+        {id && (data || isFret) && hasAccount === false && (
+          <TrackAccountCta trackingRef={id} />
         )}
+
       </main>
 
 

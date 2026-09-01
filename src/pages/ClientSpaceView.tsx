@@ -1,11 +1,14 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox, Search, Check } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useDossiersRealtime } from '@/hooks/useDossiersRealtime';
 import { ClientDossierCard } from '@/components/client/ClientDossierCard';
+import { claimPendingTracking } from '@/lib/claimTracking';
 import type { Dossier } from '@/lib/types';
 
 const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
