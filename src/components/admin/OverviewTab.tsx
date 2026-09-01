@@ -300,7 +300,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {m.reqNew > 0 && (
             <AlertCard icon={Inbox} tone="default"
-              label="Nouvelles demandes" value={`${m.reqNew} à traiter`} onClick={() => onJump('requests')} />
+              label="Nouvelles demandes" value={`${m.reqNew} à traiter`} onClick={() => onJump('inbox')} />
           )}
           {m.newQuotes > 0 && (
             <AlertCard icon={Building2} tone="warning"
@@ -312,7 +312,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           )}
           {m.reqStale > 0 && (
             <AlertCard icon={ShieldAlert} tone="warning"
-              label="Dossiers à relancer" value={`${m.reqStale} sans réponse`} onClick={() => onJump('requests')} />
+              label="Dossiers à relancer" value={`${m.reqStale} sans réponse`} onClick={() => onJump('inbox')} />
           )}
         </section>
       )}
@@ -465,7 +465,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
               <Inbox className="w-4 h-4 text-foreground" />
               <h2 className="text-sm font-semibold">Demandes clients</h2>
             </div>
-            <button onClick={() => onJump('requests')} className="text-xs text-muted-foreground hover:text-foreground">
+            <button onClick={() => onJump('inbox')} className="text-xs text-muted-foreground hover:text-foreground">
               Voir tout →
             </button>
           </header>
