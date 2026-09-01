@@ -171,12 +171,29 @@ export default function LandingPage() {
             </span>
           </h1>
 
+          {/* Search card (kept) */}
+          <div
+            id="hero-quote-form"
+            style={{
+              width: '100%',
+              maxWidth: 720,
+              background: '#FFFFFF',
+              borderRadius: 16,
+              padding: 'clamp(16px, 3vw, 24px)',
+              boxShadow:
+                '0 1px 2px rgba(13,27,42,0.04), 0 8px 32px rgba(13,27,42,0.08)',
+              border: '1px solid #F1F1F4',
+            }}
+          >
+            <QuoteForm />
+          </div>
+
           <div
             className="hero-city-ticker"
             style={{
               width: '100%',
               maxWidth: 560,
-              margin: '24px 0',
+              margin: '24px 0 8px',
               overflow: 'hidden',
               color: 'rgba(0,0,0,0.35)',
               fontSize: 14,
@@ -208,24 +225,6 @@ export default function LandingPage() {
             <br />
             Prix instantané. Sans attente.
           </p>
-
-
-          {/* Search card (kept) */}
-          <div
-            id="hero-quote-form"
-            style={{
-              width: '100%',
-              maxWidth: 720,
-              background: '#FFFFFF',
-              borderRadius: 16,
-              padding: 'clamp(16px, 3vw, 24px)',
-              boxShadow:
-                '0 1px 2px rgba(13,27,42,0.04), 0 8px 32px rgba(13,27,42,0.08)',
-              border: '1px solid #F1F1F4',
-            }}
-          >
-            <QuoteForm />
-          </div>
 
           <p
             style={{
