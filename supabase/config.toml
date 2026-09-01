@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.fret-booking]
 verify_jwt = false
+
+[functions.relais-d-notify]
+verify_jwt = false
