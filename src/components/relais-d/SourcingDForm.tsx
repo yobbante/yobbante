@@ -111,7 +111,7 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
         </button>
         <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Sourcing D</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Décrivez le produit — notre équipe le recherche en Chine, négocie et vous envoie une proposition
+          Décrivez le produit — notre équipe le recherche en Chine (1688, Taobao, Alibaba), négocie et vous envoie une proposition
           à valider avant tout paiement.
         </p>
 
