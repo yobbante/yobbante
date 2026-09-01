@@ -137,7 +137,9 @@ export function useAllPayments(monthsBack = 12) {
           });
         }
 
-        if (d.carrier_cost_xof != null && Number(d.carrier_cost_xof) !== 0) {
+        // Anti double comptage : sur un dossier GP, le coût transporteur est déjà
+        // porté par gp_amount (le GP est le transporteur) — on ne crée pas de 2e ligne.
+        if (d.carrier_cost_xof != null && Number(d.carrier_cost_xof) !== 0 && !(Number(d.gp_amount || 0) > 0)) {
           rows.push({
             key: `carrier:${d.id}`,
             kind: 'carrier', direction: 'out', source: 'dossier', sourceId: d.id, dossierId: d.id,
