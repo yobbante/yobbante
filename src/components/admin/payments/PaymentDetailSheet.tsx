@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
