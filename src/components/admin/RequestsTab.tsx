@@ -549,8 +549,9 @@ export function RequestsTab({
                       </td>
                       {/* GP / Chauffeur (routier) */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-                        {resolveTransportMode(d) === 'road' ? (
+                        {isRoad ? (
                           <RoadAssignBadge dossierId={d.id} />
+
                         ) : (
                           <GpAssignBadge
                             transporteurRef={(d as any).assigned_transporteur_ref}
