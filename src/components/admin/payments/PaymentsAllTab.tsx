@@ -130,8 +130,11 @@ export function PaymentsAllTab() {
                       ? 'bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]'
                       : 'bg-amber-500/10 text-amber-500',
                   )}>
-                    {r.paid ? 'Réglé' : 'En attente'}
+                    {r.paid
+                      ? (r.direction === 'in' ? 'Encaissé' : 'Reversé')
+                      : (r.direction === 'in' ? 'À encaisser' : 'À reverser')}
                   </span>
+
                 </div>
               </div>
             </button>
