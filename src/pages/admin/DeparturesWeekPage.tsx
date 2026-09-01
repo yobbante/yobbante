@@ -301,13 +301,20 @@ export default function DeparturesWeekPage() {
                           <div className="hidden sm:block text-xs text-muted-foreground">{MODE_LABEL[d.transport_mode]}</div>
                           <div className="font-semibold text-sm sm:text-base sm:mt-1 truncate">{d.origin_city} → {d.destination_city}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
-                            {d.carrier_name ?? '—'} · {used}kg / {total}kg
+                            {d.carrier_name ?? '—'}
+                            {d.transporteur_ref ? ` · GP #${d.transporteur_ref}` : ''} · {used}kg / {total}kg
                           </div>
                         </div>
                         <div className="text-right shrink-0" style={{ color: '#F5C518' }}>
-                          <div className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">Réf</div>
-                          <div className="text-base sm:text-2xl font-bold font-mono">#{d.short_ref ?? '----'}</div>
+                          <div className="hidden sm:block text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {d.transporteur_ref ? 'Réf GP' : 'Réf départ'}
+                          </div>
+                          <div className="text-base sm:text-2xl font-bold font-mono">#{d.transporteur_ref ?? d.short_ref ?? '----'}</div>
+                          {d.transporteur_ref && (
+                            <div className="text-[10px] text-muted-foreground font-mono">départ #{d.short_ref ?? '----'}</div>
+                          )}
                         </div>
+
                       </div>
                       <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                         <CapacityBar value={pct} ariaLabel="Capacité utilisée" className="flex-1" />
