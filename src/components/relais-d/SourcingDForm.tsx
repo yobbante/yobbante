@@ -57,14 +57,18 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
 
       // Photo facultative → dossier-documents
       if (photo && dossier?.id) {
-        const path = `${dossier.id}/sourcing-${Date.now()}-${photo.name}`;
-        const { error: upErr } = await supabase.storage.from('dossier-documents').upload(path, photo);
+        const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${dossier.id}/sourcing-${Date.now()}-${safeName}`;
+        const { error: upErr } = await supabase.storage.from('dossier-documents').upload(path, photo, { contentType: photo.type });
         if (!upErr) {
           await supabase.from('dossier_documents').insert({
             dossier_id: dossier.id,
             file_path: path,
             file_name: photo.name,
-            doc_type: 'product_photo',
+            mime_type: photo.type || null,
+            size_bytes: photo.size,
+            kind: 'other',
+            uploaded_by: user.id,
           });
         }
       }
