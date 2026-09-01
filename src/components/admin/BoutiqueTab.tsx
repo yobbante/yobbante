@@ -5,6 +5,7 @@ import { BoutiqueOrdersPanel } from './BoutiqueOrdersPanel';
 import { BoutiqueStatsPanel } from './BoutiqueStatsPanel';
 import { BoutiquePromosPanel } from './BoutiquePromosPanel';
 import { DekkPaymentsPanel } from './DekkPaymentsPanel';
+import { ShopVitrinesPanel } from './ShopVitrinesPanel';
 import { runDekkSeed } from '@/data/dekk-seed';
 
 
@@ -75,7 +76,7 @@ const emptyForm = {
 };
 
 export function BoutiqueTab() {
-  const [view, setView] = useState<'products' | 'orders' | 'paiements' | 'promos' | 'stats'>('products');
+  const [view, setView] = useState<'products' | 'orders' | 'paiements' | 'promos' | 'stats' | 'vitrines'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<'published' | 'draft'>('published');
   const [saleFilter, setSaleFilter] = useState<'all' | 'live' | 'waiting'>('all');
@@ -253,12 +254,14 @@ export function BoutiqueTab() {
         <TabBtn active={view === 'paiements'} onClick={() => setView('paiements')}>Paiements</TabBtn>
         <TabBtn active={view === 'promos'}   onClick={() => setView('promos')}>Codes promo</TabBtn>
         <TabBtn active={view === 'stats'}    onClick={() => setView('stats')}>Statistiques</TabBtn>
+        <TabBtn active={view === 'vitrines'} onClick={() => setView('vitrines')}>Vitrines Commander en ligne</TabBtn>
       </div>
 
       {view === 'orders' ? <BoutiqueOrdersPanel />
         : view === 'paiements' ? <DekkPaymentsPanel />
         : view === 'promos' ? <BoutiquePromosPanel />
         : view === 'stats' ? <BoutiqueStatsPanel />
+        : view === 'vitrines' ? <ShopVitrinesPanel />
         : (<>
 
       {/* Tabs */}

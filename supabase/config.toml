@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.relais-d-notify]
 verify_jwt = false
+
+[functions.link-preview]
+verify_jwt = false

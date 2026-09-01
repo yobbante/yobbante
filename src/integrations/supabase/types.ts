@@ -3583,6 +3583,45 @@ export type Database = {
           },
         ]
       }
+      shop_trending_products: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string | null
+          position: number
+          price_label: string | null
+          product_url: string
+          site_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          price_label?: string | null
+          product_url: string
+          site_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          price_label?: string | null
+          product_url?: string
+          site_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sourcing_items: {
         Row: {
           confirmed: boolean
