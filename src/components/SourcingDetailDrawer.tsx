@@ -13,6 +13,9 @@ import {
   type Dossier, COUNTRY_FLAGS, COUNTRY_NAMES, DOSSIER_STATUS_LABELS,
 } from '@/lib/types';
 import { AdminInlineEditor } from '@/components/admin/AdminInlineEditor';
+import { SourcingOrderPanel } from '@/components/admin/SourcingOrderPanel';
+import { useUserRole } from '@/hooks/useUserRole';
+
 
 const KONNEKT_APP_URL = 'https://konnekt.lovable.app';
 
@@ -50,7 +53,9 @@ interface Props {
 
 export function SourcingDetailDrawer({ open, onOpenChange, dossier }: Props) {
   const navigate = useNavigate();
+  const { isStaff } = useUserRole();
   if (!dossier) return null;
+
 
   const status = dossier.status;
   const statusLabel = DOSSIER_STATUS_LABELS[status] ?? status;
@@ -196,6 +201,10 @@ export function SourcingDetailDrawer({ open, onOpenChange, dossier }: Props) {
             status={status}
             reference={dossier.reference}
           />
+
+          {/* Admin-only : chiffrage sourcing, devis, achat, réception */}
+          {isStaff && <SourcingOrderPanel dossier={dossier as any} />}
+
 
           {/* KPI grid */}
           <div className="grid grid-cols-3 gap-2.5">

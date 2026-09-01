@@ -3043,6 +3043,7 @@ export type Database = {
           reference: string
           relay_address_id: string
           shipment_id: string | null
+          sourcing_dossier_id: string | null
           status: string
           transport_mode: string
           updated_at: string
@@ -3070,6 +3071,7 @@ export type Database = {
           reference?: string
           relay_address_id: string
           shipment_id?: string | null
+          sourcing_dossier_id?: string | null
           status?: string
           transport_mode?: string
           updated_at?: string
@@ -3097,6 +3099,7 @@ export type Database = {
           reference?: string
           relay_address_id?: string
           shipment_id?: string | null
+          sourcing_dossier_id?: string | null
           status?: string
           transport_mode?: string
           updated_at?: string
@@ -3108,6 +3111,13 @@ export type Database = {
             columns: ["relay_address_id"]
             isOneToOne: false
             referencedRelation: "relay_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reception_orders_sourcing_dossier_id_fkey"
+            columns: ["sourcing_dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
             referencedColumns: ["id"]
           },
         ]
@@ -3515,6 +3525,72 @@ export type Database = {
             columns: ["manual_departure_id"]
             isOneToOne: false
             referencedRelation: "public_active_departures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sourcing_items: {
+        Row: {
+          confirmed: boolean
+          created_at: string
+          dossier_id: string
+          id: string
+          note: string | null
+          price_amount: number | null
+          price_currency: string | null
+          qty: number
+          reception_order_id: string | null
+          relay_country: string
+          site: string
+          updated_at: string
+          url: string
+          weight_kg: number | null
+        }
+        Insert: {
+          confirmed?: boolean
+          created_at?: string
+          dossier_id: string
+          id?: string
+          note?: string | null
+          price_amount?: number | null
+          price_currency?: string | null
+          qty?: number
+          reception_order_id?: string | null
+          relay_country?: string
+          site: string
+          updated_at?: string
+          url: string
+          weight_kg?: number | null
+        }
+        Update: {
+          confirmed?: boolean
+          created_at?: string
+          dossier_id?: string
+          id?: string
+          note?: string | null
+          price_amount?: number | null
+          price_currency?: string | null
+          qty?: number
+          reception_order_id?: string | null
+          relay_country?: string
+          site?: string
+          updated_at?: string
+          url?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sourcing_items_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sourcing_items_reception_order_id_fkey"
+            columns: ["reception_order_id"]
+            isOneToOne: false
+            referencedRelation: "reception_orders"
             referencedColumns: ["id"]
           },
         ]

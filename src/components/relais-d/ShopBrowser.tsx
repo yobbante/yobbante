@@ -112,6 +112,23 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
         app_source: 'relais_d_shop',
       });
 
+      // Lignes structurées : l'admin y saisira prix réel + poids estimé majoré.
+      const dossierId = (dossier as any)?.id ?? null;
+      if (dossierId) {
+        const { error: itemsError } = await supabase.from('sourcing_items').insert(
+          cart.map(i => ({
+            dossier_id: dossierId,
+            site: i.site,
+            relay_country: i.relay,
+            url: i.url,
+            qty: i.qty,
+            note: i.note || null,
+          })),
+        );
+        if (itemsError) console.error('sourcing_items insert failed', itemsError);
+      }
+
+
       supabase.functions.invoke('relais-d-notify', {
         body: {
           kind: 'shop',
