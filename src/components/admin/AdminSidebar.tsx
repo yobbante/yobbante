@@ -182,13 +182,15 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
                 {group.label}
               </div>
             )}
-            {visibleItems.map(({ id, label, icon: Icon, soon }) => {
+            {visibleItems.map(({ id, label, icon: Icon, soon, slug, tab }) => {
               const disabled = soon || (id === 'settings' && !isAdmin);
-              const isActive = active === id;
+              // Une entrée « onglet » n'est active que si le hub ET l'onglet correspondent.
+              const isActive = active === id && (tab ? currentTab === tab : !tabsOfSection(id).includes(currentTab ?? ''));
               return (
                 <button
-                  key={id}
-                  onClick={() => !disabled && onChange(id)}
+                  key={`${id}-${slug ?? 'root'}`}
+                  onClick={() => !disabled && onChange((slug ?? id) as AdminSection)}
+
                   disabled={disabled}
                   className={cn(
                     'group flex items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors',
