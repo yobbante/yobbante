@@ -96,6 +96,11 @@ const HIDDEN_SECTIONS: NavItem[] = [
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
 
+/** Onglets d'un hub qui ont leur propre entrée dans la sidebar. */
+const tabsOfSection = (id: AdminSection) =>
+  ADMIN_NAV.filter(n => n.id === id && n.tab).map(n => n.tab as string);
+
+
 export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
