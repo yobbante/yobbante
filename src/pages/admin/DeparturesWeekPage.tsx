@@ -26,7 +26,7 @@ import { Package } from 'lucide-react';
 import { WhatsAppImportDepartureDialog } from '@/components/admin/WhatsAppImportDepartureDialog';
 import { ManualDepartureForm } from '@/components/admin/ManualDepartureForm';
 
-const MODE_LABEL: Record<string, string> = { air: 'Air', sea_lcl: 'Mer', road: 'Route' };
+const MODE_LABEL: Record<string, string> = { gp: 'GP', air: 'Air', sea_lcl: 'Mer', road: 'Route' };
 
 const PUB_BADGE: Record<string, { label: string; variant: any }> = {
   draft: { label: 'Brouillon', variant: 'warning' },

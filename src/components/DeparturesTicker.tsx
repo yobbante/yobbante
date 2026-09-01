@@ -21,7 +21,7 @@ const FLAG: Record<string, string> = {
   TG: '🇹🇬', BJ: '🇧🇯', GA: '🇬🇦', CG: '🇨🇬',
 };
 
-const TRANSPORT_ICON = { AIR: Plane, SEA: Ship, ROAD: Truck } as const;
+const TRANSPORT_ICON = { AIR: Plane, SEA: Ship, ROAD: Truck, GP: Plane } as const;
 
 function fmtDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00');

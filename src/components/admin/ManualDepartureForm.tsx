@@ -696,10 +696,12 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                         const rd = addDays(departureDate, 7);
                         setReturnDate(rd);
                         setReturnArrival(estimateArrivalDate({
-                          destinationCountry: direction === 'from_dakar' ? 'SN' : destCountry,
-                          destinationCity: direction === 'from_dakar' ? 'Dakar' : destCity,
+                          // Le retour arrive là où partait l'aller (origine du trajet aller).
+                          destinationCountry: originCountry || (direction === 'from_dakar' ? 'SN' : destCountry),
+                          destinationCity: originCity || (direction === 'from_dakar' ? 'Dakar' : destCity),
                           departureDate: rd,
                         }));
+
                       }
                     }}
                   />
@@ -718,10 +720,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                         setReturnDate(d);
                         if (d) {
                           setReturnArrival(estimateArrivalDate({
-                            destinationCountry: direction === 'from_dakar' ? 'SN' : destCountry,
-                            destinationCity: direction === 'from_dakar' ? 'Dakar' : destCity,
+                            destinationCountry: originCountry || (direction === 'from_dakar' ? 'SN' : destCountry),
+                            destinationCity: originCity || (direction === 'from_dakar' ? 'Dakar' : destCity),
                             departureDate: d,
                           }));
+
                         }
                       }}
                     />
