@@ -14,6 +14,8 @@ import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
 import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLifecycleDialogs';
 import { canCancel, isTerminal } from '@/lib/dossierLifecycle';
+import { CarrierPicker } from '@/components/admin/payments/CarrierPicker';
+import { carrierTypesForMode, useResolvedCarrier } from '@/hooks/useCarrierDirectory';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
@@ -43,6 +45,7 @@ export function PaymentDetailSheet({
   const [method, setMethod] = useState<string>('');
   const [paidDate, setPaidDate] = useState('');
   const [carrierName, setCarrierName] = useState('');
+  const [carrierRef, setCarrierRef] = useState<string | null>(null);
   const [carrierCost, setCarrierCost] = useState('');
   const [carrierPaid, setCarrierPaid] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -55,13 +58,15 @@ export function PaymentDetailSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_name')
+        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_name, gp_id, assigned_transporteur_ref, transport_mode')
         .eq('id', dossierId as string)
         .maybeSingle();
       if (error) throw error;
       return data as any;
     },
   });
+
+  const { data: autoCarrier } = useResolvedCarrier(open ? dossier : null);
 
   useEffect(() => {
     if (!payment) return;
@@ -70,15 +75,24 @@ export function PaymentDetailSheet({
     setMethod(payment.method ?? '');
     setPaidDate(toDateInput(payment.paidAt));
     setCarrierName(payment.kind === 'carrier' ? payment.clientName : '');
+    setCarrierRef(null);
   }, [payment]);
 
   useEffect(() => {
     if (!dossier) return;
     if (payment?.kind !== 'carrier') setCarrierName(dossier.carrier_name ?? '');
+    setCarrierRef(dossier.assigned_transporteur_ref ?? null);
     setCarrierCost(dossier.carrier_cost_xof != null ? String(dossier.carrier_cost_xof) : '');
     setCarrierPaid(!!dossier.carrier_paid);
   }, [dossier, payment?.kind]);
 
+
+  // Pré-remplissage automatique quand le dossier n'a pas encore de transporteur saisi.
+  useEffect(() => {
+    if (!autoCarrier) return;
+    setCarrierName((prev) => prev || autoCarrier.name);
+    setCarrierRef((prev) => prev || autoCarrier.ref);
+  }, [autoCarrier]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -110,6 +124,7 @@ export function PaymentDetailSheet({
           const cost = carrierCost === '' ? null : Math.max(0, Math.round(Number(carrierCost) || 0));
           patch.carrier_name = carrierName || null;
           patch.carrier_cost_xof = cost;
+          if (carrierRef) patch.assigned_transporteur_ref = carrierRef;
           patch.carrier_paid = carrierPaid;
           patch.carrier_paid_at = carrierPaid ? (dossier?.carrier_paid ? undefined : new Date().toISOString()) : null;
           if (patch.carrier_paid_at === undefined) delete patch.carrier_paid_at;
@@ -235,8 +250,14 @@ export function PaymentDetailSheet({
 
           {payment.kind === 'carrier' && (
             <div className="space-y-1.5">
-              <Label htmlFor="pay-carrier" className="text-xs">Transporteur</Label>
-              <Input id="pay-carrier" value={carrierName} onChange={(e) => setCarrierName(e.target.value)} placeholder="Compagnie / agent" />
+              <Label className="text-xs">Transporteur</Label>
+              <CarrierPicker
+                value={carrierName}
+                valueRef={carrierRef}
+                types={carrierTypesForMode(payment.mode)}
+                autoDetected={autoCarrier ?? null}
+                onChange={(name, ref) => { setCarrierName(name); setCarrierRef(ref); }}
+              />
             </div>
           )}
 
@@ -274,11 +295,13 @@ export function PaymentDetailSheet({
                 Transporteur alloué
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="alloc-carrier" className="text-xs text-muted-foreground">Nom / compagnie</Label>
-                <Input
-                  id="alloc-carrier" value={carrierName}
-                  onChange={(e) => setCarrierName(e.target.value)}
-                  placeholder={dossier?.gp_name || 'GP, compagnie aérienne, transitaire…'}
+                <Label className="text-xs text-muted-foreground">Nom / compagnie</Label>
+                <CarrierPicker
+                  value={carrierName}
+                  valueRef={carrierRef}
+                  types={carrierTypesForMode(payment.mode)}
+                  autoDetected={autoCarrier ?? null}
+                  onChange={(name, ref) => { setCarrierName(name); setCarrierRef(ref); }}
                 />
               </div>
               <div className="space-y-1.5">
