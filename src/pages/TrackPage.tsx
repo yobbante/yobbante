@@ -12,6 +12,7 @@ import { getDeliveryDelay, getArrivalFromDeparture, type DeliveryMode } from '@/
 import { PublicDepartureConfirm } from '@/components/dossier/PublicDepartureConfirm';
 import { normalizeTrackingId } from '@/lib/trackingId';
 import { FretTrackView } from '@/components/fret/FretTrackView';
+import { TrackAccountCta } from '@/components/track/TrackAccountCta';
 
 
 interface TimelineEvent {
