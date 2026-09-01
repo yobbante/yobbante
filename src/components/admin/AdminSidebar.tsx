@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
@@ -111,6 +111,8 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [sp] = useSearchParams();
+  const currentTab = sp.get('tab');
   const isGuide = pathname.startsWith('/admin/guide');
   const isFlyers = pathname.startsWith('/admin/flyers');
   const isForfaits = pathname.startsWith('/admin/tarifs/forfaits');

@@ -18,7 +18,6 @@ import { BoutiqueTab } from '@/components/admin/BoutiqueTab';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { FinancesHubTab } from '@/components/admin/FinancesHubTab';
 import { DevisAdminTab } from '@/components/admin/DevisAdminTab';
-import { Ship } from 'lucide-react';
 import { AdminBreadcrumb } from '@/components/admin/AdminBreadcrumb';
 import { AdminLiveBadge } from '@/components/admin/AdminLiveBadge';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
@@ -52,6 +51,9 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   'gp-operations': { section: 'terrain', tab: 'operations' },
   fret:            { section: 'terrain', tab: 'fret' },
   routier:         { section: 'dossiers', tab: 'routier' },
+  aerien:          { section: 'dossiers', tab: 'aerien' },
+  maritime:        { section: 'dossiers', tab: 'maritime' },
+  'relais-d':      { section: 'dossiers', tab: 'reception' },
 
   // Départs
   departures:      { section: 'departs', tab: 'liste' },
@@ -64,8 +66,10 @@ const LEGACY_REDIRECTS: Record<string, Resolved> = {
   enterprise:      { section: 'leads', tab: 'b2b' },
 
   // Finances — fusion Revenus + Paiements GP
-  revenus:         { section: 'finances', tab: 'revenus' },
-  'paiements-gp':  { section: 'finances', tab: 'paiements-gp' },
+  revenus:         { section: 'finances' },
+  'paiements-gp':  { section: 'finances' },
+  paiements:       { section: 'finances' },
+  'bilan-tva':     { section: 'finances', tab: 'bilan' },
 };
 
 function resolveSlug(slug: string | undefined): { section: AdminSection; tab?: string; unknown: boolean } {
@@ -284,15 +288,6 @@ export default function AdminPage() {
               {section === 'messages' && <MessagesTab />}
               {section === 'leads'    && <LeadsHubTab />}
               {section === 'devis'    && <DevisAdminTab readOnly={isAgentTerrain} fretOnly={isAgentTerrain} />}
-              {section === 'maritime' && (
-                <div className="py-20 text-center">
-                  <Ship className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-base font-semibold text-foreground">Maritime — bientôt disponible</p>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                    L'espace de gestion du fret maritime sera activé prochainement.
-                  </p>
-                </div>
-              )}
               {section === 'finances' && isAdmin && <FinancesHubTab />}
               {section === 'boutique' && <BoutiqueTab />}
               {section === 'hubs'     && <HubsHubTab />}
