@@ -90,13 +90,13 @@ export function useFinanceLedger(monthsBack = 6) {
           .neq('status', 'ANNULE'),
         // Coûts transporteurs aérien / maritime
         supabase.from('dossiers')
-          .select('carrier_cost_xof, carrier_paid_at, paid_at, delivered_at, created_at, status')
+          .select('carrier_cost_xof, gp_amount, carrier_paid_at, paid_at, delivered_at, created_at, status')
           .not('carrier_cost_xof', 'is', null)
           .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('created_at', wideSince),
         // Restes à payer transporteurs aérien / maritime
         supabase.from('dossiers')
-          .select('carrier_cost_xof, status')
+          .select('carrier_cost_xof, gp_amount, status')
           .eq('carrier_paid', false)
           .not('carrier_cost_xof', 'is', null)
           .not('status', 'in', '(CANCELLED,ARCHIVED)'),
@@ -130,8 +130,10 @@ export function useFinanceLedger(monthsBack = 6) {
 
       (roadR.data || []).forEach((c: any) => {
         if (c.status === 'ANNULE') return;
-        if (c.dossiers?.status === 'CANCELLED' || c.dossiers?.status === 'ARCHIVED') return;
-        const b = bucket(c.dossiers?.paid_at ?? c.delivered_at ?? c.created_at);
+        const linked = Array.isArray(c.dossiers) ? c.dossiers[0] : c.dossiers;
+        if (linked?.status === 'CANCELLED' || linked?.status === 'ARCHIVED') return;
+        const link = Array.isArray(c.dossiers) ? c.dossiers[0] : c.dossiers;
+        const b = bucket(link?.paid_at ?? c.delivered_at ?? c.created_at);
         if (!b) return;
         b.costRoadXof += Number(c.chauffeur_cost_fcfa || 0);
         // Une course sans dossier lié n'est comptée nulle part ailleurs : c'est du revenu direct.
@@ -139,6 +141,8 @@ export function useFinanceLedger(monthsBack = 6) {
       });
 
       ((carrierR as any).data || []).forEach((d: any) => {
+        // Évite le double comptage : sur un dossier GP, le coût est déjà dans gp_amount.
+        if (Number(d.gp_amount || 0) > 0) return;
         const b = bucket(d.paid_at ?? d.carrier_paid_at ?? d.delivered_at ?? d.created_at);
         if (b) b.costCarrierXof += Number(d.carrier_cost_xof || 0);
       });
@@ -158,6 +162,7 @@ export function useFinanceLedger(monthsBack = 6) {
       ).length;
 
       const dueCarrierXof = (((carrierDueR as any).data || []) as any[])
+        .filter((d) => !(Number(d.gp_amount || 0) > 0))
         .reduce((s, d) => s + Number(d.carrier_cost_xof || 0), 0);
 
       return {
