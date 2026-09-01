@@ -1,5 +1,7 @@
 // parse-departure-message — Parse un message GP type "DEP Paris 15/06 25kg"
 // et renvoie { destination, date, kg }. Fallback regex si Lovable AI indispo.
+import { checkRateLimit, rateLimitResponse, subjectFromRequest } from '../_shared/rateLimit.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -91,7 +93,13 @@ Deno.serve(async (req) => {
     }
     // Try regex first (free, fast), fall back to AI
     const regex = regexParse(text);
-    const result = regex.ok ? regex : (await aiParse(text)) ?? regex;
+    let result: any = regex;
+    if (!regex.ok) {
+      // Limite IA : 30 appels / heure / demandeur
+      const rl = await checkRateLimit('parse-departure', subjectFromRequest(req), 30, 3600);
+      if (!rl.allowed) return rateLimitResponse(rl, corsHeaders);
+      result = (await aiParse(text)) ?? regex;
+    }
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
