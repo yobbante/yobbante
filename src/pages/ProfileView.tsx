@@ -203,7 +203,7 @@ export function ProfileView() {
             >
               <div className="flex items-center gap-1.5 text-muted-foreground group-hover:text-foreground">
                 <Inbox className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wider font-semibold">Réceptions</span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold">Relais D</span>
               </div>
               <p className="mt-1 text-xl font-bold tracking-tight text-foreground">{stats.recv}</p>
             </button>

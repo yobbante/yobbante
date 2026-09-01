@@ -11,7 +11,7 @@ export function DesktopNav({ active, onChange, onSignOut }: { active: TabId; onC
   const links = [
     { id: 'home' as TabId,       icon: Home,   label: 'Accueil' },
     { id: 'envois' as TabId,     icon: Send,   label: 'Envois' },
-    { id: 'receptions' as TabId, icon: Inbox,  label: 'Réceptions' },
+    { id: 'receptions' as TabId, icon: Inbox,  label: 'Relais D' },
     { id: 'sourcing' as TabId,   icon: Search, label: 'Sourcing' },
     { id: 'profile' as TabId,    icon: User,   label: 'Profil' },
   ];

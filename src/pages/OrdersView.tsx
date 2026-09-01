@@ -44,7 +44,7 @@ const KIND_TABS: ReadonlyArray<{
   {
     id: 'receive',
     label: 'Relais D',
-    short: 'Réceptions',
+    short: 'Relais D',
     hint: 'Vos achats en ligne arrivent dans nos hubs.',
     Icon: Inbox,
     ctaLabel: 'Recevoir un colis',
