@@ -7,23 +7,25 @@ import { toast } from 'sonner';
 
 /**
  * Relais D — Chemin "Sourcing D".
- * Le client envoie une photo + description + budget.
- * Yobbanté recherche en Chine (fournisseurs), constate le prix réel
- * et envoie un devis avec taux de change majoré.
+ * Le client envoie photo(s) + description + lien de référence + quantité + budget.
+ * Yobbanté recherche en Chine, constate le prix réel et un poids estimé majoré,
+ * puis envoie une proposition à valider avant tout paiement.
  */
 export function SourcingDForm({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [description, setDescription] = useState('');
+  const [refLink, setRefLink] = useState('');
+  const [qty, setQty] = useState(1);
   const [budget, setBudget] = useState('');
+  const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
 
-  function pickPhoto(f: File | null) {
-    setPhoto(f);
-    setPreview(f ? URL.createObjectURL(f) : null);
+  function addPhotos(list: FileList | null) {
+    if (!list) return;
+    setPhotos(p => [...p, ...Array.from(list)].slice(0, 5));
   }
 
   async function submit() {
@@ -44,19 +46,29 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
         origin_country: 'CN',
         destination_country: 'SN',
         needs_sourcing: true,
+        contact_phone: phone || null,
         budget_eur: budget ? Number(budget) : null,
         notes: [
-          'SOURCING D — RECHERCHE FOURNISSEUR (CHINE)',
+          'SOURCING D — RECHERCHE FOURNISSEUR (CHINE) · statut : en recherche',
           `Description: ${description.trim()}`,
+          `Quantité souhaitée: ${qty}`,
+          refLink ? `Lien de référence: ${refLink}` : '',
           budget ? `Budget indicatif: ${budget}€` : '',
+          phone ? `Téléphone client: ${phone}` : '',
+          photos.length ? `${photos.length} photo(s) jointe(s) au dossier` : '',
           '',
-          'Action admin : rechercher le produit chez les fournisseurs, constater le prix réel, appliquer le taux de change majoré, envoyer le devis. Passage en « Achat en cours » après paiement.',
+          'ACTION ADMIN :',
+          '1. Rechercher le produit en Chine, saisir le(s) lien(s) trouvé(s) et le prix réel constaté.',
+          '2. Saisir un POIDS ESTIMÉ MAJORÉ (arrondi vers le haut, obligatoire).',
+          '3. Envoyer la proposition au client (devis) — validation client obligatoire avant achat.',
+          '4. Après paiement → « Achat en cours », réception via l\'adresse relais Chine (Guangzhou).',
         ].filter(Boolean).join('\n'),
         app_source: 'relais_d_sourcing',
       });
 
-      // Photo facultative → dossier-documents
-      if (photo && dossier?.id) {
+      // Photos facultatives → dossier-documents
+      for (const photo of photos) {
+        if (!dossier?.id) break;
         const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${dossier.id}/sourcing-${Date.now()}-${safeName}`;
         const { error: upErr } = await supabase.storage.from('dossier-documents').upload(path, photo, { contentType: photo.type });
@@ -72,6 +84,15 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
           });
         }
       }
+
+      supabase.functions.invoke('relais-d-notify', {
+        body: {
+          kind: 'sourcing',
+          reference: (dossier as any)?.reference ?? '',
+          dossier_id: (dossier as any)?.id ?? null,
+          summary: `${description.trim().slice(0, 120)} · qté ${qty}`,
+        },
+      }).catch(() => {});
 
       toast.success('Demande envoyée — short-list sous 24-48h 🏭');
       onBack();
@@ -90,34 +111,34 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
         </button>
         <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Sourcing D</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Décrivez le produit — notre équipe le recherche en Chine, négocie et vous envoie un devis tout compris.
+          Décrivez le produit — notre équipe le recherche en Chine, négocie et vous envoie une proposition
+          à valider avant tout paiement.
         </p>
 
         <div className="mt-8 space-y-5">
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full aspect-[16/7] rounded-2xl border-2 border-dashed border-border hover:border-foreground transition-colors flex flex-col items-center justify-center gap-2 overflow-hidden relative"
+            className="w-full rounded-2xl border-2 border-dashed border-border hover:border-foreground transition-colors flex flex-col items-center justify-center gap-2 py-8"
           >
-            {preview ? (
-              <>
-                <img src={preview} alt="Photo du produit recherché" className="absolute inset-0 w-full h-full object-cover" />
-                <span
-                  onClick={e => { e.stopPropagation(); pickPhoto(null); }}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white"
-                  role="button" aria-label="Retirer la photo"
-                >
-                  <X className="w-4 h-4" />
-                </span>
-              </>
-            ) : (
-              <>
-                <Camera className="w-6 h-6 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Photo du produit (facultatif)</span>
-              </>
-            )}
+            <Camera className="w-6 h-6 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Photos du produit (facultatif, jusqu'à 5)</span>
           </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                 onChange={e => pickPhoto(e.target.files?.[0] ?? null)} />
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+                 onChange={e => addPhotos(e.target.files)} />
+
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((p, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                  <img src={URL.createObjectURL(p)} alt={`Photo ${i + 1} du produit recherché`} className="w-full h-full object-cover" />
+                  <button onClick={() => setPhotos(ps => ps.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white" aria-label="Retirer la photo">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-muted-foreground">Description du produit *</span>
@@ -129,12 +150,32 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
           </label>
 
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Budget indicatif (€, facultatif)</span>
+            <span className="text-xs font-medium text-muted-foreground">Lien de référence (facultatif)</span>
             <input
-              type="number" min="0" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)}
-              placeholder="Ex : 50"
+              value={refLink} onChange={e => setRefLink(e.target.value)}
+              placeholder="Pinterest, Alibaba, Instagram…"
               className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
             />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Quantité souhaitée</span>
+              <input type="number" min={1} value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))}
+                     className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Budget indicatif (€)</span>
+              <input type="number" min="0" inputMode="decimal" value={budget} onChange={e => setBudget(e.target.value)}
+                     placeholder="Ex : 50"
+                     className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
+            </label>
+          </div>
+
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Téléphone / contact</span>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+221 …"
+                   className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
           </label>
 
           <button
@@ -145,7 +186,8 @@ export function SourcingDForm({ onBack }: { onBack: () => void }) {
             Envoyer ma demande
           </button>
           <p className="text-[11px] text-muted-foreground text-center">
-            Sans engagement · Short-list fournisseurs sous 24-48h · Achat uniquement après validation du devis
+            Sans engagement · Vous validez la proposition avant tout paiement · Frais d'acheminement estimés
+            et légèrement majorés : aucun complément ne vous sera jamais demandé.
           </p>
         </div>
       </main>
