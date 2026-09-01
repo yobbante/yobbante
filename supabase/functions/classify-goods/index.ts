@@ -2,6 +2,7 @@
 // Returns { goods_type: GoodsId | null, confidence: 'high'|'medium'|'low', rationale: string }
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const GOODS_IDS = [
   "standard","electronics","fragile","fashion","cosmetics",
@@ -20,6 +21,10 @@ Deno.serve(async (req) => {
   if (claimsErr || !claims?.claims?.sub) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+
+  // Limite IA : 60 classifications / heure / utilisateur
+  const rl = await checkRateLimit("classify-goods", `u:${claims.claims.sub}`, 60, 3600);
+  if (!rl.allowed) return rateLimitResponse(rl, corsHeaders);
 
   try {
     const { description, declared_value_eur } = await req.json();
