@@ -20,8 +20,8 @@ export const SEND_TRANSPORT_MODES: {
   status: 'live' | 'soon';
 }[] = [
   { id: 'gp',   label: 'GP',       desc: 'Bagage accompagné · 3-7j', Icon: Luggage, status: 'live' },
-  { id: 'air',  label: 'Aérien',   desc: 'Fret classique',           Icon: Plane,   status: 'soon' },
-  { id: 'sea',  label: 'Maritime', desc: 'Conteneur / LCL',          Icon: Ship,    status: 'soon' },
+  { id: 'air',  label: 'Aérien',   desc: 'Fret classique · devis',   Icon: Plane,   status: 'live' },
+  { id: 'sea',  label: 'Maritime', desc: 'Groupage LCL / FCL',       Icon: Ship,    status: 'live' },
   { id: 'road', label: 'Routier',  desc: 'Terminal D',               Icon: Truck,   status: 'live' },
 ];
 

@@ -11,6 +11,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { TextField } from './FlowPrimitives';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePhone } from '@/lib/phone';
+import { transportModeLabel } from '@/lib/transportMode';
 
 interface Prefill {
   origin_country?: string | null;
@@ -98,7 +99,7 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
       { icon: Package, label: 'Poids', value: `${prefill.weight_kg} kg${prefill.parcel_count ? ` · ${prefill.parcel_count} colis` : ''}` },
     ];
     if (prefill.goods_type) items.push({ icon: Package, label: 'Marchandise', value: prefill.goods_type });
-    if (prefill.transport_mode) items.push({ icon: Truck, label: 'Transport', value: prefill.transport_mode });
+    if (prefill.transport_mode) items.push({ icon: Truck, label: 'Transport', value: transportModeLabel(prefill.transport_mode) });
     if (prefill.priority) items.push({ icon: Zap, label: 'Urgence', value: prefill.priority });
     if (prefill.declared_value) items.push({ icon: Shield, label: 'Valeur', value: `${prefill.declared_value} ${prefill.declared_currency ?? ''}`.trim() });
     if (prefill.insurance) items.push({ icon: Shield, label: 'Assurance', value: prefill.insurance });
@@ -123,7 +124,7 @@ export function ManualQuoteDialog({ open, onOpenChange, prefill, defaultName, de
         `Poids: ${prefill.weight_kg} kg`,
         prefill.parcel_count ? `Colis: ${prefill.parcel_count}` : '',
         prefill.goods_type ? `Type marchandise: ${prefill.goods_type}` : '',
-        prefill.transport_mode ? `Transport: ${prefill.transport_mode}` : '',
+        prefill.transport_mode ? `Transport: ${transportModeLabel(prefill.transport_mode)}` : '',
         prefill.priority ? `Priorité: ${prefill.priority}` : '',
         prefill.declared_value ? `Valeur déclarée: ${prefill.declared_value} ${prefill.declared_currency ?? ''}` : '',
         prefill.insurance ? `Assurance: ${prefill.insurance}` : '',
