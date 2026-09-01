@@ -50,7 +50,9 @@ interface Props {
 
 export function SourcingDetailDrawer({ open, onOpenChange, dossier }: Props) {
   const navigate = useNavigate();
+  const { isStaff } = useUserRole();
   if (!dossier) return null;
+
 
   const status = dossier.status;
   const statusLabel = DOSSIER_STATUS_LABELS[status] ?? status;
