@@ -102,28 +102,27 @@ export function PaymentDetailSheet({
       const isPaid = opts?.forcePaid ?? paid;
       const value = Math.max(0, Math.round(Number(amount) || 0));
       const paidAtIso = isPaid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
-      const paid = isPaid; // eslint-disable-line @typescript-eslint/no-shadow
-
 
       if (payment.source === 'dossier') {
         const patch: Record<string, unknown> = {};
         if (payment.kind === 'client') {
           patch.final_amount_xof = value;
-          patch.payment_status = paid ? 'paid' : 'pending';
+          patch.payment_status = isPaid ? 'paid' : 'pending';
           patch.paid_at = paidAtIso;
           if (method) patch.payment_method = method;
         } else if (payment.kind === 'gp') {
           patch.gp_amount = value;
-          patch.gp_paid = paid;
+          patch.gp_paid = isPaid;
           patch.gp_paid_at = paidAtIso;
           if (method) patch.gp_payment_method = method;
         } else {
           patch.carrier_cost_xof = value;
-          patch.carrier_paid = paid;
+          patch.carrier_paid = isPaid;
           patch.carrier_paid_at = paidAtIso;
           patch.carrier_name = carrierName || null;
           if (method) patch.carrier_payment_method = method;
         }
+
         // Transporteur alloué au dossier (éditable depuis n'importe quel paiement du dossier)
         if (payment.kind !== 'carrier' && dossierId) {
           const cost = carrierCost === '' ? null : Math.max(0, Math.round(Number(carrierCost) || 0));
