@@ -660,8 +660,25 @@ export function RequestsTab({
                             <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
-                                  Statut
+                                  {course ? 'Statut routier' : 'Statut'}
                                 </span>
+                                {course ? (
+                                  <Select
+                                    value={course.status}
+                                    onValueChange={(v) => updateFretStatus.mutate({ courseId: course.id, status: v as FretStatus })}
+                                  >
+                                    <SelectTrigger className="h-8 w-full sm:w-56 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {FRET_STATUS_ORDER.map(s => (
+                                        <SelectItem key={s} value={s} className="text-xs">
+                                          {FRET_STATUS_LABEL[s]}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
                                 <Select
                                   value={d.status}
                                   onValueChange={(v) => updateStatus.mutate({ id: d.id, status: v as DossierStatus })}
@@ -680,7 +697,9 @@ export function RequestsTab({
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                )}
                               </div>
+
                               <Button
                                 size="sm"
                                 onClick={() => sheet.open(d.id)}
