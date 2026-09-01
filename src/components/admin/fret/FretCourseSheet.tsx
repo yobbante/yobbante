@@ -109,15 +109,25 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
   const setStatus = useMutation({
     mutationFn: async (next: FretStatus) => {
       if (!course) return;
-      const stamp = STAMP_FIELD[next];
       const patch: Record<string, unknown> = { status: next };
+      const stamp = STAMP_FIELD[next];
       if (stamp) patch[stamp] = new Date().toISOString();
+      // Retour en arrière (admin) : on nettoie les horodatages des étapes postérieures.
+      const nextIdx = FLOW.indexOf(next);
+      const curIdx = FLOW.indexOf(course.status);
+      if (nextIdx >= 0 && curIdx > nextIdx) {
+        FLOW.slice(nextIdx + 1).forEach((s) => {
+          const f = STAMP_FIELD[s];
+          if (f) patch[f] = null;
+        });
+      }
       const { error } = await supabase.from('fret_courses' as any).update(patch).eq('id', course.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success('Statut mis à jour'); invalidate(); },
     onError: (e: any) => toast.error(e?.message ?? 'Changement de statut impossible'),
   });
+
 
   if (!course) return null;
 
