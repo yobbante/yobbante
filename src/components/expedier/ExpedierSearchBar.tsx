@@ -762,6 +762,21 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Devis sur mesure — Aérien / Maritime */}
+      <ManualQuoteDialog
+        open={quoteOpen}
+        onOpenChange={setQuoteOpen}
+        prefill={{
+          origin_city: (origin || '—').split(',')[0].trim(),
+          origin_country: direction === 'from_dakar' ? 'SN' : (resolveCityToCountry(origin, customCities)?.country ?? null),
+          destination_city: (destination || '—').split(',')[0].trim(),
+          destination_country: direction === 'to_dakar' ? 'SN' : (resolveCityToCountry(destination, customCities)?.country ?? null),
+          weight_kg: Number(weight) || 0,
+          transport_mode: transportMode === 'sea' ? 'sea' : 'air',
+          description: quoteDescription || null,
+        }}
+      />
     </motion.div>
   );
 }
