@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { useChauffeurs, type AdminFretCourse } from '@/hooks/useFretAdmin';
 import { normalizePhone } from '@/lib/phone';
+import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 
 export const FRET_STATUS_TONE: Record<FretStatus, string> = {
@@ -55,6 +56,7 @@ interface Props {
 export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, onAssign }: Props) {
   const qc = useQueryClient();
   const { data: chauffeurs = [] } = useChauffeurs(open);
+  const { isAdmin } = useUserRole();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     destination: '', client_nom: '', client_phone: '', expediteur_nom: '', expediteur_phone: '',
