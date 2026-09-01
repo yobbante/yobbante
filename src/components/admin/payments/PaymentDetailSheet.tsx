@@ -234,6 +234,36 @@ export function PaymentDetailSheet({
             </div>
           )}
 
+          {/* Transporteur alloué au dossier — écrit sur le dossier, donc synchronisé partout */}
+          {payment.kind !== 'carrier' && payment.source === 'dossier' && dossierId && (
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                Transporteur alloué
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="alloc-carrier" className="text-xs text-muted-foreground">Nom / compagnie</Label>
+                <Input
+                  id="alloc-carrier" value={carrierName}
+                  onChange={(e) => setCarrierName(e.target.value)}
+                  placeholder={dossier?.gp_name || 'GP, compagnie aérienne, transitaire…'}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="alloc-cost" className="text-xs text-muted-foreground">Prix payé au transporteur (XOF)</Label>
+                <Input
+                  id="alloc-cost" inputMode="numeric" value={carrierCost}
+                  onChange={(e) => setCarrierCost(e.target.value.replace(/[^\d]/g, ''))}
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs">Déjà réglé au transporteur</span>
+                <Switch checked={carrierPaid} onCheckedChange={setCarrierPaid} />
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-1">
             <Button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1">
               {save.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
@@ -247,11 +277,40 @@ export function PaymentDetailSheet({
               </Button>
             )}
           </div>
+
+          {dossierId && dossier?.status && dossier.status !== 'CANCELLED' && (
+            <Button
+              variant="outline"
+              className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+              disabled={!canCancel(dossier.status)}
+              onClick={() => setCancelOpen(true)}
+            >
+              <Ban className="w-4 h-4 mr-1" />
+              {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
+            </Button>
+          )}
+          {dossier?.status === 'CANCELLED' && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500 text-center">
+              Dossier annulé
+            </div>
+          )}
         </div>
+
+        {dossierId && (
+          <CancelDossierDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            dossierId={dossierId}
+            currentStatus={dossier?.status ?? ''}
+            displayRef={payment.ref}
+            onDone={() => { invalidateFinance(qc); onOpenChange(false); }}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
 }
+
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
