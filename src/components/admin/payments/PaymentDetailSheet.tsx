@@ -8,12 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink, Ban, Truck } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
 import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLifecycleDialogs';
-import { canCancel } from '@/lib/dossierLifecycle';
+import { canCancel, isTerminal } from '@/lib/dossierLifecycle';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
@@ -129,6 +129,38 @@ export function PaymentDetailSheet({
     onSuccess: () => {
       toast.success('Paiement mis à jour — synchronisé avec le dossier');
       invalidateFinance(qc);
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error('Échec : ' + e.message),
+  });
+
+  /**
+   * Annulation / archivage direct depuis la fiche paiement.
+   * - archive : dossier → ARCHIVED (ou course fret → ANNULE)
+   * - cancel  : réservé aux courses fret sans dossier (les dossiers passent par CancelDossierDialog)
+   */
+  const lifecycle = useMutation({
+    mutationFn: async (action: 'archive' | 'cancel') => {
+      if (!payment) return;
+      if (payment.source === 'dossier' && dossierId) {
+        const patch: Record<string, unknown> = action === 'archive'
+          ? { status: 'ARCHIVED' }
+          : { status: 'CANCELLED', cancellation_source: 'admin', cancelled_by: 'admin' };
+        const { error } = await supabase.from('dossiers').update(patch as never).eq('id', dossierId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('fret_courses' as never)
+          .update({ status: 'ANNULE' } as never)
+          .eq('id', payment.sourceId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, action) => {
+      toast.success(action === 'archive' ? 'Paiement archivé' : 'Course annulée');
+      invalidateFinance(qc);
+      qc.invalidateQueries({ queryKey: ['admin-dossier'] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error('Échec : ' + e.message),
@@ -278,22 +310,56 @@ export function PaymentDetailSheet({
             )}
           </div>
 
-          {dossierId && dossier?.status && dossier.status !== 'CANCELLED' && (
-            <Button
-              variant="outline"
-              className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
-              disabled={!canCancel(dossier.status)}
-              onClick={() => setCancelOpen(true)}
-            >
-              <Ban className="w-4 h-4 mr-1" />
-              {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
-            </Button>
+          {/* Cycle de vie — annulation / archivage */}
+          {(dossierId || payment.source === 'course') && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cycle de vie</div>
+
+              {dossierId && dossier?.status && !isTerminal(dossier.status) && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                  disabled={!canCancel(dossier.status)}
+                  onClick={() => setCancelOpen(true)}
+                >
+                  <Ban className="w-4 h-4 mr-1" />
+                  {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
+                </Button>
+              )}
+
+              {payment.source === 'course' && !dossierId && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                  disabled={lifecycle.isPending}
+                  onClick={() => lifecycle.mutate('cancel')}
+                >
+                  <Ban className="w-4 h-4 mr-1" /> Annuler cette course
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={lifecycle.isPending || (dossier?.status === 'ARCHIVED')}
+                onClick={() => lifecycle.mutate('archive')}
+              >
+                <Archive className="w-4 h-4 mr-1" />
+                {dossier?.status === 'ARCHIVED' ? 'Déjà archivé' : 'Archiver ce paiement'}
+              </Button>
+
+              <p className="text-[10px] text-muted-foreground">
+                L'archivage retire le paiement des vues actives — le dossier passe en « Archivé ».
+              </p>
+            </div>
           )}
+
           {dossier?.status === 'CANCELLED' && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500 text-center">
               Dossier annulé
             </div>
           )}
+
         </div>
 
         {dossierId && (

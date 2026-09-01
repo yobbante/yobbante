@@ -79,7 +79,7 @@ export function useAllPayments(monthsBack = 12) {
         supabase
           .from('dossiers')
           .select(
-            'id, reference, tracking_id, transport_mode, sender_name, recipient_name, origin_city, origin_country, destination_city, destination_country, ' +
+            'id, reference, tracking_id, status, transport_mode, sender_name, recipient_name, origin_city, origin_country, destination_city, destination_country, ' +
             'final_amount_xof, estimated_cost, payment_status, payment_method, paid_at, created_at, ' +
             'gp_amount, gp_paid, gp_paid_at, gp_payment_method, ' +
             'carrier_cost_xof, carrier_name, carrier_paid, carrier_paid_at, carrier_payment_method',
@@ -98,6 +98,8 @@ export function useAllPayments(monthsBack = 12) {
       const rows: PaymentRow[] = [];
 
       for (const d of (dossiersR.data ?? []) as any[]) {
+        // Dossiers annulés/archivés : exclus de la vue active des paiements.
+        if (d.status === 'CANCELLED' || d.status === 'ARCHIVED') continue;
         const mode = normalizeMode(d.transport_mode);
         const ref = d.tracking_id || d.reference || d.id.slice(0, 8);
         const client = d.sender_name || d.recipient_name || '—';
@@ -151,6 +153,8 @@ export function useAllPayments(monthsBack = 12) {
       }
 
       for (const c of (coursesR.data ?? []) as any[]) {
+        // Courses annulées : exclues de la vue active des paiements.
+        if (c.status === 'ANNULE') continue;
         const ref = c.ref || String(c.id).slice(0, 8);
         const client = c.client_nom || '—';
         const route = `Dakar → ${c.destination || '—'}`;
