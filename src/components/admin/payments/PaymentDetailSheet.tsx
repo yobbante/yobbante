@@ -278,22 +278,56 @@ export function PaymentDetailSheet({
             )}
           </div>
 
-          {dossierId && dossier?.status && dossier.status !== 'CANCELLED' && (
-            <Button
-              variant="outline"
-              className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
-              disabled={!canCancel(dossier.status)}
-              onClick={() => setCancelOpen(true)}
-            >
-              <Ban className="w-4 h-4 mr-1" />
-              {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
-            </Button>
+          {/* Cycle de vie — annulation / archivage */}
+          {(dossierId || payment.source === 'fret') && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cycle de vie</div>
+
+              {dossierId && dossier?.status && !isTerminal(dossier.status) && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                  disabled={!canCancel(dossier.status)}
+                  onClick={() => setCancelOpen(true)}
+                >
+                  <Ban className="w-4 h-4 mr-1" />
+                  {canCancel(dossier.status) ? 'Annuler ce dossier' : 'Annulation impossible (en transit)'}
+                </Button>
+              )}
+
+              {payment.source === 'fret' && !dossierId && (
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                  disabled={lifecycle.isPending}
+                  onClick={() => lifecycle.mutate('cancel')}
+                >
+                  <Ban className="w-4 h-4 mr-1" /> Annuler cette course
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={lifecycle.isPending || (dossier?.status === 'ARCHIVED')}
+                onClick={() => lifecycle.mutate('archive')}
+              >
+                <Archive className="w-4 h-4 mr-1" />
+                {dossier?.status === 'ARCHIVED' ? 'Déjà archivé' : 'Archiver ce paiement'}
+              </Button>
+
+              <p className="text-[10px] text-muted-foreground">
+                L'archivage retire le paiement des vues actives — le dossier passe en « Archivé ».
+              </p>
+            </div>
           )}
+
           {dossier?.status === 'CANCELLED' && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-500 text-center">
               Dossier annulé
             </div>
           )}
+
         </div>
 
         {dossierId && (
