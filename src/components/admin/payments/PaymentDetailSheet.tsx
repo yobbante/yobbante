@@ -326,8 +326,9 @@ export function PaymentDetailSheet({
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div className="text-sm font-medium">
-              {payment.direction === 'in' ? 'Encaissé' : 'Réglé au transporteur'}
+              {isIn ? 'Encaissé auprès du client' : 'Versé au transporteur'}
             </div>
+
             <Switch checked={paid} onCheckedChange={setPaid} />
           </div>
 
