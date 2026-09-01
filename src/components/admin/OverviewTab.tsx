@@ -342,7 +342,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           ]}
         />
         <ServiceCard
-          icon={PackageOpen} title="Réception" tone="default"
+          icon={PackageOpen} title="Relais D" tone="default"
           activeCount={m.recActive}
           delivered7={m.recPipeline.delivered7}
           onJump={() => onJump('reception')}

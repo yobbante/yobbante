@@ -105,7 +105,7 @@ export function ReceptionKanbanTab() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Réception internationale</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Relais D — réception internationale</h1>
         <p className="text-sm text-muted-foreground">
           Suivi des commandes attendues aux relais. Cliquez une fiche pour enregistrer la réception (poids, photo, prix final).
         </p>
@@ -285,7 +285,7 @@ function ReceptionOrderDrawer({
         <div className="flex border-b border-border">
           {[
             { id: 'info' as const, label: 'Détails' },
-            { id: 'receive' as const, label: 'Réception' },
+            { id: 'receive' as const, label: 'Relais D' },
           ].map(t => (
             <button
               key={t.id}
@@ -332,7 +332,7 @@ function InfoPanel({ order }: { order: ReceptionOrder }) {
         <Row k="Pays"   v={order.relay_addresses?.country || '—'} />
       </Section>
 
-      <Section title="Réception">
+      <Section title="Relais D">
         <Row k="Statut"            v={order.status} />
         <Row k="Poids réel"        v={order.actual_weight_kg ? `${order.actual_weight_kg} kg` : '—'} />
         <Row k="Prix final"        v={order.final_price_eur ? `${order.final_price_eur.toFixed(2)} €` : '—'} />

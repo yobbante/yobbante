@@ -59,7 +59,7 @@ export function HomeView({ onNavigateOrders }: HomeViewProps = {}) {
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[
             { value: activeDossiers.length, label: 'Sourcing',   onClick: () => goOrders('sourcing') },
-            { value: waitingPackages.length, label: 'Réceptions', onClick: () => goOrders('receive') },
+            { value: waitingPackages.length, label: 'Relais D', onClick: () => goOrders('receive') },
             { value: activeShipments.length, label: 'Envois',     onClick: () => goOrders('send') },
             { value: addresses.length,       label: 'Hubs',       onClick: undefined as (() => void) | undefined },
           ].map((kpi) => (
