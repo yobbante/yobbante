@@ -14,16 +14,24 @@ import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
+const METHOD_LABEL: Record<string, string> = {
+  wave: 'Wave', orange_money: 'Orange Money', cash: 'Espèces',
+  virement: 'Virement', paytech: 'PayTech', autre: 'Autre',
+};
+
+const toDateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 
 /**
- * Fiche paiement — édition directe du montant, du statut et de la méthode.
- * Écrit sur la même source que la fiche dossier (dossiers / fret_courses),
- * donc les deux vues restent synchronisées en temps réel.
+ * Fiche paiement — détails complets + édition directe du montant, de la méthode,
+ * de la date de règlement et du statut. Écrit sur la même source que la fiche
+ * dossier (dossiers / fret_courses) : les deux vues restent synchronisées.
  */
 export function PaymentDetailSheet({
-  payment, open, onOpenChange,
+  payment, related = [], open, onOpenChange,
 }: {
   payment: PaymentRow | null;
+  /** Autres paiements du même dossier (pour afficher la marge). */
+  related?: PaymentRow[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -31,6 +39,7 @@ export function PaymentDetailSheet({
   const [amount, setAmount] = useState('');
   const [paid, setPaid] = useState(false);
   const [method, setMethod] = useState<string>('');
+  const [paidDate, setPaidDate] = useState('');
   const [carrierName, setCarrierName] = useState('');
 
   useEffect(() => {
@@ -38,6 +47,7 @@ export function PaymentDetailSheet({
     setAmount(String(payment.amountXof ?? ''));
     setPaid(payment.paid);
     setMethod(payment.method ?? '');
+    setPaidDate(toDateInput(payment.paidAt));
     setCarrierName(payment.kind === 'carrier' ? payment.clientName : '');
   }, [payment]);
 
@@ -45,24 +55,24 @@ export function PaymentDetailSheet({
     mutationFn: async () => {
       if (!payment) return;
       const value = Math.max(0, Math.round(Number(amount) || 0));
-      const now = new Date().toISOString();
+      const paidAtIso = paid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
 
       if (payment.source === 'dossier') {
         const patch: Record<string, unknown> = {};
         if (payment.kind === 'client') {
           patch.final_amount_xof = value;
           patch.payment_status = paid ? 'paid' : 'pending';
-          patch.paid_at = paid ? (payment.paidAt ?? now) : null;
+          patch.paid_at = paidAtIso;
           if (method) patch.payment_method = method;
         } else if (payment.kind === 'gp') {
           patch.gp_amount = value;
           patch.gp_paid = paid;
-          patch.gp_paid_at = paid ? (payment.paidAt ?? now) : null;
+          patch.gp_paid_at = paidAtIso;
           if (method) patch.gp_payment_method = method;
         } else {
           patch.carrier_cost_xof = value;
           patch.carrier_paid = paid;
-          patch.carrier_paid_at = paid ? (payment.paidAt ?? now) : null;
+          patch.carrier_paid_at = paidAtIso;
           patch.carrier_name = carrierName || null;
           if (method) patch.carrier_payment_method = method;
         }
@@ -71,7 +81,7 @@ export function PaymentDetailSheet({
       } else {
         const patch: Record<string, unknown> =
           payment.kind === 'road'
-            ? { chauffeur_cost_fcfa: value, chauffeur_paid: paid, chauffeur_paid_at: paid ? (payment.paidAt ?? now) : null }
+            ? { chauffeur_cost_fcfa: value, chauffeur_paid: paid, chauffeur_paid_at: paidAtIso }
             : { total_fcfa: value };
         const { error } = await supabase.from('fret_courses' as never).update(patch as never).eq('id', payment.sourceId);
         if (error) throw error;
@@ -87,6 +97,11 @@ export function PaymentDetailSheet({
 
   if (!payment) return null;
 
+  const others = related.filter((r) => r.key !== payment.key);
+  const inSum = related.filter((r) => r.direction === 'in').reduce((s, r) => s + r.amountXof, 0);
+  const outSum = related.filter((r) => r.direction === 'out').reduce((s, r) => s + r.amountXof, 0);
+  const hasMethod = payment.source === 'dossier';
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
@@ -94,10 +109,11 @@ export function PaymentDetailSheet({
           <SheetTitle className="flex items-center gap-2 text-base">
             {KIND_LABEL[payment.kind]}
             <Badge variant="outline" className="text-[10px]">{MODE_LABEL[payment.mode]}</Badge>
+            <span className={payment.paid ? 'text-[hsl(var(--success))] text-[10px] font-medium' : 'text-amber-500 text-[10px] font-medium'}>
+              {payment.paid ? 'Réglé' : 'En attente'}
+            </span>
           </SheetTitle>
-          <SheetDescription className="text-xs">
-            {payment.ref} · {payment.clientName} · {payment.route}
-          </SheetDescription>
+          <SheetDescription className="text-xs">{payment.ref}</SheetDescription>
         </SheetHeader>
         <button
           onClick={() => onOpenChange(false)}
@@ -108,11 +124,36 @@ export function PaymentDetailSheet({
         </button>
 
         <div className="mt-5 space-y-4">
-          <div className="rounded-lg border border-border p-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Montant actuel</div>
-            <div className="text-xl font-semibold tabular-nums">{formatXof(payment.amountXof)}</div>
+          {/* Infos */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Info label={payment.kind === 'carrier' ? 'Transporteur' : 'Client'} value={payment.clientName} />
+            <Info label="Trajet" value={payment.route} />
+            <Info label="Créé le" value={new Date(payment.date).toLocaleDateString('fr-FR')} />
+            <Info label="Méthode actuelle" value={payment.method ? (METHOD_LABEL[payment.method] ?? payment.method) : '—'} />
           </div>
 
+          {/* Marge du dossier (quand plusieurs paiements liés) */}
+          {others.length > 0 && (
+            <div className="rounded-lg border border-border p-3 space-y-1">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Dossier — vue d'ensemble</div>
+              {related.map((r) => (
+                <div key={r.key} className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {KIND_LABEL[r.kind]}{r.key === payment.key ? ' (ce paiement)' : ''}
+                  </span>
+                  <span className="tabular-nums font-medium">{formatXof(r.amountXof)}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
+                <span className="font-medium">Marge</span>
+                <span className={inSum - outSum >= 0 ? 'tabular-nums font-semibold text-[hsl(var(--success))]' : 'tabular-nums font-semibold text-[hsl(var(--danger))]'}>
+                  {formatXof(inSum - outSum)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Édition */}
           <div className="space-y-1.5">
             <Label htmlFor="pay-amount" className="text-xs">Montant (XOF)</Label>
             <Input
@@ -128,27 +169,31 @@ export function PaymentDetailSheet({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Méthode</Label>
-            <Select value={method || undefined} onValueChange={setMethod}>
-              <SelectTrigger><SelectValue placeholder="Non renseignée" /></SelectTrigger>
-              <SelectContent>
-                {METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {hasMethod && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Méthode</Label>
+              <Select value={method || undefined} onValueChange={setMethod}>
+                <SelectTrigger><SelectValue placeholder="Non renseignée" /></SelectTrigger>
+                <SelectContent>
+                  {METHODS.map((m) => <SelectItem key={m} value={m}>{METHOD_LABEL[m]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <div className="text-sm font-medium">
-                {payment.direction === 'in' ? 'Encaissé' : 'Réglé au transporteur'}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {payment.paidAt ? new Date(payment.paidAt).toLocaleDateString('fr-FR') : 'Non réglé'}
-              </div>
+            <div className="text-sm font-medium">
+              {payment.direction === 'in' ? 'Encaissé' : 'Réglé au transporteur'}
             </div>
             <Switch checked={paid} onCheckedChange={setPaid} />
           </div>
+
+          {paid && (
+            <div className="space-y-1.5">
+              <Label htmlFor="pay-date" className="text-xs">Date de règlement</Label>
+              <Input id="pay-date" type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} />
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <Button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1">
@@ -166,5 +211,14 @@ export function PaymentDetailSheet({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border p-2 min-w-0">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-medium truncate">{value}</div>
+    </div>
   );
 }
