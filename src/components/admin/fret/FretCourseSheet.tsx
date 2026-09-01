@@ -29,6 +29,8 @@ export const FRET_STATUS_TONE: Record<FretStatus, string> = {
 };
 
 const FLOW: FretStatus[] = ['A_ENLEVER', 'PENDING_ACCEPT', 'REMIS_CHAUFFEUR', 'EN_ROUTE', 'ARRIVE', 'LIVRE'];
+const ALL_STATUSES: FretStatus[] = [...FLOW, 'ANNULE'];
+
 
 const STAMP_FIELD: Partial<Record<FretStatus, string>> = {
   PENDING_ACCEPT: 'remis_at',
