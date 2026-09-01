@@ -123,7 +123,7 @@ export function ShipNowDialog({ open, onOpenChange, presetCountry }: ShipNowDial
     setSelectedDeparture(null); // reset selection if pkg list changes
   };
 
-  const transportFromDeparture = (t: 'AIR' | 'SEA' | 'ROAD') => t.toLowerCase();
+  const transportFromDeparture = (t: 'AIR' | 'SEA' | 'ROAD' | 'GP') => t.toLowerCase();
 
   const canSubmit = selectedPackages.length > 0 && (
     (mode === 'departure' && selectedDeparture) ||
