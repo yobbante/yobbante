@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
+import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLifecycleDialogs';
+import { canCancel } from '@/lib/dossierLifecycle';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
@@ -41,6 +43,25 @@ export function PaymentDetailSheet({
   const [method, setMethod] = useState<string>('');
   const [paidDate, setPaidDate] = useState('');
   const [carrierName, setCarrierName] = useState('');
+  const [carrierCost, setCarrierCost] = useState('');
+  const [carrierPaid, setCarrierPaid] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  // Dossier lié : statut + coût transporteur alloué (source unique, synchronisée).
+  const dossierId = payment?.dossierId ?? null;
+  const { data: dossier } = useQuery({
+    queryKey: ['admin-dossier', dossierId, 'payment-sheet'],
+    enabled: open && !!dossierId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('dossiers')
+        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_name')
+        .eq('id', dossierId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
 
   useEffect(() => {
     if (!payment) return;
@@ -50,6 +71,14 @@ export function PaymentDetailSheet({
     setPaidDate(toDateInput(payment.paidAt));
     setCarrierName(payment.kind === 'carrier' ? payment.clientName : '');
   }, [payment]);
+
+  useEffect(() => {
+    if (!dossier) return;
+    if (payment?.kind !== 'carrier') setCarrierName(dossier.carrier_name ?? '');
+    setCarrierCost(dossier.carrier_cost_xof != null ? String(dossier.carrier_cost_xof) : '');
+    setCarrierPaid(!!dossier.carrier_paid);
+  }, [dossier, payment?.kind]);
+
 
   const save = useMutation({
     mutationFn: async () => {
