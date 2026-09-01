@@ -1204,6 +1204,12 @@ export type Database = {
           cancellation_source: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          carrier_cost_xof: number | null
+          carrier_name: string | null
+          carrier_paid: boolean
+          carrier_paid_at: string | null
+          carrier_payment_method: string | null
+          carrier_payment_note: string | null
           cash_on_delivery: boolean
           client_departure_decided_at: string | null
           client_departure_decision: string
@@ -1368,6 +1374,12 @@ export type Database = {
           cancellation_source?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          carrier_cost_xof?: number | null
+          carrier_name?: string | null
+          carrier_paid?: boolean
+          carrier_paid_at?: string | null
+          carrier_payment_method?: string | null
+          carrier_payment_note?: string | null
           cash_on_delivery?: boolean
           client_departure_decided_at?: string | null
           client_departure_decision?: string
@@ -1532,6 +1544,12 @@ export type Database = {
           cancellation_source?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          carrier_cost_xof?: number | null
+          carrier_name?: string | null
+          carrier_paid?: boolean
+          carrier_paid_at?: string | null
+          carrier_payment_method?: string | null
+          carrier_payment_note?: string | null
           cash_on_delivery?: boolean
           client_departure_decided_at?: string | null
           client_departure_decision?: string

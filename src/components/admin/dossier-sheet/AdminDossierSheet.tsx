@@ -22,6 +22,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { invalidateFinance } from '@/hooks/useAllPayments';
 import { useDossierSheet } from './useDossierSheet';
 import { useDossierMessages } from '@/hooks/useDossierMessages';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -1533,8 +1534,7 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
     },
     onSuccess: () => {
       toast.success('Marqué comme payé');
-      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
-      qc.invalidateQueries({ queryKey: ['dossiers'] });
+      invalidateFinance(qc);
     },
     onError: (e: any) => toast.error(e?.message || 'Échec'),
   });
@@ -1565,8 +1565,7 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
     },
     onSuccess: () => {
       toast.success('Tarif mis à jour');
-      qc.invalidateQueries({ queryKey: ['admin-dossier', dossier.id] });
-      qc.invalidateQueries({ queryKey: ['dossiers'] });
+      invalidateFinance(qc);
     },
     onError: (e: any) => toast.error(e?.message || 'Échec'),
   });
@@ -1620,6 +1619,8 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
         )}
       </div>
 
+      <CarrierCostBlock dossier={dossier} />
+
       {!dossier.actual_weight_kg && (() => {
         const collectedAt = (dossier as any).collected_at ? new Date((dossier as any).collected_at).getTime() : null;
         const overdue = collectedAt && (Date.now() - collectedAt) > 4 * 3600_000 && dossier.status === 'COLLECTED';
@@ -1634,6 +1635,66 @@ function PaiementTab({ dossier }: { dossier: DossierRow }) {
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+/** Coût transporteur (aérien / maritime / autre) — synchronisé avec l'onglet Finances. */
+function CarrierCostBlock({ dossier }: { dossier: DossierRow }) {
+  const qc = useQueryClient();
+  const d = dossier as any;
+  const mode = String(d.transport_mode || '').toLowerCase();
+  const isAirSea = /air|aer|aér|sea|mar|lcl|fcl/.test(mode);
+  const [amount, setAmount] = useState<string>(d.carrier_cost_xof != null ? String(d.carrier_cost_xof) : '');
+  const [name, setName] = useState<string>(d.carrier_name ?? '');
+
+  const save = useMutation({
+    mutationFn: async (paidToggle?: boolean) => {
+      const patch: Record<string, unknown> = {
+        carrier_cost_xof: Math.max(0, Math.round(Number(amount) || 0)),
+        carrier_name: name || null,
+      };
+      if (paidToggle !== undefined) {
+        patch.carrier_paid = paidToggle;
+        patch.carrier_paid_at = paidToggle ? new Date().toISOString() : null;
+      }
+      const { error } = await supabase.from('dossiers').update(patch as never).eq('id', dossier.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Coût transporteur enregistré');
+      invalidateFinance(qc);
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec'),
+  });
+
+  if (!isAirSea) return null;
+
+  return (
+    <div className="rounded-lg border border-border p-4 space-y-3">
+      <div>
+        <div className="text-sm font-medium">Coût transporteur ({mode.includes('sea') || mode.includes('mar') ? 'maritime' : 'aérien'})</div>
+        <div className="text-xs text-muted-foreground">Ce montant alimente le bilan et l'onglet « Tous les paiements ».</div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
+          placeholder="Montant XOF"
+          inputMode="numeric"
+        />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Compagnie / agent" />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" onClick={() => save.mutate(undefined)} disabled={save.isPending}>Enregistrer</Button>
+        {!d.carrier_paid ? (
+          <Button size="sm" variant="outline" onClick={() => save.mutate(true)} disabled={save.isPending}>
+            Marquer réglé
+          </Button>
+        ) : (
+          <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Réglé</Badge>
+        )}
+      </div>
     </div>
   );
 }

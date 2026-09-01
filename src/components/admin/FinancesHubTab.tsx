@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { HubHeader, HubTab } from './hub-ui';
-import { Wallet, Coins, TrendingUp, Truck, Receipt } from 'lucide-react';
+import { Wallet, Coins, TrendingUp, Truck, Receipt, CreditCard, Plane } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RevenusTab } from './RevenusTab';
@@ -9,13 +9,15 @@ import { FinancesTab } from './FinancesTab';
 import { RoadPaymentsTab } from './RoadPaymentsTab';
 import { BilanTvaTab } from './BilanTvaTab';
 import { useFinanceLedger } from '@/hooks/useFinanceLedger';
+import { useFinanceRealtime } from '@/hooks/useAllPayments';
+import { PaymentsAllTab } from './payments/PaymentsAllTab';
 
 const fmtXOF = (n: number) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n) + ' FCFA';
 
-type TabId = 'revenus' | 'paiements-gp' | 'paiements-routiers' | 'bilan';
-const DEFAULT_TAB: TabId = 'revenus';
-const TAB_IDS: TabId[] = ['revenus', 'paiements-gp', 'paiements-routiers', 'bilan'];
+type TabId = 'tous' | 'revenus' | 'paiements-gp' | 'paiements-routiers' | 'bilan';
+const DEFAULT_TAB: TabId = 'tous';
+const TAB_IDS: TabId[] = ['tous', 'revenus', 'paiements-gp', 'paiements-routiers', 'bilan'];
 
 /**
  * Hub Finances — revenus clients, paiements transporteurs (GP + routiers)
@@ -26,6 +28,7 @@ export function FinancesHubTab() {
   const tabParam = sp.get('tab') as TabId | null;
   const tab: TabId = tabParam && TAB_IDS.includes(tabParam) ? tabParam : DEFAULT_TAB;
   const { data, isLoading } = useFinanceLedger(6);
+  useFinanceRealtime();
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
@@ -44,12 +47,13 @@ export function FinancesHubTab() {
       {/* Ligne de résumé — toujours visible */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3">
         {isLoading || !cur ? (
-          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+          [...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
             <SummaryCard icon={Wallet} label="Encaissé ce mois" value={fmtXOF(cur.revenueXof)} tone="default" />
             <SummaryCard icon={Coins}  label="Coût GP ce mois"  value={fmtXOF(cur.costGpXof)}  tone="muted" />
             <SummaryCard icon={Truck}  label="Coût routier ce mois" value={fmtXOF(cur.costRoadXof)} tone="muted" />
+            <SummaryCard icon={Plane}  label="Coût aérien/maritime" value={fmtXOF(cur.costCarrierXof)} tone="muted" />
             <SummaryCard
               icon={TrendingUp}
               label="Bénéfice net"
@@ -63,11 +67,13 @@ export function FinancesHubTab() {
 
       <Tabs value={tab} onValueChange={onChange}>
         <TabsList>
+          <HubTab value="tous" icon={CreditCard} label="Tous les paiements" />
           <HubTab value="revenus" icon={Wallet} label="Revenus clients" />
           <HubTab value="paiements-gp" icon={Coins} label="Paiements GP" />
           <HubTab value="paiements-routiers" icon={Truck} label="Paiements routiers" />
           <HubTab value="bilan" icon={Receipt} label="Bilan & TVA" />
         </TabsList>
+        <TabsContent value="tous" className="mt-4"><PaymentsAllTab /></TabsContent>
         <TabsContent value="revenus" className="mt-4"><RevenusTab /></TabsContent>
         <TabsContent value="paiements-gp" className="mt-4"><FinancesTab /></TabsContent>
         <TabsContent value="paiements-routiers" className="mt-4"><RoadPaymentsTab /></TabsContent>
