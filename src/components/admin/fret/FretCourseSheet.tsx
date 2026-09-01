@@ -253,23 +253,52 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
         )}
 
         {/* Statut */}
-        {!readOnly && !cancelled && (
+        {!readOnly && (
           <div className="rounded-xl border border-border p-3 space-y-2">
             <p className="text-[11px] font-semibold uppercase text-muted-foreground">Statut</p>
-            <div className="flex flex-wrap gap-2">
-              {nextStatus && (
-                <Button size="sm" className="h-8 text-xs" disabled={setStatus.isPending}
-                        onClick={() => setStatus.mutate(nextStatus)}>
-                  Passer à « {FRET_STATUS_LABEL[nextStatus]} »
+            {!cancelled && (
+              <div className="flex flex-wrap gap-2">
+                {nextStatus && (
+                  <Button size="sm" className="h-8 text-xs" disabled={setStatus.isPending}
+                          onClick={() => setStatus.mutate(nextStatus)}>
+                    Passer à « {FRET_STATUS_LABEL[nextStatus]} »
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setStatus.isPending}
+                        onClick={() => setStatus.mutate('ANNULE')}>
+                  Annuler la course
                 </Button>
-              )}
-              <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setStatus.isPending}
-                      onClick={() => setStatus.mutate('ANNULE')}>
-                Annuler la course
-              </Button>
-            </div>
+              </div>
+            )}
+
+            {/* Super admin : correction libre du statut (retour arrière possible) */}
+            {isAdmin && (
+              <div className="pt-2 border-t border-border/60 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Correction admin — forcer un statut
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_STATUSES.map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={s === course.status ? 'default' : 'outline'}
+                      className="h-7 text-[11px]"
+                      disabled={setStatus.isPending || s === course.status}
+                      onClick={() => setStatus.mutate(s)}
+                    >
+                      {FRET_STATUS_LABEL[s]}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Le retour en arrière efface l’horodatage des étapes suivantes.
+                </p>
+              </div>
+            )}
           </div>
         )}
+
 
         {/* Timeline */}
         <div className="rounded-xl border border-border p-3 space-y-1.5">
