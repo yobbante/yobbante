@@ -372,7 +372,7 @@ export function PaymentDetailSheet({
           )}
 
           <div className="flex gap-2 pt-1">
-            <Button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1">
+            <Button onClick={() => save.mutate({})} disabled={save.isPending} className="flex-1">
               {save.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
               Enregistrer
             </Button>
