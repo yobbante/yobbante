@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
-  Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship,
+  Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship, PackageOpen,
+  Route as RouteIcon, Plane,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,6 @@ export type AdminSection =
   | 'messages'
   | 'leads'
   | 'devis'
-  | 'revenus'
   | 'finances'
   | 'boutique'
   | 'hubs'
@@ -90,7 +90,6 @@ const NAV_GROUPS: NavGroup[] = [
 // Sections cachées de la sidebar mais toujours accessibles via URL / deep-link.
 const HIDDEN_SECTIONS: NavItem[] = [
   { id: 'leads', label: 'Leads & devis', icon: ClipboardList },
-  { id: 'revenus', label: 'Revenus', icon: Wallet },
 ];
 
 
