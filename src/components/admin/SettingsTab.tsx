@@ -24,6 +24,9 @@ export function SettingsTab() {
 
       <RouteRatesPanel />
 
+      <FxMarkupPanel />
+
+
 
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Notifications</p>
