@@ -99,6 +99,7 @@ function SummaryCard({
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{label}</span>
       </div>
       <p className={cn('mt-1.5 text-sm md:text-xl font-semibold tabular-nums', text[tone])}>{value}</p>
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground truncate">{hint}</p>}
     </div>
   );
 }
