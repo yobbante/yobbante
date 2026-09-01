@@ -9,6 +9,7 @@ import EnterprisesPage from "./pages/EnterprisesPage";
 import DevisEntreprisePage from "./pages/DevisEntreprisePage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
+import RelaisDPage from "./pages/RelaisDPage";
 import SourcingPage from "./pages/SourcingPage";
 import TarifsPage from "./pages/TarifsPage";
 import DevisPage from "./pages/DevisPage";
@@ -168,6 +169,9 @@ const MainRoutes = () => (
     <Route path="/expedier/:mode" element={<ExpedierPage />} />
     {/* Sourcing — canonical URL. /acheter kept as alias for the merchant-mode selection page only when ?mode=recevoir is needed. */}
     <Route path="/sourcing" element={<SourcingPage />} />
+    {/* Relais D — point d'entrée unique (Commander en ligne / Sourcing D / J'ai déjà commandé) */}
+    <Route path="/relais-d" element={<RelaisDPage />} />
+    <Route path="/relais-d/:mode" element={<RelaisDPage />} />
     <Route path="/acheter" element={<Navigate to="/sourcing" replace />} />
     <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
     <Route path="/acheter/recevoir" element={<AcheterPage />} />
