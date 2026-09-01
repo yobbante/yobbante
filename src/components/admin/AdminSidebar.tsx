@@ -19,14 +19,23 @@ export type AdminSection =
   | 'messages'
   | 'leads'
   | 'devis'
-  | 'maritime'
   | 'revenus'
   | 'finances'
   | 'boutique'
   | 'hubs'
   | 'settings';
 
-type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean; soon?: boolean };
+type NavItem = {
+  id: AdminSection;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+  soon?: boolean;
+  /** Slug envoyé au routeur (peut cibler un onglet précis d'un hub). */
+  slug?: string;
+  /** Onglet du hub ciblé — sert à surligner l'entrée active. */
+  tab?: string;
+};
 
 // Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
@@ -45,10 +54,13 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Opérations',
     items: [
-      { id: 'departs', label: 'Départs',         icon: Truck },
-      { id: 'devis',   label: 'Devis',           icon: FileText },
-      { id: 'maritime', label: 'Maritime',       icon: Ship, soon: true },
-      { id: 'terrain', label: 'Équipe terrain',  icon: UsersRound, adminOnly: true },
+      { id: 'departs',  label: 'Départs',        icon: Truck },
+      { id: 'dossiers', label: 'Fret routier',   icon: RouteIcon, slug: 'routier',  tab: 'routier' },
+      { id: 'dossiers', label: 'Aérien',         icon: Plane,     slug: 'aerien',   tab: 'aerien' },
+      { id: 'dossiers', label: 'Maritime',       icon: Ship,      slug: 'maritime', tab: 'maritime' },
+      { id: 'dossiers', label: 'Relais D',       icon: PackageOpen, slug: 'reception', tab: 'reception' },
+      { id: 'devis',    label: 'Devis',          icon: FileText },
+      { id: 'terrain',  label: 'Équipe terrain', icon: UsersRound, adminOnly: true },
     ],
   },
   {
@@ -61,7 +73,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Finances',
     items: [
-      { id: 'finances', label: 'Finances',       icon: Wallet,      adminOnly: true },
+      { id: 'finances', label: 'Paiements',    icon: CreditCard, adminOnly: true },
+      { id: 'finances', label: 'Bilan & TVA',  icon: Wallet,     adminOnly: true, slug: 'bilan-tva', tab: 'bilan' },
     ],
   },
   {
@@ -77,7 +90,9 @@ const NAV_GROUPS: NavGroup[] = [
 // Sections cachées de la sidebar mais toujours accessibles via URL / deep-link.
 const HIDDEN_SECTIONS: NavItem[] = [
   { id: 'leads', label: 'Leads & devis', icon: ClipboardList },
+  { id: 'revenus', label: 'Revenus', icon: Wallet },
 ];
+
 
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
