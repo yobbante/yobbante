@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { useChauffeurs, type AdminFretCourse } from '@/hooks/useFretAdmin';
 import { normalizePhone } from '@/lib/phone';
+import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 
 export const FRET_STATUS_TONE: Record<FretStatus, string> = {
@@ -29,6 +30,8 @@ export const FRET_STATUS_TONE: Record<FretStatus, string> = {
 };
 
 const FLOW: FretStatus[] = ['A_ENLEVER', 'PENDING_ACCEPT', 'REMIS_CHAUFFEUR', 'EN_ROUTE', 'ARRIVE', 'LIVRE'];
+const ALL_STATUSES: FretStatus[] = [...FLOW, 'ANNULE'];
+
 
 const STAMP_FIELD: Partial<Record<FretStatus, string>> = {
   PENDING_ACCEPT: 'remis_at',
@@ -53,6 +56,7 @@ interface Props {
 export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, onAssign }: Props) {
   const qc = useQueryClient();
   const { data: chauffeurs = [] } = useChauffeurs(open);
+  const { isAdmin } = useUserRole();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     destination: '', client_nom: '', client_phone: '', expediteur_nom: '', expediteur_phone: '',
@@ -109,15 +113,25 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
   const setStatus = useMutation({
     mutationFn: async (next: FretStatus) => {
       if (!course) return;
-      const stamp = STAMP_FIELD[next];
       const patch: Record<string, unknown> = { status: next };
+      const stamp = STAMP_FIELD[next];
       if (stamp) patch[stamp] = new Date().toISOString();
+      // Retour en arrière (admin) : on nettoie les horodatages des étapes postérieures.
+      const nextIdx = FLOW.indexOf(next);
+      const curIdx = FLOW.indexOf(course.status);
+      if (nextIdx >= 0 && curIdx > nextIdx) {
+        FLOW.slice(nextIdx + 1).forEach((s) => {
+          const f = STAMP_FIELD[s];
+          if (f) patch[f] = null;
+        });
+      }
       const { error } = await supabase.from('fret_courses' as any).update(patch).eq('id', course.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success('Statut mis à jour'); invalidate(); },
     onError: (e: any) => toast.error(e?.message ?? 'Changement de statut impossible'),
   });
+
 
   if (!course) return null;
 
@@ -253,23 +267,52 @@ export function FretCourseSheet({ course, open, onOpenChange, readOnly = false, 
         )}
 
         {/* Statut */}
-        {!readOnly && !cancelled && (
+        {!readOnly && (
           <div className="rounded-xl border border-border p-3 space-y-2">
             <p className="text-[11px] font-semibold uppercase text-muted-foreground">Statut</p>
-            <div className="flex flex-wrap gap-2">
-              {nextStatus && (
-                <Button size="sm" className="h-8 text-xs" disabled={setStatus.isPending}
-                        onClick={() => setStatus.mutate(nextStatus)}>
-                  Passer à « {FRET_STATUS_LABEL[nextStatus]} »
+            {!cancelled && (
+              <div className="flex flex-wrap gap-2">
+                {nextStatus && (
+                  <Button size="sm" className="h-8 text-xs" disabled={setStatus.isPending}
+                          onClick={() => setStatus.mutate(nextStatus)}>
+                    Passer à « {FRET_STATUS_LABEL[nextStatus]} »
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setStatus.isPending}
+                        onClick={() => setStatus.mutate('ANNULE')}>
+                  Annuler la course
                 </Button>
-              )}
-              <Button size="sm" variant="outline" className="h-8 text-xs" disabled={setStatus.isPending}
-                      onClick={() => setStatus.mutate('ANNULE')}>
-                Annuler la course
-              </Button>
-            </div>
+              </div>
+            )}
+
+            {/* Super admin : correction libre du statut (retour arrière possible) */}
+            {isAdmin && (
+              <div className="pt-2 border-t border-border/60 space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Correction admin — forcer un statut
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_STATUSES.map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={s === course.status ? 'default' : 'outline'}
+                      className="h-7 text-[11px]"
+                      disabled={setStatus.isPending || s === course.status}
+                      onClick={() => setStatus.mutate(s)}
+                    >
+                      {FRET_STATUS_LABEL[s]}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Le retour en arrière efface l’horodatage des étapes suivantes.
+                </p>
+              </div>
+            )}
           </div>
         )}
+
 
         {/* Timeline */}
         <div className="rounded-xl border border-border p-3 space-y-1.5">
