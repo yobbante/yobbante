@@ -29,6 +29,11 @@ import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
+import { FRET_STATUS_TONE } from '@/components/admin/fret/FretCourseSheet';
+
+const FRET_STATUS_ORDER: FretStatus[] = [
+  'A_ENLEVER', 'PENDING_ACCEPT', 'REMIS_CHAUFFEUR', 'EN_ROUTE', 'ARRIVE', 'LIVRE', 'ANNULE',
+];
 import { dossierAmount } from '@/lib/dossierAmount';
 import { InlineAmount } from './dossiers/dossierTableUi';
 
