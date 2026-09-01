@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { formatXof } from '@/lib/gpFinance';
 import {
   useAllPayments, KIND_LABEL, MODE_LABEL,
-  type PaymentKind, type PaymentRow, type TransportMode,
+  type PaymentKind, type PaymentRow,
 } from '@/hooks/useAllPayments';
 import { PaymentDetailSheet } from './PaymentDetailSheet';
 
@@ -81,13 +81,9 @@ export function PaymentsAllTab() {
         {KIND_FILTERS.map((f) => (
           <Chip key={f.id} active={kind === f.id} onClick={() => setKind(f.id)}>{f.label}</Chip>
         ))}
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {MODE_FILTERS.map((f) => (
-          <Chip key={f.id} active={mode === f.id} onClick={() => setMode(f.id)}>{f.label}</Chip>
-        ))}
+        <span className="w-px self-stretch bg-border mx-1" aria-hidden />
         {STATUS_FILTERS.map((f) => (
-          <Chip key={f.id} active={status === f.id} onClick={() => setStatus(f.id)}>{f.label}</Chip>
+          <Chip key={f.id} active={status === f.id} onClick={() => setStatus(status === f.id ? 'all' : f.id)}>{f.label}</Chip>
         ))}
       </div>
 
@@ -145,6 +141,7 @@ export function PaymentsAllTab() {
 
       <PaymentDetailSheet
         payment={selected}
+        related={selected?.dossierId ? rows.filter((r) => r.dossierId === selected.dossierId) : []}
         open={!!selected}
         onOpenChange={(v) => { if (!v) setSelected(null); }}
       />
