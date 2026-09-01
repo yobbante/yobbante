@@ -82,7 +82,8 @@ export function PaymentDetailSheet({
     if (!dossier) return;
     if (payment?.kind !== 'carrier') setCarrierName(dossier.carrier_name ?? '');
     setCarrierRef(dossier.assigned_transporteur_ref ?? null);
-    setCarrierCost(dossier.carrier_cost_xof != null ? String(dossier.carrier_cost_xof) : '');
+    const cost = dossier.carrier_cost_xof ?? (Number(dossier.gp_amount) > 0 ? Number(dossier.gp_amount) : null);
+    setCarrierCost(cost != null ? String(cost) : '');
     setCarrierPaid(!!dossier.carrier_paid);
   }, [dossier, payment?.kind]);
 
@@ -92,6 +93,7 @@ export function PaymentDetailSheet({
     if (!autoCarrier) return;
     setCarrierName((prev) => prev || autoCarrier.name);
     setCarrierRef((prev) => prev || autoCarrier.ref);
+    if (autoCarrier.cost != null) setCarrierCost((prev) => (prev ? prev : String(autoCarrier.cost)));
   }, [autoCarrier]);
 
   const save = useMutation({
