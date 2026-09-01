@@ -28,6 +28,7 @@ import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
+import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { dossierAmount } from '@/lib/dossierAmount';
 import { InlineAmount } from './dossiers/dossierTableUi';
 
@@ -163,7 +164,7 @@ export function RequestsTab({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, tracking_id, final_amount_xof, estimated_cost, payment_status')
+        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, transport_mode, tracking_id, final_amount_xof, estimated_cost, payment_status')
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -188,6 +189,29 @@ export function RequestsTab({
       if (error) throw error;
       const map: Record<string, TimingDeparture> = {};
       for (const row of data || []) map[(row as any).id] = row as any;
+      return map;
+    },
+  });
+
+  // Courses routières (Terminal D) rattachées aux dossiers listés :
+  // un dossier peut être déjà assigné à un chauffeur côté fret sans que
+  // `transport_mode` soit renseigné — on synchronise l'affichage ici.
+  const dossierIds = useMemo(() => dossiers.map((d: any) => d.id), [dossiers]);
+  const { data: roadCourses = {} } = useQuery({
+    queryKey: ['admin-requests-road-courses', dossierIds],
+    enabled: dossierIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fret_courses' as any)
+        .select('dossier_id, ref, status, chauffeur_id, created_at')
+        .in('dossier_id', dossierIds);
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      for (const row of (data || []) as any[]) {
+        const prev = map[row.dossier_id];
+        if (!prev || new Date(row.created_at) > new Date(prev.created_at)) map[row.dossier_id] = row;
+      }
       return map;
     },
   });
@@ -436,7 +460,19 @@ export function RequestsTab({
                 const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
                 const amountInfo = dossierAmount(d as any);
                 const amountXof = amountInfo.xof;
-                const timing = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
+                const course = (roadCourses as Record<string, any>)[d.id] || null;
+                const isRoad = resolveTransportMode(d) === 'road' || !!course;
+                const baseTiming = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
+                // Dossier routier déjà pris en charge côté Terminal D : on montre
+                // l'état réel de la course plutôt que « Sans départ ».
+                const timing = course && baseTiming.label === 'Sans départ'
+                  ? {
+                      label: 'Terminal D',
+                      value: FRET_STATUS_LABEL[course.status as FretStatus] ?? course.status,
+                      hint: course.chauffeur_id ? `chauffeur assigné · ${course.ref}` : `chauffeur à assigner · ${course.ref}`,
+                      tone: (course.chauffeur_id ? 'info' : 'warn') as typeof baseTiming.tone,
+                    }
+                  : baseTiming;
 
                 return (
                   <Fragment key={d.id}>
@@ -514,8 +550,9 @@ export function RequestsTab({
                       </td>
                       {/* GP / Chauffeur (routier) */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-                        {resolveTransportMode(d) === 'road' ? (
+                        {isRoad ? (
                           <RoadAssignBadge dossierId={d.id} />
+
                         ) : (
                           <GpAssignBadge
                             transporteurRef={(d as any).assigned_transporteur_ref}
