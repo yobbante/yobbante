@@ -239,6 +239,36 @@ export function PaymentDetailSheet({
             <Info label="Méthode actuelle" value={payment.method ? (METHOD_LABEL[payment.method] ?? payment.method) : '—'} />
           </div>
 
+          {/* Pourquoi ce statut + action immédiate */}
+          <div className={
+            payment.paid
+              ? 'rounded-lg border border-[hsl(var(--success)/0.3)] bg-[hsl(var(--success)/0.08)] p-3 space-y-2'
+              : 'rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2'
+          }>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <HelpCircle className="w-3.5 h-3.5" />
+              Statut : {statusLabel}
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">{statusExplain}</p>
+            {!payment.paid && (
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={save.isPending}
+                onClick={() => {
+                  setPaid(true);
+                  setPaidDate((d) => d || today);
+                  save.mutate({ forcePaid: true });
+                }}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                {isIn ? "Marquer encaissé aujourd'hui" : "Marquer versé aujourd'hui"}
+              </Button>
+            )}
+          </div>
+
+
+
           {/* Marge du dossier (quand plusieurs paiements liés) */}
           {others.length > 0 && (
             <div className="rounded-lg border border-border p-3 space-y-1">
