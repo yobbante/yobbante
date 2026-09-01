@@ -11,6 +11,7 @@ export type MonthLedger = {
   revenueXof: number;      // encaissé (dossiers payés + courses routières hors dossier)
   costGpXof: number;       // dû/payé aux GP
   costRoadXof: number;     // dû/payé aux chauffeurs / transporteurs routiers
+  costCarrierXof: number;    // cout compagnies aeriennes / maritimes
   costTotalXof: number;
   marginXof: number;
   tvaXof: number;          // 18 % du bénéfice
