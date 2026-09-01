@@ -132,13 +132,12 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
     navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
   };
   const handleTransportChange = (m: SendTransportMode) => {
+    if (m === transportMode) return;
     setTransportMode(m);
     if (m === 'road') { goTerminalD(); return; }
     // Les villes desservies changent selon le mode : réinitialise la ville hors Dakar.
-    if (m !== 'gp') {
-      if (direction === 'from_dakar') setDestination('');
-      else setOrigin('');
-    }
+    if (direction === 'from_dakar') setDestination('');
+    else setOrigin('');
   };
 
   /** Ville hors Dakar de la route en cours. */
