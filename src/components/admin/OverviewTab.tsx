@@ -277,8 +277,9 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
             <Plus className="w-3.5 h-3.5" /> Départ
           </button>
 
-          <QuickAction icon={MessageSquare} label="Inbox" badge={m.reqNew} onClick={() => onJump('inbox')} />
-          <QuickAction icon={Plane} label="Départs" onClick={() => onJump('departures')} />
+          <QuickAction icon={Inbox} label="Demandes" badge={m.reqNew} onClick={() => onJump('inbox')} />
+          <QuickAction icon={Plane} label="Départs" onClick={() => onJump('departs')} />
+          <QuickAction icon={MessageSquare} label="Messages" onClick={() => onJump('messages')} />
           <QuickAction icon={UsersIcon} label="Clients" onClick={() => onJump('clients')} />
           <button
             onClick={() => onJump('leads')}
@@ -307,7 +308,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           )}
           {m.unpaidInvoices > 0 && (
             <AlertCard icon={CreditCard} tone="danger"
-              label="Factures impayées" value={`${m.unpaidInvoices} en attente`} onClick={() => onJump('clients')} />
+              label="Factures impayées" value={`${m.unpaidInvoices} en attente`} onClick={() => onJump('finances')} />
           )}
           {m.reqStale > 0 && (
             <AlertCard icon={ShieldAlert} tone="warning"
@@ -322,7 +323,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           icon={Truck} title="Expédier" tone="success"
           activeCount={m.shipActive}
           delivered7={m.shipPipeline.delivered7}
-          onJump={() => onJump('shipments')}
+          onJump={() => onJump('dossiers')}
           steps={[
             { label: 'À assigner',  value: m.shipPipeline.pending,  tone: 'muted' },
             { label: 'Assignés',    value: m.shipPipeline.matched,  tone: 'warning' },
@@ -385,7 +386,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => onJump('departures')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                <button onClick={() => onJump('departs')} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                   Gérer <ArrowUpRight className="w-3 h-3" />
                 </button>
               </div>
@@ -446,11 +447,11 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
             </div>
           </div>
           {m.revenuePending > 0 && (
-            <div className="pt-3 border-t border-border">
+            <button onClick={() => onJump('finances')} className="w-full text-left pt-3 border-t border-border hover:opacity-80 transition-opacity">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Encaissements en attente</p>
               <p className="text-base font-semibold tabular-nums text-foreground mt-1">{fmtXOF(m.revenuePending)}</p>
               <p className="text-[11px] text-muted-foreground">sur {m.pendingPayments} dossier{m.pendingPayments > 1 ? 's' : ''}</p>
-            </div>
+            </button>
           )}
         </div>
       </section>
