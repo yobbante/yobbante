@@ -134,6 +134,38 @@ export function PaymentDetailSheet({
     onError: (e: Error) => toast.error('Échec : ' + e.message),
   });
 
+  /**
+   * Annulation / archivage direct depuis la fiche paiement.
+   * - archive : dossier → ARCHIVED (ou course fret → ANNULE)
+   * - cancel  : réservé aux courses fret sans dossier (les dossiers passent par CancelDossierDialog)
+   */
+  const lifecycle = useMutation({
+    mutationFn: async (action: 'archive' | 'cancel') => {
+      if (!payment) return;
+      if (payment.source === 'dossier' && dossierId) {
+        const patch: Record<string, unknown> = action === 'archive'
+          ? { status: 'ARCHIVED' }
+          : { status: 'CANCELLED', cancellation_source: 'admin', cancelled_by: 'admin' };
+        const { error } = await supabase.from('dossiers').update(patch as never).eq('id', dossierId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('fret_courses' as never)
+          .update({ status: 'ANNULE' } as never)
+          .eq('id', payment.sourceId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, action) => {
+      toast.success(action === 'archive' ? 'Paiement archivé' : 'Course annulée');
+      invalidateFinance(qc);
+      qc.invalidateQueries({ queryKey: ['admin-dossier'] });
+      qc.invalidateQueries({ queryKey: ['dossiers'] });
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error('Échec : ' + e.message),
+  });
+
   if (!payment) return null;
 
   const others = related.filter((r) => r.key !== payment.key);
