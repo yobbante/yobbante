@@ -154,7 +154,7 @@ export function buildGpAssignMessage(args: {
     args.client_phone ? `*Tél. client :* ${args.client_phone}` : null,
     ``,
     `Répondez *OUI* pour accepter, *NON* pour refuser (1h, sinon auto-refus).`,
-  ].filter(Boolean).join('\n');
+  ].filter((l) => l !== null).join('\n');
 }
 
 
