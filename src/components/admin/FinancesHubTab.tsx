@@ -1,28 +1,31 @@
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { HubHeader, HubTab } from './hub-ui';
-import { Wallet, Coins, TrendingUp } from 'lucide-react';
+import { Wallet, Coins, TrendingUp, Truck, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RevenusTab } from './RevenusTab';
 import { FinancesTab } from './FinancesTab';
-import { useAdminBrief } from '@/hooks/useAdminBrief';
+import { RoadPaymentsTab } from './RoadPaymentsTab';
+import { BilanTvaTab } from './BilanTvaTab';
+import { useFinanceLedger } from '@/hooks/useFinanceLedger';
 
 const fmtXOF = (n: number) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n) + ' FCFA';
 
-type TabId = 'revenus' | 'paiements-gp';
+type TabId = 'revenus' | 'paiements-gp' | 'paiements-routiers' | 'bilan';
 const DEFAULT_TAB: TabId = 'revenus';
+const TAB_IDS: TabId[] = ['revenus', 'paiements-gp', 'paiements-routiers', 'bilan'];
 
 /**
- * Hub Finances — fusionne "Revenus clients" et "Paiements GP" en un seul écran
- * avec une ligne de résumé toujours visible au-dessus des onglets.
+ * Hub Finances — revenus clients, paiements transporteurs (GP + routiers)
+ * et bilan mensuel avec TVA, avec une ligne de résumé toujours visible.
  */
 export function FinancesHubTab() {
   const [sp, setSp] = useSearchParams();
   const tabParam = sp.get('tab') as TabId | null;
-  const tab: TabId = tabParam === 'paiements-gp' ? 'paiements-gp' : DEFAULT_TAB;
-  const { data, isLoading } = useAdminBrief();
+  const tab: TabId = tabParam && TAB_IDS.includes(tabParam) ? tabParam : DEFAULT_TAB;
+  const { data, isLoading } = useFinanceLedger(6);
 
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
@@ -31,26 +34,29 @@ export function FinancesHubTab() {
     setSp(next, { replace: true });
   };
 
-  const positiveMargin = (data?.marginMonthXof ?? 0) >= 0;
+  const cur = data?.current;
+  const positiveMargin = (cur?.marginXof ?? 0) >= 0;
 
   return (
     <div className="space-y-3 md:space-y-5">
-      <HubHeader title="Finances" subtitle="Revenus clients et paiements des transporteurs." />
+      <HubHeader title="Finances" subtitle="Revenus clients, paiements transporteurs et TVA." />
 
       {/* Ligne de résumé — toujours visible */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3">
-        {isLoading || !data ? (
-          [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3">
+        {isLoading || !cur ? (
+          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
-            <SummaryCard icon={Wallet} label="Encaissé ce mois" value={fmtXOF(data.revenueMonthXof)} tone="default" />
-            <SummaryCard icon={Coins}  label="Coût GP ce mois"  value={fmtXOF(data.gpCostMonthXof)}  tone="muted" />
+            <SummaryCard icon={Wallet} label="Encaissé ce mois" value={fmtXOF(cur.revenueXof)} tone="default" />
+            <SummaryCard icon={Coins}  label="Coût GP ce mois"  value={fmtXOF(cur.costGpXof)}  tone="muted" />
+            <SummaryCard icon={Truck}  label="Coût routier ce mois" value={fmtXOF(cur.costRoadXof)} tone="muted" />
             <SummaryCard
               icon={TrendingUp}
-              label="Marge nette"
-              value={fmtXOF(data.marginMonthXof)}
+              label="Bénéfice net"
+              value={fmtXOF(cur.marginXof)}
               tone={positiveMargin ? 'success' : 'danger'}
             />
+            <SummaryCard icon={Receipt} label="TVA à reverser (18 %)" value={fmtXOF(cur.tvaXof)} tone="default" />
           </>
         )}
       </div>
@@ -59,13 +65,18 @@ export function FinancesHubTab() {
         <TabsList>
           <HubTab value="revenus" icon={Wallet} label="Revenus clients" />
           <HubTab value="paiements-gp" icon={Coins} label="Paiements GP" />
+          <HubTab value="paiements-routiers" icon={Truck} label="Paiements routiers" />
+          <HubTab value="bilan" icon={Receipt} label="Bilan & TVA" />
         </TabsList>
         <TabsContent value="revenus" className="mt-4"><RevenusTab /></TabsContent>
         <TabsContent value="paiements-gp" className="mt-4"><FinancesTab /></TabsContent>
+        <TabsContent value="paiements-routiers" className="mt-4"><RoadPaymentsTab /></TabsContent>
+        <TabsContent value="bilan" className="mt-4"><BilanTvaTab /></TabsContent>
       </Tabs>
     </div>
   );
 }
+
 
 function SummaryCard({
   icon: Icon, label, value, tone,
