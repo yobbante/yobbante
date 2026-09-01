@@ -20,6 +20,8 @@ export type CarrierEntry = {
   ref: string | null;
   phone: string | null;
   detail: string | null;
+  /** Coût connu déjà payé/dû à ce transporteur (course routière liée). */
+  cost?: number | null;
 };
 
 export const CARRIER_TYPE_LABEL: Record<CarrierType, string> = {
@@ -148,12 +150,13 @@ export function useResolvedCarrier(dossier: {
       if (dossierId) {
         const { data } = await supabase
           .from('fret_courses' as never)
-          .select('chauffeur_id, dossier_id')
+          .select('chauffeur_id, dossier_id, chauffeur_cost_fcfa')
           .eq('dossier_id', dossierId)
           .not('chauffeur_id', 'is', null)
           .limit(1)
           .maybeSingle();
         const chauffeurId = (data as any)?.chauffeur_id;
+        const courseCost = Number((data as any)?.chauffeur_cost_fcfa || 0) || null;
         if (chauffeurId) {
           const { data: c } = await supabase
             .from('chauffeurs' as never)
@@ -169,6 +172,7 @@ export function useResolvedCarrier(dossier: {
               ref: ch.immatriculation || null,
               phone: ch.telephone || null,
               detail: null,
+              cost: courseCost,
             };
           }
         }
