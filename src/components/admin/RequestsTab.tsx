@@ -209,7 +209,7 @@ export function RequestsTab({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fret_courses' as any)
-        .select('dossier_id, ref, status, chauffeur_id, created_at')
+        .select('id, dossier_id, ref, status, chauffeur_id, created_at')
         .in('dossier_id', dossierIds);
       if (error) throw error;
       const map: Record<string, any> = {};
