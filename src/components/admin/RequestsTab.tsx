@@ -192,6 +192,29 @@ export function RequestsTab({
     },
   });
 
+  // Courses routières (Terminal D) rattachées aux dossiers listés :
+  // un dossier peut être déjà assigné à un chauffeur côté fret sans que
+  // `transport_mode` soit renseigné — on synchronise l'affichage ici.
+  const dossierIds = useMemo(() => dossiers.map((d: any) => d.id), [dossiers]);
+  const { data: roadCourses = {} } = useQuery({
+    queryKey: ['admin-requests-road-courses', dossierIds],
+    enabled: dossierIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fret_courses' as any)
+        .select('dossier_id, ref, status, chauffeur_id, created_at')
+        .in('dossier_id', dossierIds);
+      if (error) throw error;
+      const map: Record<string, any> = {};
+      for (const row of (data || []) as any[]) {
+        const prev = map[row.dossier_id];
+        if (!prev || new Date(row.created_at) > new Date(prev.created_at)) map[row.dossier_id] = row;
+      }
+      return map;
+    },
+  });
+
 
 
   const [quickAssign, setQuickAssign] = useState<{ id: string; destCountry?: string | null; destCity?: string | null; weight?: number | null } | null>(null);
