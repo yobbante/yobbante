@@ -457,14 +457,13 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
             {mode === 'envoyer' && (
               <div className="space-y-2 pt-1">
                 <TransportModeSelector value={transportMode} onChange={handleTransportChange} dark={isDark} />
-                {isModeSoon(transportMode) && <ModeSoonNotice mode={transportMode} dark={isDark} />}
                 {transportMode === 'road' && (
                   <div className={cn('rounded-lg border px-3 py-2.5 text-[12px]', isDark ? 'border-white/15 text-white/80' : 'border-border bg-secondary text-foreground')}>
                     Le transport routier se gère sur{' '}
                     <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
                   </div>
                 )}
-                {transportMode === 'gp' && (
+                {(transportMode === 'gp' || transportMode === 'air' || transportMode === 'sea') && (
                 <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
 
