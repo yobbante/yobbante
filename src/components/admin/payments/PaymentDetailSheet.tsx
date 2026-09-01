@@ -105,8 +105,18 @@ export function PaymentDetailSheet({
           patch.carrier_name = carrierName || null;
           if (method) patch.carrier_payment_method = method;
         }
+        // Transporteur alloué au dossier (éditable depuis n'importe quel paiement du dossier)
+        if (payment.kind !== 'carrier' && dossierId) {
+          const cost = carrierCost === '' ? null : Math.max(0, Math.round(Number(carrierCost) || 0));
+          patch.carrier_name = carrierName || null;
+          patch.carrier_cost_xof = cost;
+          patch.carrier_paid = carrierPaid;
+          patch.carrier_paid_at = carrierPaid ? (dossier?.carrier_paid ? undefined : new Date().toISOString()) : null;
+          if (patch.carrier_paid_at === undefined) delete patch.carrier_paid_at;
+        }
         const { error } = await supabase.from('dossiers').update(patch as never).eq('id', payment.sourceId);
         if (error) throw error;
+
       } else {
         const patch: Record<string, unknown> =
           payment.kind === 'road'
