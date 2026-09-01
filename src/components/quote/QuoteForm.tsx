@@ -47,15 +47,6 @@ function resolveCityToCountry(label: string, customs: { city: string; country: s
   return m ? { country: m.country, city: m.city } : null;
 }
 
-function sourcingCountryToCode(label: string): 'CN' | 'FR' | 'AE' | 'US' {
-  switch (label) {
-    case 'Chine': return 'CN';
-    case 'USA': return 'US';
-    case 'Europe': return 'FR';
-    default: return 'CN';
-  }
-}
-
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
   { value: 'fragile', label: 'Fragile' },
@@ -63,18 +54,6 @@ const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'auto', label: 'Auto / Pièces' },
   { value: 'haute_valeur', label: 'Haute valeur' },
 ];
-
-const RECEPTION_TYPES: { value: GoodsType; label: string }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'electronique', label: 'Électronique' },
-  { value: 'auto', label: 'Auto / Pièces' },
-  { value: 'cosmetiques', label: 'Cosmétiques' },
-  { value: 'haute_valeur', label: 'Haute valeur' },
-];
-
-const MERCHANTS = ['Amazon', 'AliExpress', 'eBay', 'SHEIN', 'Temu', 'Etsy', 'RockAuto', 'iHerb', 'Autre…'];
-const MERCHANT_COUNTRIES = ['USA', 'Chine', 'UK', 'France', 'UAE', 'Autre'];
-const SOURCING_COUNTRIES = ['Chine', 'USA', 'Europe', 'Autre'];
 
 interface TabDef {
   key: ServiceMode;
