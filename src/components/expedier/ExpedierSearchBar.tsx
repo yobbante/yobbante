@@ -494,6 +494,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                       if (v === DAKAR) { setDirection('from_dakar'); setOrigin(DAKAR); if (destination === DAKAR) setDestination(''); }
                       else { setDirection('to_dakar'); setOrigin(v); setDestination(DAKAR); }
                     }}
+                    options={cityOptions}
                     placeholder="Origine…"
                     ariaLabel="Choisir la ville d'origine"
                     excludeCity={direction === 'to_dakar' ? 'Dakar' : undefined}
@@ -504,24 +505,128 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                       if (v === DAKAR) { setDirection('to_dakar'); setDestination(DAKAR); if (origin === DAKAR) setOrigin(''); }
                       else { setDirection('from_dakar'); setDestination(v); setOrigin(DAKAR); }
                     }}
+                    options={cityOptions}
                     placeholder="Destination…"
                     ariaLabel="Choisir la ville de destination"
                     excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
                   />
                 </div>
+
+                {/* Maritime : Groupage LCL ou Conteneur complet FCL */}
+                {transportMode === 'sea' && (
+                  <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Type d'envoi maritime">
+                    {([
+                      { id: 'lcl' as SeaShipmentType, label: 'Groupage (LCL)', desc: 'Vous payez au m³' },
+                      { id: 'fcl' as SeaShipmentType, label: 'Conteneur complet (FCL)', desc: "20' ou 40' rien que pour vous" },
+                    ]).map(o => {
+                      const active = seaType === o.id;
+                      return (
+                        <button
+                          key={o.id} type="button" role="radio" aria-checked={active}
+                          onClick={() => setSeaType(o.id)}
+                          className={cn(
+                            'text-left rounded-lg border px-2.5 py-2 transition-all',
+                            active
+                              ? isDark ? 'bg-yellow-400 text-zinc-950 border-yellow-400' : 'bg-foreground text-background border-foreground'
+                              : isDark ? 'border-white/10 text-white/70 hover:border-white/30' : 'border-border text-muted-foreground hover:border-foreground/40',
+                          )}
+                        >
+                          <div className="text-[12px] font-semibold">{o.label}</div>
+                          <div className={cn('text-[10px] mt-0.5', active ? 'opacity-70' : 'opacity-80')}>{o.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number" inputMode="decimal" placeholder="Poids (kg)"
-                    value={weight} onChange={e => setWeight(e.target.value)}
-                    className={fieldCls}
-                  />
+                  {/* Poids — masqué en FCL (le conteneur fait foi) */}
+                  {!(transportMode === 'sea' && seaType === 'fcl') && (
+                    <input
+                      type="number" inputMode="decimal"
+                      placeholder={transportMode === 'sea' ? 'Poids (kg) — ou volume ↓' : 'Poids (kg)'}
+                      value={weight} onChange={e => setWeight(e.target.value)}
+                      className={fieldCls}
+                    />
+                  )}
+                  {transportMode === 'sea' && seaType === 'fcl' && (
+                    <>
+                      <select
+                        aria-label="Taille du conteneur"
+                        value={seaSize} onChange={e => setSeaSize(e.target.value as ContainerSize)}
+                        className={fieldCls}
+                      >
+                        <option value="20">Conteneur 20 pieds</option>
+                        <option value="40">Conteneur 40 pieds</option>
+                      </select>
+                      <input
+                        type="number" inputMode="numeric" min={1} placeholder="Nb conteneurs"
+                        aria-label="Nombre de conteneurs"
+                        value={seaContainers} onChange={e => setSeaContainers(e.target.value)}
+                        className={fieldCls}
+                      />
+                    </>
+                  )}
+                  {transportMode === 'gp' && (
+                    <button
+                      onClick={applyEnvoyer} disabled={!canSubmitSend}
+                      className={ctaCls}
+                    >
+                      Continuer →
+                    </button>
+                  )}
+                </div>
+
+                {/* Dimensions — poids volumétrique (aérien) / volume LCL (maritime) */}
+                {(transportMode === 'air' || (transportMode === 'sea' && seaType === 'lcl')) && (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input type="number" inputMode="decimal" placeholder="Long. (cm)" aria-label="Longueur (cm)" value={dimL} onChange={e => setDimL(e.target.value)} className={fieldCls} />
+                      <input type="number" inputMode="decimal" placeholder="Larg. (cm)" aria-label="Largeur (cm)" value={dimW} onChange={e => setDimW(e.target.value)} className={fieldCls} />
+                      <input type="number" inputMode="decimal" placeholder="Haut. (cm)" aria-label="Hauteur (cm)" value={dimH} onChange={e => setDimH(e.target.value)} className={fieldCls} />
+                    </div>
+                    {transportMode === 'air' && (
+                      <p className={cn('text-[10.5px] leading-snug', isDark ? 'text-white/50' : 'text-muted-foreground')}>{AIR_VOLUMETRIC_HINT}</p>
+                    )}
+                  </>
+                )}
+
+                {/* Estimation indicative — aérien / maritime */}
+                {transportMode === 'air' && origin && destination && (
+                  <div className={cn('rounded-lg border px-3 py-2.5', isDark ? 'border-yellow-400/30 bg-yellow-400/10' : 'border-border bg-secondary')}>
+                    <div className={cn('text-[10px] uppercase tracking-[0.16em] font-medium', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>Estimation indicative</div>
+                    <div className={cn('text-[15px] font-bold leading-tight', isDark ? 'text-white' : 'text-foreground')}>
+                      {airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : 'Devis sur mesure'}
+                    </div>
+                    <div className={cn('text-[10.5px] mt-0.5', isDark ? 'text-white/60' : 'text-muted-foreground')}>
+                      {airEstimate.detail || AIR_QUOTE_DISCLAIMER}
+                    </div>
+                  </div>
+                )}
+                {transportMode === 'sea' && origin && destination && (
+                  <div className={cn('rounded-lg border px-3 py-2.5', isDark ? 'border-yellow-400/30 bg-yellow-400/10' : 'border-border bg-secondary')}>
+                    <div className={cn('text-[10px] uppercase tracking-[0.16em] font-medium', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>
+                      Maritime · {seaType === 'fcl' ? 'Conteneur complet' : 'Groupage LCL'}
+                    </div>
+                    <div className={cn('text-[15px] font-bold leading-tight', isDark ? 'text-white' : 'text-foreground')}>
+                      {seaEstimate.price != null ? fmtFcfaSea(seaEstimate.price) : 'Devis sur mesure'}
+                    </div>
+                    <div className={cn('text-[10.5px] mt-0.5', isDark ? 'text-white/60' : 'text-muted-foreground')}>
+                      {seaEstimate.detail} · {seaTransitLabel(seaEstimate.zone)}
+                    </div>
+                  </div>
+                )}
+
+                {(transportMode === 'air' || transportMode === 'sea') && (
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
                     className={ctaCls}
                   >
-                    Continuer →
+                    Demander mon devis →
                   </button>
-                </div>
+                )}
+
+                {transportMode === 'gp' && (
                 <a
                   href="/terminal-d"
                   className={cn(
@@ -531,6 +636,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                 >
                   Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
                 </a>
+                )}
                 </div>
                 )}
               </div>
