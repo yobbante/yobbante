@@ -171,34 +171,18 @@ export function FinancesTab() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <Wallet className="w-5 h-5" style={{ color: YELLOW }} />
-          Finances
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Suivi des marges, tarifs GP et paiements en attente · réservé admin
-        </p>
-      </header>
-
-      {/* ============ KPI cards ============ */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard label="Revenus ce mois" value={formatXof(kpis.revenu)} icon={TrendingUp} />
+      {/* KPI GP uniquement — le résumé global vit dans le hub Finances */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard label="Coûts GP ce mois" value={formatXof(kpis.cout)} icon={Users} />
         <KpiCard
-          label="Marge ce mois"
+          label="Marge GP ce mois"
           value={formatXof(kpis.marge)}
           accent
           extra={`${marginPercent(kpis.revenu, kpis.cout)} %`}
         />
-        <KpiCard
-          label="TVA à reverser (18 % marge)"
-          value={formatXof(kpis.tvaDue)}
-          accent
-          extra="Calculée sur le bénéfice mensuel"
-        />
         <KpiCard label="Paiements GP en attente" value={formatXof(kpis.dueByGp)} icon={Coins} accent />
       </div>
+
 
       {/* ============ Pending payments grouped ============ */}
       <section className="space-y-3">
