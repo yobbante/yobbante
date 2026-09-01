@@ -23,7 +23,7 @@ export function MorningBrief({ onJump }: { onJump: (s: string) => void }) {
   const pills: { icon: typeof AlertCircle; label: string; value: number; onClick: () => void; emoji: string }[] = [
     { emoji: '🔴', icon: AlertCircle, label: 'dossiers sans GP', value: data.dossiersNoGp, onClick: () => onJump('dossiers-tous') },
     { emoji: '💬', icon: MessageSquare, label: 'messages non lus', value: data.unreadMessages, onClick: () => onJump('messages') },
-    { emoji: '💳', icon: CreditCard, label: 'paiements en attente', value: data.pendingPaymentsCount, onClick: () => onJump('revenus') },
+    { emoji: '💳', icon: CreditCard, label: 'paiements en attente', value: data.pendingPaymentsCount, onClick: () => onJump('finances') },
     { emoji: '🚀', icon: Plane, label: 'départs cette semaine', value: data.departuresWeek, onClick: () => onJump('departs-semaine') },
   ];
 

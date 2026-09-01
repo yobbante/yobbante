@@ -1,7 +1,8 @@
-import { Wallet, Coins, TrendingUp, CreditCard } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminBrief } from '@/hooks/useAdminBrief';
+import { useFinanceLedger } from '@/hooks/useFinanceLedger';
 
 const fmtXOF = (n: number) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n) + ' FCFA';
@@ -12,8 +13,10 @@ const fmtXOF = (n: number) =>
  */
 export function FinancesKpis({ onJump }: { onJump: (s: string) => void }) {
   const { data, isLoading } = useAdminBrief();
+  // Même source de vérité que le hub Finances (coûts GP + routier + compagnies).
+  const { data: ledger, isLoading: ledgerLoading } = useFinanceLedger(6);
 
-  if (isLoading || !data) {
+  if (isLoading || !data || ledgerLoading || !ledger) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
@@ -21,15 +24,18 @@ export function FinancesKpis({ onJump }: { onJump: (s: string) => void }) {
     );
   }
 
-  const positiveMargin = data.marginMonthXof >= 0;
+  const cur = ledger.current;
+  const costs = cur.costGpXof + cur.costRoadXof + cur.costCarrierXof;
+  const dues = ledger.dueGpXof + ledger.dueRoadXof + ledger.dueCarrierXof;
+  const positiveMargin = cur.marginXof >= 0;
 
   const cards: Array<{
     icon: typeof Wallet; label: string; value: string; tone: string; onClick?: () => void;
   }> = [
-    { icon: Wallet, label: 'Revenus du mois', value: fmtXOF(data.revenueMonthXof), tone: 'default', onClick: () => onJump('revenus') },
-    { icon: Coins, label: 'Coût GP', value: fmtXOF(data.gpCostMonthXof), tone: 'muted', onClick: () => onJump('finances') },
-    { icon: TrendingUp, label: 'Marge', value: fmtXOF(data.marginMonthXof), tone: positiveMargin ? 'success' : 'danger', onClick: () => onJump('finances') },
-    { icon: CreditCard, label: 'Paiements en attente', value: fmtXOF(data.pendingPaymentsXof), tone: data.pendingPaymentsXof > 0 ? 'warning' : 'muted', onClick: () => onJump('revenus') },
+    { icon: Wallet, label: 'Encaissé ce mois', value: fmtXOF(cur.revenueXof), tone: 'default', onClick: () => onJump('finances') },
+    { icon: TrendingDown, label: 'Coûts ce mois', value: fmtXOF(costs), tone: 'muted', onClick: () => onJump('finances') },
+    { icon: TrendingUp, label: 'Bénéfice net', value: fmtXOF(cur.marginXof), tone: positiveMargin ? 'success' : 'danger', onClick: () => onJump('finances') },
+    { icon: CreditCard, label: 'À encaisser / reverser', value: `${fmtXOF(data.pendingPaymentsXof)} · ${fmtXOF(dues)}`, tone: (data.pendingPaymentsXof > 0 || dues > 0) ? 'warning' : 'muted', onClick: () => onJump('finances') },
   ];
 
   const toneStyles: Record<string, string> = {

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
-  Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship,
+  Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship, PackageOpen,
+  Route as RouteIcon, Plane,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,14 +20,22 @@ export type AdminSection =
   | 'messages'
   | 'leads'
   | 'devis'
-  | 'maritime'
-  | 'revenus'
   | 'finances'
   | 'boutique'
   | 'hubs'
   | 'settings';
 
-type NavItem = { id: AdminSection; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean; soon?: boolean };
+type NavItem = {
+  id: AdminSection;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+  soon?: boolean;
+  /** Slug envoyé au routeur (peut cibler un onglet précis d'un hub). */
+  slug?: string;
+  /** Onglet du hub ciblé — sert à surligner l'entrée active. */
+  tab?: string;
+};
 
 // Sections visibles par le rôle « agent_support » (service client & suivi dossiers).
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
@@ -45,10 +54,13 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Opérations',
     items: [
-      { id: 'departs', label: 'Départs',         icon: Truck },
-      { id: 'devis',   label: 'Devis',           icon: FileText },
-      { id: 'maritime', label: 'Maritime',       icon: Ship, soon: true },
-      { id: 'terrain', label: 'Équipe terrain',  icon: UsersRound, adminOnly: true },
+      { id: 'departs',  label: 'Départs',        icon: Truck },
+      { id: 'dossiers', label: 'Fret routier',   icon: RouteIcon, slug: 'routier',  tab: 'routier' },
+      { id: 'dossiers', label: 'Aérien',         icon: Plane,     slug: 'aerien',   tab: 'aerien' },
+      { id: 'dossiers', label: 'Maritime',       icon: Ship,      slug: 'maritime', tab: 'maritime' },
+      { id: 'dossiers', label: 'Relais D',       icon: PackageOpen, slug: 'reception', tab: 'reception' },
+      { id: 'devis',    label: 'Devis',          icon: FileText },
+      { id: 'terrain',  label: 'Équipe terrain', icon: UsersRound, adminOnly: true },
     ],
   },
   {
@@ -61,7 +73,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Finances',
     items: [
-      { id: 'finances', label: 'Finances',       icon: Wallet,      adminOnly: true },
+      { id: 'finances', label: 'Paiements',    icon: CreditCard, adminOnly: true },
+      { id: 'finances', label: 'Bilan & TVA',  icon: Wallet,     adminOnly: true, slug: 'bilan-tva', tab: 'bilan' },
     ],
   },
   {
@@ -79,8 +92,14 @@ const HIDDEN_SECTIONS: NavItem[] = [
   { id: 'leads', label: 'Leads & devis', icon: ClipboardList },
 ];
 
+
 // Flat list (kept for AdminPage validation of allowed sections). Includes hidden sections.
 export const ADMIN_NAV: NavItem[] = [...NAV_GROUPS.flatMap(g => g.items), ...HIDDEN_SECTIONS];
+
+/** Onglets d'un hub qui ont leur propre entrée dans la sidebar. */
+const tabsOfSection = (id: AdminSection) =>
+  ADMIN_NAV.filter(n => n.id === id && n.tab).map(n => n.tab as string);
+
 
 export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false }: {
   active: AdminSection;
@@ -92,6 +111,8 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [sp] = useSearchParams();
+  const currentTab = sp.get('tab');
   const isGuide = pathname.startsWith('/admin/guide');
   const isFlyers = pathname.startsWith('/admin/flyers');
   const isForfaits = pathname.startsWith('/admin/tarifs/forfaits');
@@ -168,13 +189,15 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
                 {group.label}
               </div>
             )}
-            {visibleItems.map(({ id, label, icon: Icon, soon }) => {
+            {visibleItems.map(({ id, label, icon: Icon, soon, slug, tab }) => {
               const disabled = soon || (id === 'settings' && !isAdmin);
-              const isActive = active === id;
+              // Une entrée « onglet » n'est active que si le hub ET l'onglet correspondent.
+              const isActive = active === id && (tab ? currentTab === tab : !tabsOfSection(id).includes(currentTab ?? ''));
               return (
                 <button
-                  key={id}
-                  onClick={() => !disabled && onChange(id)}
+                  key={`${id}-${slug ?? 'root'}`}
+                  onClick={() => !disabled && onChange((slug ?? id) as AdminSection)}
+
                   disabled={disabled}
                   className={cn(
                     'group flex items-center gap-3 px-3 py-2 text-[13.5px] text-left transition-colors',
