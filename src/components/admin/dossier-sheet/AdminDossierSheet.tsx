@@ -1051,7 +1051,7 @@ function TransportTab({ dossier }: { dossier: DossierRow }) {
             </div>
           </div>
           <CurrentTransporteurInfo ref_={currentRef} />
-          <NotifyGpButton dossier={dossier} transporteurRef={currentRef} />
+          <NotifyGpButton dossier={dossier} transporteurRef={currentRef} departure={dep} />
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -1400,7 +1400,7 @@ function CurrentTransporteurInfo({ ref_ }: { ref_: string }) {
   );
 }
 
-function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; transporteurRef: string }) {
+function NotifyGpButton({ dossier, transporteurRef, departure }: { dossier: DossierRow; transporteurRef: string; departure?: any }) {
   const [sending, setSending] = useState(false);
   const { data: gp } = useQuery({
     queryKey: ['transporteur-by-ref', transporteurRef],
@@ -1416,6 +1416,33 @@ function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; tra
 
   const lastNotifiedAt = dossier.gp_reminded_at;
 
+  const remunerationXof = (() => {
+    const amount = (dossier as any).gp_amount;
+    if (typeof amount === 'number' && amount > 0) return Math.round(amount);
+    const rate = (dossier as any).gp_rate_per_kg;
+    const w = Number((dossier as any).actual_weight ?? dossier.estimated_weight);
+    if (typeof rate === 'number' && rate > 0 && w > 0) return Math.round(rate * w);
+    return null;
+  })();
+
+  const gpMessageArgs = {
+    tracking_id: dossier.tracking_id,
+    reference: dossier.reference,
+    origin_city: departure?.origin_city ?? (dossier as any).origin_city,
+    origin_country: dossier.origin_country,
+    destination_city: departure?.destination_city ?? (dossier as any).destination_city,
+    destination_country: dossier.destination_country,
+    client_name: dossier.sender_name || dossier.recipient_name,
+    client_phone: (dossier as any).contact_phone || (dossier as any).sender_phone || null,
+    weight: (dossier as any).actual_weight ?? dossier.estimated_weight,
+    capacity_kg: departure?.available_capacity_kg ?? departure?.total_capacity_kg ?? null,
+    pickup_address: dossier.sender_address,
+    pickup_date: dossier.pickup_date,
+    departure_date: departure?.departure_date ?? null,
+    remuneration_xof: remunerationXof,
+    notes: (dossier as any).notes ?? null,
+  };
+
   async function handleSend() {
     if (!gp?.telephone_1) {
       toast.error('Numéro du GP introuvable');
@@ -1425,14 +1452,7 @@ function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; tra
     try {
       const message = buildGpAssignMessage({
         gp_prenom: gp.prenom,
-        tracking_id: dossier.tracking_id,
-        reference: dossier.reference,
-        origin: dossier.origin_country,
-        destination: dossier.destination_country,
-        client_name: dossier.sender_name || dossier.recipient_name,
-        weight: dossier.estimated_weight,
-        pickup_address: dossier.sender_address,
-        pickup_date: dossier.pickup_date,
+        ...gpMessageArgs,
       });
       const res = await sendGpMessage({
         phone: gp.telephone_1,
@@ -1456,14 +1476,7 @@ function NotifyGpButton({ dossier, transporteurRef }: { dossier: DossierRow; tra
     if (!gp?.telephone_1) return '';
     const message = buildGpAssignMessage({
       gp_prenom: gp.prenom,
-      tracking_id: dossier.tracking_id,
-      reference: dossier.reference,
-      origin: dossier.origin_country,
-      destination: dossier.destination_country,
-      client_name: dossier.sender_name || dossier.recipient_name,
-      weight: dossier.estimated_weight,
-      pickup_address: dossier.sender_address,
-      pickup_date: dossier.pickup_date,
+      ...gpMessageArgs,
     });
     return `https://wa.me/${String(gp.telephone_1).replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
   }
