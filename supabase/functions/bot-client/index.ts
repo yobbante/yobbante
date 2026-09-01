@@ -2,6 +2,7 @@
 // Handles: departures list, tracking, new shipment, quote, human handoff.
 // All text without accents (WhatsApp friendly).
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -395,9 +396,15 @@ REGLE STRICTE : ne JAMAIS mettre une question generique ("what","how","where","q
 Destinations valides : Paris, Lyon, Marseille, Bordeaux, Toulouse, Nice, New York, Washington, Rhode Island, Miami, Boston, Montreal, Toronto, Dubai, Abidjan, Douala, Londres.
 Reponds STRICTEMENT en JSON, rien d autre.`;
 
-async function classifyMessage(msg: string): Promise<NlpResult | null> {
+async function classifyMessage(msg: string, phone?: string): Promise<NlpResult | null> {
   const apiKey = Deno.env.get('LOVABLE_API_KEY');
   if (!apiKey || !msg.trim()) return null;
+  // Anti-abus : max 40 classifications IA par heure et par numero
+  const rl = await checkRateLimit('bot-client-nlp', phone ? `wa:${phone}` : 'wa:unknown', 40, 3600);
+  if (!rl.allowed) {
+    console.warn('bot-client NLP rate limited', phone);
+    return null;
+  }
   try {
     const resp = await fetch(LOVABLE_AI_URL, {
       method: 'POST',
@@ -2164,7 +2171,7 @@ Deno.serve(async (req) => {
       }
     } else {
       // ---- NLP fallback : analyse intelligente du message ----
-      const nlp = await classifyMessage(msg);
+      const nlp = await classifyMessage(msg, phone);
 
       // ---- PLAINTE / HIGH urgency : agent immediat + URGENT admin ----
       if (nlp && (nlp.intent === 'PLAINTE' || nlp.urgency === 'HIGH')) {
