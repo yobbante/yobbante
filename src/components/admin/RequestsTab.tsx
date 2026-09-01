@@ -28,6 +28,7 @@ import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
+import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { dossierAmount } from '@/lib/dossierAmount';
 import { InlineAmount } from './dossiers/dossierTableUi';
 
