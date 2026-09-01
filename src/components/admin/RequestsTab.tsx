@@ -459,7 +459,19 @@ export function RequestsTab({
                 const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
                 const amountInfo = dossierAmount(d as any);
                 const amountXof = amountInfo.xof;
-                const timing = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
+                const course = (roadCourses as Record<string, any>)[d.id] || null;
+                const isRoad = resolveTransportMode(d) === 'road' || !!course;
+                const baseTiming = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
+                // Dossier routier déjà pris en charge côté Terminal D : on montre
+                // l'état réel de la course plutôt que « Sans départ ».
+                const timing = course && baseTiming.label === 'Sans départ'
+                  ? {
+                      label: 'Terminal D',
+                      value: FRET_STATUS_LABEL[course.status as FretStatus] ?? course.status,
+                      hint: course.chauffeur_id ? `chauffeur assigné · ${course.ref}` : `chauffeur à assigner · ${course.ref}`,
+                      tone: (course.chauffeur_id ? 'info' : 'warn') as typeof baseTiming.tone,
+                    }
+                  : baseTiming;
 
                 return (
                   <Fragment key={d.id}>
