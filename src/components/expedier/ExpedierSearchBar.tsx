@@ -5,11 +5,20 @@ import {
   Package, Search, Inbox, ArrowRightLeft, MapPin, Pencil, ArrowLeft, ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CityPicker } from '@/components/quote/CityPicker';
-import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from '@/components/quote/TransportModeSelector';
+import { CityPicker, type CityOption } from '@/components/quote/CityPicker';
+import { TransportModeSelector, type SendTransportMode } from '@/components/quote/TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
+import { ManualQuoteDialog } from '@/components/flows/ManualQuoteDialog';
+import {
+  AIR_CITIES, AIR_QUOTE_DISCLAIMER, AIR_VOLUMETRIC_HINT,
+  estimateAirFreight, findAirZone, fmtFcfaAir,
+} from '@/lib/airFreight';
+import {
+  SEA_CITIES, estimateSeaFreight, findSeaZone, fmtFcfaSea, seaTransitLabel,
+  type SeaShipmentType, type ContainerSize,
+} from '@/lib/seaFreight';
 
 /* =========================================================================
    ExpedierSearchBar — sticky, theme-aware, 100% responsive search bar
@@ -105,8 +114,18 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
   // Mode de transport = 1re question. GP par défaut (ex-"Aérien").
   // Routier = Terminal D (page dédiée /terminal-d).
+  // Aérien / Maritime = opérationnels : estimation indicative + devis sur mesure.
   const [transportMode, setTransportMode] = useState<SendTransportMode>('gp');
   const transport: 'AIR' | 'SEA' = 'AIR';
+  // Dimensions partagées (poids volumétrique aérien / volume LCL maritime)
+  const [dimL, setDimL] = useState('');
+  const [dimW, setDimW] = useState('');
+  const [dimH, setDimH] = useState('');
+  // Maritime : groupage (LCL) ou conteneur complet (FCL)
+  const [seaType, setSeaType] = useState<SeaShipmentType>('lcl');
+  const [seaContainers, setSeaContainers] = useState('1');
+  const [seaSize, setSeaSize] = useState<ContainerSize>('20');
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const goTerminalD = () => {
     const raw = direction === 'from_dakar' ? destination : origin;
     const cityOnly = (raw || '').split(',')[0].trim();
@@ -114,8 +133,58 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   };
   const handleTransportChange = (m: SendTransportMode) => {
     setTransportMode(m);
-    if (m === 'road') goTerminalD();
+    if (m === 'road') { goTerminalD(); return; }
+    // Les villes desservies changent selon le mode : réinitialise la ville hors Dakar.
+    if (m !== 'gp') {
+      if (direction === 'from_dakar') setDestination('');
+      else setOrigin('');
+    }
   };
+
+  /** Ville hors Dakar de la route en cours. */
+  const otherCity = ((direction === 'from_dakar' ? destination : origin) || '').split(',')[0].trim();
+
+  // Villes desservies par mode — même sélecteur, catalogue restreint.
+  const cityOptions = useMemo<CityOption[] | undefined>(() => {
+    if (transportMode === 'gp') return undefined; // catalogue mondial complet
+    const dakar: CityOption = { id: 'SN-Dakar', city: 'Dakar', country: 'SN', countryLabel: 'Sénégal' };
+    if (transportMode === 'air') {
+      return [dakar, ...AIR_CITIES.map(c => ({
+        id: `AIR-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    if (transportMode === 'sea') {
+      return [dakar, ...SEA_CITIES.map(c => ({
+        id: `SEA-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    return undefined;
+  }, [transportMode]);
+
+  const airEstimate = useMemo(
+    () => estimateAirFreight({
+      zone: findAirZone(otherCity),
+      realKg: parseFloat(weight),
+      lengthCm: parseFloat(dimL),
+      widthCm: parseFloat(dimW),
+      heightCm: parseFloat(dimH),
+    }),
+    [transportMode, otherCity, weight, dimL, dimW, dimH], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const seaEstimate = useMemo(
+    () => estimateSeaFreight({
+      zone: findSeaZone(otherCity),
+      type: seaType,
+      realKg: parseFloat(weight),
+      lengthCm: parseFloat(dimL),
+      widthCm: parseFloat(dimW),
+      heightCm: parseFloat(dimH),
+      containers: Number(seaContainers) || null,
+      containerSize: seaSize,
+    }),
+    [transportMode, otherCity, seaType, weight, dimL, dimW, dimH, seaContainers, seaSize], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
