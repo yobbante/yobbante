@@ -197,6 +197,10 @@ export function SourcingDetailDrawer({ open, onOpenChange, dossier }: Props) {
             reference={dossier.reference}
           />
 
+          {/* Admin-only : chiffrage sourcing, devis, achat, réception */}
+          {isStaff && <SourcingOrderPanel dossier={dossier as any} />}
+
+
           {/* KPI grid */}
           <div className="grid grid-cols-3 gap-2.5">
             <Kpi label={priceLabel} value={price != null ? fmtEur(price) : '—'} icon={<Wallet className="w-3.5 h-3.5" />} />
