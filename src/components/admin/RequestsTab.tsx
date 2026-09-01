@@ -258,6 +258,24 @@ export function RequestsTab({
     onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
   });
 
+  /** Dossier routier : on pilote le statut de la course Terminal D (sync auto vers le dossier). */
+  const updateFretStatus = useMutation({
+    mutationFn: async ({ courseId, status }: { courseId: string; status: FretStatus }) => {
+      const { error } = await supabase.from('fret_courses' as any).update({ status }).eq('id', courseId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Statut routier mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      qc.invalidateQueries({ queryKey: ['admin-requests-road-courses'] });
+      qc.invalidateQueries({ queryKey: ['fret-courses'] });
+      qc.invalidateQueries({ queryKey: ['admin-overview'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
+  });
+
+
+
   /** Prix validé — modifiable partout (ex. correction après pesée réelle). */
   const updateAmount = useMutation({
     mutationFn: async ({ id, xof }: { id: string; xof: number | null }) => {
