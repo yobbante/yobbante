@@ -548,15 +548,28 @@ export function RequestsTab({
                           </span>
                         )}
                       </td>
-                      {/* Statut */}
+                      {/* Statut — routier : statut Terminal D */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
-                        <span className={cn(
-                          'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
-                          STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
-                        )}>
-                          {DOSSIER_STATUS_LABELS[d.status]}
-                        </span>
+                        {course ? (
+                          <>
+                            <span className={cn(
+                              'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
+                              FRET_STATUS_TONE[course.status as FretStatus] || 'bg-secondary text-muted-foreground border-border',
+                            )}>
+                              {FRET_STATUS_LABEL[course.status as FretStatus] ?? course.status}
+                            </span>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">Routier · {course.ref}</div>
+                          </>
+                        ) : (
+                          <span className={cn(
+                            'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
+                            STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
+                          )}>
+                            {DOSSIER_STATUS_LABELS[d.status]}
+                          </span>
+                        )}
                       </td>
+
                       {/* Échéance dynamique : départ avant, arrivée après, etc. */}
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle hidden md:table-cell">
                         <div className="text-[10px] uppercase tracking-wider text-muted-foreground leading-none">
