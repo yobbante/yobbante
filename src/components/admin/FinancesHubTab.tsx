@@ -34,15 +34,16 @@ export function FinancesHubTab() {
   const cur = data?.current;
   const costs = (cur?.costGpXof ?? 0) + (cur?.costRoadXof ?? 0) + (cur?.costCarrierXof ?? 0);
   const positiveMargin = (cur?.marginXof ?? 0) >= 0;
+  const dues = (data?.dueGpXof ?? 0) + (data?.dueRoadXof ?? 0) + (data?.dueCarrierXof ?? 0);
 
   return (
     <div className="space-y-3 md:space-y-5">
       <HubHeader title="Finances" subtitle="Paiements, reversements transporteurs et TVA." />
 
       {/* Ligne de résumé — toujours visible */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         {isLoading || !cur ? (
-          [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+          [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
             <SummaryCard icon={Wallet} label="Encaissé ce mois" value={fmtXOF(cur.revenueXof)} tone="default" />
@@ -52,7 +53,9 @@ export function FinancesHubTab() {
               label="Bénéfice net"
               value={fmtXOF(cur.marginXof)}
               tone={positiveMargin ? 'success' : 'danger'}
+              hint={`TVA estimée ${fmtXOF(cur.tvaXof)}`}
             />
+            <SummaryCard icon={Receipt} label="Restant à reverser" value={fmtXOF(dues)} tone="muted" />
           </>
         )}
       </div>
@@ -71,10 +74,11 @@ export function FinancesHubTab() {
 
 
 function SummaryCard({
-  icon: Icon, label, value, tone,
+  icon: Icon, label, value, tone, hint,
 }: {
   icon: typeof Wallet; label: string; value: string;
   tone: 'default' | 'muted' | 'success' | 'danger';
+  hint?: string;
 }) {
   const styles: Record<string, string> = {
     default: 'border-border bg-card',
@@ -95,6 +99,7 @@ function SummaryCard({
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">{label}</span>
       </div>
       <p className={cn('mt-1.5 text-sm md:text-xl font-semibold tabular-nums', text[tone])}>{value}</p>
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground truncate">{hint}</p>}
     </div>
   );
 }

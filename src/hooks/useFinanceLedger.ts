@@ -55,13 +55,15 @@ export function useFinanceLedger(monthsBack = 6) {
       const [paidR, gpR, roadR, gpDueR, roadDueR, carrierR, carrierDueR] = await Promise.all([
         // Revenus encaissés
         supabase.from('dossiers')
-          .select('final_amount_xof, estimated_cost, paid_at')
+          .select('final_amount_xof, estimated_cost, paid_at, status')
           .eq('payment_status', 'paid')
+          .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('paid_at', since),
         // Coûts GP (rattachés au mois de livraison)
         supabase.from('dossiers')
-          .select('gp_amount, delivered_at, created_at')
+          .select('gp_amount, delivered_at, created_at, status')
           .not('gp_amount', 'is', null)
+          .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('delivered_at', since),
         // Courses routières
         supabase.from('fret_courses' as any)
@@ -69,23 +71,27 @@ export function useFinanceLedger(monthsBack = 6) {
           .gte('created_at', since),
         // Restes à payer GP
         supabase.from('dossiers')
-          .select('gp_amount')
+          .select('gp_amount, status')
           .eq('gp_paid', false)
-          .not('gp_amount', 'is', null),
+          .not('gp_amount', 'is', null)
+          .not('status', 'in', '(CANCELLED,ARCHIVED)'),
         // Restes à payer chauffeurs
         supabase.from('fret_courses' as any)
           .select('chauffeur_cost_fcfa, status')
-          .eq('chauffeur_paid', false),
+          .eq('chauffeur_paid', false)
+          .neq('status', 'ANNULE'),
         // Coûts transporteurs aérien / maritime
         supabase.from('dossiers')
-          .select('carrier_cost_xof, carrier_paid_at, delivered_at, created_at')
+          .select('carrier_cost_xof, carrier_paid_at, delivered_at, created_at, status')
           .not('carrier_cost_xof', 'is', null)
+          .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('created_at', since),
         // Restes à payer transporteurs aérien / maritime
         supabase.from('dossiers')
-          .select('carrier_cost_xof')
+          .select('carrier_cost_xof, status')
           .eq('carrier_paid', false)
-          .not('carrier_cost_xof', 'is', null),
+          .not('carrier_cost_xof', 'is', null)
+          .not('status', 'in', '(CANCELLED,ARCHIVED)'),
       ]);
 
       const buckets = new Map<MonthKey, MonthLedger>();
@@ -114,6 +120,7 @@ export function useFinanceLedger(monthsBack = 6) {
       });
 
       (roadR.data || []).forEach((c: any) => {
+        if (c.status === 'ANNULE') return;
         const b = bucket(c.delivered_at ?? c.created_at);
         if (!b) return;
         b.costRoadXof += Number(c.chauffeur_cost_fcfa || 0);
