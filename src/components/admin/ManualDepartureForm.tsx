@@ -720,10 +720,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                         setReturnDate(d);
                         if (d) {
                           setReturnArrival(estimateArrivalDate({
-                            destinationCountry: direction === 'from_dakar' ? 'SN' : destCountry,
-                            destinationCity: direction === 'from_dakar' ? 'Dakar' : destCity,
+                            destinationCountry: originCountry || (direction === 'from_dakar' ? 'SN' : destCountry),
+                            destinationCity: originCity || (direction === 'from_dakar' ? 'Dakar' : destCity),
                             departureDate: d,
                           }));
+
                         }
                       }}
                     />
