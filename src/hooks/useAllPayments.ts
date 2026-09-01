@@ -153,6 +153,8 @@ export function useAllPayments(monthsBack = 12) {
       }
 
       for (const c of (coursesR.data ?? []) as any[]) {
+        // Courses annulées : exclues de la vue active des paiements.
+        if (c.status === 'ANNULE') continue;
         const ref = c.ref || String(c.id).slice(0, 8);
         const client = c.client_nom || '—';
         const route = `Dakar → ${c.destination || '—'}`;

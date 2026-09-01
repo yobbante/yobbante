@@ -311,7 +311,7 @@ export function PaymentDetailSheet({
           </div>
 
           {/* Cycle de vie — annulation / archivage */}
-          {(dossierId || payment.source === 'fret') && (
+          {(dossierId || payment.source === 'course') && (
             <div className="rounded-lg border border-border p-3 space-y-2">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cycle de vie</div>
 
@@ -327,7 +327,7 @@ export function PaymentDetailSheet({
                 </Button>
               )}
 
-              {payment.source === 'fret' && !dossierId && (
+              {payment.source === 'course' && !dossierId && (
                 <Button
                   variant="outline"
                   className="w-full border-red-500/40 text-red-500 hover:bg-red-500/10 hover:text-red-500"
