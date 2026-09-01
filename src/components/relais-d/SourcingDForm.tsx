@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Camera, Loader2, Send, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDossiers } from '@/hooks/useDossiers';
@@ -13,10 +13,12 @@ import { toast } from 'sonner';
  */
 export function SourcingDForm({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createDossier } = useDossiers();
   const fileRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
-  const [description, setDescription] = useState('');
+  // Recherche pré-remplie quand le client bascule depuis une vitrine « Commander en ligne ».
+  const [description, setDescription] = useState(searchParams.get('q') ?? '');
   const [refLink, setRefLink] = useState('');
   const [qty, setQty] = useState(1);
   const [budget, setBudget] = useState('');

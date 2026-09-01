@@ -1,49 +1,46 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ShoppingCart, ExternalLink, Plus, Trash2, X, Globe, Send, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft, ShoppingCart, ExternalLink, Trash2, X, Send, Loader2,
+  Search, Sparkles, Link2, Plus, Wand2,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useDossiers } from '@/hooks/useDossiers';
 import { toast } from 'sonner';
+import { SHOP_SITES, RELAY_LABEL, detectSiteFromUrl, type ShopSite } from '@/lib/shopSites';
 
 /**
- * Relais D — Chemin "Commander en ligne".
- * Grille de 10 sites → navigateur immersif (iframe) → panier flottant.
- * Le panier est envoyé à Yobbanté : l'admin constate le prix réel,
- * applique le taux de change majoré + un poids estimé majoré, puis envoie
- * un devis unique tout compris (aucun complément demandé après paiement).
+ * Relais D — Chemin « Commander en ligne ».
+ *
+ * Expérience hybride en 3 niveaux (l'iframe est abandonnée : les marchands la
+ * bloquent via X-Frame-Options / CSP) :
+ *   1. Vitrine interne Yobbanté par site (catégories + tendances gérées en admin)
+ *   2. Recherche assistée → nouvel onglet marchand, ou bascule vers Sourcing D
+ *   3. Collage de lien avec aperçu serveur (OpenGraph) → panier Yobbanté
+ *
+ * Le reste du flow (panier, validation, budget, notification agent, devis)
+ * est inchangé.
  */
 
-/** relay = pays de l'adresse relais Yobbanté utilisée pour ce marchand. */
-const SITES = [
-  { id: 'amazon',     name: 'Amazon',     url: 'https://www.amazon.fr',      accent: '#FF9900', relay: 'FR' },
-  { id: 'zara',       name: 'Zara',       url: 'https://www.zara.com',       accent: '#1A1A1A', relay: 'FR' },
-  { id: 'shein',      name: 'Shein',      url: 'https://www.shein.com',      accent: '#000000', relay: 'CN' },
-  { id: 'nike',       name: 'Nike',       url: 'https://www.nike.com',       accent: '#111111', relay: 'US' },
-  { id: 'alibaba',    name: 'Alibaba',    url: 'https://www.alibaba.com',    accent: '#FF6A00', relay: 'CN' },
-  { id: 'aliexpress', name: 'AliExpress', url: 'https://www.aliexpress.com', accent: '#E62E04', relay: 'CN' },
-  { id: 'temu',       name: 'Temu',       url: 'https://www.temu.com',       accent: '#FB7701', relay: 'CN' },
-  { id: 'ebay',       name: 'eBay',       url: 'https://www.ebay.com',       accent: '#0064D2', relay: 'US' },
-  { id: 'decathlon',  name: 'Decathlon',  url: 'https://www.decathlon.fr',   accent: '#0082C3', relay: 'FR' },
-  { id: 'hm',         name: 'H&M',        url: 'https://www2.hm.com/fr_fr',  accent: '#E50010', relay: 'FR' },
-] as const;
-
-const RELAY_LABEL: Record<string, string> = {
-  FR: 'Relais Yobbanté France',
-  US: 'Relais Yobbanté USA',
-  CN: 'Relais Yobbanté Chine (Guangzhou)',
+type CartItem = {
+  site: string; relay: string; url: string; qty: number; note: string;
+  title?: string | null; image?: string | null;
 };
 
-type Site = (typeof SITES)[number];
-type CartItem = { site: string; relay: string; url: string; qty: number; note: string };
+type Trending = {
+  id: string; site_id: string; title: string;
+  image_url: string | null; product_url: string; price_label: string | null;
+};
+
+const openTab = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
 
 export function ShopBrowser({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
-  const [site, setSite] = useState<Site | null>(null);
+  const [site, setSite] = useState<ShopSite | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -54,14 +51,19 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
     return [...map.entries()];
   }, [cart]);
 
-  function addItem(item: Omit<CartItem, 'site' | 'relay'>) {
-    if (!site) return;
+  function addItem(item: { url: string; qty: number; note: string; title?: string | null; image?: string | null }, forSite?: ShopSite) {
+    const detected = detectSiteFromUrl(item.url);
+    // Le lien collé prime sur la vitrine ouverte : un lien Decathlon collé depuis
+    // la vitrine Amazon doit être regroupé sous Decathlon (1 site = 1 colis).
+    const matched = SHOP_SITES.find(s => s.id === detected.id);
+    const target = matched ?? forSite ?? site;
+    const siteName = target?.name ?? detected.name;
+    const relay = target?.relay ?? 'FR';
     if (cart.some(c => c.url === item.url)) {
       toast.message('Ce lien est déjà dans votre commande');
       return;
     }
-    setCart(c => [...c, { site: site.name, relay: site.relay, ...item }]);
-    setAddOpen(false);
+    setCart(c => [...c, { site: siteName, relay, ...item }]);
     toast.success('Article ajouté à votre commande');
   }
 
@@ -86,7 +88,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
       groups.forEach(([siteName, items]) => {
         lines.push(`• ${siteName} → ${RELAY_LABEL[items[0].relay]}`);
         items.forEach((it, i) => {
-          lines.push(`   ${i + 1}. ${it.url}`);
+          lines.push(`   ${i + 1}. ${it.title ? `${it.title} — ` : ''}${it.url}`);
           lines.push(`      Quantité: ${it.qty}${it.note ? ` · Variante/note: ${it.note}` : ''}`);
         });
       });
@@ -122,12 +124,11 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
             relay_country: i.relay,
             url: i.url,
             qty: i.qty,
-            note: i.note || null,
+            note: [i.title, i.note].filter(Boolean).join(' · ') || null,
           })),
         );
         if (itemsError) console.error('sourcing_items insert failed', itemsError);
       }
-
 
       supabase.functions.invoke('relais-d-notify', {
         body: {
@@ -163,45 +164,18 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
     </>
   );
 
-  // ── Navigateur immersif
+  // ── Vitrine interne d'un site
   if (site) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 bg-zinc-900">
-          <button onClick={() => setSite(null)} className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Retour aux sites">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div className="flex-1 flex items-center gap-2 min-w-0 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-            <Globe className="w-3.5 h-3.5 text-white/50 shrink-0" />
-            <span className="text-xs text-white/70 truncate">{site.url.replace(/^https:\/\/(www2?\.)?/, '')}</span>
-          </div>
-          <a href={site.url} target="_blank" rel="noreferrer"
-             className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="Ouvrir dans un nouvel onglet">
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </div>
-
-        <div className="flex-1 relative">
-          <iframe src={site.url} title={site.name} className="absolute inset-0 w-full h-full bg-white" />
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 max-w-md w-[92%] rounded-xl bg-zinc-900/95 border border-white/10 backdrop-blur px-4 py-3 text-xs text-white/70">
-            Si la page reste blanche, {site.name} refuse l'intégration.{' '}
-            <a href={site.url} target="_blank" rel="noreferrer" className="text-yellow-400 font-semibold underline">
-              Ouvrez-le dans un nouvel onglet
-            </a>{' '}
-            puis collez le lien de l'article ci-dessous.
-          </div>
-          {/* Bouton flottant toujours visible pendant la navigation */}
-          <button
-            onClick={() => setAddOpen(true)}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-yellow-400 text-zinc-950 font-bold text-sm shadow-xl shadow-black/30 hover:scale-[1.02] active:scale-95 transition-transform"
-          >
-            <Plus className="w-4 h-4" /> Ajouter à ma commande
-          </button>
-        </div>
-
-        <AddItemDialog open={addOpen} onClose={() => setAddOpen(false)} siteName={site.name} onAdd={addItem} />
+      <>
+        <SiteStorefront
+          site={site}
+          onBack={() => setSite(null)}
+          onAdd={(item) => addItem(item, site)}
+          onSourcing={(q) => navigate(`/relais-d/sourcing?q=${encodeURIComponent(q)}`)}
+        />
         {overlays}
-      </div>
+      </>
     );
   }
 
@@ -214,12 +188,13 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
         </button>
         <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">Commander en ligne</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-lg">
-          Naviguez sur vos sites préférés, ajoutez les articles à votre commande — Yobbanté vérifie les prix réels
-          et vous envoie un devis unique tout compris. Aucun complément ne vous sera jamais demandé après paiement.
+          Choisissez un site : catégories, tendances et recherche directe. Ajoutez vos articles —
+          Yobbanté vérifie les prix réels et vous envoie un devis unique tout compris.
+          Aucun complément ne vous sera jamais demandé après paiement.
         </p>
 
         <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {SITES.map((s, i) => (
+          {SHOP_SITES.map((s, i) => (
             <motion.button
               key={s.id}
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
@@ -247,56 +222,269 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
   );
 }
 
-function AddItemDialog({ open, onClose, siteName, onAdd }: {
-  open: boolean; onClose: () => void; siteName: string;
-  onAdd: (i: { url: string; qty: number; note: string }) => void;
+/* ─────────────────────────── Vitrine interne ─────────────────────────── */
+
+function SiteStorefront({ site, onBack, onAdd, onSourcing }: {
+  site: ShopSite;
+  onBack: () => void;
+  onAdd: (i: { url: string; qty: number; note: string; title?: string | null; image?: string | null }) => void;
+  onSourcing: (q: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const [trending, setTrending] = useState<Trending[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('shop_trending_products' as never)
+      .select('id, site_id, title, image_url, product_url, price_label')
+      .eq('site_id', site.id)
+      .eq('active', true)
+      .order('position', { ascending: true })
+      .limit(12)
+      .then(({ data }) => { if (!cancelled) setTrending((data ?? []) as unknown as Trending[]); });
+    return () => { cancelled = true; };
+  }, [site.id]);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* En-tête vitrine */}
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button onClick={onBack} className="p-2 rounded-lg hover:bg-secondary transition-colors" aria-label="Retour aux sites">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0"
+               style={{ background: site.accent }}>
+            {site.name[0]}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-sm leading-tight truncate">{site.name}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{RELAY_LABEL[site.relay]}</p>
+          </div>
+          <button
+            onClick={() => openTab(site.url)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Ouvrir {site.name}</span>
+            <span className="sm:hidden">Ouvrir</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-5 py-6 space-y-8 pb-28">
+        {/* Niveau 2 — Recherche assistée */}
+        <section className="space-y-3">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold text-muted-foreground">Que cherchez-vous sur {site.name} ?</span>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && q.trim()) openTab(site.search(q.trim())); }}
+                placeholder="Ex : nike air max 42"
+                className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
+              />
+            </div>
+          </label>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <button
+              disabled={!q.trim()}
+              onClick={() => openTab(site.search(q.trim()))}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-yellow-400 text-zinc-950 font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink className="w-4 h-4" /> Chercher sur {site.name}
+            </button>
+            <button
+              disabled={!q.trim()}
+              onClick={() => onSourcing(q.trim())}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-border bg-card font-semibold text-sm disabled:opacity-40 hover:border-foreground transition-colors"
+            >
+              <Wand2 className="w-4 h-4" /> Demander à Yobbanté de le trouver
+            </button>
+          </div>
+        </section>
+
+        {/* Niveau 1 — Catégories populaires */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold">Catégories populaires</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {site.categories.map(c => (
+              <button
+                key={c.label}
+                onClick={() => openTab(c.path)}
+                className="group flex items-center justify-between gap-2 px-4 py-3 rounded-xl border border-border bg-card text-left text-sm font-medium hover:border-foreground transition-colors"
+              >
+                <span className="truncate">{c.label}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Chaque catégorie ouvre {site.name} dans un nouvel onglet — revenez ici pour coller le lien du produit.
+          </p>
+        </section>
+
+        {/* Niveau 1 — Tendances du moment */}
+        {trending.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-bold flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-yellow-500" /> Tendances du moment
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {trending.map(t => (
+                <div key={t.id} className="rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+                  {t.image_url
+                    ? <img src={t.image_url} alt={t.title} loading="lazy" className="w-full aspect-square object-cover" />
+                    : <div className="w-full aspect-square bg-secondary" />}
+                  <div className="p-3 flex-1 flex flex-col gap-2">
+                    <p className="text-xs font-semibold leading-snug line-clamp-2">{t.title}</p>
+                    {t.price_label && <p className="text-[11px] text-muted-foreground">{t.price_label}</p>}
+                    <div className="mt-auto flex items-center gap-1.5">
+                      <button
+                        onClick={() => onAdd({ url: t.product_url, qty: 1, note: '', title: t.title, image: t.image_url })}
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 rounded-lg bg-yellow-400 text-zinc-950 text-[11px] font-bold hover:opacity-90 transition-opacity"
+                      >
+                        <Plus className="w-3 h-3" /> Ajouter
+                      </button>
+                      <button
+                        onClick={() => openTab(t.product_url)}
+                        className="p-2 rounded-lg border border-border hover:border-foreground transition-colors"
+                        aria-label="Voir sur le site"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Niveau 3 — Collage intelligent */}
+        <PastePanel siteName={site.name} onAdd={onAdd} />
+      </main>
+    </div>
+  );
+}
+
+/* ────────────────── Niveau 3 — Collage intelligent ────────────────── */
+
+function PastePanel({ siteName, onAdd }: {
+  siteName: string;
+  onAdd: (i: { url: string; qty: number; note: string; title?: string | null; image?: string | null }) => void;
 }) {
   const [url, setUrl] = useState('');
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
-  if (!open) return null;
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<{ title: string | null; image: string | null; host: string } | null>(null);
+
+  const valid = /^https?:\/\/\S+$/i.test(url.trim());
+  const detected = valid ? detectSiteFromUrl(url.trim()) : null;
+
+  // Aperçu serveur (OpenGraph) — jamais bloquant : timeout géré côté fonction.
+  useEffect(() => {
+    if (!valid) { setPreview(null); return; }
+    const target = url.trim();
+    let cancelled = false;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await supabase.functions.invoke('link-preview', { body: { url: target } });
+        if (cancelled) return;
+        const d = (data ?? {}) as { title?: string | null; image?: string | null; host?: string };
+        setPreview({ title: d.title ?? null, image: d.image ?? null, host: d.host ?? '' });
+      } catch {
+        if (!cancelled) setPreview({ title: null, image: null, host: '' });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); setLoading(false); };
+  }, [url, valid]);
+
   return (
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md bg-card text-foreground rounded-t-2xl sm:rounded-2xl border border-border p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm">Ajouter un article — {siteName}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-secondary" aria-label="Fermer"><X className="w-4 h-4" /></button>
-        </div>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Lien de la page produit *</span>
-          <input value={url} onChange={e => setUrl(e.target.value)} placeholder="Collez l'URL de l'article"
-                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
-        </label>
-        <div className="grid grid-cols-3 gap-3">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Quantité</span>
-            <input type="number" min={1} value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))}
-                   className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
-          </label>
-          <label className="col-span-2 block space-y-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Taille / couleur / variante</span>
-            <input value={note} onChange={e => setNote(e.target.value)} placeholder="Ex : 42, noir"
-                   className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
-          </label>
-        </div>
-        <button
-          onClick={() => { if (!/^https?:\/\//i.test(url.trim())) { toast.error('Collez un lien valide (https://…)'); return; } onAdd({ url: url.trim(), qty, note: note.trim() }); setUrl(''); setQty(1); setNote(''); }}
-          className="w-full px-4 py-3 rounded-xl bg-yellow-400 text-zinc-950 font-bold text-sm hover:opacity-90 transition-opacity"
-        >
-          Ajouter au panier
-        </button>
+    <section className="rounded-2xl border-2 border-border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Link2 className="w-4 h-4 text-yellow-500" />
+        <h2 className="text-sm font-bold">Vous avez trouvé votre produit ? Collez son lien ici</h2>
       </div>
-    </div>
+
+      <input
+        value={url}
+        onChange={e => setUrl(e.target.value)}
+        placeholder={`https://… (lien de la page produit ${siteName})`}
+        className="w-full rounded-xl border border-border bg-background px-4 py-3.5 text-sm outline-none focus:ring-2 focus:ring-foreground/20"
+      />
+
+      {valid && (
+        <div className="flex items-start gap-3 p-3 rounded-xl border border-border bg-background">
+          {loading ? (
+            <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : preview?.image ? (
+            <img src={preview.image} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+              <Link2 className="w-4 h-4 text-muted-foreground" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold line-clamp-2">
+              {loading ? 'Lecture de la page…' : (preview?.title || 'Produit détecté')}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{detected?.name}</p>
+            <p className="text-[10px] text-muted-foreground truncate mt-0.5">{url.trim()}</p>
+            {!loading && !preview?.title && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Ce site masque ses informations — pas de souci, l'ajout au panier fonctionne quand même.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-3">
+        <label className="block space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Quantité</span>
+          <input type="number" min={1} value={qty}
+                 onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))}
+                 className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
+        </label>
+        <label className="col-span-2 block space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Taille / couleur / variante</span>
+          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Ex : 42, noir"
+                 className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-foreground/20" />
+        </label>
+      </div>
+
+      <button
+        onClick={() => {
+          if (!valid) { toast.error('Collez un lien valide (https://…)'); return; }
+          onAdd({ url: url.trim(), qty, note: note.trim(), title: preview?.title ?? null, image: preview?.image ?? null });
+          setUrl(''); setQty(1); setNote(''); setPreview(null);
+        }}
+        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-yellow-400 text-zinc-950 font-bold text-sm hover:opacity-90 transition-opacity"
+      >
+        <Plus className="w-4 h-4" /> Ajouter à ma commande
+      </button>
+    </section>
   );
 }
+
+/* ───────────────────────── Panier & validation ───────────────────────── */
 
 function FloatingCart({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
       aria-label="Ouvrir le panier"
-      className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-yellow-400 text-zinc-950 shadow-xl shadow-yellow-400/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-full bg-yellow-400 text-zinc-950 shadow-xl shadow-yellow-400/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
     >
       <ShoppingCart className="w-6 h-6" />
       {count > 0 && (
@@ -334,7 +522,7 @@ function CartDrawer({ open, onClose, groups, count, onRemove, onQty, onCheckout 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
               {count === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-10">
-                  Panier vide — ouvrez un site et ajoutez des articles.
+                  Panier vide — ouvrez une vitrine et ajoutez des articles.
                 </p>
               ) : groups.map(([siteName, items]) => (
                 <div key={siteName} className="space-y-2">
@@ -343,7 +531,9 @@ function CartDrawer({ open, onClose, groups, count, onRemove, onQty, onCheckout 
                   </p>
                   {items.map(it => (
                     <div key={it.url} className="flex items-start gap-3 p-3 rounded-xl border border-border bg-background">
+                      {it.image && <img src={it.image} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
+                        {it.title && <p className="text-xs font-semibold line-clamp-2">{it.title}</p>}
                         <p className="text-[11px] text-muted-foreground truncate">{it.url}</p>
                         {it.note && <p className="text-xs mt-0.5">{it.note}</p>}
                         <div className="mt-2 flex items-center gap-2">
