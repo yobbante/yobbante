@@ -139,7 +139,7 @@ export function PaymentDetailSheet({
       } else {
         const patch: Record<string, unknown> =
           payment.kind === 'road'
-            ? { chauffeur_cost_fcfa: value, chauffeur_paid: paid, chauffeur_paid_at: paidAtIso }
+            ? { chauffeur_cost_fcfa: value, chauffeur_paid: isPaid, chauffeur_paid_at: paidAtIso }
             : { total_fcfa: value };
         const { error } = await supabase.from('fret_courses' as never).update(patch as never).eq('id', payment.sourceId);
         if (error) throw error;
