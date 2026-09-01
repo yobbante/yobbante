@@ -5,11 +5,20 @@ import {
   Package, Search, Inbox, ArrowRightLeft, MapPin, Pencil, ArrowLeft, ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CityPicker } from '@/components/quote/CityPicker';
-import { TransportModeSelector, ModeSoonNotice, isModeSoon, type SendTransportMode } from '@/components/quote/TransportModeSelector';
+import { CityPicker, type CityOption } from '@/components/quote/CityPicker';
+import { TransportModeSelector, type SendTransportMode } from '@/components/quote/TransportModeSelector';
 import { ALL_CITIES } from '@/lib/worldCities';
 import { useCustomCities } from '@/hooks/useCustomCities';
 import { getHomeHref } from '@/lib/homeHref';
+import { ManualQuoteDialog } from '@/components/flows/ManualQuoteDialog';
+import {
+  AIR_CITIES, AIR_QUOTE_DISCLAIMER, AIR_VOLUMETRIC_HINT,
+  estimateAirFreight, findAirZone, fmtFcfaAir,
+} from '@/lib/airFreight';
+import {
+  SEA_CITIES, estimateSeaFreight, findSeaZone, fmtFcfaSea, seaTransitLabel,
+  type SeaShipmentType, type ContainerSize,
+} from '@/lib/seaFreight';
 
 /* =========================================================================
    ExpedierSearchBar — sticky, theme-aware, 100% responsive search bar
@@ -105,17 +114,76 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const [weight, setWeight] = useState(hydratedSend?.weight ? String(hydratedSend.weight) : '');
   // Mode de transport = 1re question. GP par défaut (ex-"Aérien").
   // Routier = Terminal D (page dédiée /terminal-d).
+  // Aérien / Maritime = opérationnels : estimation indicative + devis sur mesure.
   const [transportMode, setTransportMode] = useState<SendTransportMode>('gp');
   const transport: 'AIR' | 'SEA' = 'AIR';
+  // Dimensions partagées (poids volumétrique aérien / volume LCL maritime)
+  const [dimL, setDimL] = useState('');
+  const [dimW, setDimW] = useState('');
+  const [dimH, setDimH] = useState('');
+  // Maritime : groupage (LCL) ou conteneur complet (FCL)
+  const [seaType, setSeaType] = useState<SeaShipmentType>('lcl');
+  const [seaContainers, setSeaContainers] = useState('1');
+  const [seaSize, setSeaSize] = useState<ContainerSize>('20');
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const goTerminalD = () => {
     const raw = direction === 'from_dakar' ? destination : origin;
     const cityOnly = (raw || '').split(',')[0].trim();
     navigate(cityOnly && cityOnly !== 'Dakar' ? `/terminal-d?ville=${encodeURIComponent(cityOnly)}` : '/terminal-d');
   };
   const handleTransportChange = (m: SendTransportMode) => {
+    if (m === transportMode) return;
     setTransportMode(m);
-    if (m === 'road') goTerminalD();
+    if (m === 'road') { goTerminalD(); return; }
+    // Les villes desservies changent selon le mode : réinitialise la ville hors Dakar.
+    if (direction === 'from_dakar') setDestination('');
+    else setOrigin('');
   };
+
+  /** Ville hors Dakar de la route en cours. */
+  const otherCity = ((direction === 'from_dakar' ? destination : origin) || '').split(',')[0].trim();
+
+  // Villes desservies par mode — même sélecteur, catalogue restreint.
+  const cityOptions = useMemo<CityOption[] | undefined>(() => {
+    if (transportMode === 'gp') return undefined; // catalogue mondial complet
+    const dakar: CityOption = { id: 'SN-Dakar', city: 'Dakar', country: 'SN', countryLabel: 'Sénégal' };
+    if (transportMode === 'air') {
+      return [dakar, ...AIR_CITIES.map(c => ({
+        id: `AIR-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    if (transportMode === 'sea') {
+      return [dakar, ...SEA_CITIES.map(c => ({
+        id: `SEA-${c.city}`, city: c.city, country: '', countryLabel: c.zoneLabel,
+      }))];
+    }
+    return undefined;
+  }, [transportMode]);
+
+  const airEstimate = useMemo(
+    () => estimateAirFreight({
+      zone: findAirZone(otherCity),
+      realKg: parseFloat(weight),
+      lengthCm: parseFloat(dimL),
+      widthCm: parseFloat(dimW),
+      heightCm: parseFloat(dimH),
+    }),
+    [transportMode, otherCity, weight, dimL, dimW, dimH], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const seaEstimate = useMemo(
+    () => estimateSeaFreight({
+      zone: findSeaZone(otherCity),
+      type: seaType,
+      realKg: parseFloat(weight),
+      lengthCm: parseFloat(dimL),
+      widthCm: parseFloat(dimW),
+      heightCm: parseFloat(dimH),
+      containers: Number(seaContainers) || null,
+      containerSize: seaSize,
+    }),
+    [transportMode, otherCity, seaType, weight, dimL, dimW, dimH, seaContainers, seaSize], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   // Auto-collapse on mount when a complete preset already exists
   useEffect(() => {
     if (hydratedSend?.origin && hydratedSend?.destination && hydratedSend?.weight) setExpanded(false);
@@ -165,6 +233,12 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
 
   // ── Submit handlers ──────────────────────────────────────────────
   function applyEnvoyer() {
+    // Aérien / Maritime : débouche sur le flow "Devis sur mesure" (pas de paiement direct).
+    if (transportMode === 'air' || transportMode === 'sea') {
+      if (!origin || !destination) return;
+      setQuoteOpen(true);
+      return;
+    }
     const o = resolveCityToCountry(origin, customCities);
     const d = resolveCityToCountry(destination, customCities);
     if (!o || !d || !weight) return;
@@ -207,6 +281,8 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const liveSyncMounted = useRef(false);
   useEffect(() => {
     if (mode !== 'envoyer') return;
+    // Seul le mode GP alimente le SendFlow — aérien/maritime partent en devis.
+    if (transportMode !== 'gp') return;
     if (!liveSyncMounted.current) { liveSyncMounted.current = true; return; }
     const o = resolveCityToCountry(origin, customCities);
     const d = resolveCityToCountry(destination, customCities);
@@ -226,10 +302,40 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       window.dispatchEvent(new Event('send-preset-updated'));
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, weight, mode]);
+  }, [origin, destination, weight, mode, transportMode]);
 
 
-  const canSubmitSend = !!origin && !!destination && !!weight;
+  const canSubmitSend = !!origin && !!destination && (
+    transportMode === 'gp' ? !!weight
+    : transportMode === 'air' ? !!weight
+    : transportMode === 'sea'
+      ? (seaType === 'fcl' ? Number(seaContainers) > 0 : (!!weight || !!(dimL && dimW && dimH)))
+      : false
+  );
+
+  /** Description envoyée au chargé de dossier (devis aérien / maritime). */
+  const quoteDescription = useMemo(() => {
+    const dims = (dimL || dimW || dimH) ? `Dimensions ${dimL || '?'}×${dimW || '?'}×${dimH || '?'} cm` : '';
+    if (transportMode === 'air') {
+      return [
+        airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
+        dims,
+        airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
+        airEstimate.manualQuote && 'Hors grille (>300 kg) — devis sur mesure',
+      ].filter(Boolean).join(' · ');
+    }
+    if (transportMode === 'sea') {
+      return [
+        seaType === 'fcl'
+          ? `Conteneur complet FCL · ${seaContainers || '?'} × ${seaSize} pieds`
+          : 'Groupage LCL',
+        dims,
+        seaEstimate.price != null && `Estimation indicative ${fmtFcfaSea(seaEstimate.price)}`,
+        seaEstimate.zone ? seaTransitLabel(seaEstimate.zone) : '',
+      ].filter(Boolean).join(' · ');
+    }
+    return '';
+  }, [transportMode, airEstimate, seaEstimate, seaType, seaContainers, seaSize, dimL, dimW, dimH]);
   const canSubmitRecv = !!merchant && !!merchantCountry;
   const canSubmitSrc  = productQuery.trim().length >= 2;
 
@@ -350,14 +456,13 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
             {mode === 'envoyer' && (
               <div className="space-y-2 pt-1">
                 <TransportModeSelector value={transportMode} onChange={handleTransportChange} dark={isDark} />
-                {isModeSoon(transportMode) && <ModeSoonNotice mode={transportMode} dark={isDark} />}
                 {transportMode === 'road' && (
                   <div className={cn('rounded-lg border px-3 py-2.5 text-[12px]', isDark ? 'border-white/15 text-white/80' : 'border-border bg-secondary text-foreground')}>
                     Le transport routier se gère sur{' '}
                     <button type="button" onClick={goTerminalD} className="underline underline-offset-2 font-semibold">Terminal D</button>.
                   </div>
                 )}
-                {transportMode === 'gp' && (
+                {(transportMode === 'gp' || transportMode === 'air' || transportMode === 'sea') && (
                 <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
 
@@ -388,6 +493,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                       if (v === DAKAR) { setDirection('from_dakar'); setOrigin(DAKAR); if (destination === DAKAR) setDestination(''); }
                       else { setDirection('to_dakar'); setOrigin(v); setDestination(DAKAR); }
                     }}
+                    options={cityOptions}
                     placeholder="Origine…"
                     ariaLabel="Choisir la ville d'origine"
                     excludeCity={direction === 'to_dakar' ? 'Dakar' : undefined}
@@ -398,24 +504,128 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                       if (v === DAKAR) { setDirection('to_dakar'); setDestination(DAKAR); if (origin === DAKAR) setOrigin(''); }
                       else { setDirection('from_dakar'); setDestination(v); setOrigin(DAKAR); }
                     }}
+                    options={cityOptions}
                     placeholder="Destination…"
                     ariaLabel="Choisir la ville de destination"
                     excludeCity={direction === 'from_dakar' ? 'Dakar' : undefined}
                   />
                 </div>
+
+                {/* Maritime : Groupage LCL ou Conteneur complet FCL */}
+                {transportMode === 'sea' && (
+                  <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Type d'envoi maritime">
+                    {([
+                      { id: 'lcl' as SeaShipmentType, label: 'Groupage (LCL)', desc: 'Vous payez au m³' },
+                      { id: 'fcl' as SeaShipmentType, label: 'Conteneur complet (FCL)', desc: "20' ou 40' rien que pour vous" },
+                    ]).map(o => {
+                      const active = seaType === o.id;
+                      return (
+                        <button
+                          key={o.id} type="button" role="radio" aria-checked={active}
+                          onClick={() => setSeaType(o.id)}
+                          className={cn(
+                            'text-left rounded-lg border px-2.5 py-2 transition-all',
+                            active
+                              ? isDark ? 'bg-yellow-400 text-zinc-950 border-yellow-400' : 'bg-foreground text-background border-foreground'
+                              : isDark ? 'border-white/10 text-white/70 hover:border-white/30' : 'border-border text-muted-foreground hover:border-foreground/40',
+                          )}
+                        >
+                          <div className="text-[12px] font-semibold">{o.label}</div>
+                          <div className={cn('text-[10px] mt-0.5', active ? 'opacity-70' : 'opacity-80')}>{o.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number" inputMode="decimal" placeholder="Poids (kg)"
-                    value={weight} onChange={e => setWeight(e.target.value)}
-                    className={fieldCls}
-                  />
+                  {/* Poids — masqué en FCL (le conteneur fait foi) */}
+                  {!(transportMode === 'sea' && seaType === 'fcl') && (
+                    <input
+                      type="number" inputMode="decimal"
+                      placeholder={transportMode === 'sea' ? 'Poids (kg) — ou volume ↓' : 'Poids (kg)'}
+                      value={weight} onChange={e => setWeight(e.target.value)}
+                      className={fieldCls}
+                    />
+                  )}
+                  {transportMode === 'sea' && seaType === 'fcl' && (
+                    <>
+                      <select
+                        aria-label="Taille du conteneur"
+                        value={seaSize} onChange={e => setSeaSize(e.target.value as ContainerSize)}
+                        className={fieldCls}
+                      >
+                        <option value="20">Conteneur 20 pieds</option>
+                        <option value="40">Conteneur 40 pieds</option>
+                      </select>
+                      <input
+                        type="number" inputMode="numeric" min={1} placeholder="Nb conteneurs"
+                        aria-label="Nombre de conteneurs"
+                        value={seaContainers} onChange={e => setSeaContainers(e.target.value)}
+                        className={fieldCls}
+                      />
+                    </>
+                  )}
+                  {transportMode === 'gp' && (
+                    <button
+                      onClick={applyEnvoyer} disabled={!canSubmitSend}
+                      className={ctaCls}
+                    >
+                      Continuer →
+                    </button>
+                  )}
+                </div>
+
+                {/* Dimensions — poids volumétrique (aérien) / volume LCL (maritime) */}
+                {(transportMode === 'air' || (transportMode === 'sea' && seaType === 'lcl')) && (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input type="number" inputMode="decimal" placeholder="Long. (cm)" aria-label="Longueur (cm)" value={dimL} onChange={e => setDimL(e.target.value)} className={fieldCls} />
+                      <input type="number" inputMode="decimal" placeholder="Larg. (cm)" aria-label="Largeur (cm)" value={dimW} onChange={e => setDimW(e.target.value)} className={fieldCls} />
+                      <input type="number" inputMode="decimal" placeholder="Haut. (cm)" aria-label="Hauteur (cm)" value={dimH} onChange={e => setDimH(e.target.value)} className={fieldCls} />
+                    </div>
+                    {transportMode === 'air' && (
+                      <p className={cn('text-[10.5px] leading-snug', isDark ? 'text-white/50' : 'text-muted-foreground')}>{AIR_VOLUMETRIC_HINT}</p>
+                    )}
+                  </>
+                )}
+
+                {/* Estimation indicative — aérien / maritime */}
+                {transportMode === 'air' && origin && destination && (
+                  <div className={cn('rounded-lg border px-3 py-2.5', isDark ? 'border-yellow-400/30 bg-yellow-400/10' : 'border-border bg-secondary')}>
+                    <div className={cn('text-[10px] uppercase tracking-[0.16em] font-medium', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>Estimation indicative</div>
+                    <div className={cn('text-[15px] font-bold leading-tight', isDark ? 'text-white' : 'text-foreground')}>
+                      {airEstimate.price != null ? fmtFcfaAir(airEstimate.price) : 'Devis sur mesure'}
+                    </div>
+                    <div className={cn('text-[10.5px] mt-0.5', isDark ? 'text-white/60' : 'text-muted-foreground')}>
+                      {airEstimate.detail || AIR_QUOTE_DISCLAIMER}
+                    </div>
+                  </div>
+                )}
+                {transportMode === 'sea' && origin && destination && (
+                  <div className={cn('rounded-lg border px-3 py-2.5', isDark ? 'border-yellow-400/30 bg-yellow-400/10' : 'border-border bg-secondary')}>
+                    <div className={cn('text-[10px] uppercase tracking-[0.16em] font-medium', isDark ? 'text-yellow-400/80' : 'text-muted-foreground')}>
+                      Maritime · {seaType === 'fcl' ? 'Conteneur complet' : 'Groupage LCL'}
+                    </div>
+                    <div className={cn('text-[15px] font-bold leading-tight', isDark ? 'text-white' : 'text-foreground')}>
+                      {seaEstimate.price != null ? fmtFcfaSea(seaEstimate.price) : 'Devis sur mesure'}
+                    </div>
+                    <div className={cn('text-[10.5px] mt-0.5', isDark ? 'text-white/60' : 'text-muted-foreground')}>
+                      {seaEstimate.detail} · {seaTransitLabel(seaEstimate.zone)}
+                    </div>
+                  </div>
+                )}
+
+                {(transportMode === 'air' || transportMode === 'sea') && (
                   <button
                     onClick={applyEnvoyer} disabled={!canSubmitSend}
                     className={ctaCls}
                   >
-                    Continuer →
+                    Demander mon devis →
                   </button>
-                </div>
+                )}
+
+                {transportMode === 'gp' && (
                 <a
                   href="/terminal-d"
                   className={cn(
@@ -425,6 +635,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
                 >
                   Envoi vers le Sénégal ou un pays voisin (Gambie, Mali, Mauritanie…) ? → Transport routier
                 </a>
+                )}
                 </div>
                 )}
               </div>
@@ -550,6 +761,21 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Devis sur mesure — Aérien / Maritime */}
+      <ManualQuoteDialog
+        open={quoteOpen}
+        onOpenChange={setQuoteOpen}
+        prefill={{
+          origin_city: (origin || '—').split(',')[0].trim(),
+          origin_country: direction === 'from_dakar' ? 'SN' : (resolveCityToCountry(origin, customCities)?.country ?? null),
+          destination_city: (destination || '—').split(',')[0].trim(),
+          destination_country: direction === 'to_dakar' ? 'SN' : (resolveCityToCountry(destination, customCities)?.country ?? null),
+          weight_kg: Number(weight) || 0,
+          transport_mode: transportMode === 'sea' ? 'sea' : 'air',
+          description: quoteDescription || null,
+        }}
+      />
     </motion.div>
   );
 }

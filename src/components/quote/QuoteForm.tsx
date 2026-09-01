@@ -17,23 +17,14 @@ import {
   AIR_CITIES, AIR_QUOTE_DISCLAIMER, AIR_VOLUMETRIC_HINT,
   estimateAirFreight, findAirZone, fmtFcfaAir,
 } from '@/lib/airFreight';
+import { SEA_CITIES } from '@/lib/seaFreight';
 
 /** Modes ouverts au public — les 4 modes partagent désormais le même parcours. */
 const PUBLIC_LIVE_MODES: SendTransportMode[] = ['gp', 'air', 'sea', 'road'];
 
-/** Ports desservis en groupage maritime (LCL) vers/depuis Dakar. */
-const SEA_PORTS: { city: string; country: string; countryLabel: string }[] = [
-  { city: 'Le Havre', country: 'FR', countryLabel: 'France' },
-  { city: 'Marseille', country: 'FR', countryLabel: 'France' },
-  { city: 'Anvers', country: 'BE', countryLabel: 'Belgique' },
-  { city: 'Barcelone', country: 'ES', countryLabel: 'Espagne' },
-  { city: 'Casablanca', country: 'MA', countryLabel: 'Maroc' },
-  { city: 'Shanghai', country: 'CN', countryLabel: 'Chine' },
-  { city: 'Guangzhou', country: 'CN', countryLabel: 'Chine' },
-  { city: 'Dubaï', country: 'AE', countryLabel: 'Émirats arabes unis' },
-  { city: 'Istanbul', country: 'TR', countryLabel: 'Turquie' },
-  { city: 'New York', country: 'US', countryLabel: 'USA' },
-];
+/** Villes desservies en maritime (source unique : grille tarifaire seaFreight). */
+const SEA_PORTS: { city: string; country: string; countryLabel: string }[] =
+  SEA_CITIES.map(c => ({ city: c.city, country: '', countryLabel: c.zoneLabel }));
 
 
 
