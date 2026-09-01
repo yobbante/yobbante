@@ -1828,7 +1828,11 @@ export type Database = {
         Row: {
           accepted_at: string | null
           arrived_at: string | null
+          chauffeur_cost_fcfa: number | null
           chauffeur_id: string | null
+          chauffeur_paid: boolean
+          chauffeur_paid_at: string | null
+          chauffeur_payment_method: string | null
           client_nom: string | null
           client_phone: string | null
           colis_description: string | null
@@ -1859,7 +1863,11 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           arrived_at?: string | null
+          chauffeur_cost_fcfa?: number | null
           chauffeur_id?: string | null
+          chauffeur_paid?: boolean
+          chauffeur_paid_at?: string | null
+          chauffeur_payment_method?: string | null
           client_nom?: string | null
           client_phone?: string | null
           colis_description?: string | null
@@ -1890,7 +1898,11 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           arrived_at?: string | null
+          chauffeur_cost_fcfa?: number | null
           chauffeur_id?: string | null
+          chauffeur_paid?: boolean
+          chauffeur_paid_at?: string | null
+          chauffeur_payment_method?: string | null
           client_nom?: string | null
           client_phone?: string | null
           colis_description?: string | null
