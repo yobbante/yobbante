@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive } from 'lucide-react';
+import { Loader2, Save, X, ExternalLink, Ban, Truck, Archive, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatXof } from '@/lib/gpFinance';
 import { KIND_LABEL, MODE_LABEL, invalidateFinance, type PaymentRow } from '@/hooks/useAllPayments';
@@ -97,30 +97,32 @@ export function PaymentDetailSheet({
   }, [autoCarrier]);
 
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { forcePaid?: boolean }) => {
       if (!payment) return;
+      const isPaid = opts?.forcePaid ?? paid;
       const value = Math.max(0, Math.round(Number(amount) || 0));
-      const paidAtIso = paid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
+      const paidAtIso = isPaid ? (paidDate ? new Date(paidDate + 'T12:00:00').toISOString() : new Date().toISOString()) : null;
 
       if (payment.source === 'dossier') {
         const patch: Record<string, unknown> = {};
         if (payment.kind === 'client') {
           patch.final_amount_xof = value;
-          patch.payment_status = paid ? 'paid' : 'pending';
+          patch.payment_status = isPaid ? 'paid' : 'pending';
           patch.paid_at = paidAtIso;
           if (method) patch.payment_method = method;
         } else if (payment.kind === 'gp') {
           patch.gp_amount = value;
-          patch.gp_paid = paid;
+          patch.gp_paid = isPaid;
           patch.gp_paid_at = paidAtIso;
           if (method) patch.gp_payment_method = method;
         } else {
           patch.carrier_cost_xof = value;
-          patch.carrier_paid = paid;
+          patch.carrier_paid = isPaid;
           patch.carrier_paid_at = paidAtIso;
           patch.carrier_name = carrierName || null;
           if (method) patch.carrier_payment_method = method;
         }
+
         // Transporteur alloué au dossier (éditable depuis n'importe quel paiement du dossier)
         if (payment.kind !== 'carrier' && dossierId) {
           const cost = carrierCost === '' ? null : Math.max(0, Math.round(Number(carrierCost) || 0));
@@ -137,7 +139,7 @@ export function PaymentDetailSheet({
       } else {
         const patch: Record<string, unknown> =
           payment.kind === 'road'
-            ? { chauffeur_cost_fcfa: value, chauffeur_paid: paid, chauffeur_paid_at: paidAtIso }
+            ? { chauffeur_cost_fcfa: value, chauffeur_paid: isPaid, chauffeur_paid_at: paidAtIso }
             : { total_fcfa: value };
         const { error } = await supabase.from('fret_courses' as never).update(patch as never).eq('id', payment.sourceId);
         if (error) throw error;
@@ -189,6 +191,22 @@ export function PaymentDetailSheet({
   const inSum = related.filter((r) => r.direction === 'in').reduce((s, r) => s + r.amountXof, 0);
   const outSum = related.filter((r) => r.direction === 'out').reduce((s, r) => s + r.amountXof, 0);
   const hasMethod = payment.source === 'dossier';
+  const isIn = payment.direction === 'in';
+
+  const statusLabel = payment.paid
+    ? (isIn ? 'Encaissé' : 'Reversé')
+    : (isIn ? 'À encaisser' : 'À reverser');
+
+  /** Explication claire du statut : d'où vient l'info, et ce qu'il reste à faire. */
+  const statusExplain = payment.paid
+    ? (isIn
+        ? `Le client a payé${payment.paidAt ? ' le ' + new Date(payment.paidAt).toLocaleDateString('fr-FR') : ''}.`
+        : `Somme déjà versée au transporteur${payment.paidAt ? ' le ' + new Date(payment.paidAt).toLocaleDateString('fr-FR') : ''}.`)
+    : (isIn
+        ? "Aucun règlement client enregistré : le paiement n'a pas encore été marqué comme reçu (Wave, Orange Money, espèces, PayTech…)."
+        : "Cette somme est due au transporteur / GP / chauffeur : elle n'a pas encore été marquée comme versée.");
+
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -198,9 +216,10 @@ export function PaymentDetailSheet({
             {KIND_LABEL[payment.kind]}
             <Badge variant="outline" className="text-[10px]">{MODE_LABEL[payment.mode]}</Badge>
             <span className={payment.paid ? 'text-[hsl(var(--success))] text-[10px] font-medium' : 'text-amber-500 text-[10px] font-medium'}>
-              {payment.paid ? 'Réglé' : 'En attente'}
+              {statusLabel}
             </span>
           </SheetTitle>
+
           <SheetDescription className="text-xs">{payment.ref}</SheetDescription>
         </SheetHeader>
         <button
@@ -219,6 +238,36 @@ export function PaymentDetailSheet({
             <Info label="Créé le" value={new Date(payment.date).toLocaleDateString('fr-FR')} />
             <Info label="Méthode actuelle" value={payment.method ? (METHOD_LABEL[payment.method] ?? payment.method) : '—'} />
           </div>
+
+          {/* Pourquoi ce statut + action immédiate */}
+          <div className={
+            payment.paid
+              ? 'rounded-lg border border-[hsl(var(--success)/0.3)] bg-[hsl(var(--success)/0.08)] p-3 space-y-2'
+              : 'rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-2'
+          }>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <HelpCircle className="w-3.5 h-3.5" />
+              Statut : {statusLabel}
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">{statusExplain}</p>
+            {!payment.paid && (
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={save.isPending}
+                onClick={() => {
+                  setPaid(true);
+                  setPaidDate((d) => d || today);
+                  save.mutate({ forcePaid: true });
+                }}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                {isIn ? "Marquer encaissé aujourd'hui" : "Marquer versé aujourd'hui"}
+              </Button>
+            )}
+          </div>
+
+
 
           {/* Marge du dossier (quand plusieurs paiements liés) */}
           {others.length > 0 && (
@@ -277,8 +326,9 @@ export function PaymentDetailSheet({
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div className="text-sm font-medium">
-              {payment.direction === 'in' ? 'Encaissé' : 'Réglé au transporteur'}
+              {isIn ? 'Encaissé auprès du client' : 'Versé au transporteur'}
             </div>
+
             <Switch checked={paid} onCheckedChange={setPaid} />
           </div>
 
@@ -322,7 +372,7 @@ export function PaymentDetailSheet({
           )}
 
           <div className="flex gap-2 pt-1">
-            <Button onClick={() => save.mutate()} disabled={save.isPending} className="flex-1">
+            <Button onClick={() => save.mutate({})} disabled={save.isPending} className="flex-1">
               {save.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
               Enregistrer
             </Button>
