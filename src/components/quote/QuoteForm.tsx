@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Search, Inbox, MapPin } from 'lucide-react';
+import { Package, MapPin, ShoppingBag, Factory, Inbox, ArrowRight } from 'lucide-react';
 import {
   type QuoteInput, type ServiceMode, type TransportMode, type GoodsType,
   saveDraft,
@@ -47,15 +47,6 @@ function resolveCityToCountry(label: string, customs: { city: string; country: s
   return m ? { country: m.country, city: m.city } : null;
 }
 
-function sourcingCountryToCode(label: string): 'CN' | 'FR' | 'AE' | 'US' {
-  switch (label) {
-    case 'Chine': return 'CN';
-    case 'USA': return 'US';
-    case 'Europe': return 'FR';
-    default: return 'CN';
-  }
-}
-
 const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'standard', label: 'Standard' },
   { value: 'fragile', label: 'Fragile' },
@@ -63,18 +54,6 @@ const TYPES: { value: GoodsType; label: string }[] = [
   { value: 'auto', label: 'Auto / Pièces' },
   { value: 'haute_valeur', label: 'Haute valeur' },
 ];
-
-const RECEPTION_TYPES: { value: GoodsType; label: string }[] = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'electronique', label: 'Électronique' },
-  { value: 'auto', label: 'Auto / Pièces' },
-  { value: 'cosmetiques', label: 'Cosmétiques' },
-  { value: 'haute_valeur', label: 'Haute valeur' },
-];
-
-const MERCHANTS = ['Amazon', 'AliExpress', 'eBay', 'SHEIN', 'Temu', 'Etsy', 'RockAuto', 'iHerb', 'Autre…'];
-const MERCHANT_COUNTRIES = ['USA', 'Chine', 'UK', 'France', 'UAE', 'Autre'];
-const SOURCING_COUNTRIES = ['Chine', 'USA', 'Europe', 'Autre'];
 
 interface TabDef {
   key: ServiceMode;
@@ -85,9 +64,38 @@ interface TabDef {
 }
 const TABS: TabDef[] = [
   { key: 'send', Icon: Package, label: 'Envoyer un colis', shortLabel: 'Envoyer' },
-  { key: 'sourcing', Icon: Search, label: 'Sourcing', shortLabel: 'Sourcing', subtitle: 'On achète pour vous' },
-  { key: 'reception', Icon: Inbox, label: 'Réception de commande', shortLabel: 'Réception', subtitle: 'Amazon, AliExpress…' },
+  { key: 'reception', Icon: ShoppingBag, label: 'Relais D — acheter & recevoir', shortLabel: 'Relais D', subtitle: 'Amazon, AliExpress, sourcing Chine' },
 ];
+
+/** Les 3 chemins Relais D, identiques à /relais-d — un seul point d'entrée. */
+const RELAIS_D_PATHS: {
+  id: 'shop' | 'sourcing' | 'recevoir';
+  Icon: typeof Package;
+  title: string;
+  desc: string;
+  hint: string;
+  primary?: boolean;
+}[] = [
+  {
+    id: 'shop', Icon: ShoppingBag, primary: true,
+    title: 'Commander en ligne',
+    desc: 'Amazon, AliExpress, Temu, Shein… on vérifie le prix réel et on achète pour vous.',
+    hint: '10 sites intégrés · Devis sous 24h',
+  },
+  {
+    id: 'sourcing', Icon: Factory,
+    title: 'Sourcing D',
+    desc: 'Photo + description + budget : on recherche le produit en Chine et on négocie.',
+    hint: 'Short-list fournisseurs sous 24-48h',
+  },
+  {
+    id: 'recevoir', Icon: Inbox,
+    title: "J'ai déjà commandé",
+    desc: 'Utilisez votre adresse relais Yobbanté : on réceptionne puis on livre à Dakar.',
+    hint: 'Adresse relais USA · Chine · Europe · UAE',
+  },
+];
+
 
 export function QuoteForm() {
   const navigate = useNavigate();
@@ -245,17 +253,8 @@ export function QuoteForm() {
     return () => window.removeEventListener('yobbante:prefill-destination', handler as EventListener);
   }, []);
 
-  // Sourcing
-  const [query, setQuery] = useState('');
-  const [budget, setBudget] = useState('');
-  const [sourcingCountry, setSourcingCountry] = useState('Chine');
-
-  // Reception
-  const [merchant, setMerchant] = useState<string>('Amazon');
-  const [merchantCountry, setMerchantCountry] = useState('USA');
-  const [recMode, setRecMode] = useState<TransportMode>('air');
-  const [estimatedValue, setEstimatedValue] = useState('');
-  const [recType, setRecType] = useState<GoodsType>('standard');
+  /** Relais D — chaque chemin continue sur la page dédiée /relais-d/<mode>. */
+  const goRelaisD = (path: 'shop' | 'sourcing' | 'recevoir') => navigate(`/relais-d/${path}`);
 
   const submit = () => {
     if (service === 'send') {
@@ -294,37 +293,7 @@ export function QuoteForm() {
       navigate('/expedier/envoyer');
       return;
     }
-    if (service === 'sourcing') {
-      if (!query || !budget) return;
-      // Send users to the unified sourcing flow with prefilled query/origin
-      // instead of /devis (which doesn't know about the sourcing pipeline).
-      const params = new URLSearchParams({
-        q: query,
-        origin: sourcingCountryToCode(sourcingCountry),
-        ...(budget ? { budget } : {}),
-      });
-      saveDraft({
-        service,
-        origin: sourcingCountry,
-        destination: 'Dakar, Sénégal',
-        weightKg: 2,
-        mode: 'air',
-        type: 'standard',
-        query, budgetEur: Number(budget) || 0, sourcingCountry,
-      });
-      navigate(`/sourcing?${params.toString()}`);
-      return;
-    }
-    // Réception
-    if (!estimatedValue) return;
-    const params = new URLSearchParams({
-      merchant: merchant || '',
-      country: merchantCountry || '',
-      value: estimatedValue || '',
-      mode: recMode,
-      type: recType,
-    });
-    navigate(`/expedier/recevoir?${params.toString()}`);
+    // Relais D (sourcing / réception) : parcours dédié, pas de submit ici.
   };
 
   return (
@@ -333,7 +302,7 @@ export function QuoteForm() {
       style={{ background: 'hsl(var(--secondary))', border: '0.5px solid hsl(var(--color-border-tertiary))' }}
     >
       {/* Tabs */}
-      <div className="grid grid-cols-3 gap-1.5 mb-4">
+      <div className="grid grid-cols-2 gap-1.5 mb-4">
         {TABS.map(t => {
           const active = service === t.key;
           return (
@@ -466,91 +435,50 @@ export function QuoteForm() {
 
 
 
-      {/* TAB 2 — SOURCING */}
-      {service === 'sourcing' && (
-        <div className="space-y-3">
-          <Field label="Que cherchez-vous ?">
-            <textarea
-              rows={2}
-              className="w-full bg-[hsl(var(--background-surface))] rounded-lg px-3 py-2 text-[14px]"
-              style={{ border: '0.5px solid hsl(var(--color-border-tertiary))' }}
-              placeholder="Ex: Nike Air Max 90 taille 42, coloris blanc…"
-              value={query} onChange={e => setQuery(e.target.value)}
-            />
-          </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <Field label="Budget max">
-              <input type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 150 €"
-                value={budget} onChange={e => setBudget(e.target.value)} />
-            </Field>
-            <Field label="Pays d'origine">
-              <select aria-label="Pays d'origine" className="input-base w-full" value={sourcingCountry} onChange={e => setSourcingCountry(e.target.value)}>
-                {SOURCING_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </Field>
-          </div>
-          <SubmitBtn onClick={submit}>Demander un devis sourcing →</SubmitBtn>
-        </div>
-      )}
-
-      {/* TAB 3 — RECEPTION */}
+      {/* TAB 2 — RELAIS D : les 3 chemins du point d'entrée unique */}
       {service === 'reception' && (
-        <div className="space-y-3">
-          <div>
-            <div className="text-label mb-2">Marchand</div>
-            <div className="flex flex-wrap gap-1.5">
-              {MERCHANTS.map(m => {
-                const active = merchant === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMerchant(m)}
-                    className="shrink-0 transition-colors whitespace-nowrap"
-                    style={{
-                      height: 32,
-                      padding: '0 12px',
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: active ? 'hsl(var(--background-surface))' : 'transparent',
-                      border: active
-                        ? '0.5px solid hsl(var(--foreground))'
-                        : '0.5px solid hsl(var(--color-border-tertiary))',
-                      color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                    }}
+        <div className="space-y-2.5">
+          <p className="text-[11.5px] text-muted-foreground leading-snug">
+            Un seul service pour vos achats internationaux : on achète, on réceptionne, on livre à Dakar.
+          </p>
+          {RELAIS_D_PATHS.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => goRelaisD(p.id)}
+              className="w-full text-left rounded-[10px] p-3 transition-colors group"
+              style={{
+                background: p.primary ? 'hsl(var(--foreground))' : 'hsl(var(--background-surface))',
+                border: p.primary
+                  ? '0.5px solid hsl(var(--foreground))'
+                  : '0.5px solid hsl(var(--color-border-tertiary))',
+                color: p.primary ? 'hsl(var(--background))' : 'hsl(var(--foreground))',
+              }}
+            >
+              <div className="flex items-start gap-2.5">
+                <p.Icon className="w-4.5 h-4.5 shrink-0 mt-0.5" style={{ width: 18, height: 18 }} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13.5px] font-semibold leading-tight">{p.title}</div>
+                  <div
+                    className="text-[11.5px] leading-snug mt-1"
+                    style={{ color: p.primary ? 'hsl(var(--background) / 0.7)' : 'hsl(var(--muted-foreground))' }}
                   >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <Field label="Pays du marchand *">
-              <select aria-label="Pays du marchand" className="input-base w-full" value={merchantCountry} onChange={e => setMerchantCountry(e.target.value)}>
-                {MERCHANT_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </Field>
-            <Field label="Mode *">
-              <select aria-label="Mode d'expédition" className="input-base w-full" value={recMode} onChange={e => setRecMode(e.target.value as TransportMode)}>
-                <option value="air">Aérien (3-7j)</option>
-                <option value="sea">Maritime LCL (18-25j)</option>
-              </select>
-            </Field>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <Field label="Valeur estimée *">
-              <input type="number" inputMode="decimal" className="input-base w-full" placeholder="ex: 200 €"
-                value={estimatedValue} onChange={e => setEstimatedValue(e.target.value)} />
-            </Field>
-            <Field label="Type de colis">
-              <select aria-label="Type de colis" className="input-base w-full" value={recType} onChange={e => setRecType(e.target.value as GoodsType)}>
-                {RECEPTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </Field>
-          </div>
-          <SubmitBtn onClick={submit}>Créer mon adresse relais →</SubmitBtn>
+                    {p.desc}
+                  </div>
+                  <div
+                    className="text-[10px] uppercase tracking-wider font-semibold mt-1.5"
+                    style={{ color: p.primary ? 'hsl(var(--background) / 0.6)' : 'hsl(var(--text-tertiary))' }}
+                  >
+                    {p.hint}
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </button>
+          ))}
+          <p className="text-[10.5px] text-muted-foreground text-center pt-0.5">
+            Sans engagement · L'achat n'est déclenché qu'après validation de votre devis
+          </p>
         </div>
       )}
 
