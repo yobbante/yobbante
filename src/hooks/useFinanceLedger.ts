@@ -49,6 +49,14 @@ export function useFinanceLedger(monthsBack = 6) {
     return d.toISOString();
   })();
 
+  // Les coûts peuvent être rattachés à un dossier plus ancien que la période
+  // affichée : on élargit la fenêtre de lecture, le bucket filtre ensuite.
+  const wideSince = (() => {
+    const d = new Date(since);
+    d.setMonth(d.getMonth() - 12);
+    return d.toISOString();
+  })();
+
   return useQuery({
     queryKey: ['finance-ledger', monthsBack, since],
     queryFn: async (): Promise<FinanceLedger> => {
@@ -59,16 +67,16 @@ export function useFinanceLedger(monthsBack = 6) {
           .eq('payment_status', 'paid')
           .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('paid_at', since),
-        // Coûts GP (rattachés au mois de livraison)
+        // Coûts GP (rattachés au mois d'encaissement, sinon livraison / création)
         supabase.from('dossiers')
-          .select('gp_amount, delivered_at, created_at, status')
-          .not('gp_amount', 'is', null)
+          .select('gp_amount, gp_paid_at, paid_at, delivered_at, created_at, status')
+          .gt('gp_amount', 0)
           .not('status', 'in', '(CANCELLED,ARCHIVED)')
-          .gte('delivered_at', since),
+          .gte('created_at', wideSince),
         // Courses routières
         supabase.from('fret_courses' as any)
-          .select('total_fcfa, chauffeur_cost_fcfa, dossier_id, delivered_at, created_at, status')
-          .gte('created_at', since),
+          .select('total_fcfa, chauffeur_cost_fcfa, dossier_id, delivered_at, created_at, status, dossiers(paid_at, status)')
+          .gte('created_at', wideSince),
         // Restes à payer GP
         supabase.from('dossiers')
           .select('gp_amount, status')
@@ -82,10 +90,10 @@ export function useFinanceLedger(monthsBack = 6) {
           .neq('status', 'ANNULE'),
         // Coûts transporteurs aérien / maritime
         supabase.from('dossiers')
-          .select('carrier_cost_xof, carrier_paid_at, delivered_at, created_at, status')
+          .select('carrier_cost_xof, carrier_paid_at, paid_at, delivered_at, created_at, status')
           .not('carrier_cost_xof', 'is', null)
           .not('status', 'in', '(CANCELLED,ARCHIVED)')
-          .gte('created_at', since),
+          .gte('created_at', wideSince),
         // Restes à payer transporteurs aérien / maritime
         supabase.from('dossiers')
           .select('carrier_cost_xof, status')
@@ -115,13 +123,15 @@ export function useFinanceLedger(monthsBack = 6) {
       });
 
       (gpR.data || []).forEach((d: any) => {
-        const b = bucket(d.delivered_at ?? d.created_at);
+        // Rattaché au même mois que le revenu du dossier quand il est encaissé.
+        const b = bucket(d.paid_at ?? d.gp_paid_at ?? d.delivered_at ?? d.created_at);
         if (b) b.costGpXof += Number(d.gp_amount || 0);
       });
 
       (roadR.data || []).forEach((c: any) => {
         if (c.status === 'ANNULE') return;
-        const b = bucket(c.delivered_at ?? c.created_at);
+        if (c.dossiers?.status === 'CANCELLED' || c.dossiers?.status === 'ARCHIVED') return;
+        const b = bucket(c.dossiers?.paid_at ?? c.delivered_at ?? c.created_at);
         if (!b) return;
         b.costRoadXof += Number(c.chauffeur_cost_fcfa || 0);
         // Une course sans dossier lié n'est comptée nulle part ailleurs : c'est du revenu direct.
@@ -129,7 +139,7 @@ export function useFinanceLedger(monthsBack = 6) {
       });
 
       ((carrierR as any).data || []).forEach((d: any) => {
-        const b = bucket(d.carrier_paid_at ?? d.delivered_at ?? d.created_at);
+        const b = bucket(d.paid_at ?? d.carrier_paid_at ?? d.delivered_at ?? d.created_at);
         if (b) b.costCarrierXof += Number(d.carrier_cost_xof || 0);
       });
 
