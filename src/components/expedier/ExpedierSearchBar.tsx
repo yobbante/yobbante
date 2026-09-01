@@ -303,10 +303,40 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       window.dispatchEvent(new Event('send-preset-updated'));
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, weight, mode]);
+  }, [origin, destination, weight, mode, transportMode]);
 
 
-  const canSubmitSend = !!origin && !!destination && !!weight;
+  const canSubmitSend = !!origin && !!destination && (
+    transportMode === 'gp' ? !!weight
+    : transportMode === 'air' ? !!weight
+    : transportMode === 'sea'
+      ? (seaType === 'fcl' ? Number(seaContainers) > 0 : (!!weight || !!(dimL && dimW && dimH)))
+      : false
+  );
+
+  /** Description envoyée au chargé de dossier (devis aérien / maritime). */
+  const quoteDescription = useMemo(() => {
+    const dims = (dimL || dimW || dimH) ? `Dimensions ${dimL || '?'}×${dimW || '?'}×${dimH || '?'} cm` : '';
+    if (transportMode === 'air') {
+      return [
+        airEstimate.taxableKg != null && `Poids taxable ${airEstimate.taxableKg} kg`,
+        dims,
+        airEstimate.price != null && `Estimation indicative ${fmtFcfaAir(airEstimate.price)}`,
+        airEstimate.manualQuote && 'Hors grille (>300 kg) — devis sur mesure',
+      ].filter(Boolean).join(' · ');
+    }
+    if (transportMode === 'sea') {
+      return [
+        seaType === 'fcl'
+          ? `Conteneur complet FCL · ${seaContainers || '?'} × ${seaSize} pieds`
+          : 'Groupage LCL',
+        dims,
+        seaEstimate.price != null && `Estimation indicative ${fmtFcfaSea(seaEstimate.price)}`,
+        seaEstimate.zone ? seaTransitLabel(seaEstimate.zone) : '',
+      ].filter(Boolean).join(' · ');
+    }
+    return '';
+  }, [transportMode, airEstimate, seaEstimate, seaType, seaContainers, seaSize, dimL, dimW, dimH]);
   const canSubmitRecv = !!merchant && !!merchantCountry;
   const canSubmitSrc  = productQuery.trim().length >= 2;
 
