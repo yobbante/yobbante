@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.trg_sourcing_reception_sync() FROM PUBLIC, anon, authenticated;
