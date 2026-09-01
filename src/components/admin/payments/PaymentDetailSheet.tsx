@@ -191,6 +191,22 @@ export function PaymentDetailSheet({
   const inSum = related.filter((r) => r.direction === 'in').reduce((s, r) => s + r.amountXof, 0);
   const outSum = related.filter((r) => r.direction === 'out').reduce((s, r) => s + r.amountXof, 0);
   const hasMethod = payment.source === 'dossier';
+  const isIn = payment.direction === 'in';
+
+  const statusLabel = payment.paid
+    ? (isIn ? 'Encaissé' : 'Reversé')
+    : (isIn ? 'À encaisser' : 'À reverser');
+
+  /** Explication claire du statut : d'où vient l'info, et ce qu'il reste à faire. */
+  const statusExplain = payment.paid
+    ? (isIn
+        ? `Le client a payé${payment.paidAt ? ' le ' + new Date(payment.paidAt).toLocaleDateString('fr-FR') : ''}.`
+        : `Somme déjà versée au transporteur${payment.paidAt ? ' le ' + new Date(payment.paidAt).toLocaleDateString('fr-FR') : ''}.`)
+    : (isIn
+        ? "Aucun règlement client enregistré : le paiement n'a pas encore été marqué comme reçu (Wave, Orange Money, espèces, PayTech…)."
+        : "Cette somme est due au transporteur / GP / chauffeur : elle n'a pas encore été marquée comme versée.");
+
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -200,9 +216,10 @@ export function PaymentDetailSheet({
             {KIND_LABEL[payment.kind]}
             <Badge variant="outline" className="text-[10px]">{MODE_LABEL[payment.mode]}</Badge>
             <span className={payment.paid ? 'text-[hsl(var(--success))] text-[10px] font-medium' : 'text-amber-500 text-[10px] font-medium'}>
-              {payment.paid ? 'Réglé' : 'En attente'}
+              {statusLabel}
             </span>
           </SheetTitle>
+
           <SheetDescription className="text-xs">{payment.ref}</SheetDescription>
         </SheetHeader>
         <button
