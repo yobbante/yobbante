@@ -72,11 +72,19 @@ export function buildGpAssignMessage(args: {
   gp_prenom?: string | null;
   tracking_id?: string | null;
   reference?: string | null;
+  /** Libellé libre (fallback) */
   origin?: string | null;
   destination?: string | null;
+  /** Préférés : ville + pays, pour afficher "Paris, France" */
+  origin_city?: string | null;
+  origin_country?: string | null;
+  destination_city?: string | null;
+  destination_country?: string | null;
   client_name?: string | null;
   client_phone?: string | null;
   weight?: number | string | null;
+  /** Capacité du départ assigné, utilisée si aucun poids dossier */
+  capacity_kg?: number | null;
   pickup_address?: string | null;
   pickup_date?: string | Date | null;
   departure_date?: string | Date | null;
@@ -85,42 +93,68 @@ export function buildGpAssignMessage(args: {
   /** Fallback : notes brutes du dossier pour extraire un nom client. */
   notes?: string | null;
 }): string {
-  const ref = args.tracking_id || args.reference || '';
+  const ref = args.tracking_id || args.reference || '—';
+
+  const place = (
+    city?: string | null,
+    country?: string | null,
+    fallback?: string | null,
+  ): string => {
+    const c = (city ?? '').trim();
+    const co = (country ?? '').trim().toUpperCase();
+    const countryName = co ? (COUNTRY_NAMES as Record<string, string>)[co] ?? co : '';
+    if (c && countryName && c.toLowerCase() !== countryName.toLowerCase()) return `${c}, ${countryName}`;
+    if (c) return c;
+    if (countryName) return countryName;
+    const fb = (fallback ?? '').trim();
+    if (!fb) return 'à confirmer';
+    const fbUp = fb.toUpperCase();
+    return (COUNTRY_NAMES as Record<string, string>)[fbUp] ?? fb;
+  };
+
+  const origin = place(args.origin_city, args.origin_country, args.origin);
+  const destination = place(args.destination_city, args.destination_country, args.destination);
+
   const dateSrc = args.departure_date ?? args.pickup_date;
   const date = dateSrc
-    ? new Date(dateSrc).toLocaleDateString('fr-FR')
-    : 'a confirmer';
-  const weight = args.weight ? `${args.weight} kg` : 'a confirmer';
+    ? new Date(dateSrc).toLocaleDateString('fr-FR', {
+        weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      })
+    : 'à confirmer';
+
+  const weightNum = typeof args.weight === 'string' ? parseFloat(args.weight) : args.weight;
+  const weight = weightNum && Number(weightNum) > 0
+    ? `${weightNum} kg`
+    : args.capacity_kg && args.capacity_kg > 0
+      ? `jusqu'à ${args.capacity_kg} kg (capacité réservée)`
+      : 'à confirmer';
 
   // Fallback robuste pour le nom client (fix B7).
   const fromNotes = args.notes?.match(/Client\s*:\s*([^\n\r]+)/i)?.[1]?.trim();
   const clientName =
     (args.client_name && args.client_name.trim()) ||
     (fromNotes && fromNotes.length > 0 ? fromNotes : null) ||
-    'Non renseigne';
+    null;
 
-
-  const remunLine = args.remuneration_xof && args.remuneration_xof > 0
-    ? `Remuneration : ${args.remuneration_xof.toLocaleString('fr-FR')} FCFA`
-    : `Remuneration : a confirmer`;
-
+  const remuneration = args.remuneration_xof && args.remuneration_xof > 0
+    ? `${args.remuneration_xof.toLocaleString('fr-FR')} FCFA`
+    : 'à confirmer';
 
   return [
-    `📦 Nouvelle mission !`,
+    `⚠️ *Nouvelle mission !*`,
     ``,
-    `Colis : ${ref}`,
-    `Ville depart : ${args.origin || '-'}`,
-    `Poids estime : ${weight}`,
-    remunLine,
-    `Depart : ${date}`,
+    `*Colis :* ${ref}`,
+    `*Trajet :* ${origin} → ${destination}`,
+    `*Poids estimé :* ${weight}`,
+    `*Rémunération :* ${remuneration}`,
+    `*Départ :* ${date}`,
+    args.pickup_address ? `*Adresse collecte :* ${args.pickup_address}` : null,
+    clientName ? `*Client :* ${clientName}` : null,
+    args.client_phone ? `*Tél. client :* ${args.client_phone}` : null,
     ``,
-    args.pickup_address ? `Adresse collecte : ${args.pickup_address}` : null,
-    args.client_phone ? `Tel client : ${args.client_phone}` : null,
-    args.client_name ? `Client : ${clientName}` : null,
-    ``,
-    `Repondez OUI pour accepter`,
-    `NON pour refuser (1h sinon auto-refus)`,
+    `Répondez *OUI* pour accepter, *NON* pour refuser (1h, sinon auto-refus).`,
   ].filter(Boolean).join('\n');
 }
+
 
 
