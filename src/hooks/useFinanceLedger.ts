@@ -132,8 +132,7 @@ export function useFinanceLedger(monthsBack = 6) {
         if (c.status === 'ANNULE') return;
         const linked = Array.isArray(c.dossiers) ? c.dossiers[0] : c.dossiers;
         if (linked?.status === 'CANCELLED' || linked?.status === 'ARCHIVED') return;
-        const link = Array.isArray(c.dossiers) ? c.dossiers[0] : c.dossiers;
-        const b = bucket(link?.paid_at ?? c.delivered_at ?? c.created_at);
+        const b = bucket(linked?.paid_at ?? c.delivered_at ?? c.created_at);
         if (!b) return;
         b.costRoadXof += Number(c.chauffeur_cost_fcfa || 0);
         // Une course sans dossier lié n'est comptée nulle part ailleurs : c'est du revenu direct.
