@@ -58,7 +58,7 @@ export function PaymentDetailSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_name, gp_id, assigned_transporteur_ref, transport_mode')
+        .select('id, status, carrier_name, carrier_cost_xof, carrier_paid, gp_id, gp_amount, assigned_transporteur_ref, transport_mode')
         .eq('id', dossierId as string)
         .maybeSingle();
       if (error) throw error;
