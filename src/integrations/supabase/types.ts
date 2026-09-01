@@ -106,6 +106,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_rate_limits: {
+        Row: {
+          bucket: string
+          hits: number
+          subject: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          subject: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          subject?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -4432,6 +4456,15 @@ export type Database = {
       admin_delete_dossier: {
         Args: { _dossier_id: string }
         Returns: undefined
+      }
+      ai_rate_limit_hit: {
+        Args: {
+          _bucket: string
+          _max: number
+          _subject: string
+          _window_seconds: number
+        }
+        Returns: Json
       }
       apply_edit_token: {
         Args: { p_payload: Json; p_token: string }
