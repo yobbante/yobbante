@@ -31,9 +31,27 @@ function fmtShort(date?: string | null): string {
 
 export function ClientSpaceView() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { profile } = useProfile();
   const { dossiers, isLoading } = useDossiers();
   useDossiersRealtime();
+
+  // Rattache automatiquement un colis consulté en public avant l'inscription.
+  useEffect(() => {
+    let cancelled = false;
+    claimPendingTracking().then((result) => {
+      if (cancelled || !result) return;
+      if (result.ok) {
+        queryClient.invalidateQueries({ queryKey: ['dossiers'] });
+        toast.success(`Le colis ${result.ref} a été ajouté à votre espace.`);
+      } else if (result.reason === 'already_claimed') {
+        toast.error('Ce colis est déjà rattaché à un autre compte.');
+      } else if (result.reason === 'not_found') {
+        toast.error('Le colis suivi est introuvable.');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [queryClient]);
 
   const firstName = useMemo(() => {
     if (!profile?.full_name) return '';
