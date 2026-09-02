@@ -2242,6 +2242,83 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_task_comments: {
+        Row: {
+          author_id: string | null
+          author_label: string | null
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_label?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_label?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "internal_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_tasks: {
+        Row: {
+          assignee_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       konnekt_departures: {
         Row: {
           available_capacity_kg: number
@@ -2834,6 +2911,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partenaires_logistique: {
+        Row: {
+          chantier: string
+          contact: string | null
+          created_at: string
+          created_by: string | null
+          devise: string | null
+          id: string
+          nom: string
+          notes: string | null
+          specialite: string | null
+          statut: string
+          tarif_montant: number | null
+          tarif_obtenu: string | null
+          updated_at: string
+          updated_by: string | null
+          ville: string | null
+          zone_code: string | null
+          zone_label: string | null
+        }
+        Insert: {
+          chantier?: string
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          devise?: string | null
+          id?: string
+          nom: string
+          notes?: string | null
+          specialite?: string | null
+          statut?: string
+          tarif_montant?: number | null
+          tarif_obtenu?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          ville?: string | null
+          zone_code?: string | null
+          zone_label?: string | null
+        }
+        Update: {
+          chantier?: string
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          devise?: string | null
+          id?: string
+          nom?: string
+          notes?: string | null
+          specialite?: string | null
+          statut?: string
+          tarif_montant?: number | null
+          tarif_obtenu?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          ville?: string | null
+          zone_code?: string | null
+          zone_label?: string | null
+        }
+        Relationships: []
       }
       pricing_adjustments: {
         Row: {
@@ -3687,6 +3824,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staff_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          label: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          label?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          label?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       super_admin_audit_log: {
         Row: {
@@ -4698,6 +4865,7 @@ export type Database = {
       }
       get_edit_token: { Args: { p_token: string }; Returns: Json }
       get_gp_dashboard: { Args: { _ref: string }; Returns: Json }
+      get_internal_activity_overview: { Args: never; Returns: Json }
       get_user_contact: {
         Args: { _user_id: string }
         Returns: {
@@ -4739,6 +4907,10 @@ export type Database = {
       }
       is_dakar_zone: { Args: { p_address: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_stagiaire_partenariats: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       lookup_default_rate: {
         Args: { p_city?: string; p_country: string }
         Returns: {
@@ -4859,7 +5031,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff" | "user" | "agent_support" | "agent_terrain"
+      app_role:
+        | "admin"
+        | "staff"
+        | "user"
+        | "agent_support"
+        | "agent_terrain"
+        | "stagiaire_partenariats"
       business_account_status: "pending" | "active" | "suspended"
       business_invitation_status: "pending" | "accepted" | "expired" | "revoked"
       business_invoice_status:
@@ -5076,7 +5254,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "user", "agent_support", "agent_terrain"],
+      app_role: [
+        "admin",
+        "staff",
+        "user",
+        "agent_support",
+        "agent_terrain",
+        "stagiaire_partenariats",
+      ],
       business_account_status: ["pending", "active", "suspended"],
       business_invitation_status: ["pending", "accepted", "expired", "revoked"],
       business_invoice_status: [
