@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain';
+type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain' | 'stagiaire_partenariats';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
     if (action === 'add_role' || action === 'remove_role') {
       const { user_id, role } = body as { user_id: string; role: AppRole };
-      if (!user_id || !['admin', 'staff', 'user', 'agent_support', 'agent_terrain'].includes(role)) return json({ error: 'Invalid input' }, 400);
+      if (!user_id || !['admin', 'staff', 'user', 'agent_support', 'agent_terrain', 'stagiaire_partenariats'].includes(role)) return json({ error: 'Invalid input' }, 400);
       if (action === 'add_role') {
         const { error } = await admin.from('user_roles').insert({ user_id, role });
         if (error && !error.message.includes('duplicate')) throw error;

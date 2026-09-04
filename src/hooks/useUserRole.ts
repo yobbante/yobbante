@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-export type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain';
+export type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain' | 'stagiaire_partenariats';
 
 export function useUserRole() {
   const { user, loading: authLoading } = useAuth();
@@ -42,7 +42,13 @@ export function useUserRole() {
     isAdmin: roles.includes('admin'),
     isStaff:
       roles.includes('admin') || roles.includes('staff') ||
-      roles.includes('agent_support') || roles.includes('agent_terrain'),
+      roles.includes('agent_support') || roles.includes('agent_terrain') ||
+      roles.includes('stagiaire_partenariats'),
+    // Stagiaire partenariats : accès restreint à l'espace interne
+    isStagiaire:
+      roles.includes('stagiaire_partenariats') &&
+      !roles.includes('admin') &&
+      !roles.includes('staff'),
     // Agent service client : accès restreint (dossiers, messages, clients)
     isAgentSupport:
       roles.includes('agent_support') &&
