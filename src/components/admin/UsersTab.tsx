@@ -8,7 +8,7 @@ import { Search, ShieldCheck, Shield, User as UserIcon, Plus, X } from 'lucide-r
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain';
+type AppRole = 'admin' | 'staff' | 'user' | 'agent_support' | 'agent_terrain' | 'stagiaire_partenariats';
 type AdminUser = {
   id: string; email: string | null; created_at: string;
   last_sign_in_at: string | null; full_name: string | null; roles: AppRole[];
@@ -20,6 +20,7 @@ const ROLE_META: Record<AppRole, { label: string; Icon: typeof ShieldCheck; cls:
   user:  { label: 'User',  Icon: UserIcon, cls: 'bg-secondary text-foreground' },
   agent_support: { label: 'Agent support', Icon: Shield, cls: 'bg-blue-500/10 text-blue-600' },
   agent_terrain: { label: 'Agent terrain', Icon: Shield, cls: 'bg-amber-500/10 text-amber-600' },
+  stagiaire_partenariats: { label: 'Stagiaire partenariats', Icon: Shield, cls: 'bg-violet-500/10 text-violet-600' },
 };
 
 export function UsersTab() {
@@ -86,6 +87,7 @@ export function UsersTab() {
             const hasStaff = u.roles.includes('staff');
             const hasAgentSupport = u.roles.includes('agent_support');
             const hasAgentTerrain = u.roles.includes('agent_terrain');
+            const hasStagiaire = u.roles.includes('stagiaire_partenariats');
             return (
               <div key={u.id} className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
@@ -108,6 +110,10 @@ export function UsersTab() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <RoleToggle label="Stagiaire" active={hasStagiaire} disabled={mutateRole.isPending}
+                    onAdd={() => mutateRole.mutate({ user_id: u.id, role: 'stagiaire_partenariats', op: 'add' })}
+                    onRemove={() => mutateRole.mutate({ user_id: u.id, role: 'stagiaire_partenariats', op: 'remove' })}
+                  />
                   <RoleToggle label="Agent terrain" active={hasAgentTerrain} disabled={mutateRole.isPending}
                     onAdd={() => mutateRole.mutate({ user_id: u.id, role: 'agent_terrain', op: 'add' })}
                     onRemove={() => mutateRole.mutate({ user_id: u.id, role: 'agent_terrain', op: 'remove' })}
