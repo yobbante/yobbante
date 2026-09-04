@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Truck, MessageCircle, MoreHorizontal, Route as RouteIcon, FileText } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, MessageCircle, MoreHorizontal, Route as RouteIcon, FileText, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminSection } from './AdminSidebar';
 
@@ -15,12 +15,16 @@ const TERRAIN_ITEMS: { id: AdminSection; icon: typeof Package; label: string }[]
   { id: 'devis',    icon: FileText,  label: 'Devis' },
 ];
 
+const STAGIAIRE_ITEMS: { id: AdminSection; icon: typeof Package; label: string }[] = [
+  { id: 'interne', icon: Handshake, label: 'Espace interne' },
+];
+
 /**
  * Barre de navigation mobile — icônes seules.
  * Les sections secondaires restent accessibles via « Plus » (drawer sidebar).
  */
 export function AdminMobileNav({
-  active, onChange, onMore, unread = 0, isAgent = false, isTerrainAgent = false,
+  active, onChange, onMore, unread = 0, isAgent = false, isTerrainAgent = false, isStagiaire = false,
 }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
@@ -28,8 +32,11 @@ export function AdminMobileNav({
   unread?: number;
   isAgent?: boolean;
   isTerrainAgent?: boolean;
+  isStagiaire?: boolean;
 }) {
-  const items = isTerrainAgent
+  const items = isStagiaire
+    ? STAGIAIRE_ITEMS
+    : isTerrainAgent
     ? TERRAIN_ITEMS
     : isAgent
       ? ITEMS.filter(i => i.id === 'dossiers' || i.id === 'messages')
@@ -40,7 +47,7 @@ export function AdminMobileNav({
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Navigation admin"
     >
-      <div className={cn('grid', isAgent ? 'grid-cols-3' : isTerrainAgent ? 'grid-cols-4' : 'grid-cols-5')}>
+      <div className={cn('grid', isStagiaire ? 'grid-cols-2' : isAgent ? 'grid-cols-3' : isTerrainAgent ? 'grid-cols-4' : 'grid-cols-5')}>
         {items.map(({ id, icon: Icon, label }) => {
           const isActive = active === id;
           return (
