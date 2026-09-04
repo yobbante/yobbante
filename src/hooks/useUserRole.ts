@@ -42,7 +42,13 @@ export function useUserRole() {
     isAdmin: roles.includes('admin'),
     isStaff:
       roles.includes('admin') || roles.includes('staff') ||
-      roles.includes('agent_support') || roles.includes('agent_terrain'),
+      roles.includes('agent_support') || roles.includes('agent_terrain') ||
+      roles.includes('stagiaire_partenariats'),
+    // Stagiaire partenariats : accès restreint à l'espace interne
+    isStagiaire:
+      roles.includes('stagiaire_partenariats') &&
+      !roles.includes('admin') &&
+      !roles.includes('staff'),
     // Agent service client : accès restreint (dossiers, messages, clients)
     isAgentSupport:
       roles.includes('agent_support') &&
