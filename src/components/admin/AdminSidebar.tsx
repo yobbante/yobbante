@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, Truck, UsersRound, Users, MessageCircle, ClipboardList,
   Wallet, CreditCard, ShoppingBag, Globe2, Settings, BookOpen, Image as ImageIcon,
   Tag, MapPin, CalendarDays, Building2, Globe, FileText, Ship, PackageOpen,
-  Route as RouteIcon, Plane,
+  Route as RouteIcon, Plane, Handshake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ export type AdminSection =
   | 'dossiers'
   | 'departs'
   | 'terrain'
+  | 'interne'
   | 'clients'
   | 'messages'
   | 'leads'
@@ -41,6 +42,8 @@ type NavItem = {
 export const AGENT_SECTIONS: AdminSection[] = ['dossiers', 'clients', 'messages'];
 // Sections visibles par le rôle « agent_terrain » (fret routier Terminal D).
 export const TERRAIN_AGENT_SECTIONS: AdminSection[] = ['terrain', 'dossiers', 'devis'];
+// Sections visibles par le rôle « stagiaire_partenariats » (espace interne uniquement).
+export const STAGIAIRE_SECTIONS: AdminSection[] = ['interne'];
 type NavGroup = { label: string | null; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -61,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'dossiers', label: 'Relais D',       icon: PackageOpen, slug: 'reception', tab: 'reception' },
       { id: 'devis',    label: 'Devis',          icon: FileText },
       { id: 'terrain',  label: 'Équipe terrain', icon: UsersRound, adminOnly: true },
+      { id: 'interne',  label: 'Équipe interne', icon: Handshake },
     ],
   },
   {
@@ -101,12 +105,13 @@ const tabsOfSection = (id: AdminSection) =>
   ADMIN_NAV.filter(n => n.id === id && n.tab).map(n => n.tab as string);
 
 
-export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false }: {
+export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTerrainAgent = false, isStagiaire = false }: {
   active: AdminSection;
   onChange: (s: AdminSection) => void;
   isAdmin: boolean;
   isAgent?: boolean;
   isTerrainAgent?: boolean;
+  isStagiaire?: boolean;
 }) {
   const [unread, setUnread] = useState(0);
   const navigate = useNavigate();
@@ -143,7 +148,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
 
 
   useEffect(() => {
-    if (isTerrainAgent) return;
+    if (isTerrainAgent || isStagiaire) return;
     let mounted = true;
     async function loadCount() {
       const { count } = await supabase
@@ -160,7 +165,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
-  }, [isTerrainAgent]);
+  }, [isTerrainAgent, isStagiaire]);
 
   return (
     <nav
@@ -171,12 +176,13 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
         minWidth: 220,
       }}
     >
-      {!isAgent && !isTerrainAgent && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
+      {!isAgent && !isTerrainAgent && !isStagiaire && <AdminGlobalSearch onJump={onChange as any} isAdmin={isAdmin} />}
       {NAV_GROUPS.map((group, gi) => {
         const visibleItems = group.items.filter(n =>
           (!n.adminOnly || isAdmin || (isTerrainAgent && n.id === 'terrain'))
           && (!isAgent || AGENT_SECTIONS.includes(n.id))
-          && (!isTerrainAgent || TERRAIN_AGENT_SECTIONS.includes(n.id)),
+          && (!isTerrainAgent || TERRAIN_AGENT_SECTIONS.includes(n.id))
+          && (!isStagiaire || STAGIAIRE_SECTIONS.includes(n.id)),
         );
         if (visibleItems.length === 0) return null;
         return (
