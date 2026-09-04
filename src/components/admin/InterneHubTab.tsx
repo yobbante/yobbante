@@ -41,7 +41,7 @@ export function InterneHubTab({ isAdmin }: { isAdmin: boolean }) {
         </TabsList>
 
         <TabsContent value="taches"      className="mt-3 md:mt-4"><TasksPanel isAdmin={isAdmin} /></TabsContent>
-        <TabsContent value="partenaires" className="mt-3 md:mt-4"><PartenairesPanel isAdmin={isAdmin} /></TabsContent>
+        <TabsContent value="partenaires" className="mt-3 md:mt-4"><PartenairesPanel readOnly={isAdmin} /></TabsContent>
         <TabsContent value="gp"          className="mt-3 md:mt-4"><GpReadOnlyPanel /></TabsContent>
         <TabsContent value="activite"    className="mt-3 md:mt-4"><YobbanteOverviewPanel /></TabsContent>
         {isAdmin && <TabsContent value="suivi" className="mt-3 md:mt-4"><ActivityPanel /></TabsContent>}
