@@ -2242,6 +2242,30 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_cron_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       internal_task_comments: {
         Row: {
           author_id: string | null
