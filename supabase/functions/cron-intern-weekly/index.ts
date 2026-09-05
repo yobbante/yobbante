@@ -39,9 +39,8 @@ Deno.serve(async (req) => {
   const token = req.headers.get('x-cron-token') ?? '';
   let allowed = auth === `Bearer ${SR}`;
   if (!allowed && token) {
-    const { data } = await supa.from('app_settings').select('value').eq('key', 'intern_cron_token').maybeSingle();
-    const expected = typeof data?.value === 'string' ? data.value : (data?.value as any)?.token;
-    allowed = !!expected && expected === token;
+    const { data } = await supa.from('internal_cron_tokens').select('token').eq('name', 'intern_weekly').maybeSingle();
+    allowed = !!data?.token && data.token === token;
   }
   if (!allowed) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
