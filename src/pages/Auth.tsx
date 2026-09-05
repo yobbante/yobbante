@@ -27,9 +27,14 @@ async function resolvePostLoginRoute(userId: string, fallback: string): Promise<
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
-    const isAdmin = (data ?? []).some((r) => r.role === 'admin');
+    const roles = (data ?? []).map((r) => r.role);
+    const isAdmin = roles.includes('admin');
+    // Rôles staff restreints : ils atterrissent directement sur leur espace.
+    if (roles.includes('stagiaire_partenariats') && !isAdmin && !isClientIntent) return '/admin/interne';
+    if (roles.includes('agent_terrain') && !isAdmin && !isClientIntent) return '/admin/terrain';
     if (isAdmin && !isClientIntent) return '/admin';
     return fallback;
+
   } catch {
     return fallback;
   }
