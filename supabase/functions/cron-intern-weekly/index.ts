@@ -25,18 +25,33 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  const auth = req.headers.get('authorization') ?? '';
-  const apikey = req.headers.get('apikey') ?? '';
-  if (!SR || (auth !== `Bearer ${SR}` && apikey !== SR)) {
+  if (!SR) {
+    return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
+  const supa = createClient(Deno.env.get('SUPABASE_URL')!, SR, { auth: { persistSession: false } });
+
+  // Auth : jeton interne stocke en base (utilise par le cron pg_cron) ou bearer service-role.
+  const auth = req.headers.get('authorization') ?? '';
+  const token = req.headers.get('x-cron-token') ?? '';
+  let allowed = auth === `Bearer ${SR}`;
+  if (!allowed && token) {
+    const { data } = await supa.from('app_settings').select('value').eq('key', 'intern_cron_token').maybeSingle();
+    const expected = typeof data?.value === 'string' ? data.value : (data?.value as any)?.token;
+    allowed = !!expected && expected === token;
+  }
+  if (!allowed) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  const supa = createClient(Deno.env.get('SUPABASE_URL')!, SR, { auth: { persistSession: false } });
   const since = weekStartISO();
+
   const todayYmd = new Date().toISOString().slice(0, 10);
 
   let dryRun = false;
