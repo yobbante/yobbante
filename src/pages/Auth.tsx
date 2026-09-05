@@ -50,7 +50,7 @@ export default function Auth() {
   const [params] = useSearchParams();
 
   const staffMode = params.get('mode') === 'staff';
-  const rawRedirect = params.get('redirect') || '/app';
+  const rawRedirect = params.get('redirect') || (staffMode ? '/admin' : '/app');
   const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/app';
 
 
