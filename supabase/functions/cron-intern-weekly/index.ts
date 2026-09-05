@@ -26,7 +26,9 @@ Deno.serve(async (req) => {
 
   const SR = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const auth = req.headers.get('authorization') ?? '';
-  if (!SR || auth !== `Bearer ${SR}`) {
+  const apikey = req.headers.get('apikey') ?? '';
+  if (!SR || (auth !== `Bearer ${SR}` && apikey !== SR)) {
+
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
