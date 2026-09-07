@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Camera, Loader2, Send, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,19 +11,36 @@ import { toast } from 'sonner';
  * Yobbanté recherche en Chine, constate le prix réel et un poids estimé majoré,
  * puis envoie une proposition à valider avant tout paiement.
  */
+const DRAFT_KEY = 'relais_d_sourcing_draft';
+
+type SourcingDraft = { description: string; refLink: string; qty: number; budget: string; phone: string };
+
+function readDraft(): Partial<SourcingDraft> {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch { return {}; }
+}
+
 export function SourcingDForm({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { createDossier } = useDossiers();
   const fileRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const draft = readDraft();
   // Recherche pré-remplie quand le client bascule depuis une vitrine « Commander en ligne ».
-  const [description, setDescription] = useState(searchParams.get('q') ?? '');
-  const [refLink, setRefLink] = useState('');
-  const [qty, setQty] = useState(1);
-  const [budget, setBudget] = useState('');
-  const [phone, setPhone] = useState('');
+  const [description, setDescription] = useState(searchParams.get('q') ?? draft.description ?? '');
+  const [refLink, setRefLink] = useState(draft.refLink ?? '');
+  const [qty, setQty] = useState(draft.qty ?? 1);
+  const [budget, setBudget] = useState(draft.budget ?? '');
+  const [phone, setPhone] = useState(draft.phone ?? '');
   const [sending, setSending] = useState(false);
+
+  // Le brouillon survit au détour par la page de connexion (les photos, elles, doivent être re-jointes).
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ description, refLink, qty, budget, phone }));
+    } catch { /* quota */ }
+  }, [description, refLink, qty, budget, phone]);
 
   function addPhotos(list: FileList | null) {
     if (!list) return;

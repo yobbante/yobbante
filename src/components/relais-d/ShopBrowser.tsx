@@ -35,14 +35,30 @@ type Trending = {
 
 const openTab = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
 
+/** Le panier et les infos de validation survivent au détour par la page de connexion. */
+const CART_KEY = 'relais_d_cart';
+const CHECKOUT_KEY = 'relais_d_checkout';
+
+function readStored<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+}
+
 export function ShopBrowser({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { createDossier } = useDossiers();
   const [site, setSite] = useState<ShopSite | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>(CART_KEY, []));
   const [cartOpen, setCartOpen] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch { /* quota */ }
+  }, [cart]);
 
   // Regroupement par site : un panier Amazon avec 3 articles = 1 colis attendu.
   const groups = useMemo(() => {
@@ -71,6 +87,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
     if (cart.length === 0) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      try { localStorage.setItem(CHECKOUT_KEY, JSON.stringify(info)); } catch { /* quota */ }
       toast.message('Connectez-vous pour envoyer votre commande — elle reste enregistrée.');
       navigate(`/auth?redirect=${encodeURIComponent('/relais-d/shop')}`);
       return;
@@ -140,6 +157,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
       }).catch(() => {});
 
       toast.success('Commande envoyée — devis tout compris sous 24h 🛒');
+      try { localStorage.removeItem(CHECKOUT_KEY); } catch { /* ignore */ }
       setCart([]);
       setCartOpen(false);
       setCheckout(false);
@@ -573,9 +591,10 @@ function CheckoutDialog({ open, onClose, sending, onSubmit }: {
   open: boolean; onClose: () => void; sending: boolean;
   onSubmit: (i: { budget: string; address: string; phone: string }) => void;
 }) {
-  const [budget, setBudget] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const saved = readStored(CHECKOUT_KEY, { budget: '', address: '', phone: '' });
+  const [budget, setBudget] = useState(saved.budget ?? '');
+  const [address, setAddress] = useState(saved.address ?? '');
+  const [phone, setPhone] = useState(saved.phone ?? '');
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
