@@ -87,6 +87,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
     if (cart.length === 0) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      try { localStorage.setItem(CHECKOUT_KEY, JSON.stringify(info)); } catch { /* quota */ }
       toast.message('Connectez-vous pour envoyer votre commande — elle reste enregistrée.');
       navigate(`/auth?redirect=${encodeURIComponent('/relais-d/shop')}`);
       return;
