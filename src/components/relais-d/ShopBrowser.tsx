@@ -157,6 +157,7 @@ export function ShopBrowser({ onBack }: { onBack: () => void }) {
       }).catch(() => {});
 
       toast.success('Commande envoyée — devis tout compris sous 24h 🛒');
+      try { localStorage.removeItem(CHECKOUT_KEY); } catch { /* ignore */ }
       setCart([]);
       setCartOpen(false);
       setCheckout(false);
