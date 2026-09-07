@@ -591,9 +591,10 @@ function CheckoutDialog({ open, onClose, sending, onSubmit }: {
   open: boolean; onClose: () => void; sending: boolean;
   onSubmit: (i: { budget: string; address: string; phone: string }) => void;
 }) {
-  const [budget, setBudget] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const saved = readStored(CHECKOUT_KEY, { budget: '', address: '', phone: '' });
+  const [budget, setBudget] = useState(saved.budget ?? '');
+  const [address, setAddress] = useState(saved.address ?? '');
+  const [phone, setPhone] = useState(saved.phone ?? '');
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
