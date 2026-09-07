@@ -50,7 +50,7 @@ export function OverviewTab({ onJump }: { onJump: (s: string) => void }) {
           .order('created_at', { ascending: false })
           .limit(800),
         supabase.from('shipments').select('id, status, eta, created_at, updated_at, user_id').limit(1000),
-        supabase.from('packages').select('id, status, created_at, updated_at, user_id').limit(1000),
+        supabase.from('packages').select('id, status, created_at, user_id').limit(1000),
         supabase.from('customer_reviews').select('id, rating, would_recommend, created_at').limit(200),
         supabase.from('business_invoices').select('id, status, amount_xof, amount_eur, due_at').limit(500),
         supabase.from('enterprise_quotes').select('id, status, company, full_name, created_at').order('created_at', { ascending: false }).limit(200),
