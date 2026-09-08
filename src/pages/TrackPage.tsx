@@ -41,6 +41,15 @@ interface TrackResponse {
   quote_valid_until?: string | null;
   quote_notes_admin?: string | null;
   quote_response?: string | null;
+  devis?: {
+    id: string;
+    reference: string;
+    version: number;
+    total_fcfa: number;
+    valid_until: string | null;
+    status: string;
+  } | null;
+
 }
 
 const STATUS_BADGE: Record<string, string> = {
