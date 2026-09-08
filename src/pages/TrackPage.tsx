@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Check, Loader2, RefreshCw, Search, X } from 'lucide-react';
+import { Check, FileText, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicNav } from '@/components/PublicNav';
