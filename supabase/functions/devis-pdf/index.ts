@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const { devis_id } = await req.json().catch(() => ({}));
-    if (!devis_id || typeof devis_id !== 'string') {
-      return json({ error: 'devis_id requis' }, 400);
+    const { devis_id, tracking } = await req.json().catch(() => ({}));
+    if ((!devis_id || typeof devis_id !== 'string') && (!tracking || typeof tracking !== 'string')) {
+      return json({ error: 'devis_id ou tracking requis' }, 400);
     }
 
     const supa = createClient(
@@ -40,13 +40,36 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { data: d, error } = await supa
-      .from('devis')
-      .select('id, reference, version, origin, destination, weight_kg, colis_size, mode, breakdown, total_fcfa, valid_until, created_at, notes, engine')
-      .eq('id', devis_id)
-      .maybeSingle();
-    if (error) throw error;
+    const COLS =
+      'id, reference, version, origin, destination, weight_kg, colis_size, mode, breakdown, total_fcfa, valid_until, created_at, notes, engine';
+
+    let d: any = null;
+    if (devis_id) {
+      const { data, error } = await supa.from('devis').select(COLS).eq('id', devis_id).maybeSingle();
+      if (error) throw error;
+      d = data;
+    } else {
+      // Accès public par numéro de suivi : on ne sert que le devis déjà envoyé au client.
+      const ref = String(tracking).trim().toUpperCase();
+      const { data: dossier } = await supa
+        .from('dossiers')
+        .select('id')
+        .or(`tracking_id.eq.${ref},reference.eq.${ref}`)
+        .maybeSingle();
+      if (!dossier) return json({ error: 'devis introuvable' }, 404);
+      const { data, error } = await supa
+        .from('devis')
+        .select(COLS)
+        .eq('dossier_id', (dossier as any).id)
+        .in('status', ['sent', 'accepted', 'refused'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      d = data;
+    }
     if (!d) return json({ error: 'devis introuvable' }, 404);
+
 
     const pdf = await PDFDocument.create();
     const page = pdf.addPage([595.28, 841.89]); // A4

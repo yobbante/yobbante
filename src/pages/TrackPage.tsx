@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Check, Loader2, RefreshCw, Search, X } from 'lucide-react';
+import { Check, FileText, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicNav } from '@/components/PublicNav';
@@ -41,6 +41,15 @@ interface TrackResponse {
   quote_valid_until?: string | null;
   quote_notes_admin?: string | null;
   quote_response?: string | null;
+  devis?: {
+    id: string;
+    reference: string;
+    version: number;
+    total_fcfa: number;
+    valid_until: string | null;
+    status: string;
+  } | null;
+
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -112,6 +121,27 @@ export default function TrackPage() {
   const [retries, setRetries] = useState(0);
   const [copied, setCopied] = useState(false);
   const [responding, setResponding] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  /** Ouvre le PDF du devis déjà envoyé au client (accès par numéro de suivi). */
+  const openDevisPdf = async () => {
+    if (!data?.tracking_number) return;
+    setPdfLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('devis-pdf', {
+        body: { tracking: data.tracking_number },
+      });
+      if (error) throw error;
+      if (!res?.url) throw new Error(res?.error || 'Devis indisponible');
+      window.open(res.url as string, '_blank', 'noopener');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Impossible d’ouvrir le devis');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+
 
   const respondToQuote = async (response: 'accepted' | 'refused') => {
     if (!data?.tracking_number) return;
@@ -276,19 +306,35 @@ export default function TrackPage() {
         ) : data ? (
           <>
             <PublicDepartureConfirm tracking={data.tracking_number} />
-            {data.status.startsWith('QUOTE_') && (
+            {(data.status.startsWith('QUOTE_') || data.devis) && (
               <section className="rounded-xl border border-border bg-card p-5 mb-5">
                 <p className="text-xs uppercase text-muted-foreground font-semibold">Devis sur mesure</p>
-                <h2 className="mt-1">{data.status_label}</h2>
-                {data.quote_amount_xof ? (
+                <h2 className="mt-1">{data.devis ? 'Votre devis est prêt' : data.status_label}</h2>
+                {(data.devis?.total_fcfa || data.quote_amount_xof) ? (
                   <p className="mt-4 text-2xl font-bold tabular-nums">
-                    {new Intl.NumberFormat('fr-FR').format(data.quote_amount_xof)} {data.quote_currency === 'XOF' ? 'FCFA' : data.quote_currency}
+                    {new Intl.NumberFormat('fr-FR').format(data.devis?.total_fcfa ?? data.quote_amount_xof ?? 0)}{' '}
+                    {data.devis ? 'FCFA' : data.quote_currency === 'XOF' ? 'FCFA' : data.quote_currency}
                   </p>
                 ) : (
                   <p className="mt-3 text-sm text-muted-foreground">Notre équipe prépare votre proposition.</p>
                 )}
-                {data.quote_valid_until && <p className="text-xs text-muted-foreground mt-1">Valide jusqu’au {new Date(data.quote_valid_until).toLocaleDateString('fr-FR')}</p>}
+                {(data.devis?.valid_until || data.quote_valid_until) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Valide jusqu’au {new Date((data.devis?.valid_until || data.quote_valid_until)!).toLocaleDateString('fr-FR')}
+                  </p>
+                )}
                 {data.quote_notes_admin && <p className="mt-3 text-sm text-muted-foreground whitespace-pre-wrap">{data.quote_notes_admin}</p>}
+                {data.devis && (
+                  <button
+                    type="button"
+                    onClick={openDevisPdf}
+                    disabled={pdfLoading}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-semibold hover:border-foreground/40 disabled:opacity-50"
+                  >
+                    {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                    Voir mon devis {data.devis.reference}
+                  </button>
+                )}
                 {data.status === 'QUOTE_SENT' && (
                   <div className="grid grid-cols-2 gap-2 mt-5">
                     <button disabled={responding} onClick={() => respondToQuote('refused')} className="inline-flex items-center justify-center gap-2 rounded-full border border-border px-4 py-3 text-sm font-semibold disabled:opacity-50">
@@ -301,6 +347,7 @@ export default function TrackPage() {
                 )}
               </section>
             )}
+
             <div
               className="rounded-[12px] p-5 mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start sm:justify-between"
               style={{ background: 'hsl(var(--secondary))' }}

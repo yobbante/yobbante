@@ -204,6 +204,17 @@ Deno.serve(async (req) => {
         ].filter(Boolean);
         const timeline = isQuote ? [] : buildTimeline(mapped, events);
         const publicStatus = isQuote || isLifecycle ? dossierStatus : mapped;
+
+        // Devis déjà envoyé au client → on l'expose pour un accès direct au PDF.
+        const { data: devisRow } = await sb
+          .from('devis')
+          .select('id, reference, version, total_fcfa, valid_until, status, sent_at')
+          .eq('dossier_id', (dossier as any).id)
+          .in('status', ['sent', 'accepted', 'refused'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         return new Response(JSON.stringify({
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
           status: publicStatus,
@@ -222,6 +233,17 @@ Deno.serve(async (req) => {
           quote_valid_until: (dossier as any).quote_valid_until,
           quote_notes_admin: (dossier as any).quote_notes_admin,
           quote_response: (dossier as any).quote_response,
+          devis: devisRow
+            ? {
+                id: (devisRow as any).id,
+                reference: (devisRow as any).reference,
+                version: (devisRow as any).version,
+                total_fcfa: (devisRow as any).total_fcfa,
+                valid_until: (devisRow as any).valid_until,
+                status: (devisRow as any).status,
+              }
+            : null,
+
           timeline,
           source: 'db' as const,
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

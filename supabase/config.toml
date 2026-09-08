@@ -24,6 +24,10 @@ verify_jwt = false
 [functions.track-shipment]
 verify_jwt = false
 
+[functions.devis-pdf]
+verify_jwt = false
+
+
 [functions.send-whatsapp]
 verify_jwt = false
 
