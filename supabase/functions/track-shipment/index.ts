@@ -233,6 +233,17 @@ Deno.serve(async (req) => {
           quote_valid_until: (dossier as any).quote_valid_until,
           quote_notes_admin: (dossier as any).quote_notes_admin,
           quote_response: (dossier as any).quote_response,
+          devis: devisRow
+            ? {
+                id: (devisRow as any).id,
+                reference: (devisRow as any).reference,
+                version: (devisRow as any).version,
+                total_fcfa: (devisRow as any).total_fcfa,
+                valid_until: (devisRow as any).valid_until,
+                status: (devisRow as any).status,
+              }
+            : null,
+
           timeline,
           source: 'db' as const,
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
