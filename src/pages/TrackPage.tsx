@@ -121,6 +121,27 @@ export default function TrackPage() {
   const [retries, setRetries] = useState(0);
   const [copied, setCopied] = useState(false);
   const [responding, setResponding] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  /** Ouvre le PDF du devis déjà envoyé au client (accès par numéro de suivi). */
+  const openDevisPdf = async () => {
+    if (!data?.tracking_number) return;
+    setPdfLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('devis-pdf', {
+        body: { tracking: data.tracking_number },
+      });
+      if (error) throw error;
+      if (!res?.url) throw new Error(res?.error || 'Devis indisponible');
+      window.open(res.url as string, '_blank', 'noopener');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Impossible d’ouvrir le devis');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+
 
   const respondToQuote = async (response: 'accepted' | 'refused') => {
     if (!data?.tracking_number) return;
