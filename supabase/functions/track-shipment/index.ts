@@ -204,6 +204,17 @@ Deno.serve(async (req) => {
         ].filter(Boolean);
         const timeline = isQuote ? [] : buildTimeline(mapped, events);
         const publicStatus = isQuote || isLifecycle ? dossierStatus : mapped;
+
+        // Devis déjà envoyé au client → on l'expose pour un accès direct au PDF.
+        const { data: devisRow } = await sb
+          .from('devis')
+          .select('id, reference, version, total_fcfa, valid_until, status, sent_at')
+          .eq('dossier_id', (dossier as any).id)
+          .in('status', ['sent', 'accepted', 'refused'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         return new Response(JSON.stringify({
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
           status: publicStatus,
