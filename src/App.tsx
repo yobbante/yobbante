@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
 import EnterprisesPage from "./pages/EnterprisesPage";
-import DevisEntreprisePage from "./pages/DevisEntreprisePage";
+import DemandeDevisPage from "./pages/DemandeDevisPage";
 import ExpedierPage from "./pages/ExpedierPage";
 import AcheterPage from "./pages/AcheterPage";
 import RelaisDPage from "./pages/RelaisDPage";
@@ -176,6 +176,8 @@ const MainRoutes = () => (
     <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
     <Route path="/acheter/recevoir" element={<AcheterPage />} />
     <Route path="/tarifs" element={<TarifsPage />} />
+    {/* Point d'entrée UNIQUE des demandes de devis */}
+    <Route path="/demande-devis" element={<DemandeDevisPage />} />
     <Route path="/devis" element={<DevisPage />} />
     <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
     <Route path="/track" element={<Navigate to="/suivre" replace />} />
@@ -200,7 +202,7 @@ const MainRoutes = () => (
     <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
     {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
     <Route path="/entreprises" element={<EnterprisesPage />} />
-    <Route path="/devis-entreprise" element={<DevisEntreprisePage />} />
+    <Route path="/devis-entreprise" element={<Navigate to="/demande-devis?segment=entreprise" replace />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />

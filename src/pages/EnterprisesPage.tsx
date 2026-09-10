@@ -134,7 +134,7 @@ export default function EnterprisesPage() {
     offers: { '@type': 'Offer', priceCurrency: 'XOF', availability: 'https://schema.org/InStock' },
   });
   const navigate = useNavigate();
-  const goDevis = () => navigate('/devis-entreprise');
+  const goDevis = () => navigate('/demande-devis?segment=entreprise');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({
