@@ -161,6 +161,8 @@ export function DevisAdminTab({ readOnly = false, fretOnly = false }: { readOnly
           })}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
 
       {open && !readOnly && (
         <DevisDialog
