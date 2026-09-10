@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HubHeader } from './hub-ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { QuoteRequestsPanel } from './QuoteRequestsPanel';
 import { DevisDialog } from './messages/DevisDialog';
 import { useAllDevis } from '@/hooks/useDevis';
 import {
