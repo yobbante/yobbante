@@ -81,6 +81,17 @@ export function DevisAdminTab({ readOnly = false, fretOnly = false }: { readOnly
         )}
       />
 
+      <Tabs defaultValue="requests">
+        <TabsList className="w-full grid grid-cols-2 h-9">
+          <TabsTrigger value="requests" className="text-xs">Demandes reçues</TabsTrigger>
+          <TabsTrigger value="issued" className="text-xs">Devis émis</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="requests" className="mt-3">
+          <QuoteRequestsPanel readOnly={readOnly} />
+        </TabsContent>
+
+        <TabsContent value="issued" className="mt-3 space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} className="pl-9 h-10"
