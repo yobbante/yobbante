@@ -46,6 +46,8 @@ export function useDossiers() {
       const { data, error } = await supabase
         .from('dossiers')
         .select('*')
+        // Les sous-colis d'un envoi scindé sont affichés dans la fiche du dossier parent.
+        .is('parent_dossier_id', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as Dossier[];
