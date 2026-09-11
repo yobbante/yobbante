@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Split, Plus, Trash2, ArrowUpRight, ArrowLeft, Package } from 'lucide-react';
+import { Split, Plus, Trash2, ArrowUpRight, ArrowLeft, Package, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  useDossierChildren, useDossierParent, useSplitDossier, type SplitPart,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  useDossierChildren, useDossierParent, useSplitDossier, useAddParcel,
+  useMergeParcels, useUpdateParcel, type SplitPart,
 } from '@/hooks/useDossierSplit';
 import { useDossierSheet } from './useDossierSheet';
 import { formatStatusLabel } from '@/lib/statusLabels';
