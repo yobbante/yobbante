@@ -17,17 +17,18 @@ interface PublicNavProps {
 }
 
 
-const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string; external?: boolean }[] = [
-  // 3 CTAs égaux — entrée principale du site
-  { label: 'Expédier',     to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
-  { label: 'Relais D',    to: '/relais-d', match: p => p.startsWith('/relais-d') || p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
-  { label: 'Prochains départs', to: '/departs',      match: p => p.startsWith('/departs') || p.startsWith('/prochains-departs') },
-  // Secondaires
-  { label: 'Suivre',       to: '/suivre',            match: p => p.startsWith('/suivre') || p.startsWith('/track') },
-  { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },
-  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', match: p => p.startsWith('/boutique'), external: true },
+const LINKS: { label: string; to: string; match: (p: string) => boolean; desc?: string; subBadge?: string; external?: boolean }[] = [
+  { label: 'Expédier', to: '/expedier', desc: 'GP, aérien, maritime ou routier', match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Prochains départs', to: '/departs', desc: 'Réservez sur un départ confirmé', match: p => p.startsWith('/departs') || p.startsWith('/prochains-departs') },
+  { label: 'Transport routier', to: '/terminal-d', desc: 'Sénégal et pays voisins — Terminal D', match: p => p.startsWith('/terminal-d') || p.startsWith('/fret') },
+  { label: 'Sourcing', to: '/sourcing', desc: 'On achète pour vous en Chine, Turquie…', match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
+  { label: 'Relais D', to: '/relais-d', desc: 'Recevez vos achats Amazon, Shein…', match: p => p.startsWith('/relais-d') || p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  { label: 'Suivre mon colis', to: '/suivre', desc: 'Suivi en temps réel', match: p => p.startsWith('/suivre') || p.startsWith('/track') },
+  { label: 'Tarifs', to: '/tarifs', desc: 'Grille de prix et simulateur', match: p => p.startsWith('/tarifs') },
+  { label: 'Demander un devis', to: '/demande-devis', desc: 'Réponse sous 24 h', match: p => p.startsWith('/demande-devis') },
+  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', desc: 'Produits livrés au Sénégal', match: p => p.startsWith('/boutique'), external: true },
 ];
+
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
   <span
