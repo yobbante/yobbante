@@ -182,10 +182,19 @@ export function ClientSpaceView() {
 
       {/* Mes devis sur mesure */}
       {quotes.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-            <Search className="w-4 h-4" /> Mes devis
-          </h2>
+        <section id="mes-devis" className="scroll-mt-20">
+          <div className="flex items-baseline justify-between mb-3 gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Search className="w-4 h-4" /> Mes devis
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('/demande-devis')}
+              className="text-xs font-semibold text-[#F5C518] hover:opacity-80"
+            >
+              Demander un devis
+            </button>
+          </div>
           <div className="space-y-2">
             {quotes.map((d) => {
               const status = (d as any).status;
