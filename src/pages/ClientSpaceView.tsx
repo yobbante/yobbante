@@ -170,6 +170,34 @@ export function ClientSpaceView() {
         </section>
       )}
 
+      {/* Actions rapides — juste au-dessus de « Besoin d'aide ? » */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Actions rapides
+        </h2>
+        <div className="grid grid-cols-4 gap-2.5">
+          <QuickAction icon={PackageIcon} label="Nouveau colis" onClick={() => navigate('/expedier')} />
+          <QuickAction
+            icon={CreditCard}
+            label="Mes paiements"
+            badge={pendingCount > 0 ? pendingCount : undefined}
+            onClick={() => navigate('/app?view=paiements')}
+          />
+          <QuickAction
+            icon={FileText}
+            label="Mes factures"
+            badge={paidCount > 0 ? paidCount : undefined}
+            onClick={() => navigate('/app?view=factures')}
+          />
+          <QuickAction
+            icon={Search}
+            label="Mes devis"
+            badge={quotes.length > 0 ? quotes.length : undefined}
+            onClick={() => navigate('/app?view=devis')}
+          />
+        </div>
+      </section>
+
       {/* Contact */}
       {(
         <a
