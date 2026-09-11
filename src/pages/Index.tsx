@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { claimPendingTracking } from '@/lib/claimTracking';
 import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
@@ -75,6 +78,25 @@ export default function Index() {
   };
 
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Rattache le colis consulté en public avant l'inscription — quel que soit
+  // l'onglet ouvert à l'arrivée dans l'espace client.
+  useEffect(() => {
+    let cancelled = false;
+    claimPendingTracking().then((result) => {
+      if (cancelled || !result) return;
+      if (result.ok) {
+        queryClient.invalidateQueries({ queryKey: ['dossiers'] });
+        toast.success(`Le colis ${result.ref} a été ajouté à votre espace.`);
+      } else if (result.reason === 'already_claimed') {
+        toast.error('Ce colis est déjà rattaché à un autre compte.');
+      } else if (result.reason === 'not_found') {
+        toast.error('Le colis suivi est introuvable.');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [queryClient]);
 
   useEffect(() => {
     let cancelled = false;

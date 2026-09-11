@@ -93,6 +93,15 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   );
   const [query, setQuery] = useState('');
 
+  // Filtre transverse (?filter=pending | invoices) — utilisé par les actions
+  // rapides « Mes paiements » / « Mes factures » de l'accueil.
+  const filter = (searchParams.get('filter') as 'pending' | 'invoices' | null) ?? null;
+  const setFilter = (next: 'pending' | 'invoices' | null) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next) sp.set('filter', next); else sp.delete('filter');
+    setSearchParams(sp, { replace: true });
+  };
+
   // Detail drawers
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [selectedSendDossier, setSelectedSendDossier] = useState<Dossier | null>(null);
@@ -126,24 +135,29 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   const activeTab = KIND_TABS.find(t => t.id === kind)!;
   const visibleDossiers = useMemo(() => {
-    const list = grouped[kind];
+    let list = grouped[kind];
+    if (filter === 'pending') {
+      list = list.filter(d => (d as any).payment_status === 'pending' && d.status !== 'CLOSED');
+    } else if (filter === 'invoices') {
+      list = list.filter(d => (d as any).payment_status === 'paid');
+    }
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter(d =>
       d.reference.toLowerCase().includes(q) ||
-      d.product_description.toLowerCase().includes(q)
+      (d.product_description || '').toLowerCase().includes(q)
     );
-  }, [grouped, kind, query]);
+  }, [grouped, kind, query, filter]);
 
   // For "Envois" we ONLY surface shipments created via the SendFlow,
   // identified by `transport_metadata.meta.send_flow === true`. This avoids
   // mixing in shipments born from sourcing/reception flows.
   const sendFlowShipments = useMemo(
-    () => shipments.filter(s => {
+    () => (filter ? [] : shipments.filter(s => {
       const meta = (s.transport_metadata ?? {}) as Record<string, any>;
       return meta?.meta?.send_flow === true;
-    }),
-    [shipments]
+    })),
+    [shipments, filter]
   );
   const activeShipments = useMemo(
     () => sendFlowShipments.filter(s => s.status !== 'DELIVERED'),
@@ -244,6 +258,31 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             aria-label={`Rechercher dans ${activeTab.short.toLowerCase()}`}
             className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-card border border-border text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/40 transition-colors"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          {([
+            { id: null, label: 'Tout' },
+            { id: 'pending' as const, label: 'À payer' },
+            { id: 'invoices' as const, label: 'Factures' },
+          ]).map(chip => {
+            const isOn = filter === chip.id;
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() => setFilter(chip.id as any)}
+                aria-pressed={isOn}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors',
+                  isOn
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                )}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Plus, Package as PackageIcon, CreditCard, FileText, MessageCircle, ArrowRight, Inbox, Search, Check } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useDossiers } from '@/hooks/useDossiers';
 import { useDossiersRealtime } from '@/hooks/useDossiersRealtime';
 import { ClientDossierCard } from '@/components/client/ClientDossierCard';
-import { claimPendingTracking } from '@/lib/claimTracking';
 import type { Dossier } from '@/lib/types';
 
 const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
@@ -42,28 +39,14 @@ function fmtShort(date?: string | null): string {
 
 export function ClientSpaceView() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const { profile } = useProfile();
   const { dossiers, isLoading } = useDossiers();
   useDossiersRealtime();
   const [showAllHistory, setShowAllHistory] = useState(false);
 
-  // Rattache automatiquement un colis consulté en public avant l'inscription.
-  useEffect(() => {
-    let cancelled = false;
-    claimPendingTracking().then((result) => {
-      if (cancelled || !result) return;
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['dossiers'] });
-        toast.success(`Le colis ${result.ref} a été ajouté à votre espace.`);
-      } else if (result.reason === 'already_claimed') {
-        toast.error('Ce colis est déjà rattaché à un autre compte.');
-      } else if (result.reason === 'not_found') {
-        toast.error('Le colis suivi est introuvable.');
-      }
-    });
-    return () => { cancelled = true; };
-  }, [queryClient]);
+  // Le rattachement du colis suivi en public est géré au niveau de l'app (Index).
+
 
   const firstName = useMemo(() => {
     if (!profile?.full_name) return '';
@@ -172,7 +155,7 @@ export function ClientSpaceView() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Actions rapides
           </h2>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-4 gap-2.5">
             <QuickAction icon={PackageIcon} label="Nouveau colis" onClick={() => navigate('/expedier')} />
             <QuickAction
               icon={CreditCard}
@@ -181,16 +164,37 @@ export function ClientSpaceView() {
               onClick={() => navigate('/app?view=envois&filter=pending')}
             />
             <QuickAction icon={FileText} label="Mes factures" onClick={() => navigate('/app?view=envois&filter=invoices')} />
+            <QuickAction
+              icon={Search}
+              label="Mes devis"
+              badge={quotes.length > 0 ? quotes.length : undefined}
+              onClick={() => {
+                if (quotes.length > 0) {
+                  document.getElementById('mes-devis')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  navigate('/demande-devis');
+                }
+              }}
+            />
           </div>
         </section>
       )}
 
       {/* Mes devis sur mesure */}
       {quotes.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-            <Search className="w-4 h-4" /> Mes devis
-          </h2>
+        <section id="mes-devis" className="scroll-mt-20">
+          <div className="flex items-baseline justify-between mb-3 gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Search className="w-4 h-4" /> Mes devis
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('/demande-devis')}
+              className="text-xs font-semibold text-[#F5C518] hover:opacity-80"
+            >
+              Demander un devis
+            </button>
+          </div>
           <div className="space-y-2">
             {quotes.map((d) => {
               const status = (d as any).status;
