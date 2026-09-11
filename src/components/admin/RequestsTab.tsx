@@ -123,6 +123,10 @@ export function RequestsTab({
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const excludedSet = useMemo(() => new Set(excludeStatuses ?? []), [excludeStatuses]);
+  const includedSet = useMemo(
+    () => (includeStatuses && includeStatuses.length > 0 ? new Set(includeStatuses) : null),
+    [includeStatuses],
+  );
 
   const [flashId, setFlashId] = useState<string | null>(null);
 
