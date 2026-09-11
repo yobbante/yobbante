@@ -244,11 +244,8 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         </div>
       )}
 
-      {/* Hint line + search */}
+      {/* Recherche + filtres */}
       <div className="space-y-3">
-        <p className="text-[12px] text-muted-foreground" aria-live="polite">
-          {activeTab.hint}
-        </p>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
