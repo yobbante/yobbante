@@ -107,7 +107,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [scheduleEndDate, setScheduleEndDate] = useState<Date | undefined>();
   const [customDates, setCustomDates] = useState<Date[]>([]);
   const [customDate, setCustomDate] = useState<Date | undefined>();
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const formScrollRef = useRef<HTMLDivElement>(null);
   const datesRef = useRef<HTMLDivElement>(null);
 
   // Transporter fields
@@ -486,7 +486,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         setNotes('');
         // Ne pas fermer — l'admin peut enchaîner un autre départ.
         toast.info('Fiche prête pour un nouveau départ.');
-        window.setTimeout(() => sheetRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+        window.setTimeout(() => formScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
       } else {
         onClose();
       }
@@ -499,7 +499,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent ref={sheetRef} className="w-full sm:max-w-5xl overflow-hidden p-0">
+      <SheetContent className="w-full sm:max-w-5xl overflow-hidden p-0">
         <div className="grid h-full min-h-0 sm:grid-cols-[17rem_minmax(0,1fr)]">
           <aside className="border-b border-border bg-secondary/20 sm:border-b-0 sm:border-r min-h-0 flex flex-col">
             <div className="px-4 py-4 border-b border-border">
@@ -525,7 +525,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             </div>
           </aside>
 
-          <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-6" ref={sheetRef}>
+          <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-6" ref={formScrollRef}>
         <SheetHeader>
           <SheetTitle>{isEdit ? 'Modifier le départ' : 'Nouveau départ'}</SheetTitle>
           <SheetDescription>Cette navette sera utilisée par le moteur de matching et de pricing.</SheetDescription>
