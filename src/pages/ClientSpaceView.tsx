@@ -129,7 +129,7 @@ export function ClientSpaceView() {
       )}
 
       {/* Actions rapides */}
-      {!isEmpty && (
+      {(
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Actions rapides
