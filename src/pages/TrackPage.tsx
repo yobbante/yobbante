@@ -423,6 +423,7 @@ export default function TrackPage() {
                 </button>
               </div>
             </div>
+            )}
 
             {data.parcels && data.parcels.length > 0 && (
               <div className="rounded-[12px] border p-4 mb-5" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}>
