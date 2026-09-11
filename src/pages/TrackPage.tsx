@@ -130,6 +130,8 @@ export default function TrackPage() {
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
   const [copied, setCopied] = useState(false);
+  // L'encart "Départ assigné" reprend déjà route + délai : on masque le doublon.
+  const [departureCardActive, setDepartureCardActive] = useState(false);
   const [responding, setResponding] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
