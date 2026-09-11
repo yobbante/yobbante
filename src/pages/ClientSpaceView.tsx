@@ -39,7 +39,7 @@ function fmtShort(date?: string | null): string {
 
 export function ClientSpaceView() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const { profile } = useProfile();
   const { dossiers, isLoading } = useDossiers();
   useDossiersRealtime();
