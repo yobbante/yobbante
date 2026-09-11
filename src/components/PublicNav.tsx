@@ -163,7 +163,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                     </button>
                   </div>
                   <div className="px-6 py-2">
-                    {LINKS.map((l, i) => {
+                    {LINKS.map((l) => {
                       const active = l.match(location.pathname);
                       const commonStyle: React.CSSProperties = {
                         fontSize: 16,
