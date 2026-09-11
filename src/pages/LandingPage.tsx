@@ -15,13 +15,18 @@ const DISPLAY_FONT =
   '"Anton","Bebas Neue",-apple-system,BlinkMacSystemFont,sans-serif';
 const BODY_FONT = '"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif';
 
-const NAV_LINKS: { label: string; to: string; external?: boolean }[] = [
-  { label: 'Expédier', to: '/expedier' },
-  { label: 'Transport routier', to: '/terminal-d' },
-  { label: 'Tarifs', to: '/tarifs' },
-  { label: 'Suivre mon colis', to: '/suivre' },
-  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
+const NAV_LINKS: { label: string; to: string; external?: boolean; desc?: string; hideDesktop?: boolean }[] = [
+  { label: 'Expédier', to: '/expedier', desc: 'GP, aérien, maritime ou routier' },
+  { label: 'Prochains départs', to: '/departs', desc: 'Réservez sur un départ confirmé' },
+  { label: 'Transport routier', to: '/terminal-d', desc: 'Sénégal et pays voisins — Terminal D', hideDesktop: true },
+  { label: 'Sourcing', to: '/sourcing', desc: 'On achète pour vous en Chine, Turquie…', hideDesktop: true },
+  { label: 'Relais D', to: '/relais-d', desc: 'Recevez vos achats Amazon, Shein…', hideDesktop: true },
+  { label: 'Tarifs', to: '/tarifs', desc: 'Grille de prix et simulateur' },
+  { label: 'Suivre mon colis', to: '/suivre', desc: 'Suivi en temps réel' },
+  { label: 'Demander un devis', to: '/demande-devis', desc: 'Réponse sous 24 h', hideDesktop: true },
+  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true, desc: 'Produits livrés au Sénégal' },
 ];
+
 
 // Note: la liste des destinations affichée sur la landing provient
 // dynamiquement du catalogue `custom_cities` via les composants qui en ont
