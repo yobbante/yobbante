@@ -27,6 +27,7 @@ import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
 import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
+import { formatStatusLabel } from '@/lib/statusLabels';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { FRET_STATUS_TONE } from '@/components/admin/fret/FretCourseSheet';
@@ -176,7 +177,7 @@ export function RequestsTab({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dossiers')
-        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, transport_mode, tracking_id, final_amount_xof, estimated_cost, payment_status')
+        .select('id, reference, product_description, status, origin_country, destination_country, origin_city, destination_city, needs_sourcing, app_source, business_id, contact_email, contact_phone, estimated_weight, budget_eur, declared_value, estimated_delivery_date, sender_name, sender_phone, recipient_name, recipient_phone, recipient_address, pickup_date, supplier_name, supplier_country, quantity, unit, notes, created_at, assigned_transporteur_ref, assigned_departure_id, transport_mode, tracking_id, final_amount_xof, estimated_cost, payment_status, parent_dossier_id, split_index, split_count')
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -314,8 +315,22 @@ export function RequestsTab({
     return c;
   }, [inScope]);
 
+  /** Sous-colis regroupés sous leur dossier parent (ils ne polluent pas la liste). */
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, any[]>();
+    dossiers.forEach((d: any) => {
+      if (!d.parent_dossier_id) return;
+      const arr = m.get(d.parent_dossier_id) ?? [];
+      arr.push(d);
+      m.set(d.parent_dossier_id, arr);
+    });
+    m.forEach(arr => arr.sort((a, b) => (a.split_index ?? 0) - (b.split_index ?? 0)));
+    return m;
+  }, [dossiers]);
+
   const filtered = useMemo(() => {
     return inScope.filter(d => {
+      if ((d as any).parent_dossier_id) return false;
       if (kind !== 'all' && getKind(d) !== kind) return false;
       if (transportModes && transportModes.length > 0) {
         const m = resolveTransportMode(d);
@@ -494,6 +509,7 @@ export function RequestsTab({
                 const amountInfo = dossierAmount(d as any);
                 const amountXof = amountInfo.xof;
                 const course = (roadCourses as Record<string, any>)[d.id] || null;
+                const kids = childrenByParent.get(d.id) ?? [];
                 const isRoad = resolveTransportMode(d) === 'road' || !!course;
                 const baseTiming = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
                 // Dossier routier déjà pris en charge côté Terminal D : on montre
@@ -533,6 +549,11 @@ export function RequestsTab({
                         <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           {k === 'send' ? 'Expédier' : k === 'sourcing' ? 'Sourcing' : 'Recevoir'}
                           {d.business_id && ' · B2B'}
+                          {kids.length > 0 && (
+                            <span className="ml-1 inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-medium">
+                              {kids.length} colis
+                            </span>
+                          )}
                         </div>
                       </td>
                       {/* Client */}
@@ -650,6 +671,34 @@ export function RequestsTab({
                               <DossierLifecycleRail status={d.status} />
                             </div>
                             <ExpandedKindBody dossier={d} kind={k} />
+
+                            {kids.length > 0 && (
+                              <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                                  Colis ({kids.length})
+                                </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  {kids.map((c: any) => (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); sheet.open(c.id); }}
+                                      className="text-left rounded-lg border border-border bg-card p-2 hover:border-primary/40 transition-colors"
+                                    >
+                                      <p className="text-[11px] font-medium truncate">
+                                        <span className="font-mono text-muted-foreground">{c.reference}</span>{' '}
+                                        {c.product_description || 'Colis'}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground truncate">
+                                        {c.estimated_weight ? `${Number(c.estimated_weight)} kg · ` : ''}
+                                        {c.assigned_transporteur_ref ? `GP ${c.assigned_transporteur_ref}` : 'Sans transporteur'}
+                                        {' · '}{formatStatusLabel(c.status)}
+                                      </p>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
 
                             {(d.contact_email || d.contact_phone) && (

@@ -1299,6 +1299,7 @@ export type Database = {
           origin_city: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at: string | null
+          parent_dossier_id: string | null
           payment_external_id: string | null
           payment_method: string | null
           payment_provider_ref: string | null
@@ -1338,6 +1339,8 @@ export type Database = {
           skip_whatsapp_trigger: boolean
           source: string
           source_reference: string | null
+          split_count: number | null
+          split_index: number | null
           status: Database["public"]["Enums"]["dossier_status"]
           supplier_contact: string | null
           supplier_country: string | null
@@ -1469,6 +1472,7 @@ export type Database = {
           origin_city?: string | null
           origin_country: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
+          parent_dossier_id?: string | null
           payment_external_id?: string | null
           payment_method?: string | null
           payment_provider_ref?: string | null
@@ -1508,6 +1512,8 @@ export type Database = {
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
+          split_count?: number | null
+          split_index?: number | null
           status?: Database["public"]["Enums"]["dossier_status"]
           supplier_contact?: string | null
           supplier_country?: string | null
@@ -1639,6 +1645,7 @@ export type Database = {
           origin_city?: string | null
           origin_country?: Database["public"]["Enums"]["warehouse_country"]
           paid_at?: string | null
+          parent_dossier_id?: string | null
           payment_external_id?: string | null
           payment_method?: string | null
           payment_provider_ref?: string | null
@@ -1678,6 +1685,8 @@ export type Database = {
           skip_whatsapp_trigger?: boolean
           source?: string
           source_reference?: string | null
+          split_count?: number | null
+          split_index?: number | null
           status?: Database["public"]["Enums"]["dossier_status"]
           supplier_contact?: string | null
           supplier_country?: string | null
@@ -1733,6 +1742,13 @@ export type Database = {
             columns: ["livreur_livraison_id"]
             isOneToOne: false
             referencedRelation: "livreurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossiers_parent_dossier_id_fkey"
+            columns: ["parent_dossier_id"]
+            isOneToOne: false
+            referencedRelation: "dossiers"
             referencedColumns: ["id"]
           },
           {
@@ -5023,6 +5039,188 @@ export type Database = {
       shipment_status_message: {
         Args: { _status: string; _tracking: string }
         Returns: string
+      }
+      split_dossier: {
+        Args: { p_dossier_id: string; p_parts: Json }
+        Returns: {
+          actual_weight_kg: number | null
+          admin_notes: string | null
+          app_source: string
+          assigned_departure_id: string | null
+          assigned_transporteur_ref: string | null
+          budget_eur: number | null
+          business_id: string | null
+          buyer_contact: string | null
+          buyer_country: string | null
+          buyer_name: string | null
+          cancellation_reason: string | null
+          cancellation_source: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          carrier_cost_xof: number | null
+          carrier_name: string | null
+          carrier_paid: boolean
+          carrier_paid_at: string | null
+          carrier_payment_method: string | null
+          carrier_payment_note: string | null
+          cash_on_delivery: boolean
+          client_departure_decided_at: string | null
+          client_departure_decision: string
+          client_departure_note: string | null
+          client_requested_pickup_date: string | null
+          collect_reminder_sent_at: string | null
+          collecte_confirmee_at: string | null
+          collecte_creneau: string | null
+          collecte_photos: string[] | null
+          collected_at: string | null
+          conformite_notes: string | null
+          conformite_ok: boolean | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          currency: string | null
+          declared_value: number | null
+          delivered_at: string | null
+          delivery_appointment: string | null
+          delivery_carrier: string | null
+          delivery_carrier_cost: number
+          delivery_confirmed_by_client: boolean
+          delivery_cost_xof: number | null
+          delivery_mode: string
+          delivery_notified_at: string | null
+          delivery_reminder_count: number
+          departure_confirmed_by_client: boolean | null
+          departure_decided_at: string | null
+          departure_decision_reason: string | null
+          dernier_km_adresse: string | null
+          dernier_km_carrier: string | null
+          dernier_km_label_url: string | null
+          dernier_km_prix: number | null
+          dernier_km_tracking: string | null
+          destination_city: string | null
+          destination_country: string
+          displayed_price_per_kg: number | null
+          dossier_type: Database["public"]["Enums"]["dossier_type"]
+          enlevement_amount: number
+          enlevement_surcharge: number
+          estimated_cost: number | null
+          estimated_delivery_date: string | null
+          estimated_weight: number | null
+          feedback_at: string | null
+          feedback_rating: number | null
+          feedback_sent_at: string | null
+          final_amount_xof: number | null
+          gp_acceptance_alert_sent_at: string | null
+          gp_amount: number | null
+          gp_amount_set_at: string | null
+          gp_amount_set_by: string | null
+          gp_id: string | null
+          gp_last_action_at: string | null
+          gp_no_response_alert_sent: boolean
+          gp_paid: boolean
+          gp_paid_at: string | null
+          gp_payment_method: string | null
+          gp_payment_note: string | null
+          gp_payment_ref: string | null
+          gp_rate_per_kg: number | null
+          gp_receipt_path: string | null
+          gp_reminded_at: string | null
+          gp_reminder_count: number
+          hors_dakar_surcharge: number
+          hs_code: string | null
+          id: string
+          incoterm: string | null
+          intake_by: string | null
+          intake_method: string
+          intake_notes: string | null
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          invoice_url: string | null
+          is_express: boolean
+          is_gift: boolean
+          is_outside_dakar: boolean
+          konnekt_order_id: string | null
+          konnekt_synced_at: string | null
+          last_client_contact: string | null
+          last_payment_reminder_at: string | null
+          livreur_collecte_id: string | null
+          livreur_livraison_id: string | null
+          mission_accepted: boolean | null
+          mission_decided_at: string | null
+          needs_sourcing: boolean
+          notes: string | null
+          origin_city: string | null
+          origin_country: Database["public"]["Enums"]["warehouse_country"]
+          paid_at: string | null
+          parent_dossier_id: string | null
+          payment_external_id: string | null
+          payment_method: string | null
+          payment_provider_ref: string | null
+          payment_reminders_count: number
+          payment_status: string
+          pickup_date: string | null
+          pickup_quartier: string | null
+          pickup_zone: string | null
+          poids_livreur: number | null
+          price_is_estimate: boolean
+          price_volatility_coefficient: number | null
+          product_description: string
+          quantity: number | null
+          quote_amount_xof: number | null
+          quote_currency: string | null
+          quote_notes_admin: string | null
+          quote_responded_at: string | null
+          quote_response: string | null
+          quote_sent_at: string | null
+          quote_valid_until: string | null
+          recipient_address: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          reference: string
+          relay_point_address: string | null
+          relay_point_id: string | null
+          relay_point_name: string | null
+          reminder_count: number
+          reminder_sent_at: string | null
+          return_completed_at: string | null
+          return_reason: string | null
+          return_reason_category: string | null
+          return_requested_at: string | null
+          sender_address: string | null
+          sender_name: string | null
+          sender_phone: string | null
+          skip_whatsapp_trigger: boolean
+          source: string
+          source_reference: string | null
+          split_count: number | null
+          split_index: number | null
+          status: Database["public"]["Enums"]["dossier_status"]
+          supplier_contact: string | null
+          supplier_country: string | null
+          supplier_name: string | null
+          total_cost_price: number | null
+          total_displayed_price: number | null
+          tracking_id: string | null
+          tracking_id_format: string
+          transport_mode: string | null
+          unit: string | null
+          updated_at: string
+          user_id: string | null
+          weigh_location: string | null
+          weighed_at: string | null
+          weighed_by: string | null
+          weight_alert_sent_at: string | null
+          weight_reminder_sent_at: string | null
+          yobbante_gross_margin: number | null
+          yobbante_margin: number | null
+          yobbante_margin_pct: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dossiers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       submit_quote_request: {
         Args: {

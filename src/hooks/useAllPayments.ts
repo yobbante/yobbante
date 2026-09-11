@@ -82,7 +82,7 @@ export function useAllPayments(monthsBack = 12) {
             'id, reference, tracking_id, status, transport_mode, sender_name, recipient_name, origin_city, origin_country, destination_city, destination_country, ' +
             'final_amount_xof, estimated_cost, payment_status, payment_method, paid_at, created_at, ' +
             'gp_amount, gp_paid, gp_paid_at, gp_payment_method, ' +
-            'carrier_cost_xof, carrier_name, carrier_paid, carrier_paid_at, carrier_payment_method',
+            'carrier_cost_xof, carrier_name, carrier_paid, carrier_paid_at, carrier_payment_method, parent_dossier_id, split_index',
           )
           .gte('created_at', since)
           .order('created_at', { ascending: false })
@@ -108,8 +108,11 @@ export function useAllPayments(monthsBack = 12) {
           d.destination_city || d.destination_country || '—',
         ].join(' → ');
         const amount = xofOf(d);
+        // Sous-colis : le paiement client est porté par le dossier parent,
+        // on ne garde ici que les reversements transporteur pour éviter le double comptage.
+        const isChild = !!d.parent_dossier_id;
 
-        if (amount > 0 || d.payment_status) {
+        if (!isChild && (amount > 0 || d.payment_status)) {
           rows.push({
             key: `client:${d.id}`,
             kind: 'client', direction: 'in', source: 'dossier', sourceId: d.id, dossierId: d.id,

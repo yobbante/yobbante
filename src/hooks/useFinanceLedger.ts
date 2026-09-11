@@ -64,6 +64,7 @@ export function useFinanceLedger(monthsBack = 6) {
         // Revenus encaissés
         supabase.from('dossiers')
           .select('final_amount_xof, estimated_cost, paid_at, status')
+          .is('parent_dossier_id', null)
           .eq('payment_status', 'paid')
           .not('status', 'in', '(CANCELLED,ARCHIVED)')
           .gte('paid_at', since),

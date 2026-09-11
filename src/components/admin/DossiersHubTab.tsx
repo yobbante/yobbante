@@ -134,8 +134,8 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
           </div>
 
           {/* Repère permanent : on sait toujours dans quel onglet on travaille. */}
-          <div className="mt-3 rounded-lg border border-border bg-card px-3 py-2">
-            <p className="text-sm font-semibold text-foreground">{meta.label}</p>
+          <div className="mt-3 rounded-lg border border-primary/30 border-l-4 border-l-primary bg-primary/5 px-3 py-2">
+            <p className="text-sm font-semibold text-primary">{meta.label}</p>
             <p className="text-[11px] text-muted-foreground leading-snug">{meta.subtitle}</p>
           </div>
 
