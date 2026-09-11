@@ -273,7 +273,7 @@ export function LiveDeparturesTicker() {
           {buildTrack('a')}
           {buildTrack('b')}
         </div>
-      </div>
+      </Link>
 
       <style>{`
         @keyframes ticker-scroll {
