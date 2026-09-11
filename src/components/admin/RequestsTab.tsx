@@ -314,8 +314,22 @@ export function RequestsTab({
     return c;
   }, [inScope]);
 
+  /** Sous-colis regroupés sous leur dossier parent (ils ne polluent pas la liste). */
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, any[]>();
+    dossiers.forEach((d: any) => {
+      if (!d.parent_dossier_id) return;
+      const arr = m.get(d.parent_dossier_id) ?? [];
+      arr.push(d);
+      m.set(d.parent_dossier_id, arr);
+    });
+    m.forEach(arr => arr.sort((a, b) => (a.split_index ?? 0) - (b.split_index ?? 0)));
+    return m;
+  }, [dossiers]);
+
   const filtered = useMemo(() => {
     return inScope.filter(d => {
+      if ((d as any).parent_dossier_id) return false;
       if (kind !== 'all' && getKind(d) !== kind) return false;
       if (transportModes && transportModes.length > 0) {
         const m = resolveTransportMode(d);
