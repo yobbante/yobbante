@@ -334,14 +334,14 @@ export function RequestsTab({
       }
       return true;
     });
-  }, [dossiers, q, kind, statusFilter, excludedSet, transportModes]);
+  }, [inScope, q, kind, statusFilter, transportModes]);
 
   const statusCounts = useMemo(() => {
     const c = new Map<DossierStatus, number>();
-    const scope = dossiers.filter(d => kind === 'all' || getKind(d) === kind);
+    const scope = inScope.filter(d => kind === 'all' || getKind(d) === kind);
     scope.forEach(d => c.set(d.status, (c.get(d.status) ?? 0) + 1));
     return c;
-  }, [dossiers, kind]);
+  }, [inScope, kind]);
 
   function toggleStatus(s: DossierStatus) {
     setStatusFilter(prev => {
