@@ -84,29 +84,6 @@ export function ClientSpaceView() {
         </button>
       </motion.header>
 
-      {/* Incentive compacte — premier envoi (le dashboard reste visible derrière) */}
-      {isEmpty && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-3.5 py-2.5"
-        >
-          <span className="shrink-0 w-8 h-8 rounded-lg bg-[#F5C518]/15 text-[#F5C518] flex items-center justify-center">
-            <Inbox className="w-4 h-4" />
-          </span>
-          <p className="text-xs text-muted-foreground min-w-0 flex-1 leading-snug">
-            Premier envoi en 3 minutes : décrivez le colis, on vient le chercher à Dakar, suivi WhatsApp jusqu'à la livraison.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/expedier')}
-            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-[#F5C518] text-zinc-950 text-xs font-semibold hover:bg-[#F5C518]/90 transition-colors"
-          >
-            Commencer <ArrowRight className="w-3 h-3" />
-          </button>
-        </motion.div>
-      )}
-
       {/* Mes expéditions en cours */}
       {(
         <section>
@@ -217,6 +194,29 @@ export function ClientSpaceView() {
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground" />
         </a>
+      )}
+
+      {/* Incentive compacte — tout en bas, dernier élément du dashboard */}
+      {isEmpty && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-3.5 py-2.5"
+        >
+          <span className="shrink-0 w-8 h-8 rounded-lg bg-[#F5C518]/15 text-[#F5C518] flex items-center justify-center">
+            <Inbox className="w-4 h-4" />
+          </span>
+          <p className="text-xs text-muted-foreground min-w-0 flex-1 leading-snug">
+            Premier envoi en 3 minutes : décrivez le colis, on vient le chercher à Dakar, suivi WhatsApp jusqu'à la livraison.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/expedier')}
+            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-[#F5C518] text-zinc-950 text-xs font-semibold hover:bg-[#F5C518]/90 transition-colors"
+          >
+            Commencer <ArrowRight className="w-3 h-3" />
+          </button>
+        </motion.div>
       )}
 
       {/* FAB mobile */}
