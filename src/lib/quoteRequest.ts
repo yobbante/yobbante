@@ -61,6 +61,38 @@ export interface QuoteRequestResult {
   dossierId: string | null;
 }
 
+/**
+ * Construit l'URL du formulaire unique /demande-devis, pré-rempli.
+ * Tous les boutons « Demander un devis » du site passent par ici.
+ */
+export function buildQuoteRequestUrl(p: {
+  originCity?: string | null;
+  destinationCity?: string | null;
+  weightKg?: number | null;
+  parcelCount?: number | null;
+  transportMode?: string | null;
+  description?: string | null;
+  clientName?: string | null;
+  clientPhone?: string | null;
+  segment?: QuoteSegment;
+  source?: string;
+}): string {
+  const q = new URLSearchParams();
+  const clean = (v?: string | null) => (v && v.trim() && v.trim() !== '—' ? v.trim() : '');
+  if (clean(p.originCity)) q.set('origin', clean(p.originCity));
+  if (clean(p.destinationCity)) q.set('destination', clean(p.destinationCity));
+  if (p.weightKg) q.set('weight', String(p.weightKg));
+  if (p.parcelCount) q.set('parcels', String(p.parcelCount));
+  if (clean(p.transportMode)) q.set('mode', clean(p.transportMode).toLowerCase());
+  if (clean(p.description)) q.set('description', clean(p.description));
+  if (clean(p.clientName)) q.set('name', clean(p.clientName));
+  if (clean(p.clientPhone)) q.set('phone', clean(p.clientPhone));
+  if (p.segment) q.set('segment', p.segment);
+  if (p.source) q.set('source', p.source);
+  const s = q.toString();
+  return s ? `/demande-devis?${s}` : '/demande-devis';
+}
+
 function line(label: string, value?: string | number | null) {
   return value === undefined || value === null || value === '' ? '' : `${label}: ${value}`;
 }

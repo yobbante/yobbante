@@ -51,16 +51,23 @@ export default function DemandeDevisPage() {
     sp.get('segment') === 'entreprise' ? 'entreprise' : 'particulier',
   );
   const [mode, setMode] = useState<DossierTransportMode>(normalizeTransportMode(sp.get('mode')) ?? 'gp');
+  const spOrigin = (sp.get('origin') ?? '').trim();
+  const spDestination = (sp.get('destination') ?? '').trim();
+  const isDakar = (v: string) => v.toLowerCase().startsWith('dakar');
   const [direction, setDirection] = useState<'from_dakar' | 'to_dakar'>(
-    sp.get('direction') === 'from_dakar' ? 'from_dakar' : 'to_dakar',
+    sp.get('direction') === 'from_dakar' || (isDakar(spOrigin) && !!spDestination)
+      ? 'from_dakar'
+      : 'to_dakar',
   );
-  const [city, setCity] = useState(sp.get('city') ?? sp.get('destination') ?? sp.get('origin') ?? '');
+  const [city, setCity] = useState(
+    sp.get('city') ?? (isDakar(spOrigin) ? spDestination : spOrigin || spDestination) ?? '',
+  );
   const [weight, setWeight] = useState(sp.get('weight') ?? '');
-  const [parcels, setParcels] = useState('');
-  const [description, setDescription] = useState('');
-  const [name, setName] = useState('');
+  const [parcels, setParcels] = useState(sp.get('parcels') ?? '');
+  const [description, setDescription] = useState(sp.get('description') ?? '');
+  const [name, setName] = useState(sp.get('name') ?? '');
   const [company, setCompany] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(sp.get('phone') ?? '');
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +113,7 @@ export default function DemandeDevisPage() {
         transportMode: mode,
         description: description || null,
         note: note || null,
-        source: 'devis_page',
+        source: sp.get('source') || 'devis_page',
       });
       setDone(res);
       toast.success('Demande envoyée');
