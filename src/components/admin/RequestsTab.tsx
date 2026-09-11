@@ -508,6 +508,7 @@ export function RequestsTab({
                 const amountInfo = dossierAmount(d as any);
                 const amountXof = amountInfo.xof;
                 const course = (roadCourses as Record<string, any>)[d.id] || null;
+                const kids = childrenByParent.get(d.id) ?? [];
                 const isRoad = resolveTransportMode(d) === 'road' || !!course;
                 const baseTiming = getDossierTiming(d, (departures as Record<string, TimingDeparture>)[(d as any).assigned_departure_id]);
                 // Dossier routier déjà pris en charge côté Terminal D : on montre
@@ -547,6 +548,11 @@ export function RequestsTab({
                         <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           {k === 'send' ? 'Expédier' : k === 'sourcing' ? 'Sourcing' : 'Recevoir'}
                           {d.business_id && ' · B2B'}
+                          {kids.length > 0 && (
+                            <span className="ml-1 inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[9px] font-medium">
+                              {kids.length} colis
+                            </span>
+                          )}
                         </div>
                       </td>
                       {/* Client */}
@@ -664,6 +670,34 @@ export function RequestsTab({
                               <DossierLifecycleRail status={d.status} />
                             </div>
                             <ExpandedKindBody dossier={d} kind={k} />
+
+                            {kids.length > 0 && (
+                              <div className="rounded-lg border border-border bg-background/60 px-3 py-2">
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                                  Colis ({kids.length})
+                                </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  {kids.map((c: any) => (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); sheet.open(c.id); }}
+                                      className="text-left rounded-lg border border-border bg-card p-2 hover:border-primary/40 transition-colors"
+                                    >
+                                      <p className="text-[11px] font-medium truncate">
+                                        <span className="font-mono text-muted-foreground">{c.reference}</span>{' '}
+                                        {c.product_description || 'Colis'}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground truncate">
+                                        {c.estimated_weight ? `${Number(c.estimated_weight)} kg · ` : ''}
+                                        {c.assigned_transporteur_ref ? `GP ${c.assigned_transporteur_ref}` : 'Sans transporteur'}
+                                        {' · '}{formatStatusLabel(c.status)}
+                                      </p>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
 
                             {(d.contact_email || d.contact_phone) && (
