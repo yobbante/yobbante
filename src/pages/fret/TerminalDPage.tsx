@@ -146,11 +146,6 @@ export default function TerminalDPage() {
     } finally { setSaving(false); }
   }
 
-  const switchTab = (t: Tab) => {
-    setTab(t);
-    setDestId('');
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
@@ -161,37 +156,16 @@ export default function TerminalDPage() {
           <span className="text-xs font-semibold uppercase tracking-wide">Terminal D</span>
         </div>
         <h1 className="text-2xl font-semibold mt-2">
-          Transport routier depuis Dakar — national et international
+          Transport routier depuis Dakar
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Transport routier au Sénégal <span className="text-foreground font-medium">et vers les pays voisins</span> (Gambie, Mali, Mauritanie, Guinée…).
+          Une seule adresse pour <span className="text-foreground font-medium">tout le Sénégal</span> et pour les
+          <span className="text-foreground font-medium"> pays voisins</span> (Gambie, Mali, Mauritanie, Guinée, Guinée-Bissau, Burkina, Côte d'Ivoire).
+          Choisissez simplement votre destination : le tarif s'adapte automatiquement.
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          Départs quotidiens. Enlèvement de votre colis à Dakar, prix affiché immédiatement.
+          Départs quotidiens · enlèvement de votre colis à Dakar · prix affiché immédiatement.
         </p>
-
-        {/* Tabs */}
-        <div className="mt-5 inline-flex flex-wrap rounded-xl border border-border p-1 bg-card/40">
-          {(['national', 'international'] as Tab[]).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => switchTab(t)}
-              aria-pressed={tab === t}
-              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              {t === 'national' ? '🇸🇳 Sénégal (national)' : '🌍 Pays voisins (international)'}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {tab === 'national'
-            ? 'Toutes les régions du Sénégal — tarif selon la taille du colis.'
-            : 'Gambie, Mali, Mauritanie, Guinée… — tarif au kilo, minimum 3 kg.'}
-        </p>
-
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -199,27 +173,58 @@ export default function TerminalDPage() {
           </div>
         ) : (
           <div className="mt-5 grid gap-4">
-            {/* Destination */}
+            {/* Destination — liste unique Sénégal + pays voisins */}
             <div className="rounded-2xl border border-border bg-card/40 p-4 space-y-3">
               <div>
-                <label htmlFor="fret-dest" className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {tab === 'national' ? 'Ville de destination' : 'Pays de destination'}
+                <label htmlFor="fret-search" className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Où va votre colis ?
                 </label>
+                <input
+                  id="fret-search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Chercher une ville ou un pays (Thiès, Bamako, Gambie…)"
+                  className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm"
+                />
                 <select
                   id="fret-dest"
+                  aria-label="Destination"
                   value={destId}
                   onChange={e => setDestId(e.target.value)}
-                  className="mt-1 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm"
+                  className="mt-2 w-full h-11 px-3 rounded-lg bg-background/60 border border-border/60 text-sm"
                 >
-                  <option value="">Sélectionner…</option>
-                  {scopedDest.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
+                  <option value="">Sélectionner une destination…</option>
+                  {nationalDest.length > 0 && (
+                    <optgroup label="🇸🇳 Sénégal — toutes les régions">
+                      {nationalDest.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {internationalDest.length > 0 && (
+                    <optgroup label="🌍 Pays voisins — international routier">
+                      {internationalDest.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
-                {zone && (
-                  <p className="text-xs text-muted-foreground mt-1">Zone détectée : {zone.label}</p>
+                {dest && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 mr-2">
+                      {tab === 'international' ? '🌍 International routier' : '🇸🇳 Sénégal'}
+                    </span>
+                    {zone ? `Zone ${zone.label} · ` : ''}
+                    {tab === 'international' ? 'tarif au kilo, minimum 3 kg.' : 'tarif selon la taille du colis.'}
+                  </p>
+                )}
+                {!dest && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Sénégal et pays voisins sont dans la même liste — pas besoin de choisir national ou international.
+                  </p>
                 )}
               </div>
+
 
               {tab === 'national' ? (
                 <div>
