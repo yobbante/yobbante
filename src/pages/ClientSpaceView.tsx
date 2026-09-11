@@ -13,14 +13,25 @@ import type { Dossier } from '@/lib/types';
 
 const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
 
+/** Statuts terminaux : le dossier rejoint l'historique (livré, clos, annulé, archivé, retourné). */
+const TERMINAL_STATUSES = new Set(['DELIVERED', 'CLOSED', 'CANCELLED', 'ARCHIVED', 'RETURNED']);
+
 const QUOTE_FILTER = (d: Dossier) =>
   QUOTE_STATUSES.has((d as any).status);
 
 const ACTIVE_FILTER = (d: Dossier) =>
-  d.status !== 'DELIVERED' && d.status !== 'CLOSED' && !QUOTE_STATUSES.has(d.status as any);
+  !TERMINAL_STATUSES.has(d.status as any) && !QUOTE_STATUSES.has(d.status as any);
 
 const HISTORY_FILTER = (d: Dossier) =>
-  d.status === 'DELIVERED' || d.status === 'CLOSED';
+  TERMINAL_STATUSES.has(d.status as any);
+
+const HISTORY_LABEL: Record<string, string> = {
+  DELIVERED: 'Livré le',
+  CLOSED: 'Clôturé le',
+  CANCELLED: 'Annulé le',
+  ARCHIVED: 'Archivé le',
+  RETURNED: 'Retourné le',
+};
 
 function fmtShort(date?: string | null): string {
   if (!date) return '';
