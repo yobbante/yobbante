@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SplitColisList } from '@/components/client/SplitColisList';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Send, FileText, Package as PackageIcon, MessageCircle, CheckCircle2, Circle, Link2, Lock, ExternalLink, Download, RefreshCw, Receipt } from 'lucide-react';
@@ -210,6 +211,8 @@ export default function DossierDetail() {
             )}
           </section>
         )}
+
+        <SplitColisList dossierId={dossier.id} />
 
         {/* Timeline status */}
         {!dossier.status.startsWith('QUOTE_') && <section>
