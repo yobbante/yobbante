@@ -272,8 +272,8 @@ export function ClientSpaceView() {
       )}
 
       {/* Contact */}
-      {!isEmpty && (
-        <a
+      {(
+        <
           href="https://wa.me/221786078080"
           target="_blank"
           rel="noopener noreferrer"
