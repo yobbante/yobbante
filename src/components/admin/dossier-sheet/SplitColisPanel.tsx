@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Split, Plus, Trash2, ArrowUpRight, ArrowLeft, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import {
 } from '@/hooks/useDossierSplit';
 import { useDossierSheet } from './useDossierSheet';
 import { formatStatusLabel } from '@/lib/statusLabels';
+import { CarrierPicker } from '@/components/admin/payments/CarrierPicker';
+import { useResolvedCarrier, carrierTypesForMode } from '@/hooks/useCarrierDirectory';
 
 interface Dossier {
   id: string;
@@ -23,7 +25,13 @@ interface Dossier {
   parent_dossier_id?: string | null;
   split_index?: number | null;
   split_count?: number | null;
+  assigned_transporteur_ref?: string | null;
+  gp_id?: string | null;
+  transport_mode?: string | null;
 }
+
+/** Part locale : on garde le nom affiché en plus de la référence enregistrée. */
+type Part = SplitPart & { carrier_name?: string };
 
 const label = (s: string) => formatStatusLabel(s);
 const kg = (n: number | null | undefined) => (n == null ? '—' : `${Number(n)} kg`);
@@ -115,12 +123,26 @@ function SplitDialog({
 }: { dossier: Dossier; open: boolean; onOpenChange: (v: boolean) => void }) {
   const split = useSplitDossier();
   const total = Number(dossier.actual_weight_kg ?? dossier.estimated_weight ?? 0);
-  const [parts, setParts] = useState<SplitPart[]>([
+  const { data: autoCarrier } = useResolvedCarrier(dossier);
+  const types = carrierTypesForMode((dossier.transport_mode as any) || 'gp');
+  const [parts, setParts] = useState<Part[]>([
     { description: dossier.product_description ?? '', weight: total ? total / 2 : null },
     { description: dossier.product_description ?? '', weight: total ? total / 2 : null },
   ]);
 
-  const set = (i: number, patch: Partial<SplitPart>) =>
+  // Le transporteur déjà assigné au dossier pré-remplit le premier colis.
+  useEffect(() => {
+    if (!autoCarrier) return;
+    setParts((p) =>
+      p.map((x, i) =>
+        i === 0 && !x.transporteur_ref && !x.carrier_name
+          ? { ...x, transporteur_ref: autoCarrier.ref ?? undefined, carrier_name: autoCarrier.name }
+          : x,
+      ),
+    );
+  }, [autoCarrier]);
+
+  const set = (i: number, patch: Partial<Part>) =>
     setParts((p) => p.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   const submit = async () => {
@@ -130,7 +152,7 @@ function SplitDialog({
         parts: parts.map((p) => ({
           description: p.description?.trim() || undefined,
           weight: p.weight ?? null,
-          transporteur_ref: p.transporteur_ref?.trim() || undefined,
+          transporteur_ref: (p.transporteur_ref || p.carrier_name)?.trim() || undefined,
         })),
       });
       toast.success(`${parts.length} colis créés`);
@@ -190,15 +212,16 @@ function SplitDialog({
                     onChange={(e) => set(i, { weight: e.target.value === '' ? null : Number(e.target.value) })}
                   />
                 </div>
-                <div>
-                  <Label className="text-[11px]">Réf. transporteur / GP</Label>
-                  <Input
-                    className="h-9"
-                    value={p.transporteur_ref ?? ''}
-                    onChange={(e) => set(i, { transporteur_ref: e.target.value })}
-                    placeholder="Ex. GP-1042"
-                  />
-                </div>
+              </div>
+              <div>
+                <Label className="text-[11px]">Transporteur / GP</Label>
+                <CarrierPicker
+                  value={p.carrier_name ?? ''}
+                  valueRef={p.transporteur_ref ?? null}
+                  types={types}
+                  autoDetected={i === 0 ? autoCarrier ?? null : autoCarrier ?? null}
+                  onChange={(name, ref) => set(i, { carrier_name: name, transporteur_ref: ref ?? undefined })}
+                />
               </div>
             </div>
           ))}
