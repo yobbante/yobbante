@@ -83,6 +83,26 @@ export function ProfileView() {
     }
   };
 
+  const [resetting, setResetting] = useState(false);
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast.error('Aucune adresse email associée à ce compte.');
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success(`Lien envoyé à ${user.email}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Envoi impossible');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/';
