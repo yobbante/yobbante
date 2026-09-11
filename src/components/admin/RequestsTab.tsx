@@ -94,6 +94,8 @@ export interface RequestsTabProps {
   hideHeader?: boolean;
   /** Hide these statuses entirely (e.g. CANCELLED / ARCHIVED in "Demandes entrantes"). */
   excludeStatuses?: string[];
+  /** Ne garder que ces statuts (onglets métier : à traiter / en cours / devis / terminés). */
+  includeStatuses?: string[];
   /** Optional override for the page title. */
   title?: string;
   /** Optional override for the subtitle. */
@@ -107,6 +109,7 @@ export function RequestsTab({
   lockKind = false,
   hideHeader = false,
   excludeStatuses,
+  includeStatuses,
   title,
   subtitle,
   transportModes,
@@ -120,6 +123,10 @@ export function RequestsTab({
   const [view, setView] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const excludedSet = useMemo(() => new Set(excludeStatuses ?? []), [excludeStatuses]);
+  const includedSet = useMemo(
+    () => (includeStatuses && includeStatuses.length > 0 ? new Set(includeStatuses) : null),
+    [includeStatuses],
+  );
 
   const [flashId, setFlashId] = useState<string | null>(null);
 
@@ -296,16 +303,19 @@ export function RequestsTab({
 
 
 
+  const inScope = useMemo(
+    () => dossiers.filter(d => !excludedSet.has(d.status) && (!includedSet || includedSet.has(d.status))),
+    [dossiers, excludedSet, includedSet],
+  );
+
   const counts = useMemo(() => {
-    const scope = dossiers.filter(d => !excludedSet.has(d.status));
-    const c: Record<TypeFilter, number> = { all: scope.length, send: 0, receive: 0, sourcing: 0 };
-    scope.forEach(d => { c[getKind(d)]++; });
+    const c: Record<TypeFilter, number> = { all: inScope.length, send: 0, receive: 0, sourcing: 0 };
+    inScope.forEach(d => { c[getKind(d)]++; });
     return c;
-  }, [dossiers, excludedSet]);
+  }, [inScope]);
 
   const filtered = useMemo(() => {
-    return dossiers.filter(d => {
-      if (excludedSet.has(d.status)) return false;
+    return inScope.filter(d => {
       if (kind !== 'all' && getKind(d) !== kind) return false;
       if (transportModes && transportModes.length > 0) {
         const m = resolveTransportMode(d);
@@ -324,14 +334,14 @@ export function RequestsTab({
       }
       return true;
     });
-  }, [dossiers, q, kind, statusFilter, excludedSet, transportModes]);
+  }, [inScope, q, kind, statusFilter, transportModes]);
 
   const statusCounts = useMemo(() => {
     const c = new Map<DossierStatus, number>();
-    const scope = dossiers.filter(d => kind === 'all' || getKind(d) === kind);
+    const scope = inScope.filter(d => kind === 'all' || getKind(d) === kind);
     scope.forEach(d => c.set(d.status, (c.get(d.status) ?? 0) + 1));
     return c;
-  }, [dossiers, kind]);
+  }, [inScope, kind]);
 
   function toggleStatus(s: DossierStatus) {
     setStatusFilter(prev => {

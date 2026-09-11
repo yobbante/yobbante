@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Layers, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon, Plane, Ship, Users } from 'lucide-react';
+import {
+  Plus, Inbox, PackageOpen, ShoppingCart, ShieldCheck, Route as RouteIcon, Plane, Ship, Users,
+  FileText, Loader2, CheckCircle2, Archive,
+} from 'lucide-react';
 import { HubHeader, HubTab } from './hub-ui';
-
-
-
 
 import { RequestsTab } from './RequestsTab';
 import { FretDossiersList } from './dossiers/FretDossiersList';
@@ -20,18 +18,53 @@ import { AdminDossierSheet } from './dossier-sheet/AdminDossierSheet';
 import { ClientAuditPanel } from './ClientAuditPanel';
 import { useInboxUnassignedCount } from '@/hooks/useInboxUnassignedCount';
 
-const TABS = ['tous', 'demandes', 'gp', 'aerien', 'maritime', 'routier', 'reception', 'sourcing', 'audit'] as const;
-type TabId = typeof TABS[number];
-const DEFAULT_TAB: TabId = 'demandes';
+/** Groupes de statuts — une demande n'apparaît que dans UN seul onglet métier. */
+const S = {
+  devis: ['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED'],
+  traiter: ['SUBMITTED', 'IN_REVIEW', 'AWAITING_CLIENT', 'EN_RECHERCHE_DEPART', 'STALE'],
+  encours: [
+    'CONFIRMED', 'DEPARTURE_CONFIRMED', 'ASSIGNED', 'COLLECTING', 'COLLECTED', 'WEIGHED',
+    'ARRIVED_HUB', 'IN_TRANSIT', 'CUSTOMS', 'OUT_FOR_DELIVERY', 'SOURCING', 'PROCURED',
+    'RETURN_REQUESTED', 'RETURN_IN_PROGRESS',
+  ],
+  termines: ['DELIVERED', 'CLOSED', 'RETURNED'],
+  archives: ['CANCELLED', 'ARCHIVED'],
+};
+/** Masqué partout sauf dans l'onglet Archivés. */
+const HIDE_DEAD = S.archives;
 
+const TABS = [
+  'traiter', 'devis', 'encours', 'gp', 'aerien', 'maritime', 'routier',
+  'reception', 'sourcing', 'termines', 'archives', 'audit',
+] as const;
+type TabId = typeof TABS[number];
+const DEFAULT_TAB: TabId = 'traiter';
+
+/** Anciens liens (?tab=demandes / ?tab=tous) → onglet de travail. */
+const ALIASES: Record<string, TabId> = { demandes: 'traiter', tous: 'traiter' };
+
+const TAB_META: Record<TabId, { label: string; subtitle: string }> = {
+  traiter:   { label: 'À traiter',   subtitle: 'File de travail — nouvelles demandes et dossiers en attente d’action de votre part.' },
+  devis:     { label: 'Devis',       subtitle: 'Toutes les demandes de devis, du premier contact à l’acceptation.' },
+  encours:   { label: 'En cours',    subtitle: 'Dossiers confirmés, en collecte, en transit ou en livraison.' },
+  gp:        { label: 'GP',          subtitle: 'Bagage accompagné — dossiers rattachés à un transporteur GP.' },
+  aerien:    { label: 'Aérien',      subtitle: 'Fret aérien — devis indicatifs et dossiers confirmés.' },
+  maritime:  { label: 'Maritime',    subtitle: 'Fret maritime (LCL).' },
+  routier:   { label: 'Routier',     subtitle: 'Courses Terminal D — national et pays voisins.' },
+  reception: { label: 'Réception',   subtitle: 'Colis reçus en entrepôt.' },
+  sourcing:  { label: 'Sourcing',    subtitle: 'Achats pour le compte du client.' },
+  termines:  { label: 'Terminés',    subtitle: 'Dossiers livrés, clôturés ou retournés.' },
+  archives:  { label: 'Archivés',    subtitle: 'Annulés et archivés — hors de la file de travail.' },
+  audit:     { label: 'Audit & Test', subtitle: 'Contrôles internes.' },
+};
 
 export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
   const [sp, setSp] = useSearchParams();
-  const tabParam = sp.get('tab') as TabId | null;
-  const tab: TabId = tabParam && TABS.includes(tabParam) ? tabParam : DEFAULT_TAB;
+  const raw = sp.get('tab') || '';
+  const resolved = (ALIASES[raw] ?? raw) as TabId;
+  const tab: TabId = TABS.includes(resolved) ? resolved : DEFAULT_TAB;
   const [intakeOpen, setIntakeOpen] = useState(false);
   const { data: unassignedCount = 0 } = useInboxUnassignedCount(!fretOnly);
-  const [showArchived, setShowArchived] = useState(false);
 
   // Agent terrain : uniquement les dossiers routiers (Terminal D), en lecture.
   if (fretOnly) {
@@ -46,8 +79,6 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
     );
   }
 
-
-
   const onChange = (v: string) => {
     const next = new URLSearchParams(sp);
     if (v === DEFAULT_TAB) next.delete('tab');
@@ -55,13 +86,15 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
     setSp(next, { replace: true });
   };
 
+  const meta = TAB_META[tab];
+
   return (
     <DossierSheetProvider>
       <div className="space-y-3 md:space-y-4">
         <div className="hidden md:block">
           <HubHeader
             title="Dossiers"
-            subtitle="Toutes les demandes et expéditions, par catégorie."
+            subtitle="Une demande n’apparaît que dans un seul onglet : à traiter, devis, en cours, terminés ou archivés."
             actions={
               <Button size="sm" onClick={() => setIntakeOpen(true)} aria-label="Nouveau dossier">
                 <Plus className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Nouveau dossier</span>
@@ -72,25 +105,27 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
 
         <Tabs value={tab} onValueChange={onChange}>
           <div className="flex items-center gap-2">
-            <TabsList className="flex-1 md:flex-none justify-center md:justify-start">
-              <HubTab value="tous"     icon={Layers}   label="Tous" />
+            <TabsList className="flex-1 md:flex-none justify-start overflow-x-auto">
               <HubTab
-                value="demandes"
+                value="traiter"
                 icon={Inbox}
-                label="Demandes entrantes"
+                label="À traiter"
                 badge={unassignedCount > 0 ? (
                   <span className="ml-1 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 tabular-nums">
                     {unassignedCount}
                   </span>
                 ) : undefined}
               />
-              <HubTab value="gp"        icon={Users}       label="GP" />
-              <HubTab value="aerien"    icon={Plane}       label="Aérien" />
-              <HubTab value="maritime"  icon={Ship}        label="Maritime" />
-              <HubTab value="routier"   icon={RouteIcon}   label="Routier" />
-
-              <HubTab value="reception" icon={PackageOpen} label="Réception" />
+              <HubTab value="devis"     icon={FileText}     label="Devis" />
+              <HubTab value="encours"   icon={Loader2}      label="En cours" />
+              <HubTab value="gp"        icon={Users}        label="GP" />
+              <HubTab value="aerien"    icon={Plane}        label="Aérien" />
+              <HubTab value="maritime"  icon={Ship}         label="Maritime" />
+              <HubTab value="routier"   icon={RouteIcon}    label="Routier" />
+              <HubTab value="reception" icon={PackageOpen}  label="Réception" />
               <HubTab value="sourcing"  icon={ShoppingCart} label="Sourcing" />
+              <HubTab value="termines"  icon={CheckCircle2} label="Terminés" />
+              <HubTab value="archives"  icon={Archive}      label="Archivés" />
               <HubTab value="audit"     icon={ShieldCheck}  label="Audit & Test" />
             </TabsList>
             <Button size="icon" className="md:hidden h-9 w-9 shrink-0" onClick={() => setIntakeOpen(true)} aria-label="Nouveau dossier">
@@ -98,71 +133,48 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
             </Button>
           </div>
 
+          {/* Repère permanent : on sait toujours dans quel onglet on travaille. */}
+          <div className="mt-3 rounded-lg border border-border bg-card px-3 py-2">
+            <p className="text-sm font-semibold text-foreground">{meta.label}</p>
+            <p className="text-[11px] text-muted-foreground leading-snug">{meta.subtitle}</p>
+          </div>
 
-          <TabsContent value="tous"      className="mt-3 md:mt-4 space-y-4">
-            <RequestsTab />
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase text-muted-foreground">Dossiers routiers (Terminal D)</p>
-              <FretDossiersList compact />
-            </div>
+          <TabsContent value="traiter" className="mt-3 md:mt-4">
+            <RequestsTab hideHeader includeStatuses={S.traiter} excludeStatuses={HIDE_DEAD} />
           </TabsContent>
-          <TabsContent value="demandes"  className="mt-3 md:mt-4">
-            <div className="mb-3 hidden md:flex items-center justify-end gap-2">
-              <Label htmlFor="show-archived" className="text-xs text-muted-foreground cursor-pointer">
-                <span className="hidden md:inline">Voir archivés / annulés</span>
-                <span className="md:hidden">Archivés</span>
-              </Label>
-              <Switch
-                id="show-archived"
-                checked={showArchived}
-                onCheckedChange={setShowArchived}
-              />
-            </div>
-            <RequestsTab
-              initialKind="send"
-              lockKind
-              hideHeader
-              title="Demandes entrantes"
-              subtitle="Flow expédition — clients ayant envoyé une demande."
-              excludeStatuses={showArchived ? [] : ['CANCELLED', 'ARCHIVED']}
-            />
+
+          <TabsContent value="devis" className="mt-3 md:mt-4">
+            <RequestsTab hideHeader includeStatuses={S.devis} excludeStatuses={HIDE_DEAD} />
+          </TabsContent>
+
+          <TabsContent value="encours" className="mt-3 md:mt-4">
+            <RequestsTab hideHeader includeStatuses={S.encours} excludeStatuses={HIDE_DEAD} />
           </TabsContent>
 
           <TabsContent value="gp" className="mt-3 md:mt-4">
-            <RequestsTab
-              hideHeader
-              transportModes={['gp']}
-              title="Dossiers GP"
-              subtitle="Bagage accompagné — dossiers rattachés à un transporteur GP."
-              excludeStatuses={['CANCELLED', 'ARCHIVED']}
-            />
+            <RequestsTab hideHeader transportModes={['gp']} excludeStatuses={HIDE_DEAD} />
           </TabsContent>
           <TabsContent value="aerien" className="mt-3 md:mt-4">
-            <RequestsTab
-              hideHeader
-              transportModes={['air']}
-              title="Dossiers aériens"
-              subtitle="Fret aérien — devis indicatifs et dossiers confirmés."
-              excludeStatuses={['CANCELLED', 'ARCHIVED']}
-            />
+            <RequestsTab hideHeader transportModes={['air']} excludeStatuses={HIDE_DEAD} />
           </TabsContent>
           <TabsContent value="maritime" className="mt-3 md:mt-4">
-            <RequestsTab
-              hideHeader
-              transportModes={['sea']}
-              title="Dossiers maritimes"
-              subtitle="Fret maritime (LCL) — en préparation."
-              excludeStatuses={['CANCELLED', 'ARCHIVED']}
-            />
+            <RequestsTab hideHeader transportModes={['sea']} excludeStatuses={HIDE_DEAD} />
           </TabsContent>
-          <TabsContent value="routier"   className="mt-3 md:mt-4"><FretDossiersList /></TabsContent>
+          <TabsContent value="routier" className="mt-3 md:mt-4"><FretDossiersList /></TabsContent>
 
           <TabsContent value="reception" className="mt-3 md:mt-4"><ReceptionKanbanTab /></TabsContent>
           <TabsContent value="sourcing"  className="mt-3 md:mt-4"><SourcingTab /></TabsContent>
-          <TabsContent value="audit"     className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
+
+          <TabsContent value="termines" className="mt-3 md:mt-4">
+            <RequestsTab hideHeader includeStatuses={S.termines} excludeStatuses={HIDE_DEAD} />
+          </TabsContent>
+          <TabsContent value="archives" className="mt-3 md:mt-4">
+            <RequestsTab hideHeader includeStatuses={S.archives} />
+          </TabsContent>
+
+          <TabsContent value="audit" className="mt-3 md:mt-4"><ClientAuditPanel /></TabsContent>
         </Tabs>
       </div>
-
 
       <NewIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} />
 
