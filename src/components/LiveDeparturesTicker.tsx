@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 type TickerItem = {
@@ -217,7 +218,8 @@ export function LiveDeparturesTicker() {
       }}
       aria-label="Prochains départs"
     >
-      <span
+      <Link
+        to="/departs"
         className="hidden md:inline-flex"
         style={{
           fontFamily: '"DM Mono", ui-monospace, monospace',
@@ -232,18 +234,22 @@ export function LiveDeparturesTicker() {
           alignItems: 'center',
           flexShrink: 0,
           whiteSpace: 'nowrap',
+          textDecoration: 'none',
         }}
       >
         Prochains départs
-      </span>
+      </Link>
 
-      <div
+      <Link
+        to="/departs"
+        aria-label="Voir tous les prochains départs"
         className="ticker-scroll-zone"
         style={{
           flex: 1,
           overflow: 'hidden',
           height: '100%',
           position: 'relative',
+          display: 'block',
           WebkitMaskImage:
             'linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%)',
           maskImage:
@@ -267,7 +273,7 @@ export function LiveDeparturesTicker() {
           {buildTrack('a')}
           {buildTrack('b')}
         </div>
-      </div>
+      </Link>
 
       <style>{`
         @keyframes ticker-scroll {
