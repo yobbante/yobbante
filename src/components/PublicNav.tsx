@@ -17,17 +17,18 @@ interface PublicNavProps {
 }
 
 
-const LINKS: { label: string; to: string; match: (p: string) => boolean; subBadge?: string; external?: boolean }[] = [
-  // 3 CTAs égaux — entrée principale du site
-  { label: 'Expédier',     to: '/expedier',          match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
-  { label: 'Sourcing',     to: '/sourcing',          match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
-  { label: 'Relais D',    to: '/relais-d', match: p => p.startsWith('/relais-d') || p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
-  { label: 'Prochains départs', to: '/departs',      match: p => p.startsWith('/departs') || p.startsWith('/prochains-departs') },
-  // Secondaires
-  { label: 'Suivre',       to: '/suivre',            match: p => p.startsWith('/suivre') || p.startsWith('/track') },
-  { label: 'Tarifs',       to: '/tarifs',            match: p => p.startsWith('/tarifs') },
-  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', match: p => p.startsWith('/boutique'), external: true },
+const LINKS: { label: string; to: string; match: (p: string) => boolean; desc?: string; subBadge?: string; external?: boolean }[] = [
+  { label: 'Expédier', to: '/expedier', desc: 'GP, aérien, maritime ou routier', match: p => p.startsWith('/expedier') && !p.startsWith('/expedier/recevoir') },
+  { label: 'Prochains départs', to: '/departs', desc: 'Réservez sur un départ confirmé', match: p => p.startsWith('/departs') || p.startsWith('/prochains-departs') },
+  { label: 'Transport routier', to: '/terminal-d', desc: 'Sénégal et pays voisins — Terminal D', match: p => p.startsWith('/terminal-d') || p.startsWith('/fret') },
+  { label: 'Sourcing', to: '/sourcing', desc: 'On achète pour vous en Chine, Turquie…', match: p => p.startsWith('/sourcing') || p.startsWith('/acheter') },
+  { label: 'Relais D', to: '/relais-d', desc: 'Recevez vos achats Amazon, Shein…', match: p => p.startsWith('/relais-d') || p.startsWith('/expedier/recevoir') || p.startsWith('/reception') },
+  { label: 'Suivre mon colis', to: '/suivre', desc: 'Suivi en temps réel', match: p => p.startsWith('/suivre') || p.startsWith('/track') },
+  { label: 'Tarifs', to: '/tarifs', desc: 'Grille de prix et simulateur', match: p => p.startsWith('/tarifs') },
+  { label: 'Demander un devis', to: '/demande-devis', desc: 'Réponse sous 24 h', match: p => p.startsWith('/demande-devis') },
+  { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', desc: 'Produits livrés au Sénégal', match: p => p.startsWith('/boutique'), external: true },
 ];
+
 
 const SubBadge = ({ children }: { children: React.ReactNode }) => (
   <span
@@ -162,22 +163,31 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                     </button>
                   </div>
                   <div className="px-6 py-2">
-                    {LINKS.map((l, i) => {
+                    {LINKS.map((l) => {
+                      const active = l.match(location.pathname);
                       const commonStyle: React.CSSProperties = {
                         fontSize: 16,
+                        fontWeight: 600,
                         color: 'hsl(var(--foreground))',
-                        padding: '14px 0',
-                        borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                        padding: '12px 12px',
+                        borderRadius: 12,
+                        background: active ? 'hsl(var(--secondary))' : 'transparent',
                         textDecoration: 'none',
+                        justifyContent: 'space-between',
+                        gap: 12,
                       };
                       const inner = (
-                        <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
-                          <span>{l.label}</span>
-                          {l.subBadge && (
-                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
-                          )}
-                        </span>
+                        <>
+                          <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{l.label}</span>
+                            {l.desc && (
+                              <span style={{ fontSize: 12, fontWeight: 400, color: 'hsl(var(--muted-foreground))' }}>{l.desc}</span>
+                            )}
+                          </span>
+                          <span aria-hidden style={{ color: 'hsl(var(--muted-foreground))', fontSize: 15 }}>→</span>
+                        </>
                       );
+
                       if (l.external) {
                         return (
                           <a
@@ -203,7 +213,15 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      onClick={() => { setOpen(false); navigate('/expedier'); }}
+                      className="btn-cta w-full mt-3"
+                    >
+                      Expédier maintenant →
+                    </button>
                   </div>
+
                   <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                     {user ? (
                       <Link to="/app" onClick={() => setOpen(false)} className="btn-cta w-full">Mon espace</Link>
