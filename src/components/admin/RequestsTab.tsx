@@ -109,6 +109,7 @@ export function RequestsTab({
   lockKind = false,
   hideHeader = false,
   excludeStatuses,
+  includeStatuses,
   title,
   subtitle,
   transportModes,
