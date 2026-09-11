@@ -510,7 +510,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             <div className="flex gap-2 overflow-x-auto p-3 sm:block sm:space-y-2 sm:overflow-y-auto">
               {(list.data ?? []).length === 0 ? (
                 <p className="text-xs text-muted-foreground px-1">Aucun départ.</p>
-              ) : (list.data ?? []).slice().sort((a, b) => a.departure_date.localeCompare(b.departure_date)).map((item) => (
+              ) : (list.data ?? []).filter((item) => {
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  return new Date(item.departure_date) >= today;
+                }).sort((a, b) => a.departure_date.localeCompare(b.departure_date)).map((item) => (
                 <div
                   key={item.id}
                   className="min-w-[210px] sm:min-w-0 sm:w-full text-left rounded-md border border-border bg-background p-3 hover:border-primary/60"
