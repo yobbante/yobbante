@@ -315,7 +315,11 @@ export default function TrackPage() {
           />
         ) : data ? (
           <>
-            <PublicDepartureConfirm tracking={data.tracking_number} />
+            <PublicDepartureConfirm
+              tracking={data.tracking_number}
+              priority={data.priority === 'express' ? 'express' : 'standard'}
+              onActive={setDepartureCardActive}
+            />
             {(data.status.startsWith('QUOTE_') || data.devis) && (
               <section className="rounded-xl border border-border bg-card p-5 mb-5">
                 <p className="text-xs uppercase text-muted-foreground font-semibold">Devis sur mesure</p>
@@ -358,6 +362,7 @@ export default function TrackPage() {
               </section>
             )}
 
+            {!departureCardActive && (
             <div
               className="rounded-[12px] p-5 mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-start sm:justify-between"
               style={{ background: 'hsl(var(--secondary))' }}
