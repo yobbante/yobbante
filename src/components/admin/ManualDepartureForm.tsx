@@ -366,14 +366,15 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       if (isEdit && departure) {
         savedDeparture = await update.mutateAsync({ id: departure.id, patch: input });
       } else if (frequentMode) {
+        const scheduledDates = plannedDates.length > 0 ? plannedDates : [safeDepartureDate];
         const existingKeys = new Set((list.data ?? []).map((item) =>
           [item.transporteur_ref ?? '', item.origin_city.toLowerCase(), item.destination_city.toLowerCase(), item.departure_date].join('|'),
         ));
-        const datesToCreate = plannedDates.filter((plannedDate) => {
+        const datesToCreate = scheduledDates.filter((plannedDate) => {
           const key = [input.transporteur_ref ?? '', input.origin_city.toLowerCase(), input.destination_city.toLowerCase(), format(plannedDate, 'yyyy-MM-dd')].join('|');
           return !existingKeys.has(key);
         });
-        const skippedCount = plannedDates.length - datesToCreate.length;
+        const skippedCount = scheduledDates.length - datesToCreate.length;
         if (datesToCreate.length === 0) {
           toast.info('Tous ces départs existent déjà. Aucun doublon créé.');
           return;
@@ -500,7 +501,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-5xl overflow-hidden p-0">
-        <div className="grid h-full min-h-0 sm:grid-cols-[17rem_minmax(0,1fr)]">
+        <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] sm:grid-cols-[17rem_minmax(0,1fr)] sm:grid-rows-1">
           <aside className="border-b border-border bg-secondary/20 sm:border-b-0 sm:border-r min-h-0 flex flex-col">
             <div className="px-4 py-4 border-b border-border">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Départs existants</p>
