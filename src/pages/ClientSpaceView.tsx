@@ -58,6 +58,7 @@ export function ClientSpaceView() {
   const allHistory = dossiers.filter(HISTORY_FILTER);
   const history = showAllHistory ? allHistory : allHistory.slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
+  const paidCount = dossiers.filter((d) => d.payment_status === 'paid').length;
   const isEmpty = !isLoading && dossiers.length === 0;
 
   return (
