@@ -135,14 +135,19 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   const activeTab = KIND_TABS.find(t => t.id === kind)!;
   const visibleDossiers = useMemo(() => {
-    const list = grouped[kind];
+    let list = grouped[kind];
+    if (filter === 'pending') {
+      list = list.filter(d => (d as any).payment_status === 'pending' && d.status !== 'CLOSED');
+    } else if (filter === 'invoices') {
+      list = list.filter(d => (d as any).payment_status === 'paid');
+    }
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter(d =>
       d.reference.toLowerCase().includes(q) ||
-      d.product_description.toLowerCase().includes(q)
+      (d.product_description || '').toLowerCase().includes(q)
     );
-  }, [grouped, kind, query]);
+  }, [grouped, kind, query, filter]);
 
   // For "Envois" we ONLY surface shipments created via the SendFlow,
   // identified by `transport_metadata.meta.send_flow === true`. This avoids
