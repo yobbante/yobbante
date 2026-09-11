@@ -48,22 +48,8 @@ export function ClientSpaceView() {
   useDossiersRealtime();
   const [showAllHistory, setShowAllHistory] = useState(false);
 
-  // Rattache automatiquement un colis consulté en public avant l'inscription.
-  useEffect(() => {
-    let cancelled = false;
-    claimPendingTracking().then((result) => {
-      if (cancelled || !result) return;
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['dossiers'] });
-        toast.success(`Le colis ${result.ref} a été ajouté à votre espace.`);
-      } else if (result.reason === 'already_claimed') {
-        toast.error('Ce colis est déjà rattaché à un autre compte.');
-      } else if (result.reason === 'not_found') {
-        toast.error('Le colis suivi est introuvable.');
-      }
-    });
-    return () => { cancelled = true; };
-  }, [queryClient]);
+  // Le rattachement du colis suivi en public est géré au niveau de l'app (Index).
+
 
   const firstName = useMemo(() => {
     if (!profile?.full_name) return '';
