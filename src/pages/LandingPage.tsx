@@ -677,7 +677,7 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
           className="hidden md:flex"
           style={{ alignItems: 'center', gap: 28 }}
         >
-          {NAV_LINKS.map((l) => {
+          {NAV_LINKS.filter((l) => !l.hideDesktop).map((l) => {
             const commonStyle = {
               fontSize: 14,
               fontWeight: 500,
@@ -878,7 +878,18 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
             const hoverOut = (e: React.MouseEvent<HTMLAnchorElement>) => {
               (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
             };
-            const body = (<><span>{l.label}</span><ArrowRight size={16} style={{ opacity: 0.4 }} /></>);
+            const body = (
+              <>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span>{l.label}</span>
+                  {l.desc && (
+                    <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(13,27,42,0.55)' }}>{l.desc}</span>
+                  )}
+                </span>
+                <ArrowRight size={16} style={{ opacity: 0.4 }} />
+              </>
+            );
+
             return l.external ? (
               <a key={l.to} href={l.to} target="_blank" rel="noopener noreferrer"
                  onClick={() => setMenuOpen(false)} style={style}
@@ -933,8 +944,12 @@ function LandingFooter() {
       title: 'Services',
       items: [
         { label: 'Expédier un colis', to: '/expedier' },
-        { label: 'Transport routier', to: '/terminal-d' },
+        { label: 'Prochains départs', to: '/departs' },
+        { label: 'Transport routier — Terminal D', to: '/terminal-d' },
+        { label: 'Sourcing', to: '/sourcing' },
+        { label: 'Relais D', to: '/relais-d' },
         { label: 'Tarifs', to: '/tarifs' },
+
         { label: 'Suivre mon colis', to: '/suivre' },
         { label: 'Boutique Dëkk', to: 'https://dekk.yobbante.com', external: true },
       ],
