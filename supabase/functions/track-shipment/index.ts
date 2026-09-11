@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
     if (!shipment) {
       const { data: dossier } = await sb
         .from('dossiers')
-        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost, quote_amount_xof, quote_currency, quote_valid_until, quote_notes_admin, quote_sent_at, quote_response')
+        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost, quote_amount_xof, quote_currency, quote_valid_until, quote_notes_admin, quote_sent_at, quote_response, is_express')
         .or(`tracking_id.eq.${ref},reference.eq.${ref}`)
         .maybeSingle();
 
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
           weight_kg: (dossier as any).actual_weight_kg ?? (dossier as any).estimated_weight,
           departure_date: null,
           eta: (dossier as any).estimated_delivery_date,
-          transport_type: (dossier as any).transport_mode ?? null,
+          transport_type: null,
           priority: (dossier as any).is_express ? 'express' : 'standard',
           total_cost: (dossier as any).quote_amount_xof ?? (dossier as any).final_amount_xof ?? (dossier as any).estimated_cost,
           quote_amount_xof: (dossier as any).quote_amount_xof,
