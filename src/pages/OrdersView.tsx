@@ -144,21 +144,43 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter(d =>
-      d.reference.toLowerCase().includes(q) ||
-      (d.product_description || '').toLowerCase().includes(q)
+      [
+        d.reference,
+        (d as any).tracking_reference,
+        d.product_description,
+        (d as any).origin_city,
+        (d as any).destination_city,
+        d.origin_country,
+        d.destination_country,
+        (d as any).recipient_name,
+        (d as any).status,
+      ]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(q))
     );
   }, [grouped, kind, query, filter]);
 
   // For "Envois" we ONLY surface shipments created via the SendFlow,
   // identified by `transport_metadata.meta.send_flow === true`. This avoids
   // mixing in shipments born from sourcing/reception flows.
-  const sendFlowShipments = useMemo(
-    () => (filter ? [] : shipments.filter(s => {
+  const sendFlowShipments = useMemo(() => {
+    if (filter) return [];
+    const q = query.trim().toLowerCase();
+    return shipments.filter(s => {
       const meta = (s.transport_metadata ?? {}) as Record<string, any>;
-      return meta?.meta?.send_flow === true;
-    })),
-    [shipments, filter]
-  );
+      if (meta?.meta?.send_flow !== true) return false;
+      if (!q) return true;
+      return [
+        (s as any).reference,
+        (s as any).tracking_number,
+        (s as any).origin_country,
+        (s as any).destination_country,
+        s.status,
+      ]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(q));
+    });
+  }, [shipments, filter, query]);
   const activeShipments = useMemo(
     () => sendFlowShipments.filter(s => s.status !== 'DELIVERED'),
     [sendFlowShipments]
@@ -244,11 +266,8 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         </div>
       )}
 
-      {/* Hint line + search */}
+      {/* Recherche + filtres */}
       <div className="space-y-3">
-        <p className="text-[12px] text-muted-foreground" aria-live="polite">
-          {activeTab.hint}
-        </p>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input

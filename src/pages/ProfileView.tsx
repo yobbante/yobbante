@@ -83,6 +83,26 @@ export function ProfileView() {
     }
   };
 
+  const [resetting, setResetting] = useState(false);
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast.error('Aucune adresse email associée à ce compte.');
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success(`Lien envoyé à ${user.email}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Envoi impossible');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/';
@@ -331,42 +351,43 @@ export function ProfileView() {
         <button
           type="button"
           className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"
-          onClick={() => toast.info('Bientôt disponible')}
+          onClick={() => navigate('/demande-devis')}
         >
           <span className="w-8 h-8 rounded-lg bg-secondary text-foreground flex items-center justify-center">
             <MapPin className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">Adresses de livraison</p>
-            <p className="text-[11px] text-muted-foreground">Carnet d'adresses au Sénégal & ailleurs</p>
+            <p className="text-sm font-medium text-foreground">Demander un devis</p>
+            <p className="text-[11px] text-muted-foreground">GP, routier, aérien ou maritime — réponse rapide</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"
-          onClick={() => toast.info('Bientôt disponible')}
-        >
-          <span className="w-8 h-8 rounded-lg bg-secondary text-foreground flex items-center justify-center">
+        <div className="flex items-start gap-3 px-4 py-3.5">
+          <span className="w-8 h-8 rounded-lg bg-secondary text-foreground flex items-center justify-center shrink-0">
             <Bell className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">Notifications</p>
-            <p className="text-[11px] text-muted-foreground">Email, WhatsApp, push</p>
+            <p className="text-[11px] text-muted-foreground">
+              Suivi envoyé sur WhatsApp {profile?.phone ? `au ${profile.phone}` : '(ajoutez votre numéro)'}
+              {user?.email ? ` et par email à ${user.email}` : ''}.
+            </p>
           </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
+        </div>
         <button
           type="button"
-          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors"
-          onClick={() => toast.info('Bientôt disponible')}
+          disabled={resetting}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors disabled:opacity-60"
+          onClick={handlePasswordReset}
         >
           <span className="w-8 h-8 rounded-lg bg-secondary text-foreground flex items-center justify-center">
             <ShieldCheck className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground">Sécurité</p>
-            <p className="text-[11px] text-muted-foreground">Mot de passe, sessions actives</p>
+            <p className="text-[11px] text-muted-foreground">
+              {resetting ? 'Envoi du lien…' : 'Recevoir un lien pour changer de mot de passe'}
+            </p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
