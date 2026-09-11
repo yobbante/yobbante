@@ -108,7 +108,7 @@ export function ClientSpaceView() {
       )}
 
       {/* Mes expéditions en cours */}
-      {!isEmpty && (
+      {(
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
