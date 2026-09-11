@@ -144,8 +144,19 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter(d =>
-      d.reference.toLowerCase().includes(q) ||
-      (d.product_description || '').toLowerCase().includes(q)
+      [
+        d.reference,
+        (d as any).tracking_reference,
+        d.product_description,
+        (d as any).origin_city,
+        (d as any).destination_city,
+        d.origin_country,
+        d.destination_country,
+        (d as any).recipient_name,
+        (d as any).status,
+      ]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(q))
     );
   }, [grouped, kind, query, filter]);
 
