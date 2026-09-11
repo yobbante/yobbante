@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { countryForCity } from '@/lib/worldCities';
 import { toast } from 'sonner';
 import { Loader2, UserPlus, Zap } from 'lucide-react';
+import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { ClientSearchPicker, type ClientHit } from '@/components/admin/ClientSearchPicker';
 
 
@@ -39,6 +40,7 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
   const [weight, setWeight] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [priority, setPriority] = useState<'standard' | 'express'>('standard');
   const [saving, setSaving] = useState(false);
   const [picked, setPicked] = useState<ClientHit | null>(null);
 
@@ -53,6 +55,7 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
     setDestination('Dakar');
     setWeight('');
     setDescription('');
+    setPriority('standard');
     setNotes(lastMessage ? `Demande WhatsApp : ${lastMessage.slice(0, 400)}` : '');
   }, [open, phone, contactName, lastMessage]);
 
@@ -96,6 +99,10 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
           destination_country: countryForCity(destCity ?? '') || 'SN',
           contact_phone: tel || phone,
           estimated_weight: weight ? parseFloat(weight.replace(',', '.')) : null,
+          is_express: priority === 'express',
+          estimated_delivery_date: destCity
+            ? getDeliveryDelay(destCity, priority).arrivalDate.toISOString().slice(0, 10)
+            : null,
           status: 'SUBMITTED',
           source: 'whatsapp',
           app_source: 'expedier',
@@ -187,6 +194,27 @@ export function QuickDossierDialog({ open, onOpenChange, phone, contactName, las
               <label className="text-[11px] font-semibold text-muted-foreground">Contenu</label>
               <Input value={description} onChange={(e) => setDescription(e.target.value)}
                      placeholder="ex : vêtements, documents" className="h-8 text-xs mt-1" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold text-muted-foreground">Type d'envoi</label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {(['standard', 'express'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={`rounded-lg border-2 px-2 py-2 text-left transition-colors ${
+                    priority === p ? 'border-primary bg-primary/10' : 'border-border'
+                  }`}
+                >
+                  <div className="text-xs font-medium">{p === 'express' ? 'Express' : 'Standard'}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    ≈ {getDeliveryDelay(destination, p).label} après départ
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
