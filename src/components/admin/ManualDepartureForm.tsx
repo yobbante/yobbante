@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, addDays } from 'date-fns';
-import { CalendarIcon, Check, Plane, Plus, Trash2 } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import {
@@ -365,38 +365,36 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       let savedDeparture: ManualDeparture;
       if (isEdit && departure) {
         savedDeparture = await update.mutateAsync({ id: departure.id, patch: input });
-      } else {
-        savedDeparture = await create.mutateAsync(input);
-      }
-
-      // Vols fréquents : création groupée, sans recréer un départ identique.
-      if (!isEdit && frequentMode && plannedDates.length > 1) {
+      } else if (frequentMode) {
         const existingKeys = new Set((list.data ?? []).map((item) =>
           [item.transporteur_ref ?? '', item.origin_city.toLowerCase(), item.destination_city.toLowerCase(), item.departure_date].join('|'),
         ));
-        let createdCount = 1;
-        let skippedCount = 0;
-        for (const plannedDate of plannedDates.slice(1)) {
-          const dateKey = format(plannedDate, 'yyyy-MM-dd');
-          const key = [input.transporteur_ref ?? '', input.origin_city.toLowerCase(), input.destination_city.toLowerCase(), dateKey].join('|');
-          if (existingKeys.has(key)) {
-            skippedCount += 1;
-            continue;
-          }
+        const datesToCreate = plannedDates.filter((plannedDate) => {
+          const key = [input.transporteur_ref ?? '', input.origin_city.toLowerCase(), input.destination_city.toLowerCase(), format(plannedDate, 'yyyy-MM-dd')].join('|');
+          return !existingKeys.has(key);
+        });
+        const skippedCount = plannedDates.length - datesToCreate.length;
+        if (datesToCreate.length === 0) {
+          toast.info('Tous ces départs existent déjà. Aucun doublon créé.');
+          return;
+        }
+        const created: ManualDeparture[] = [];
+        for (const plannedDate of datesToCreate) {
           const estimatedArrival = estimateArrivalDate({
             destinationCountry: input.destination_country ?? 'SN',
             destinationCity: input.destination_city,
             departureDate: plannedDate,
           });
-          await create.mutateAsync({
+          created.push(await create.mutateAsync({
             ...input,
-            departure_date: dateKey,
+            departure_date: format(plannedDate, 'yyyy-MM-dd'),
             arrival_estimate: estimatedArrival ? format(estimatedArrival, 'yyyy-MM-dd') : null,
-          });
-          existingKeys.add(key);
-          createdCount += 1;
+          }));
         }
-        toast.success(`${createdCount} départs publiés${skippedCount ? ` · ${skippedCount} doublon(s) ignoré(s)` : ''}`);
+        savedDeparture = created[0];
+        toast.success(`${created.length} départ(s) publié(s)${skippedCount ? ` · ${skippedCount} doublon(s) ignoré(s)` : ''}`);
+      } else {
+        savedDeparture = await create.mutateAsync(input);
       }
 
       // 2b) Aller-retour : on enchaîne immédiatement le départ inverse.
@@ -512,13 +510,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               {(list.data ?? []).length === 0 ? (
                 <p className="text-xs text-muted-foreground px-1">Aucun départ.</p>
               ) : (list.data ?? []).slice().sort((a, b) => a.departure_date.localeCompare(b.departure_date)).map((item) => (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  onClick={() => {
-                    const target = document.getElementById(`departure-${item.id}`);
-                    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }}
                   className="min-w-[210px] sm:min-w-0 sm:w-full text-left rounded-md border border-border bg-background p-3 hover:border-primary/60"
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -527,7 +520,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   </div>
                   <p className="mt-1 text-xs font-medium truncate">{item.origin_city} → {item.destination_city}</p>
                   <p className="text-[10px] text-muted-foreground truncate">Départ #{item.short_ref ?? '—'} · {item.carrier_name ?? 'Sans nom'}</p>
-                </button>
+                </div>
               ))}
             </div>
           </aside>
@@ -625,7 +618,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           )}
 
           {/* Section 2: Route */}
-          <Section title="Route">
+          <div id="route-section" className="scroll-mt-16"><Section title="Route">
             <p className="text-[11px] text-muted-foreground">
               Yobbanté opère uniquement entre Dakar et l'une des 36 villes (+ villes personnalisées).
             </p>
@@ -748,10 +741,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 </SelectContent>
               </Select>
             </div>
-          </Section>
+          </Section></div>
 
           {/* Section 3: Dates */}
-          <Section title="Dates">
+          <div id="dates-section" ref={datesRef} className="scroll-mt-16"><Section title="Dates">
             <div className="grid grid-cols-2 gap-2">
               <DateField
                 label="Date de départ"
@@ -780,6 +773,60 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
               >
                 <Sparkles className="w-3 h-3" /> Recalculer l'arrivée estimée
               </button>
+            )}
+
+            {!isEdit && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="cursor-pointer">Vols fréquents</Label>
+                    <p className="text-[11px] text-muted-foreground">Publiez plusieurs dates pour ce même GP et ce trajet.</p>
+                  </div>
+                  <Switch checked={frequentMode} onCheckedChange={setFrequentMode} />
+                </div>
+                {frequentMode && (
+                  <div className="space-y-3 border-t border-border pt-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" variant={scheduleMode === 'weekly' ? 'default' : 'outline'} onClick={() => setScheduleMode('weekly')}>Chaque semaine</Button>
+                      <Button type="button" variant={scheduleMode === 'custom' ? 'default' : 'outline'} onClick={() => setScheduleMode('custom')}>Dates libres</Button>
+                    </div>
+                    {scheduleMode === 'weekly' ? (
+                      <>
+                        <div>
+                          <Label>Jours de départ</Label>
+                          <div className="mt-1 grid grid-cols-4 sm:grid-cols-7 gap-1">
+                            {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((label, day) => (
+                              <Button key={label} type="button" size="sm" variant={weekdays.includes(day) ? 'default' : 'outline'} onClick={() => setWeekdays((current) => current.includes(day) ? current.filter((value) => value !== day) : [...current, day])}>{label}</Button>
+                            ))}
+                          </div>
+                        </div>
+                        <DateField label="Répéter jusqu'au" value={scheduleEndDate} onChange={setScheduleEndDate} minDate={departureDate} />
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1"><DateField label="Ajouter une date" value={customDate} onChange={setCustomDate} minDate={departureDate} /></div>
+                          <Button type="button" size="icon" aria-label="Ajouter cette date" disabled={!customDate} onClick={() => {
+                            if (!customDate) return;
+                            const key = format(customDate, 'yyyy-MM-dd');
+                            setCustomDates((current) => current.some((date) => format(date, 'yyyy-MM-dd') === key) ? current : [...current, customDate]);
+                            setCustomDate(undefined);
+                          }}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {customDates.map((date) => (
+                            <span key={format(date, 'yyyy-MM-dd')} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs">
+                              {format(date, 'dd/MM/yyyy')}
+                              <Button type="button" size="icon" variant="ghost" className="h-5 w-5" aria-label="Retirer cette date" onClick={() => setCustomDates((current) => current.filter((item) => format(item, 'yyyy-MM-dd') !== format(date, 'yyyy-MM-dd')))}><Trash2 className="h-3 w-3" /></Button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs font-medium">{plannedDates.length} départ(s) prévu(s), doublons ignorés automatiquement.</p>
+                  </div>
+                )}
+              </div>
             )}
 
             {!isEdit && (
@@ -837,9 +884,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 )}
               </div>
             )}
-          </Section>
+          </Section></div>
 
           {/* Capacité — fixée à 25 kg par GP */}
+          <div id="details-section" className="scroll-mt-16 space-y-6">
           <Section title="Capacité">
             <div className="rounded-lg border border-border p-3 text-sm">
               <span className="font-medium">25 kg</span>
@@ -868,6 +916,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           <Section title="Note interne (départ)">
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Visible uniquement par l'équipe ops" />
           </Section>
+          </div>
 
           <div className="flex pt-4 border-t border-border sticky bottom-0 bg-background pb-4 -mx-6 px-6">
             <Button disabled={submitting} onClick={() => save(true)} className="flex-1">
@@ -875,6 +924,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
             </Button>
           </div>
 
+        </div>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
