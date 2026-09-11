@@ -35,6 +35,11 @@ import { FRET_STATUS_TONE } from '@/components/admin/fret/FretCourseSheet';
 const FRET_STATUS_ORDER: FretStatus[] = [
   'A_ENLEVER', 'PENDING_ACCEPT', 'REMIS_CHAUFFEUR', 'EN_ROUTE', 'ARRIVE', 'LIVRE', 'ANNULE',
 ];
+const PARCEL_STATUS_ORDER = [
+  'CONFIRMED', 'EN_RECHERCHE_DEPART', 'ASSIGNED', 'DEPARTURE_CONFIRMED',
+  'COLLECTING', 'COLLECTED', 'WEIGHED', 'IN_TRANSIT', 'CUSTOMS',
+  'ARRIVED_HUB', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CLOSED', 'CANCELLED',
+];
 import { dossierAmount } from '@/lib/dossierAmount';
 import { InlineAmount } from './dossiers/dossierTableUi';
 
@@ -264,6 +269,21 @@ export function RequestsTab({
       qc.invalidateQueries({ queryKey: ['fret-courses'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Échec mise à jour'),
+  });
+
+  const updateParcelStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from('dossiers').update({ status } as never).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Statut du colis mis à jour');
+      qc.invalidateQueries({ queryKey: ['admin-requests'] });
+      qc.invalidateQueries({ queryKey: ['admin-dossier'] });
+      qc.invalidateQueries({ queryKey: ['dossier-children'] });
+      qc.invalidateQueries({ queryKey: ['admin-overview'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Échec mise à jour du colis'),
   });
 
   /** Dossier routier : on pilote le statut de la course Terminal D (sync auto vers le dossier). */
@@ -577,6 +597,21 @@ export function RequestsTab({
                           >
                             {d.contact_phone}
                           </a>
+                        ) : kids.length > 0 ? (
+                          <div className="flex flex-col items-start gap-1">
+                            {kids.map((c: any) => (
+                              <span
+                                key={c.id}
+                                className={cn(
+                                  'inline-flex max-w-full items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium',
+                                  STATUS_TONE[c.status as DossierStatus] || 'bg-secondary text-muted-foreground border-border',
+                                )}
+                              >
+                                <span className="shrink-0">Colis {c.split_index ?? '?'}</span>
+                                <span className="truncate">· {formatStatusLabel(c.status)}</span>
+                              </span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-[11px] text-muted-foreground truncate block">
                             {[(d as any).origin_city || d.origin_country, (d as any).destination_city || d.destination_country].filter(Boolean).join(' → ')}
@@ -683,24 +718,42 @@ export function RequestsTab({
                                 </div>
                                 <div className="grid gap-2 sm:grid-cols-2">
                                   {kids.map((c: any) => (
-                                    <button
-                                      key={c.id}
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); sheet.open(c.id); }}
-                                      className="text-left rounded-lg border border-border bg-card p-2 hover:border-primary/40 transition-colors"
-                                    >
-                                      <p className="text-[11px] font-medium truncate">
-                                        <span className="font-mono text-muted-foreground">{c.reference}</span>{' '}
-                                        {c.product_description || 'Colis'}
-                                      </p>
-                                      <p className="text-[10px] text-muted-foreground truncate">
-                                        {c.estimated_weight ? `${Number(c.estimated_weight)} kg · ` : ''}
-                                        {c.assigned_transporteur_ref ? `GP ${c.assigned_transporteur_ref}` : 'Sans transporteur'}
-                                        {' · '}{formatStatusLabel(c.status)}
-                                      </p>
-                                    </button>
+                                    <div key={c.id} className="rounded-lg border border-border bg-card p-2.5 space-y-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); sheet.open(c.id); }}
+                                        className="block w-full text-left hover:text-primary transition-colors"
+                                      >
+                                        <p className="text-[11px] font-medium truncate">
+                                          Colis {c.split_index ?? '?'} · <span className="font-mono text-muted-foreground">{c.tracking_id || c.reference}</span>
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground truncate">
+                                          {c.product_description || 'Colis'}
+                                          {c.estimated_weight ? ` · ${Number(c.estimated_weight)} kg` : ''}
+                                          {c.assigned_transporteur_ref ? ` · GP ${c.assigned_transporteur_ref}` : ' · Sans transporteur'}
+                                        </p>
+                                      </button>
+                                      <Select
+                                        value={c.status}
+                                        onValueChange={(status) => updateParcelStatus.mutate({ id: c.id, status })}
+                                      >
+                                        <SelectTrigger className="h-8 w-full text-xs" aria-label={`Statut du colis ${c.split_index ?? ''}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {PARCEL_STATUS_ORDER.map((status) => (
+                                            <SelectItem key={status} value={status} className="text-xs">
+                                              {formatStatusLabel(status)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   ))}
                                 </div>
+                                <p className="mt-2 text-[10px] text-muted-foreground">
+                                  Le statut global se recalcule automatiquement selon le colis le moins avancé.
+                                </p>
                               </div>
                             )}
 
@@ -741,6 +794,10 @@ export function RequestsTab({
                                       ))}
                                     </SelectContent>
                                   </Select>
+                                ) : kids.length > 0 ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    Statut global automatique : <strong className="text-foreground font-medium">{statusLabel}</strong>
+                                  </span>
                                 ) : (
                                 <Select
                                   value={d.status}
