@@ -60,7 +60,7 @@ export function CookieBanner() {
             <Link to="/cookies" className="underline font-medium hover:opacity-80">En savoir plus</Link>
           </p>
           <button
-            onClick={() => setVisible(false)}
+            onClick={() => dismiss('decline')}
             aria-label="Fermer"
             className="flex-shrink-0 -mt-1 -mr-1 p-1 rounded-md hover:bg-background/10 transition-colors"
           >
