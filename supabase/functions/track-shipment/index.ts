@@ -215,7 +215,29 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
+        // Envoi scindé : on expose l'état de chaque sous-colis.
+        const { data: kids } = await sb
+          .from('dossiers')
+          .select('id, reference, product_description, status, estimated_weight, actual_weight_kg, split_index, split_count, estimated_delivery_date')
+          .eq('parent_dossier_id', (dossier as any).id)
+          .order('split_index', { ascending: true });
+
+        const parcels = (kids ?? []).map((c: any) => {
+          const m = STATUS_MAP[c.status] ?? 'CONFIRMED';
+          return {
+            index: c.split_index,
+            count: c.split_count,
+            reference: c.reference,
+            description: c.product_description,
+            weight_kg: c.actual_weight_kg ?? c.estimated_weight,
+            eta: c.estimated_delivery_date,
+            status: m,
+            status_label: STATUS_LABEL[m] || m,
+          };
+        });
+
         return new Response(JSON.stringify({
+          parcels,
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
           status: publicStatus,
           status_label: STATUS_LABEL[publicStatus] || publicStatus,
