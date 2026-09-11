@@ -14,7 +14,7 @@ import { ProfileView } from '@/pages/ProfileView';
 
 import { markInApp } from '@/lib/homeHref';
 
-const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile'];
+const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile', 'devis', 'paiements', 'factures'];
 
 /** Tab → kind for OrdersView. */
 const TAB_TO_KIND: Partial<Record<TabId, 'sourcing' | 'receive' | 'send'>> = {

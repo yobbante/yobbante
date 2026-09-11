@@ -8,7 +8,8 @@ const tabs = [
   { id: 'profile',    icon: User,   label: 'Profil' },
 ] as const;
 
-export type TabId = typeof tabs[number]['id'];
+/** Onglets principaux + écrans secondaires accessibles depuis l'accueil. */
+export type TabId = typeof tabs[number]['id'] | 'devis' | 'paiements' | 'factures';
 
 
 
