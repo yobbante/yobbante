@@ -295,7 +295,7 @@ function NineaStep({
           value={formatNinea(value)}
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTouched(true)}
-          placeholder="00123456 7A2"
+          placeholder="00123456 A7"
           className="mt-1.5 font-mono tracking-wider text-base"
           maxLength={12}
         />
