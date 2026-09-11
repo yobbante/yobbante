@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { CheckCircle2, Loader2, Plane, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getArrivalFromDeparture, getDeliveryDelay, type DeliveryMode } from '@/lib/deliveryDelays';
 
 interface Props {
   tracking: string;
@@ -106,6 +107,15 @@ export function PublicDepartureConfirm({ tracking, priority, onActive }: Props) 
         </p>
         <p className="text-muted-foreground">Date : {fmt(data.departure_date)}</p>
         {data.short_ref && <p className="text-muted-foreground text-xs">Référence : #{data.short_ref}</p>}
+        <div className="mt-2 rounded-xl bg-background/60 border border-border px-3 py-2">
+          <p className="text-foreground">
+            Livraison estimée : <strong>{eta.arrivalLabel}</strong>
+            <span className="text-muted-foreground"> ({priority === 'express' ? 'Express' : 'Standard'})</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Délai {eta.label} après le départ · <strong className="text-foreground">{countdownLabel(eta.arrivalDate, now)}</strong>
+          </p>
+        </div>
       </div>
 
       {decision === 'pending' ? (
