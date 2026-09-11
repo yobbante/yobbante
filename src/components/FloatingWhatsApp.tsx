@@ -16,7 +16,7 @@ export function FloatingWhatsApp() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Discuter sur WhatsApp"
-      className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform"
+      className="fixed bottom-[72px] right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-transform md:bottom-5"
       style={{ background: '#25D366' }}
     >
       <span
