@@ -125,9 +125,11 @@ function SplitDialog({
   const total = Number(dossier.actual_weight_kg ?? dossier.estimated_weight ?? 0);
   const { data: autoCarrier } = useResolvedCarrier(dossier);
   const types = carrierTypesForMode((dossier.transport_mode as any) || 'gp');
+  // Colis 1 = l'envoi déjà enregistré (poids et transporteur d'origine),
+  // colis 2 = le nouveau colis à saisir.
   const [parts, setParts] = useState<Part[]>([
-    { description: dossier.product_description ?? '', weight: total ? total / 2 : null },
-    { description: dossier.product_description ?? '', weight: total ? total / 2 : null },
+    { description: dossier.product_description ?? '', weight: total || null },
+    { description: '', weight: null },
   ]);
 
   // Le transporteur déjà assigné au dossier pré-remplit le premier colis.
@@ -183,6 +185,9 @@ function SplitDialog({
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium flex items-center gap-1">
                   <Package className="w-3.5 h-3.5" /> Colis {i + 1}
+                  {i === 0 && (
+                    <Badge variant="secondary" className="text-[10px] font-normal">Déjà enregistré</Badge>
+                  )}
                 </p>
                 {parts.length > 2 && (
                   <Button
