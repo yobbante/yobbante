@@ -44,11 +44,12 @@ export default function TerminalDPage() {
   const villeParam = searchParams.get('ville') || '';
 
   const { zones, destinations, isLoading } = useFretTarifs();
-  const [tab, setTab] = useState<Tab>('national');
   const [destId, setDestId] = useState('');
+  const [search, setSearch] = useState('');
   const [size, setSize] = useState<ColisSize>('S');
   const [weight, setWeight] = useState('');
   const [prefillDone, setPrefillDone] = useState(false);
+
 
   // Pré-remplissage depuis le widget "Envoyer un colis" (?ville=…).
   // Si la ville n'est pas couverte par Terminal D, on ne force rien.
@@ -58,8 +59,8 @@ export default function TerminalDPage() {
     const match = destinations.find(d => norm(d.name) === norm(villeParam))
       ?? destinations.find(d => norm(d.name).includes(norm(villeParam)) || norm(villeParam).includes(norm(d.name)));
     if (!match) return;
-    setTab(match.scope === 'international' ? 'international' : 'national');
     setDestId(match.id);
+
   }, [villeParam, destinations, prefillDone]);
 
 
