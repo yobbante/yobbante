@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { claimPendingTracking } from '@/lib/claimTracking';
 import { BottomNav, type TabId } from '@/components/BottomNav';
 import { DesktopNav } from '@/components/DesktopNav';
 import { DevPanel } from '@/components/DevPanel';
