@@ -155,7 +155,7 @@ export function ClientSpaceView() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Actions rapides
           </h2>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-4 gap-2.5">
             <QuickAction icon={PackageIcon} label="Nouveau colis" onClick={() => navigate('/expedier')} />
             <QuickAction
               icon={CreditCard}
@@ -164,6 +164,18 @@ export function ClientSpaceView() {
               onClick={() => navigate('/app?view=envois&filter=pending')}
             />
             <QuickAction icon={FileText} label="Mes factures" onClick={() => navigate('/app?view=envois&filter=invoices')} />
+            <QuickAction
+              icon={Search}
+              label="Mes devis"
+              badge={quotes.length > 0 ? quotes.length : undefined}
+              onClick={() => {
+                if (quotes.length > 0) {
+                  document.getElementById('mes-devis')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  navigate('/demande-devis');
+                }
+              }}
+            />
           </div>
         </section>
       )}
