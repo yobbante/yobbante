@@ -41,6 +41,16 @@ interface TrackResponse {
   quote_valid_until?: string | null;
   quote_notes_admin?: string | null;
   quote_response?: string | null;
+  parcels?: {
+    index: number | null;
+    count: number | null;
+    reference: string;
+    description: string | null;
+    weight_kg: number | null;
+    eta: string | null;
+    status: string;
+    status_label: string;
+  }[];
   devis?: {
     id: string;
     reference: string;
@@ -408,6 +418,36 @@ export default function TrackPage() {
                 </button>
               </div>
             </div>
+
+            {data.parcels && data.parcels.length > 0 && (
+              <div className="rounded-[12px] border p-4 mb-5" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}>
+                <div className="text-sm font-semibold mb-1">
+                  Votre envoi a été réparti en {data.parcels.length} colis
+                </div>
+                <p className="text-[12px] text-muted-foreground mb-3">
+                  Chaque colis voyage séparément et avance à son propre rythme.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {data.parcels.map((p) => (
+                    <div key={p.reference} className="rounded-[10px] border p-3" style={{ borderColor: 'hsl(var(--border))' }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium truncate">
+                            Colis {p.index ?? '?'}/{p.count ?? data.parcels!.length}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {p.description || '—'}{p.weight_kg ? ` · ${Number(p.weight_kg)} kg` : ''}
+                          </p>
+                        </div>
+                        <span className={STATUS_BADGE[p.status] || 'badge-success'} style={{ fontSize: 11, padding: '2px 10px' }}>
+                          {p.status_label}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {IS_LIFECYCLE_END(data.status) ? (
               <div className="rounded-[12px] border p-5 mb-5"
