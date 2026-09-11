@@ -217,7 +217,8 @@ export function LiveDeparturesTicker() {
       }}
       aria-label="Prochains départs"
     >
-      <span
+      <Link
+        to="/departs"
         className="hidden md:inline-flex"
         style={{
           fontFamily: '"DM Mono", ui-monospace, monospace',
@@ -232,10 +233,11 @@ export function LiveDeparturesTicker() {
           alignItems: 'center',
           flexShrink: 0,
           whiteSpace: 'nowrap',
+          textDecoration: 'none',
         }}
       >
         Prochains départs
-      </span>
+      </Link>
 
       <div
         className="ticker-scroll-zone"
