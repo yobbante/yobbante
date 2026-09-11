@@ -213,7 +213,15 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      onClick={() => { setOpen(false); navigate('/expedier'); }}
+                      className="btn-cta w-full mt-3"
+                    >
+                      Expédier maintenant →
+                    </button>
                   </div>
+
                   <div className="px-6 py-4 flex items-center gap-2" style={{ borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}>
                     {user ? (
                       <Link to="/app" onClick={() => setOpen(false)} className="btn-cta w-full">Mon espace</Link>
