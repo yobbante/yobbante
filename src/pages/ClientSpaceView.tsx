@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,14 +13,25 @@ import type { Dossier } from '@/lib/types';
 
 const QUOTE_STATUSES = new Set(['QUOTE_REQUESTED', 'QUOTE_SENT', 'QUOTE_ACCEPTED', 'QUOTE_REFUSED']);
 
+/** Statuts terminaux : le dossier rejoint l'historique (livré, clos, annulé, archivé, retourné). */
+const TERMINAL_STATUSES = new Set(['DELIVERED', 'CLOSED', 'CANCELLED', 'ARCHIVED', 'RETURNED']);
+
 const QUOTE_FILTER = (d: Dossier) =>
   QUOTE_STATUSES.has((d as any).status);
 
 const ACTIVE_FILTER = (d: Dossier) =>
-  d.status !== 'DELIVERED' && d.status !== 'CLOSED' && !QUOTE_STATUSES.has(d.status as any);
+  !TERMINAL_STATUSES.has(d.status as any) && !QUOTE_STATUSES.has(d.status as any);
 
 const HISTORY_FILTER = (d: Dossier) =>
-  d.status === 'DELIVERED' || d.status === 'CLOSED';
+  TERMINAL_STATUSES.has(d.status as any);
+
+const HISTORY_LABEL: Record<string, string> = {
+  DELIVERED: 'Livré le',
+  CLOSED: 'Clôturé le',
+  CANCELLED: 'Annulé le',
+  ARCHIVED: 'Archivé le',
+  RETURNED: 'Retourné le',
+};
 
 function fmtShort(date?: string | null): string {
   if (!date) return '';
@@ -35,6 +46,7 @@ export function ClientSpaceView() {
   const { profile } = useProfile();
   const { dossiers, isLoading } = useDossiers();
   useDossiersRealtime();
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Rattache automatiquement un colis consulté en public avant l'inscription.
   useEffect(() => {
@@ -60,7 +72,8 @@ export function ClientSpaceView() {
 
   const active = dossiers.filter(ACTIVE_FILTER);
   const quotes = dossiers.filter(QUOTE_FILTER);
-  const history = dossiers.filter(HISTORY_FILTER).slice(0, 5);
+  const allHistory = dossiers.filter(HISTORY_FILTER);
+  const history = showAllHistory ? allHistory : allHistory.slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
   const isEmpty = !isLoading && dossiers.length === 0;
 
@@ -246,7 +259,7 @@ export function ClientSpaceView() {
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold text-foreground">{d.reference}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {d.destination_city ?? d.destination_country} · Livré le {fmtShort(d.delivered_at ?? d.updated_at)}
+                    {d.destination_city ?? d.destination_country} · {HISTORY_LABEL[d.status as string] ?? 'Terminé le'} {fmtShort(d.delivered_at ?? d.updated_at)}
                   </p>
                 </div>
                 <span className="text-xs text-[#F5C518] font-medium inline-flex items-center gap-1 shrink-0">
@@ -255,13 +268,16 @@ export function ClientSpaceView() {
               </button>
             ))}
           </div>
-          {dossiers.filter(HISTORY_FILTER).length > 5 && (
+          {allHistory.length > 5 && (
             <button
               type="button"
-              onClick={() => navigate('/app?view=envois&filter=history')}
+              onClick={() => setShowAllHistory((v) => !v)}
               className="mt-3 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
             >
-              Voir tout l'historique <ArrowRight className="w-3 h-3" />
+              {showAllHistory
+                ? 'Réduire l\u2019historique'
+                : `Voir tout l\u2019historique (${allHistory.length})`}
+              <ArrowRight className="w-3 h-3" />
             </button>
           )}
         </section>
