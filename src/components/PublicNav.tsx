@@ -164,21 +164,30 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
                   </div>
                   <div className="px-6 py-2">
                     {LINKS.map((l, i) => {
+                      const active = l.match(location.pathname);
                       const commonStyle: React.CSSProperties = {
                         fontSize: 16,
+                        fontWeight: 600,
                         color: 'hsl(var(--foreground))',
-                        padding: '14px 0',
-                        borderBottom: i < LINKS.length - 1 ? '0.5px solid hsl(var(--color-border-tertiary))' : 'none',
+                        padding: '12px 12px',
+                        borderRadius: 12,
+                        background: active ? 'hsl(var(--secondary))' : 'transparent',
                         textDecoration: 'none',
+                        justifyContent: 'space-between',
+                        gap: 12,
                       };
                       const inner = (
-                        <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
-                          <span>{l.label}</span>
-                          {l.subBadge && (
-                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{l.subBadge}</span>
-                          )}
-                        </span>
+                        <>
+                          <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{l.label}</span>
+                            {l.desc && (
+                              <span style={{ fontSize: 12, fontWeight: 400, color: 'hsl(var(--muted-foreground))' }}>{l.desc}</span>
+                            )}
+                          </span>
+                          <span aria-hidden style={{ color: 'hsl(var(--muted-foreground))', fontSize: 15 }}>→</span>
+                        </>
                       );
+
                       if (l.external) {
                         return (
                           <a
