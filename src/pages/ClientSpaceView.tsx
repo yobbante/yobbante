@@ -103,7 +103,7 @@ export function ClientSpaceView() {
           <ol className="space-y-3 max-w-md mx-auto mb-6">
             {[
               { n: 1, t: 'Décrivez votre colis', d: 'Poids, contenu, destination — devis instantané.' },
-              { n: 2, t: 'On vient le chercher', d: 'Collecte gratuite à Dakar par un transporteur vérifié.' },
+              { n: 2, t: 'On vient le chercher', d: 'Enlèvement à Dakar par un transporteur vérifié, à l\'adresse de votre choix.' },
               { n: 3, t: 'Livré et suivi', d: 'Notifications WhatsApp à chaque étape jusqu\'à la livraison.' },
             ].map((s) => (
               <li key={s.n} className="flex gap-3">
