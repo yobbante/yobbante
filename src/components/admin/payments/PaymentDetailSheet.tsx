@@ -290,6 +290,15 @@ export function PaymentDetailSheet({
             </div>
           )}
 
+          {/* Journal des règlements (acomptes, soldes, reversements) */}
+          {dossierId && (
+            <PaymentsJournal
+              dossierId={dossierId}
+              direction={isIn ? 'client' : 'carrier'}
+              expected={payment.amountXof}
+            />
+          )}
+
           {/* Édition */}
           <div className="space-y-1.5">
             <Label htmlFor="pay-amount" className="text-xs">Montant (XOF)</Label>
