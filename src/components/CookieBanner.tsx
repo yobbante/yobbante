@@ -46,8 +46,13 @@ export function CookieBanner() {
 
   if (isAdmin || !visible) return null;
 
+  // Dans l'espace client, la barre de navigation du bas occupe déjà 56px.
+  const inApp = pathname.startsWith('/app');
+
   return (
-    <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 z-[60] sm:max-w-sm animate-fade-in">
+    <div
+      className={`fixed left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 z-[60] sm:max-w-sm animate-fade-in ${inApp ? 'bottom-[136px]' : 'bottom-3'}`}
+    >
       <div className="bg-foreground text-background rounded-2xl shadow-2xl p-4 sm:p-5 border border-background/10">
         <div className="flex items-start gap-3">
           <p className="text-xs sm:text-sm leading-relaxed flex-1 text-pretty">
