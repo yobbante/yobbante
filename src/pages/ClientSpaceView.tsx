@@ -46,6 +46,7 @@ export function ClientSpaceView() {
   const { profile } = useProfile();
   const { dossiers, isLoading } = useDossiers();
   useDossiersRealtime();
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Rattache automatiquement un colis consulté en public avant l'inscription.
   useEffect(() => {
@@ -258,7 +259,7 @@ export function ClientSpaceView() {
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold text-foreground">{d.reference}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {d.destination_city ?? d.destination_country} · Livré le {fmtShort(d.delivered_at ?? d.updated_at)}
+                    {d.destination_city ?? d.destination_country} · {HISTORY_LABEL[d.status as string] ?? 'Terminé le'} {fmtShort(d.delivered_at ?? d.updated_at)}
                   </p>
                 </div>
                 <span className="text-xs text-[#F5C518] font-medium inline-flex items-center gap-1 shrink-0">
@@ -267,13 +268,16 @@ export function ClientSpaceView() {
               </button>
             ))}
           </div>
-          {dossiers.filter(HISTORY_FILTER).length > 5 && (
+          {allHistory.length > 5 && (
             <button
               type="button"
-              onClick={() => navigate('/app?view=envois&filter=history')}
+              onClick={() => setShowAllHistory((v) => !v)}
               className="mt-3 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
             >
-              Voir tout l'historique <ArrowRight className="w-3 h-3" />
+              {showAllHistory
+                ? 'Réduire l\u2019historique'
+                : `Voir tout l\u2019historique (${allHistory.length})`}
+              <ArrowRight className="w-3 h-3" />
             </button>
           )}
         </section>
