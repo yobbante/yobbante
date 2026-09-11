@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Building2, CheckCircle2, Loader2, Phone, Mail,
@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBusinessAccount } from '@/hooks/useBusinessAccount';
 import { useBusinessMembers } from '@/hooks/useBusinessMembers';
 import { useBusinessInvoices } from '@/hooks/useBusinessInvoices';
+import { useBusinessDossiers } from '@/hooks/useBusinessDossiers';
 import { TeamSection } from '@/components/business/TeamSection';
 import { InvoicesSection } from '@/components/business/InvoicesSection';
 import { AccountManagerCard } from '@/components/business/AccountManagerCard';
@@ -294,7 +295,7 @@ function NineaStep({
           value={formatNinea(value)}
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setTouched(true)}
-          placeholder="00123456 7A2"
+          placeholder="00123456 A7"
           className="mt-1.5 font-mono tracking-wider text-base"
           maxLength={12}
         />
@@ -448,10 +449,20 @@ function ConfirmStep({ legalName, ninea, adminName }: { legalName: string; ninea
    DASHBOARD
    ═══════════════════════════════════════════════════════════════════════════ */
 
+const BUSINESS_PERKS = [
+  { icon: Truck,        title: 'Tarifs négociés',        desc: 'De -8 % (Starter) à -15 % (Business) sur GP, aérien, maritime et routier.' },
+  { icon: Receipt,      title: 'Facturation mensuelle',  desc: 'Un seul relevé consolidé en fin de mois au lieu de payer dossier par dossier.' },
+  { icon: Users,        title: 'Comptes multi-équipe',   desc: 'Invitez vos collaborateurs, chacun suit ses dossiers sous le même compte.' },
+  { icon: Sparkles,     title: 'Chargé de compte dédié', desc: 'Un interlocuteur direct WhatsApp, réponse sous 24 h ouvrées.' },
+  { icon: PackageSearch,title: 'Sourcing prioritaire',   desc: 'Recherche fournisseurs Chine / Turquie / Dubaï traitée en priorité.' },
+  { icon: BarChart3,    title: 'Rapports mensuels',      desc: 'Volumes, dépenses, économies réalisées et performance des dossiers.' },
+];
+
 function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAccount').BusinessAccount }) {
   const { user } = useAuth();
   const { members } = useBusinessMembers(account.id);
   const { invoices } = useBusinessInvoices(account.id);
+  const { dossiers } = useBusinessDossiers(account.id);
 
   const isAdmin = account.user_id === user?.id ||
     members.some(m => m.user_id === user?.id && m.role === 'admin');
@@ -462,6 +473,9 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
   const unpaidAmount = invoices
     .filter(i => i.status === 'unpaid' || i.status === 'overdue')
     .reduce((s, i) => s + Number(i.amount_eur), 0);
+
+  const closedStatuses = ['delivered', 'closed', 'cancelled', 'archived'];
+  const activeDossiers = dossiers.filter(d => !closedStatuses.includes(String(d.status)));
 
   return (
     <div className="space-y-8">
@@ -482,7 +496,7 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
       </div>
 
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className="grid grid-cols-5 max-w-3xl">
+        <TabsList className="w-full overflow-x-auto flex md:grid md:grid-cols-6 md:max-w-4xl">
           <TabsTrigger value="overview"><LayoutDashboard className="w-4 h-4 mr-2" />Aperçu</TabsTrigger>
           <TabsTrigger value="dossiers"><FileText className="w-4 h-4 mr-2" />Dossiers</TabsTrigger>
           <TabsTrigger value="team"><Users className="w-4 h-4 mr-2" />Équipe</TabsTrigger>
@@ -494,6 +508,7 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="perks"><ShieldCheck className="w-4 h-4 mr-2" />Avantages</TabsTrigger>
           <TabsTrigger value="contact"><Sparkles className="w-4 h-4 mr-2" />Contact</TabsTrigger>
         </TabsList>
 
@@ -509,7 +524,8 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatCard label="Dossiers actifs" value={activeDossiers.length} icon={FileText} />
             <StatCard label="Membres" value={Math.max(1, members.length + 1)} icon={Users} />
             <StatCard label="Factures" value={invoices.length} icon={Receipt} />
             <StatCard
@@ -531,11 +547,19 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Actions rapides</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <ActionCard label="Expédier" icon={Truck} to="/expedier" />
-              <ActionCard label="Recevoir" icon={Inbox} to="/acheter" />
-              <ActionCard label="Sourcing" icon={PackageSearch} to="/acheter" />
-              <ActionCard label="Rapports" icon={BarChart3} to="#" disabled />
+              <ActionCard label="Recevoir" icon={Inbox} to="/relais-d" />
+              <ActionCard label="Sourcing" icon={PackageSearch} to="/sourcing" />
+              <ActionCard label="Demander un devis" icon={FileText} to="/demande-devis?segment=entreprise" />
             </div>
             <PricingDashboardLink enabled={!paying} />
+          </div>
+
+          {/* Avantages — résumé */}
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Vos avantages Business</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {BUSINESS_PERKS.slice(0, 3).map(p => <PerkCard key={p.title} {...p} />)}
+            </div>
           </div>
 
           {/* Chargé de compte (résumé visible sur l'aperçu aussi) */}
@@ -555,6 +579,24 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
         {/* FACTURES */}
         <TabsContent value="invoices" className="mt-0">
           <InvoicesSection businessId={account.id} isAdmin={isAdmin} />
+        </TabsContent>
+
+        {/* AVANTAGES */}
+        <TabsContent value="perks" className="mt-0 space-y-6">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Ce que votre compte Business vous apporte</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Tous ces avantages sont actifs pendant votre période d'essai de 30 jours.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {BUSINESS_PERKS.map(p => <PerkCard key={p.title} {...p} />)}
+          </div>
+          <UpgradeNudge
+            id="perks-tab-nudge"
+            text="Comparez les plans Starter, Business et Sur-mesure pour garder ces avantages après l'essai."
+            ctaLabel="Voir les plans →"
+          />
         </TabsContent>
 
         {/* CONTACT */}
@@ -582,6 +624,17 @@ function BusinessDashboard({ account }: { account: import('@/hooks/useBusinessAc
   );
 }
 
+function PerkCard({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) {
+  return (
+    <Card className="p-5">
+      <Icon className="w-5 h-5 text-primary" />
+      <div className="mt-3 font-semibold">{title}</div>
+      <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+    </Card>
+  );
+}
+
+
 function StatCard({ label, value, icon: Icon, tone }: { label: string; value: string | number; icon: any; tone?: 'amber' | 'red' }) {
   const toneCls = tone === 'amber' ? 'text-amber-500' : tone === 'red' ? 'text-red-500' : '';
   return (
@@ -597,8 +650,9 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: st
 
 function ActionCard({ label, icon: Icon, to, disabled }: { label: string; icon: any; to: string; disabled?: boolean }) {
   return (
-    <a
-      href={disabled ? undefined : to}
+    <Link
+      to={disabled ? '#' : to}
+      onClick={(e) => { if (disabled) e.preventDefault(); }}
       className={cn(
         'flex flex-col items-start gap-3 p-5 rounded-[var(--radius)] border border-border bg-card transition-all',
         disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary/60 hover:-translate-y-0.5'
@@ -609,6 +663,6 @@ function ActionCard({ label, icon: Icon, to, disabled }: { label: string; icon: 
         <div className="font-semibold">{label}</div>
         {disabled && <div className="text-xs text-muted-foreground mt-0.5">Bientôt</div>}
       </div>
-    </a>
+    </Link>
   );
 }

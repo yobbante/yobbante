@@ -20,13 +20,13 @@ const PUBLIC_PATHS = [
   '/expedier',
   '/sourcing',
   '/acheter',
-  '/entreprises',
   '/devis',
   '/confidentialite',
   '/mentions-legales',
   '/cgu',
   '/cgv',
   '/cookies',
+  '/business',
 ];
 
 function isPublicPath(path: string): boolean {
