@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -71,7 +71,8 @@ export function ClientSpaceView() {
 
   const active = dossiers.filter(ACTIVE_FILTER);
   const quotes = dossiers.filter(QUOTE_FILTER);
-  const history = dossiers.filter(HISTORY_FILTER).slice(0, 5);
+  const allHistory = dossiers.filter(HISTORY_FILTER);
+  const history = showAllHistory ? allHistory : allHistory.slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
   const isEmpty = !isLoading && dossiers.length === 0;
 
