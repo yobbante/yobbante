@@ -43,7 +43,7 @@ export function useDossierChildren(parentId?: string | null) {
         .eq('parent_dossier_id', parentId!)
         .order('split_index', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as SplitChild[];
+      return (data ?? []) as unknown as SplitChild[];
     },
   });
 }
