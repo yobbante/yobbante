@@ -135,7 +135,9 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   const activeTab = KIND_TABS.find(t => t.id === kind)!;
   const visibleDossiers = useMemo(() => {
-    let list = grouped[kind];
+    // Les filtres « À payer » / « Factures » sont transverses : on parcourt
+    // tous les dossiers du client, pas seulement l'onglet ouvert.
+    let list = filter ? dossiers : grouped[kind];
     if (filter === 'pending') {
       list = list.filter(d => (d as any).payment_status === 'pending' && d.status !== 'CLOSED');
     } else if (filter === 'invoices') {
@@ -158,7 +160,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(q))
     );
-  }, [grouped, kind, query, filter]);
+  }, [grouped, dossiers, kind, query, filter]);
 
   // For "Envois" we ONLY surface shipments created via the SendFlow,
   // identified by `transport_metadata.meta.send_flow === true`. This avoids

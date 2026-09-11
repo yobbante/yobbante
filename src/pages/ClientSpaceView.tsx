@@ -58,6 +58,7 @@ export function ClientSpaceView() {
   const allHistory = dossiers.filter(HISTORY_FILTER);
   const history = showAllHistory ? allHistory : allHistory.slice(0, 5);
   const pendingCount = dossiers.filter((d) => d.payment_status === 'pending' && d.status !== 'CLOSED').length;
+  const paidCount = dossiers.filter((d) => d.payment_status === 'paid').length;
   const isEmpty = !isLoading && dossiers.length === 0;
 
   return (
@@ -102,7 +103,7 @@ export function ClientSpaceView() {
           <ol className="space-y-3 max-w-md mx-auto mb-6">
             {[
               { n: 1, t: 'Décrivez votre colis', d: 'Poids, contenu, destination — devis instantané.' },
-              { n: 2, t: 'On vient le chercher', d: 'Collecte gratuite à Dakar par un transporteur vérifié.' },
+              { n: 2, t: 'On vient le chercher', d: 'Enlèvement à Dakar par un transporteur vérifié, à l\'adresse de votre choix.' },
               { n: 3, t: 'Livré et suivi', d: 'Notifications WhatsApp à chaque étape jusqu\'à la livraison.' },
             ].map((s) => (
               <li key={s.n} className="flex gap-3">
@@ -163,7 +164,12 @@ export function ClientSpaceView() {
               badge={pendingCount > 0 ? pendingCount : undefined}
               onClick={() => navigate('/app?view=envois&filter=pending')}
             />
-            <QuickAction icon={FileText} label="Mes factures" onClick={() => navigate('/app?view=envois&filter=invoices')} />
+            <QuickAction
+              icon={FileText}
+              label="Mes factures"
+              badge={paidCount > 0 ? paidCount : undefined}
+              onClick={() => navigate('/app?view=envois&filter=invoices')}
+            />
             <QuickAction
               icon={Search}
               label="Mes devis"

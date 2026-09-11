@@ -180,7 +180,6 @@ const MainRoutes = () => (
     <Route path="/demande-devis" element={<DemandeDevisPage />} />
     <Route path="/devis" element={<DevisPage />} />
     <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
-    <Route path="/track" element={<Navigate to="/suivre" replace />} />
     <Route path="/track/:id" element={<SuivreEntry />} />
     {/* Boutique : en prod redirige vers dekk.yobbante.com, sinon rend en local */}
     <Route path="/boutique" element={<DekkBoutiqueRedirect><DekkLayout><BoutiquePage /></DekkLayout></DekkBoutiqueRedirect>} />
@@ -193,11 +192,10 @@ const MainRoutes = () => (
     <Route path="/confirmation" element={<Navigate to="/devis/confirmer" replace />} />
     <Route path="/reception" element={<Navigate to="/expedier/recevoir" replace />} />
     <Route path="/mon-compte" element={<Navigate to="/app" replace />} />
-    <Route path="/compte" element={<Navigate to="/app" replace />} />
     <Route path="/mon-compte/envois" element={<Navigate to="/app?view=envois" replace />} />
     {/* Legacy public URLs → folded into the 2 user-facing flows */}
     <Route path="/obtenir-adresse" element={<Navigate to="/expedier" replace />} />
-    <Route path="/confier-dossier" element={<Navigate to="/acheter" replace />} />
+    <Route path="/confier-dossier" element={<Navigate to="/sourcing" replace />} />
     <Route path="/services" element={<Navigate to="/" replace />} />
     <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
     {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
