@@ -36,6 +36,14 @@ export function SplitColisList({ dossierId }: { dossierId: string }) {
                 {formatStatusLabel(c.status)}
               </span>
             </div>
+            {c.tracking_id && (
+              <a
+                href={`/suivre/${c.tracking_id}`}
+                className="mt-1 inline-block text-[11px] font-mono text-primary hover:underline"
+              >
+                {c.tracking_id}
+              </a>
+            )}
             <div className="mt-3">
               <MiniTimeline status={c.status as any} />
             </div>
