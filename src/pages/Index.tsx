@@ -11,10 +11,12 @@ import { DevPanel } from '@/components/DevPanel';
 import { ClientSpaceView } from '@/pages/ClientSpaceView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
+import { QuotesView } from '@/pages/QuotesView';
+import { BillingView } from '@/pages/BillingView';
 
 import { markInApp } from '@/lib/homeHref';
 
-const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile'];
+const ALLOWED: TabId[] = ['home', 'envois', 'receptions', 'sourcing', 'profile', 'devis', 'paiements', 'factures'];
 
 /** Tab → kind for OrdersView. */
 const TAB_TO_KIND: Partial<Record<TabId, 'sourcing' | 'receive' | 'send'>> = {
@@ -114,6 +116,9 @@ export default function Index() {
 
   const ordersKind = TAB_TO_KIND[view];
   const isOrdersTab = !!ordersKind;
+  // Écrans secondaires (devis / paiements / factures) : on garde « Accueil »
+  // surligné dans la navigation pour ne pas perdre le client.
+  const navActive: TabId = (['devis', 'paiements', 'factures'] as TabId[]).includes(view) ? 'home' : view;
 
   if (isLoading) {
     return (
@@ -128,13 +133,16 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      <DesktopNav active={view} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
+      <DesktopNav active={navActive} onChange={setView} onSignOut={async () => { await supabase.auth.signOut(); navigate('/'); }} />
       <main className="max-w-4xl mx-auto px-4 sm:px-5 md:px-8 pt-5 md:pt-8 pb-safe-nav md:pb-safe-none">
         {view === 'home' && <ClientSpaceView />}
         {isOrdersTab && <OrdersView fixedKind={ordersKind} />}
         {view === 'profile' && <ProfileView />}
+        {view === 'devis' && <QuotesView />}
+        {view === 'paiements' && <BillingView mode="payments" />}
+        {view === 'factures' && <BillingView mode="invoices" />}
       </main>
-      <BottomNav active={view} onChange={setView} />
+      <BottomNav active={navActive} onChange={setView} />
       {import.meta.env.DEV && <DevPanel />}
     </div>
   );
