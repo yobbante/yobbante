@@ -160,7 +160,7 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(q))
     );
-  }, [grouped, kind, query, filter]);
+  }, [grouped, dossiers, kind, query, filter]);
 
   // For "Envois" we ONLY surface shipments created via the SendFlow,
   // identified by `transport_metadata.meta.send_flow === true`. This avoids
