@@ -77,12 +77,21 @@ export function PublicDepartureConfirm({ tracking, priority, onActive }: Props) 
     onError: (e: any) => toast.error(e?.message ?? 'Échec'),
   });
 
-  if (isLoading || !data) return null;
-  if (!data.assigned_departure_id) return null;
+  const active = !isLoading && !!data?.assigned_departure_id;
+
+  useEffect(() => { onActive?.(active); }, [active, onActive]);
+
+  if (!active) return null;
 
   const decision: string = data.client_departure_decision ?? 'pending';
   const fmt = (d?: string | null) =>
     d ? new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+  const mode: DeliveryMode = priority === 'express' ? 'express' : 'standard';
+  const eta = data.departure_date
+    ? getArrivalFromDeparture(data.departure_date, data.destination_city, mode)
+    : getDeliveryDelay(data.destination_city, mode);
+
 
   return (
     <div className="rounded-2xl border border-[#F5C518]/40 bg-[#F5C518]/5 p-5 mb-5 space-y-4">
