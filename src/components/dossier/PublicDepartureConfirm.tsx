@@ -4,7 +4,7 @@
  *   - get_assigned_departure_public(tracking)
  *   - confirm_departure_public(tracking, confirmed, reason)
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,37 @@ import {
 } from '@/components/ui/dialog';
 import { CheckCircle2, Loader2, Plane, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getArrivalFromDeparture, getDeliveryDelay, type DeliveryMode } from '@/lib/deliveryDelays';
 
 interface Props {
   tracking: string;
+  /** Type d'envoi choisi par l'admin — pilote le délai de livraison annoncé. */
+  priority?: 'express' | 'standard' | null;
+  /** Prévient le parent que la carte est bien affichée (pour éviter les doublons). */
+  onActive?: (active: boolean) => void;
 }
 
-export function PublicDepartureConfirm({ tracking }: Props) {
+/** "reste 3 jours" / "reste 12 heures" / "livraison imminente" */
+function countdownLabel(target: Date, now: number): string {
+  const ms = target.getTime() - now;
+  if (ms <= 0) return 'livraison imminente';
+  const hours = Math.floor(ms / 3600000);
+  if (hours < 1) return `reste ${Math.max(1, Math.round(ms / 60000))} minutes`;
+  if (hours < 48) return `reste ${hours} heure${hours > 1 ? 's' : ''}`;
+  const days = Math.round(hours / 24);
+  return `reste ${days} jour${days > 1 ? 's' : ''}`;
+}
+
+export function PublicDepartureConfirm({ tracking, priority, onActive }: Props) {
   const qc = useQueryClient();
   const [refuseOpen, setRefuseOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ['public-assigned-departure', tracking],
@@ -56,12 +78,21 @@ export function PublicDepartureConfirm({ tracking }: Props) {
     onError: (e: any) => toast.error(e?.message ?? 'Échec'),
   });
 
-  if (isLoading || !data) return null;
-  if (!data.assigned_departure_id) return null;
+  const active = !isLoading && !!data?.assigned_departure_id;
+
+  useEffect(() => { onActive?.(active); }, [active, onActive]);
+
+  if (!active) return null;
 
   const decision: string = data.client_departure_decision ?? 'pending';
   const fmt = (d?: string | null) =>
     d ? new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+  const mode: DeliveryMode = priority === 'express' ? 'express' : 'standard';
+  const eta = data.departure_date
+    ? getArrivalFromDeparture(data.departure_date, data.destination_city, mode)
+    : getDeliveryDelay(data.destination_city, mode);
+
 
   return (
     <div className="rounded-2xl border border-[#F5C518]/40 bg-[#F5C518]/5 p-5 mb-5 space-y-4">
@@ -76,6 +107,15 @@ export function PublicDepartureConfirm({ tracking }: Props) {
         </p>
         <p className="text-muted-foreground">Date : {fmt(data.departure_date)}</p>
         {data.short_ref && <p className="text-muted-foreground text-xs">Référence : #{data.short_ref}</p>}
+        <div className="mt-2 rounded-xl bg-background/60 border border-border px-3 py-2">
+          <p className="text-foreground">
+            Livraison estimée : <strong>{eta.arrivalLabel}</strong>
+            <span className="text-muted-foreground"> ({priority === 'express' ? 'Express' : 'Standard'})</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Délai {eta.label} après le départ · <strong className="text-foreground">{countdownLabel(eta.arrivalDate, now)}</strong>
+          </p>
+        </div>
       </div>
 
       {decision === 'pending' ? (
