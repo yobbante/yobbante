@@ -27,6 +27,7 @@ import { DossierLifecycleRail } from './dossiers/DossierLifecycleRail';
 import { NextActionsSheet } from './dossiers/NextActionsSheet';
 import { parseClientNotes, hasParsedEssentials } from '@/lib/parseClientNotes';
 import { toast } from 'sonner';
+import { formatStatusLabel } from '@/lib/statusLabels';
 import { getDossierTiming, TIMING_TONE_CLASS, type TimingDeparture } from '@/lib/dossierTiming';
 import { FRET_STATUS_LABEL, type FretStatus } from '@/lib/fretApi';
 import { FRET_STATUS_TONE } from '@/components/admin/fret/FretCourseSheet';
