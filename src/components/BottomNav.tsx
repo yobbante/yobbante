@@ -1,14 +1,14 @@
-import { Home, Package, Clock, User } from 'lucide-react';
+import { Home, Send, Inbox, Search, User } from 'lucide-react';
 
 const tabs = [
-  { id: 'home',       icon: Home,    label: 'Accueil' },
-  { id: 'envois',     icon: Package, label: 'Mes colis' },
-  { id: 'receptions', icon: Clock,   label: 'Historique' },
-  { id: 'profile',    icon: User,    label: 'Profil' },
+  { id: 'home',       icon: Home,   label: 'Accueil' },
+  { id: 'envois',     icon: Send,   label: 'Envois' },
+  { id: 'receptions', icon: Inbox,  label: 'Relais D' },
+  { id: 'sourcing',   icon: Search, label: 'Sourcing' },
+  { id: 'profile',    icon: User,   label: 'Profil' },
 ] as const;
 
-// 'sourcing' is no longer in the bottom nav but the route/view still works.
-export type TabId = typeof tabs[number]['id'] | 'sourcing';
+export type TabId = typeof tabs[number]['id'];
 
 
 
