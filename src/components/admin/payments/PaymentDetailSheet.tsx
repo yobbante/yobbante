@@ -16,6 +16,12 @@ import { CancelDossierDialog } from '@/components/admin/dossier-sheet/DossierLif
 import { canCancel, isTerminal } from '@/lib/dossierLifecycle';
 import { CarrierPicker } from '@/components/admin/payments/CarrierPicker';
 import { carrierTypesForMode, useResolvedCarrier } from '@/hooks/useCarrierDirectory';
+import { useDossierChildren } from '@/hooks/useDossierSplit';
+import {
+  useDossierPayments, useAddDossierPayment, useDeleteDossierPayment,
+  sumPayments, PAYMENT_METHODS, PAYMENT_METHOD_LABEL, type PaymentDirection,
+} from '@/hooks/useDossierPayments';
+import { Plus, Trash2 } from 'lucide-react';
 
 const METHODS = ['wave', 'orange_money', 'cash', 'virement', 'paytech', 'autre'];
 const METHOD_LABEL: Record<string, string> = {
@@ -467,6 +473,149 @@ function Info({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-border p-2 min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 font-medium truncate">{value}</div>
+    </div>
+  );
+}
+
+
+/**
+ * Journal des règlements d'un envoi : acomptes et soldes côté client,
+ * reversements côté transporteurs (colis compris). Saisie manuelle libre.
+ */
+function PaymentsJournal({
+  dossierId, direction, expected,
+}: { dossierId: string; direction: PaymentDirection; expected: number }) {
+  const { data: children = [] } = useDossierChildren(dossierId);
+  const ids = [dossierId, ...children.map((c) => c.id)];
+  const { data: rows = [] } = useDossierPayments(ids);
+  const add = useAddDossierPayment();
+  const del = useDeleteDossierPayment();
+
+  const [target, setTarget] = useState(dossierId);
+  const [amount, setAmount] = useState('');
+  const [pmethod, setPmethod] = useState('');
+  const [when, setWhen] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+
+  const mine = rows.filter((r) => r.direction === direction);
+  const done = sumPayments(mine, direction);
+  const rest = Math.max(0, Math.round(expected - done));
+
+  const submit = async () => {
+    const value = Math.max(0, Math.round(Number(amount) || 0));
+    if (!value) { toast.error('Montant invalide'); return; }
+    try {
+      await add.mutateAsync({
+        dossier_id: target,
+        direction,
+        amount_xof: value,
+        method: pmethod || null,
+        paid_at: new Date(when + 'T12:00:00').toISOString(),
+        note: note || null,
+      });
+      setAmount(''); setNote('');
+      toast.success('Règlement enregistré');
+    } catch (e) {
+      toast.error('Échec : ' + (e as Error).message);
+    }
+  };
+
+  const labelFor = (id: string) => {
+    if (id === dossierId) return 'Envoi';
+    const c = children.find((x) => x.id === id);
+    return c ? `Colis ${c.split_index}` : '—';
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {direction === 'client' ? 'Règlements du client' : 'Reversements transporteurs'}
+        </div>
+        <div className="text-xs tabular-nums">
+          {formatXof(done)} <span className="text-muted-foreground">/ {formatXof(expected)}</span>
+        </div>
+      </div>
+
+      {rest > 0 && (
+        <p className="text-[11px] text-amber-500">
+          Reste {direction === 'client' ? 'à encaisser' : 'à verser'} : {formatXof(rest)}
+        </p>
+      )}
+
+      {mine.length > 0 && (
+        <div className="space-y-1">
+          {mine.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground truncate">
+                {new Date(r.paid_at).toLocaleDateString('fr-FR')} · {labelFor(r.dossier_id)}
+                {r.method ? ` · ${PAYMENT_METHOD_LABEL[r.method] ?? r.method}` : ''}
+                {r.note ? ` · ${r.note}` : ''}
+              </span>
+              <span className="flex items-center gap-1 shrink-0">
+                <span className="tabular-nums font-medium">{formatXof(Number(r.amount_xof))}</span>
+                <button
+                  onClick={() => del.mutate(r.id)}
+                  aria-label="Supprimer ce règlement"
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {children.length > 0 && (
+          <div className="col-span-2">
+            <Label className="text-[11px]">Rattaché à</Label>
+            <Select value={target} onValueChange={setTarget}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={dossierId} className="text-xs">Envoi complet</SelectItem>
+                {children.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="text-xs">
+                    Colis {c.split_index} — {c.assigned_transporteur_ref ?? 'sans transporteur'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div>
+          <Label className="text-[11px]">Montant</Label>
+          <Input
+            className="h-9" inputMode="numeric" value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <Label className="text-[11px]">Date</Label>
+          <Input className="h-9" type="date" value={when} onChange={(e) => setWhen(e.target.value)} />
+        </div>
+        <div className="col-span-2">
+          <Label className="text-[11px]">Moyen</Label>
+          <Select value={pmethod || undefined} onValueChange={setPmethod}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Non renseigné" /></SelectTrigger>
+            <SelectContent>
+              {PAYMENT_METHODS.map((m) => (
+                <SelectItem key={m} value={m} className="text-xs">{PAYMENT_METHOD_LABEL[m]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="col-span-2">
+          <Label className="text-[11px]">Note</Label>
+          <Input className="h-9" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Acompte, solde…" />
+        </div>
+      </div>
+
+      <Button size="sm" variant="outline" className="w-full" disabled={add.isPending} onClick={submit}>
+        <Plus className="w-3.5 h-3.5 mr-1" /> Enregistrer ce règlement
+      </Button>
     </div>
   );
 }
