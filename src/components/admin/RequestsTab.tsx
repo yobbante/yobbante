@@ -94,6 +94,8 @@ export interface RequestsTabProps {
   hideHeader?: boolean;
   /** Hide these statuses entirely (e.g. CANCELLED / ARCHIVED in "Demandes entrantes"). */
   excludeStatuses?: string[];
+  /** Ne garder que ces statuts (onglets métier : à traiter / en cours / devis / terminés). */
+  includeStatuses?: string[];
   /** Optional override for the page title. */
   title?: string;
   /** Optional override for the subtitle. */
