@@ -153,11 +153,11 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   // identified by `transport_metadata.meta.send_flow === true`. This avoids
   // mixing in shipments born from sourcing/reception flows.
   const sendFlowShipments = useMemo(
-    () => shipments.filter(s => {
+    () => (filter ? [] : shipments.filter(s => {
       const meta = (s.transport_metadata ?? {}) as Record<string, any>;
       return meta?.meta?.send_flow === true;
-    }),
-    [shipments]
+    })),
+    [shipments, filter]
   );
   const activeShipments = useMemo(
     () => sendFlowShipments.filter(s => s.status !== 'DELIVERED'),
