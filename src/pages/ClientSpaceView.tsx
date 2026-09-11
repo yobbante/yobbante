@@ -84,48 +84,26 @@ export function ClientSpaceView() {
         </button>
       </motion.header>
 
-      {/* Empty state guidé — 3 étapes pour un premier envoi */}
+      {/* Incentive compacte — premier envoi (le dashboard reste visible derrière) */}
       {isEmpty && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="py-10 px-4 border border-dashed border-border rounded-2xl"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-3.5 py-2.5"
         >
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
-            <Inbox className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <h2 className="text-base font-semibold text-foreground text-center">
-            Bienvenue sur votre espace Yobbanté
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1 mb-6 text-center">
-            Envoyer un colis prend 3 minutes. Voici comment ça se passe :
+          <span className="shrink-0 w-8 h-8 rounded-lg bg-[#F5C518]/15 text-[#F5C518] flex items-center justify-center">
+            <Inbox className="w-4 h-4" />
+          </span>
+          <p className="text-xs text-muted-foreground min-w-0 flex-1 leading-snug">
+            Premier envoi en 3 minutes : décrivez le colis, on vient le chercher à Dakar, suivi WhatsApp jusqu'à la livraison.
           </p>
-          <ol className="space-y-3 max-w-md mx-auto mb-6">
-            {[
-              { n: 1, t: 'Décrivez votre colis', d: 'Poids, contenu, destination — devis instantané.' },
-              { n: 2, t: 'On vient le chercher', d: 'Enlèvement à Dakar par un transporteur vérifié, à l\'adresse de votre choix.' },
-              { n: 3, t: 'Livré et suivi', d: 'Notifications WhatsApp à chaque étape jusqu\'à la livraison.' },
-            ].map((s) => (
-              <li key={s.n} className="flex gap-3">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-[#F5C518] text-zinc-950 text-xs font-bold flex items-center justify-center">
-                  {s.n}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{s.t}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.d}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => navigate('/expedier')}
-              className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-[#F5C518] text-zinc-950 text-sm font-semibold hover:bg-[#F5C518]/90 transition-colors"
-            >
-              Envoyer mon premier colis <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/expedier')}
+            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-[#F5C518] text-zinc-950 text-xs font-semibold hover:bg-[#F5C518]/90 transition-colors"
+          >
+            Commencer <ArrowRight className="w-3 h-3" />
+          </button>
         </motion.div>
       )}
 
