@@ -1,60 +1,47 @@
-## Plan — Devis sur mesure + gating étapes SendFlow
+# Onglet actif visible + module de split de colis
 
-### 1. Séquencement strict des étapes (SendFlow)
-- Aujourd'hui après étape 2 (Type marchandise), l'utilisateur peut sauter à l'étape 7. Cause : `advanceFromStep(2)` scrolle vers l'étape 3 mais rien n'empêche le bouton "Continuer" des étapes suivantes de sauter au récap.
-- Ajouter dans `advanceFromStep()` un `next = step + 1` strict, désactiver les boutons "Continuer" tant que `stepValidity[currentStep]` est faux, et forcer le focus/scroll sur l'étape N+1 uniquement (pas 7).
-- Vérifier que le bouton "Continuer" de chaque étape appelle bien `advanceFromStep(N)` — corriger ceux qui appellent `submit()` ou sautent directement.
+## 1. Savoir en un coup d'œil dans quel onglet on est
 
-### 2. Popup devis "new generation"
-- Étape 3, quand `noInstant = true` : le bouton "Demander un devis sur mesure" ouvre aujourd'hui `ManualQuoteDialog` très basique (nom + tel + note).
-- Refonte visuelle du composant `ManualQuoteDialog` en gardant la table `dossiers` (statut `QUOTE_REQUESTED`, `source: devis_sur_mesure`) :
-  - Reprendre exactement le langage visuel de `SendFlow` (FlowSection, TextField, ChipGroup, radios pastilles jaune #F5C518, arrondis `rounded-2xl`, boutons `bg-foreground text-background rounded-full`).
-  - Pré-remplir automatiquement TOUS les champs déjà saisis (trajet, poids, valeur déclarée, type marchandise, transport, urgence, collecte, destinataire, assurance…).
-  - Sections repliables :
-    1. Trajet & colis (résumé lecture seule, éditable via "Modifier").
-    2. Coordonnées client : nom, téléphone WhatsApp (validation phone), email optionnel.
-    3. Précisions : contenu détaillé, contraintes (fragile, urgence, budget max, date souhaitée), photos (upload multi via `dossier_documents`).
-  - Confirmation : référence + tracking ID + CTA "Suivre ma demande" + "Compléter mon dossier" (renvoie vers `/app/dossiers/:id` où il pourra ajouter étapes 4-7).
+Dans la barre d'onglets de `/admin/dossiers` :
+- l'onglet actif prend un fond plein couleur primaire avec texte contrasté (mobile **et** desktop), au lieu du simple soulignement actuel ;
+- les autres onglets restent discrets (texte gris, pas de fond) ;
+- sur mobile, l'onglet actif affiche aussi son libellé à côté de l'icône (les autres restent en icône seule), pour qu'on lise « À traiter » sans deviner ;
+- le bandeau de contexte sous les onglets reprend la même couleur d'accent que l'onglet actif.
 
-### 3. Masquer étapes 4-7 tant qu'aucun départ actif
-- Nouvelle constante `hasActiveDeparture = options.length > 0` (déjà calculée = `hasInstantDeparture`).
-- Conditionner le rendu des blocs étapes 4, 5, 6, 7 : ne rendre que si `hasActiveDeparture` OU si le dossier a déjà été créé via devis (mode "compléter mon dossier").
-- Adapter la numérotation totale (`total={7}` → `total={hasActiveDeparture ? 7 : 3}`) et le stepper `aria-live`.
+Fichiers : `src/components/admin/hub-ui.tsx` (composant `HubTab`), `src/components/admin/DossiersHubTab.tsx` (bandeau).
 
-### 4. Module Devis — Admin + Client
+## 2. Module de split de colis
 
-**Backend :** conserver `dossiers` avec `status='QUOTE_REQUESTED'` (déjà utilisé par ManualQuoteDialog). Ajouter colonnes migration si absentes : `quote_amount_xof`, `quote_currency`, `quote_valid_until`, `quote_notes_admin`. Vérifier RLS existante.
+### Principe
+Un dossier peut être scindé en plusieurs **sous-colis**, chacun avec son propre poids, son propre GP/transporteur et son propre départ. Cas Mulah : 1 demande → colis 1 chez GP A, colis 2 chez GP B.
 
-**Admin — nouvelle vue `/admin/leads?tab=devis-mesure` (ou refonte `ManualQuotesTab`) :**
-- Liste responsive (table desktop, cartes mobile) filtrable par statut : `pending / quoted / accepted / expired`.
-- Drawer détail avec :
-  - Résumé complet du dossier (trajet, poids, valeur, contenu, photos, urgence).
-  - Coordonnées client + boutons WhatsApp/Téléphone.
-  - Formulaire "Envoyer un devis" : montant XOF, validité (date), notes, → passe status à `quoted` + envoi WhatsApp template au client avec lien `/app/devis/:id`.
-  - Historique des messages / événements.
+- Le dossier d'origine devient le **dossier parent** : il garde le client, le prix total facturé, l'adresse, et sert de vue d'ensemble.
+- Chaque sous-colis est un dossier enfant avec sa référence dérivée (`YBT-2026-5830-1`, `-2`, …), son poids, son GP, son départ, son statut et son suivi.
+- Le statut public du parent est calculé à partir des enfants : on affiche l'étape la moins avancée (« 1 colis livré, 1 en transit »).
+- Le coût transporteur se saisit par enfant ; le parent additionne pour la marge et la finance.
 
-**Client — dashboard `/app` :**
-- Nouvelle section `MesDevis` dans `ClientSpaceView.tsx` listant les dossiers `status='QUOTE_REQUESTED'` de l'utilisateur.
-- Carte devis : trajet, poids, statut (En attente / Devis reçu / Accepté), CTA :
-  - `pending` → "Compléter ma demande" (rouvre popup pour ajouter infos manquantes 4-7).
-  - `quoted` → "Voir le devis" (page détail avec montant, valide jusqu'au, boutons Accepter/Refuser).
-  - `accepted` → devient un dossier standard, rejoint `useDossiers`.
-- Page détail `/app/devis/:id` responsive avec toutes les infos + timeline.
+### Base de données
+Ajout sur `dossiers` : `parent_dossier_id` (référence au parent), `split_index`, `split_count`.
+Fonction `split_dossier(dossier_id, parts[])` qui crée les enfants en copiant les données client/route, répartit le poids et le prix, et journalise l'événement dans la timeline du parent.
+Règles d'accès identiques au dossier parent (le client voit ses enfants, l'admin/agent aussi).
 
-### Détails techniques
-- Fichiers à créer :
-  - `supabase/migrations/xxx_quote_columns.sql` (colonnes quote_amount_xof, etc.)
-  - `src/hooks/useMyQuotes.ts`
-  - `src/pages/QuoteDetailPage.tsx` (client)
-  - `src/components/admin/QuoteDetailDrawer.tsx`
-- Fichiers à modifier :
-  - `src/components/flows/SendFlow.tsx` (gating, masquage 4-7)
-  - `src/components/flows/ManualQuoteDialog.tsx` (refonte UI + prefill étendu)
-  - `src/components/admin/ManualQuotesTab.tsx` (refonte responsive + drawer)
-  - `src/pages/ClientSpaceView.tsx` (section MesDevis)
-  - `src/App.tsx` (route /app/devis/:id)
+### Côté admin
+- Fiche dossier (`AdminDossierSheet`) : nouvelle action **« Scinder en plusieurs colis »** → dialogue où l'on choisit le nombre de colis, puis pour chacun : description, poids, GP/transporteur et départ. Après validation, la fiche affiche la liste des sous-colis, chacun cliquable pour ouvrir sa propre fiche.
+- Fiche d'un enfant : bandeau « Colis 2/2 du dossier YBT-… » avec retour au parent.
+- Liste des dossiers (`RequestsTab`) : le parent affiche un badge « 2 colis » et, au dépliement, la ligne de chaque sous-colis avec son GP et son statut. Les enfants ne polluent pas la liste principale (ils apparaissent sous leur parent).
+- Départs : chaque sous-colis compte dans la capacité de son propre départ.
+- Finance / paiements : un seul paiement client au niveau du parent ; les reversements transporteurs sont listés par sous-colis et additionnés dans le bénéfice net.
 
-### Validation
-- Test manuel : trajet sans départ → seules étapes 1-3 visibles → popup devis prérempli → soumission → apparition dans admin + espace client.
-- Test manuel : trajet avec départ → toutes étapes visibles séquentiellement.
-- Build + typecheck.
+### Côté client
+- Espace client et page publique de suivi : le dossier affiche « Votre envoi a été réparti en 2 colis » avec une mini-timeline par colis (GP, départ, statut, date estimée).
+- Notifications WhatsApp/push : envoyées par colis, avec mention « Colis 1/2 ».
+
+### Responsive
+Dialogue de split en pleine hauteur scrollable sur mobile, cartes de sous-colis empilées ; tableau en colonnes sur desktop.
+
+## Ordre de réalisation
+1. Onglet actif (rapide, visible immédiatement).
+2. Migration base + fonction de split.
+3. Dialogue de split + affichage parent/enfants en admin.
+4. Synchronisation finance, départs, liste des dossiers.
+5. Affichage client (espace client + suivi public) et notifications.
