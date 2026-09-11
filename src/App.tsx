@@ -12,6 +12,7 @@ import AcheterPage from "./pages/AcheterPage";
 import RelaisDPage from "./pages/RelaisDPage";
 import SourcingPage from "./pages/SourcingPage";
 import TarifsPage from "./pages/TarifsPage";
+import DepartsPage from "./pages/DepartsPage";
 import DevisPage from "./pages/DevisPage";
 import DevisConfirmerPage from "./pages/DevisConfirmerPage";
 import TrackPage from "./pages/TrackPage";
@@ -177,6 +178,8 @@ const MainRoutes = () => (
     <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
     <Route path="/acheter/recevoir" element={<AcheterPage />} />
     <Route path="/tarifs" element={<TarifsPage />} />
+    <Route path="/departs" element={<DepartsPage />} />
+    <Route path="/prochains-departs" element={<DepartsPage />} />
     {/* Point d'entrée UNIQUE des demandes de devis */}
     <Route path="/demande-devis" element={<DemandeDevisPage />} />
     <Route path="/devis" element={<DevisPage />} />
