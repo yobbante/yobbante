@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
           .order('split_index', { ascending: true });
 
         const parcels = (kids ?? []).map((c: any) => {
-          const m = STATUS_MAP[c.status] ?? 'CONFIRMED';
+          const m = DOSSIER_TO_PIPELINE[c.status] ?? 'CONFIRMED';
           return {
             index: c.split_index,
             count: c.split_count,
