@@ -505,7 +505,11 @@ export function RequestsTab({
               {filtered.map(d => {
                 const k = getKind(d);
                 const isOpen = expandedId === d.id;
-                const clientName = (d as any).sender_name || (d as any).recipient_name || d.contact_email || '—';
+                const clientName = (d as any).sender_name || (d as any).recipient_name || (d as any).buyer_name || (d as any).supplier_name || d.contact_email || '—';
+                const statusLabel = getStatutsPourDossier({
+                  app_source: d.app_source,
+                  needs_sourcing: d.needs_sourcing,
+                }).find(s => s.value === d.status)?.label ?? DOSSIER_STATUS_LABELS[d.status];
                 const amountInfo = dossierAmount(d as any);
                 const amountXof = amountInfo.xof;
                 const course = (roadCourses as Record<string, any>)[d.id] || null;
@@ -596,7 +600,7 @@ export function RequestsTab({
                             'inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium',
                             STATUS_TONE[d.status] || 'bg-secondary text-muted-foreground border-border',
                           )}>
-                            {DOSSIER_STATUS_LABELS[d.status]}
+                            {statusLabel}
                           </span>
                         )}
                       </td>
