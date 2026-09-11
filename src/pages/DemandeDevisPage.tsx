@@ -113,7 +113,7 @@ export default function DemandeDevisPage() {
         transportMode: mode,
         description: description || null,
         note: note || null,
-        source: 'devis_page',
+        source: sp.get('source') || 'devis_page',
       });
       setDone(res);
       toast.success('Demande envoyée');
