@@ -192,6 +192,8 @@ export function PublicFooter() {
           </p>
         </div>
       </div>
+      {/* Espace pour la barre de navigation mobile fixe (GlobalMobileNav) */}
+      <div className="h-14 md:hidden" aria-hidden="true" />
     </footer>
   );
 }

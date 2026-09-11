@@ -23,6 +23,7 @@ import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import DekkPaymentStatusPage from "./pages/DekkPaymentStatusPage";
 import { CookieBanner } from "@/components/CookieBanner";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
+import { GlobalMobileNav } from "@/components/GlobalMobileNav";
 
 import { MaintenanceGate } from "@/components/MaintenanceGate";
 import Index from "./pages/Index";
@@ -281,6 +282,7 @@ const App = () => {
           <AdminOnlyGuard />
           {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}
           {!dekkMode && !konnektMode && <FloatingWhatsApp />}
+          {!dekkMode && !konnektMode && <GlobalMobileNav />}
           <CookieBanner />
           
         </MaintenanceGate>
