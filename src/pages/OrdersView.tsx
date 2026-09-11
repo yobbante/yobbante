@@ -259,6 +259,31 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
             className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-card border border-border text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/40 transition-colors"
           />
         </div>
+        <div className="flex items-center gap-2">
+          {([
+            { id: null, label: 'Tout' },
+            { id: 'pending' as const, label: 'À payer' },
+            { id: 'invoices' as const, label: 'Factures' },
+          ]).map(chip => {
+            const isOn = filter === chip.id;
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() => setFilter(chip.id as any)}
+                aria-pressed={isOn}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors',
+                  isOn
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                )}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Panel */}
