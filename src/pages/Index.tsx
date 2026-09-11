@@ -11,6 +11,8 @@ import { DevPanel } from '@/components/DevPanel';
 import { ClientSpaceView } from '@/pages/ClientSpaceView';
 import { OrdersView } from '@/pages/OrdersView';
 import { ProfileView } from '@/pages/ProfileView';
+import { QuotesView } from '@/pages/QuotesView';
+import { BillingView } from '@/pages/BillingView';
 
 import { markInApp } from '@/lib/homeHref';
 
