@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
     if (!shipment) {
       const { data: dossier } = await sb
         .from('dossiers')
-        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost, quote_amount_xof, quote_currency, quote_valid_until, quote_notes_admin, quote_sent_at, quote_response, is_express')
+        .select('id, tracking_id, reference, status, origin_country, destination_country, origin_city, destination_city, estimated_weight, actual_weight_kg, estimated_delivery_date, created_at, collected_at, weighed_at, delivered_at, payment_status, final_amount_xof, estimated_cost, quote_amount_xof, quote_currency, quote_valid_until, quote_notes_admin, quote_sent_at, quote_response, is_express, parent_dossier_id, split_index, split_count, assigned_transporteur_ref')
         .or(`tracking_id.eq.${ref},reference.eq.${ref}`)
         .maybeSingle();
 
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
         // Envoi scindé : on expose l'état de chaque sous-colis.
         const { data: kids } = await sb
           .from('dossiers')
-          .select('id, reference, product_description, status, estimated_weight, actual_weight_kg, split_index, split_count, estimated_delivery_date')
+          .select('id, reference, tracking_id, product_description, status, estimated_weight, actual_weight_kg, split_index, split_count, estimated_delivery_date, assigned_transporteur_ref')
           .eq('parent_dossier_id', (dossier as any).id)
           .order('split_index', { ascending: true });
 
@@ -228,6 +228,8 @@ Deno.serve(async (req) => {
             index: c.split_index,
             count: c.split_count,
             reference: c.reference,
+            tracking_number: c.tracking_id || c.reference,
+            carrier_ref: c.assigned_transporteur_ref,
             description: c.product_description,
             weight_kg: c.actual_weight_kg ?? c.estimated_weight,
             eta: c.estimated_delivery_date,
@@ -236,8 +238,26 @@ Deno.serve(async (req) => {
           };
         });
 
+        // Colis consulté directement → on renvoie le lien vers l'envoi complet.
+        let parentInfo: any = null;
+        if ((dossier as any).parent_dossier_id) {
+          const { data: pRow } = await sb
+            .from('dossiers')
+            .select('tracking_id, reference, split_count')
+            .eq('id', (dossier as any).parent_dossier_id)
+            .maybeSingle();
+          if (pRow) {
+            parentInfo = {
+              tracking_number: (pRow as any).tracking_id || (pRow as any).reference,
+              total: (pRow as any).split_count,
+              index: (dossier as any).split_index,
+            };
+          }
+        }
+
         return new Response(JSON.stringify({
           parcels,
+          parent: parentInfo,
           tracking_number: (dossier as any).tracking_id || (dossier as any).reference,
           status: publicStatus,
           status_label: STATUS_LABEL[publicStatus] || publicStatus,

@@ -45,12 +45,19 @@ interface TrackResponse {
     index: number | null;
     count: number | null;
     reference: string;
+    tracking_number?: string | null;
+    carrier_ref?: string | null;
     description: string | null;
     weight_kg: number | null;
     eta: string | null;
     status: string;
     status_label: string;
   }[];
+  parent?: {
+    tracking_number: string;
+    total: number | null;
+    index: number | null;
+  } | null;
   devis?: {
     id: string;
     reference: string;
@@ -427,6 +434,18 @@ export default function TrackPage() {
             </div>
             )}
 
+            {data.parent && (
+              <a
+                href={`/suivre/${data.parent.tracking_number}`}
+                className="block rounded-[12px] border p-3 mb-5 text-[13px] hover:border-primary transition-colors"
+                style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}
+              >
+                Colis {data.parent.index ?? '?'}
+                {data.parent.total ? `/${data.parent.total}` : ''} — voir l'envoi complet{' '}
+                <span className="font-mono">{data.parent.tracking_number}</span>
+              </a>
+            )}
+
             {data.parcels && data.parcels.length > 0 && (
               <div className="rounded-[12px] border p-4 mb-5" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}>
                 <div className="text-sm font-semibold mb-1">
@@ -446,6 +465,19 @@ export default function TrackPage() {
                           <p className="text-[11px] text-muted-foreground truncate">
                             {p.description || '—'}{p.weight_kg ? ` · ${Number(p.weight_kg)} kg` : ''}
                           </p>
+                          {p.tracking_number && (
+                            <a
+                              href={`/suivre/${p.tracking_number}`}
+                              className="text-[11px] font-mono text-primary hover:underline"
+                            >
+                              {p.tracking_number}
+                            </a>
+                          )}
+                          {p.eta && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Arrivée estimée : {new Date(p.eta).toLocaleDateString('fr-FR')}
+                            </p>
+                          )}
                         </div>
                         <span className={STATUS_BADGE[p.status] || 'badge-success'} style={{ fontSize: 11, padding: '2px 10px' }}>
                           {p.status_label}

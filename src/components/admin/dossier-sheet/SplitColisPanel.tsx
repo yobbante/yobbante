@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Split, Plus, Trash2, ArrowUpRight, ArrowLeft, Package } from 'lucide-react';
+import { Split, Plus, Trash2, ArrowUpRight, ArrowLeft, Package, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  useDossierChildren, useDossierParent, useSplitDossier, type SplitPart,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  useDossierChildren, useDossierParent, useSplitDossier, useAddParcel,
+  useMergeParcels, useUpdateParcel, type SplitPart,
 } from '@/hooks/useDossierSplit';
 import { useDossierSheet } from './useDossierSheet';
 import { formatStatusLabel } from '@/lib/statusLabels';
@@ -55,66 +59,209 @@ export function SplitChildBanner({ dossier }: { dossier: Dossier }) {
   );
 }
 
-/** Liste des sous-colis + création du split. */
+/** Statuts proposés colis par colis (ordre de progression). */
+const PARCEL_STATUSES = [
+  'CONFIRMED', 'EN_RECHERCHE_DEPART', 'ASSIGNED', 'DEPARTURE_CONFIRMED',
+  'COLLECTING', 'COLLECTED', 'WEIGHED', 'IN_TRANSIT', 'CUSTOMS',
+  'ARRIVED_HUB', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CLOSED',
+];
+
+/** Liste des colis, suivi par colis, ajout / annulation / refusion. */
 export function SplitColisPanel({ dossier }: { dossier: Dossier }) {
   const { open } = useDossierSheet();
   const { data: children = [] } = useDossierChildren(dossier.parent_dossier_id ? null : dossier.id);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const update = useUpdateParcel(dossier.id);
+  const merge = useMergeParcels();
 
   if (dossier.parent_dossier_id) return null;
 
+  const activeCount = children.filter((c) => !['CANCELLED', 'ARCHIVED'].includes(c.status)).length;
+
   return (
     <div className="rounded-lg border border-border p-3 space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Split className="w-4 h-4 text-muted-foreground" />
-          <p className="text-sm font-medium">Répartition en plusieurs colis</p>
+          <p className="text-sm font-medium">Colis de l'envoi</p>
           {children.length > 0 && (
             <Badge variant="secondary" className="text-[10px]">{children.length} colis</Badge>
           )}
         </div>
-        {children.length === 0 && (
-          <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
-            <Split className="w-3.5 h-3.5 mr-1" /> Scinder
-          </Button>
-        )}
+        <Button size="sm" variant="outline" onClick={() => (children.length === 0 ? setDialogOpen(true) : setAddOpen(true))}>
+          <Plus className="w-3.5 h-3.5 mr-1" /> Ajouter un colis
+        </Button>
       </div>
 
       {children.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Un seul colis. Scindez si l'envoi part avec plusieurs transporteurs différents.
+          Un seul colis. Ajoutez-en un second si l'envoi part avec plusieurs transporteurs.
         </p>
       ) : (
-        <div className="space-y-2">
-          {children.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => open(c.id)}
-              className="w-full text-left rounded-lg border border-border bg-card p-2.5 hover:border-primary/40 transition-colors"
+        <>
+          <p className="text-[11px] text-muted-foreground">
+            Le statut de l'envoi suit automatiquement le colis le moins avancé.
+          </p>
+          <div className="space-y-2">
+            {children.map((c) => {
+              const cancelled = ['CANCELLED', 'ARCHIVED'].includes(c.status);
+              return (
+                <div
+                  key={c.id}
+                  className={`rounded-lg border p-2.5 space-y-2 ${cancelled ? 'border-border/60 bg-muted/30 opacity-70' : 'border-border bg-card'}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <button onClick={() => open(c.id)} className="text-left min-w-0 group">
+                      <p className="text-xs font-medium truncate group-hover:text-primary">
+                        Colis {c.split_index}/{c.split_count ?? children.length} — {c.product_description ?? 'Colis'}
+                        <ArrowUpRight className="inline w-3 h-3 ml-1 text-muted-foreground" />
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {kg(c.actual_weight_kg ?? c.estimated_weight)} ·{' '}
+                        {c.assigned_transporteur_ref ? `Transporteur ${c.assigned_transporteur_ref}` : 'Sans transporteur'}
+                      </p>
+                    </button>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{label(c.status)}</Badge>
+                  </div>
+
+                  {c.tracking_id && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(c.tracking_id!);
+                        toast.success('Numéro de suivi copié');
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="w-3 h-3" /> {c.tracking_id}
+                    </button>
+                  )}
+
+                  {!cancelled && (
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={c.status}
+                        onValueChange={(v) => update.mutate({ id: c.id, patch: { status: v } })}
+                      >
+                        <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {PARCEL_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s} className="text-xs">{label(s)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="icon" variant="ghost" className="h-8 w-8"
+                        aria-label="Annuler ce colis"
+                        onClick={() => update.mutate({ id: c.id, patch: { status: 'CANCELLED' } })}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {activeCount <= 1 && (
+            <Button
+              size="sm" variant="ghost" className="w-full text-xs"
+              disabled={merge.isPending}
+              onClick={async () => {
+                try {
+                  await merge.mutateAsync(dossier.id);
+                  toast.success('Envoi refusionné en un seul colis');
+                } catch (e: any) {
+                  toast.error(e?.message ?? 'Refusion impossible');
+                }
+              }}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium truncate">
-                    <span className="font-mono text-[11px] text-muted-foreground">{c.reference}</span>{' '}
-                    {c.product_description ?? 'Colis'}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {kg(c.actual_weight_kg ?? c.estimated_weight)} ·{' '}
-                    {c.assigned_transporteur_ref ? `GP ${c.assigned_transporteur_ref}` : 'Sans transporteur'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Badge variant="outline" className="text-[10px]">{label(c.status)}</Badge>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              Refusionner en un seul colis
+            </Button>
+          )}
+        </>
       )}
 
       <SplitDialog dossier={dossier} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddParcelDialog dossier={dossier} open={addOpen} onOpenChange={setAddOpen} />
     </div>
+  );
+}
+
+/** Ajout d'un colis supplémentaire à un envoi déjà réparti. */
+function AddParcelDialog({
+  dossier, open, onOpenChange,
+}: { dossier: Dossier; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const add = useAddParcel();
+  const types = carrierTypesForMode((dossier.transport_mode as any) || 'gp');
+  const [part, setPart] = useState<Part>({ description: '', weight: null });
+
+  const submit = async () => {
+    try {
+      await add.mutateAsync({
+        dossierId: dossier.id,
+        part: {
+          description: part.description?.trim() || undefined,
+          weight: part.weight ?? null,
+          transporteur_ref: (part.transporteur_ref || part.carrier_name)?.trim() || undefined,
+        },
+      });
+      toast.success('Colis ajouté');
+      setPart({ description: '', weight: null });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erreur');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Plus className="w-4 h-4" /> Ajouter un colis
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Ce colis rejoint l'envoi {dossier.reference} avec sa propre référence et son propre suivi.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div>
+            <Label className="text-[11px]">Contenu</Label>
+            <Input
+              className="h-9" value={part.description ?? ''}
+              onChange={(e) => setPart((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Ex. Carton chaussures"
+            />
+          </div>
+          <div>
+            <Label className="text-[11px]">Poids (kg)</Label>
+            <Input
+              className="h-9" type="number" inputMode="decimal" min={0} step="0.1"
+              value={part.weight ?? ''}
+              onChange={(e) => setPart((p) => ({ ...p, weight: e.target.value === '' ? null : Number(e.target.value) }))}
+            />
+          </div>
+          <div>
+            <Label className="text-[11px]">Transporteur / GP</Label>
+            <CarrierPicker
+              value={part.carrier_name ?? ''}
+              valueRef={part.transporteur_ref ?? null}
+              types={types}
+              autoDetected={null}
+              onChange={(name, ref) => setPart((p) => ({ ...p, carrier_name: name, transporteur_ref: ref ?? undefined }))}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={add.isPending}>Ajouter</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
