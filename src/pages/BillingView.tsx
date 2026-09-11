@@ -24,7 +24,7 @@ export function BillingView({ mode }: { mode: 'payments' | 'invoices' }) {
 
   const list = dossiers.filter((d) =>
     mode === 'payments'
-      ? d.payment_status === 'pending' && d.status !== 'CLOSED' && d.status !== 'CANCELLED'
+      ? d.payment_status === 'pending' && !['CLOSED', 'CANCELLED', 'ARCHIVED'].includes(String(d.status))
       : d.payment_status === 'paid'
   );
 
