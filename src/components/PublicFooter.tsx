@@ -52,7 +52,7 @@ const SECTIONS: FooterSection[] = [
   {
     title: 'Entreprises',
     links: [
-      { label: 'Solution B2B', to: '/entreprises' },
+      { label: 'Solution B2B', to: '/business' },
       { label: 'Demander un devis', to: '/demande-devis?segment=entreprise' },
       { label: 'Tarifs', to: '/tarifs' },
       { label: 'Devenir partenaire', to: '/#transporteur' },

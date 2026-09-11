@@ -5,15 +5,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
-import EnterprisesPage from "./pages/EnterprisesPage";
 import DemandeDevisPage from "./pages/DemandeDevisPage";
 import ExpedierPage from "./pages/ExpedierPage";
-import AcheterPage from "./pages/AcheterPage";
 import RelaisDPage from "./pages/RelaisDPage";
 import SourcingPage from "./pages/SourcingPage";
 import TarifsPage from "./pages/TarifsPage";
 import DepartsPage from "./pages/DepartsPage";
-import DevisPage from "./pages/DevisPage";
 import DevisConfirmerPage from "./pages/DevisConfirmerPage";
 import TrackPage from "./pages/TrackPage";
 import BoutiquePage from "./pages/BoutiquePage";
@@ -130,7 +127,7 @@ const DekkRoutes = () => (
     <Route path="/chauffeur" element={<ChauffeurApp />} />
     <Route path="/recu/:token" element={<RecuPage />} />
     <Route path="/terminal-d" element={<TerminalDPage />} />
-    <Route path="/fret/tarifs" element={<TerminalDPage />} />
+    <Route path="/fret/tarifs" element={<Navigate to="/terminal-d" replace />} />
     <Route path="/gp/connexion" element={<GpLoginPage />} />
     <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
@@ -176,13 +173,13 @@ const MainRoutes = () => (
     <Route path="/relais-d/:mode" element={<RelaisDPage />} />
     <Route path="/acheter" element={<Navigate to="/sourcing" replace />} />
     <Route path="/acheter/sourcing" element={<Navigate to="/sourcing" replace />} />
-    <Route path="/acheter/recevoir" element={<AcheterPage />} />
+    <Route path="/acheter/recevoir" element={<Navigate to="/relais-d" replace />} />
     <Route path="/tarifs" element={<TarifsPage />} />
     <Route path="/departs" element={<DepartsPage />} />
-    <Route path="/prochains-departs" element={<DepartsPage />} />
+    <Route path="/prochains-departs" element={<Navigate to="/departs" replace />} />
     {/* Point d'entrée UNIQUE des demandes de devis */}
     <Route path="/demande-devis" element={<DemandeDevisPage />} />
-    <Route path="/devis" element={<DevisPage />} />
+    <Route path="/devis" element={<Navigate to="/demande-devis" replace />} />
     <Route path="/devis/confirmer" element={<DevisConfirmerPage />} />
     <Route path="/track/:id" element={<SuivreEntry />} />
     {/* Boutique : en prod redirige vers dekk.yobbante.com, sinon rend en local */}
@@ -203,7 +200,7 @@ const MainRoutes = () => (
     <Route path="/services" element={<Navigate to="/" replace />} />
     <Route path="/simulateur" element={<Navigate to="/expedier" replace />} />
     {/* B2B funnel kept for sales — not part of the public 2-CTA promise */}
-    <Route path="/entreprises" element={<EnterprisesPage />} />
+    <Route path="/entreprises" element={<Navigate to="/business" replace />} />
     <Route path="/devis-entreprise" element={<Navigate to="/demande-devis?segment=entreprise" replace />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
@@ -234,7 +231,7 @@ const MainRoutes = () => (
     <Route path="/chauffeur" element={<ChauffeurApp />} />
     <Route path="/recu/:token" element={<RecuPage />} />
     <Route path="/terminal-d" element={<TerminalDPage />} />
-    <Route path="/fret/tarifs" element={<TerminalDPage />} />
+    <Route path="/fret/tarifs" element={<Navigate to="/terminal-d" replace />} />
     <Route path="/gp/connexion" element={<GpLoginPage />} />
     <Route path="/gp/auth" element={<GpAuthPage />} />
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />

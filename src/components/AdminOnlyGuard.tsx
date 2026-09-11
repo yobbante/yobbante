@@ -20,7 +20,6 @@ const PUBLIC_PATHS = [
   '/expedier',
   '/sourcing',
   '/acheter',
-  '/entreprises',
   '/devis',
   '/confidentialite',
   '/mentions-legales',
