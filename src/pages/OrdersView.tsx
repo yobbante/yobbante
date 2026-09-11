@@ -93,6 +93,15 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
   );
   const [query, setQuery] = useState('');
 
+  // Filtre transverse (?filter=pending | invoices) — utilisé par les actions
+  // rapides « Mes paiements » / « Mes factures » de l'accueil.
+  const filter = (searchParams.get('filter') as 'pending' | 'invoices' | null) ?? null;
+  const setFilter = (next: 'pending' | 'invoices' | null) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next) sp.set('filter', next); else sp.delete('filter');
+    setSearchParams(sp, { replace: true });
+  };
+
   // Detail drawers
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [selectedSendDossier, setSelectedSendDossier] = useState<Dossier | null>(null);
