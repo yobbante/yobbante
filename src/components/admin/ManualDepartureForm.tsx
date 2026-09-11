@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, addDays } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Check, Plane, Plus, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import {
@@ -76,7 +76,7 @@ const Schema = z.object({
 });
 
 export function ManualDepartureForm({ open, onClose, departure, prefill }: Props) {
-  const { create, update } = useManualDepartures();
+  const { list, create, update } = useManualDepartures();
   const { upsert: upsertTransporteur } = useTransporteurs();
   const { cities: customCities, addCustomCity } = useCustomCities();
   const isEdit = !!departure;
@@ -101,6 +101,14 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [priceOverride, setPriceOverride] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [frequentMode, setFrequentMode] = useState(false);
+  const [scheduleMode, setScheduleMode] = useState<'weekly' | 'custom'>('weekly');
+  const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [scheduleEndDate, setScheduleEndDate] = useState<Date | undefined>();
+  const [customDates, setCustomDates] = useState<Date[]>([]);
+  const [customDate, setCustomDate] = useState<Date | undefined>();
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const datesRef = useRef<HTMLDivElement>(null);
 
   // Transporter fields
   const [tRef, setTRef] = useState('');
@@ -172,6 +180,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setTAdr1(''); setTAdr2('');
       setTVille('Dakar'); setTZone(''); setTNotes('');
     }
+    if (t && !isEdit) {
+      window.setTimeout(() => datesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
   }
 
   function markEditedIf(initial: string | null | undefined, next: string) {
@@ -232,6 +243,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setArrivalEstimate(undefined);
       setUseFixedPrice(false); setPriceOverride('');
       setNotes(prefill?.notes ?? '');
+      setFrequentMode(false); setScheduleMode('weekly'); setWeekdays([]);
+      setScheduleEndDate(undefined); setCustomDates([]); setCustomDate(undefined);
       const pref = prefill?.transporteurRef ?? '';
       setTRef(pref);
       if (pref && /^[0-9]{4}$/.test(pref)) {
@@ -275,6 +288,19 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const foreignCountry = foreignCity?.country ?? (direction === 'from_dakar' ? destCountry : originCountry);
   const foreignDial = dialForCountry(foreignCountry);
   const foreignFlag = foreignCity?.flag ?? '';
+
+  const plannedDates = useMemo(() => {
+    if (!frequentMode || !departureDate) return departureDate ? [departureDate] : [];
+    const dates: Date[] = [departureDate];
+    if (scheduleMode === 'custom') dates.push(...customDates);
+    if (scheduleMode === 'weekly' && scheduleEndDate && weekdays.length > 0) {
+      for (let cursor = addDays(departureDate, 1); cursor <= scheduleEndDate; cursor = addDays(cursor, 1)) {
+        if (weekdays.includes(cursor.getDay())) dates.push(cursor);
+      }
+    }
+    const unique = new Map(dates.map((date) => [format(date, 'yyyy-MM-dd'), date]));
+    return Array.from(unique.values()).sort((a, b) => a.getTime() - b.getTime());
+  }, [customDates, departureDate, frequentMode, scheduleEndDate, scheduleMode, weekdays]);
 
   async function save(publish: boolean) {
     const finalStatus: DepartureStatus = 'active';
@@ -341,6 +367,36 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         savedDeparture = await update.mutateAsync({ id: departure.id, patch: input });
       } else {
         savedDeparture = await create.mutateAsync(input);
+      }
+
+      // Vols fréquents : création groupée, sans recréer un départ identique.
+      if (!isEdit && frequentMode && plannedDates.length > 1) {
+        const existingKeys = new Set((list.data ?? []).map((item) =>
+          [item.transporteur_ref ?? '', item.origin_city.toLowerCase(), item.destination_city.toLowerCase(), item.departure_date].join('|'),
+        ));
+        let createdCount = 1;
+        let skippedCount = 0;
+        for (const plannedDate of plannedDates.slice(1)) {
+          const dateKey = format(plannedDate, 'yyyy-MM-dd');
+          const key = [input.transporteur_ref ?? '', input.origin_city.toLowerCase(), input.destination_city.toLowerCase(), dateKey].join('|');
+          if (existingKeys.has(key)) {
+            skippedCount += 1;
+            continue;
+          }
+          const estimatedArrival = estimateArrivalDate({
+            destinationCountry: input.destination_country ?? 'SN',
+            destinationCity: input.destination_city,
+            departureDate: plannedDate,
+          });
+          await create.mutateAsync({
+            ...input,
+            departure_date: dateKey,
+            arrival_estimate: estimatedArrival ? format(estimatedArrival, 'yyyy-MM-dd') : null,
+          });
+          existingKeys.add(key);
+          createdCount += 1;
+        }
+        toast.success(`${createdCount} départs publiés${skippedCount ? ` · ${skippedCount} doublon(s) ignoré(s)` : ''}`);
       }
 
       // 2b) Aller-retour : on enchaîne immédiatement le départ inverse.
@@ -426,10 +482,13 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         setDepartureDate(undefined);
         setArrivalEstimate(undefined);
         setRoundTrip(false); setReturnDate(undefined); setReturnArrival(undefined);
+        setFrequentMode(false); setScheduleMode('weekly'); setWeekdays([]);
+        setScheduleEndDate(undefined); setCustomDates([]); setCustomDate(undefined);
         setUseFixedPrice(false); setPriceOverride('');
         setNotes('');
         // Ne pas fermer — l'admin peut enchaîner un autre départ.
         toast.info('Fiche prête pour un nouveau départ.');
+        window.setTimeout(() => sheetRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
       } else {
         onClose();
       }
@@ -442,21 +501,65 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent ref={sheetRef} className="w-full sm:max-w-5xl overflow-hidden p-0">
+        <div className="grid h-full min-h-0 sm:grid-cols-[17rem_minmax(0,1fr)]">
+          <aside className="border-b border-border bg-secondary/20 sm:border-b-0 sm:border-r min-h-0 flex flex-col">
+            <div className="px-4 py-4 border-b border-border">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Départs existants</p>
+              <p className="text-xs text-muted-foreground mt-1">Vérifiez avant d'ajouter.</p>
+            </div>
+            <div className="flex gap-2 overflow-x-auto p-3 sm:block sm:space-y-2 sm:overflow-y-auto">
+              {(list.data ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground px-1">Aucun départ.</p>
+              ) : (list.data ?? []).slice().sort((a, b) => a.departure_date.localeCompare(b.departure_date)).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    const target = document.getElementById(`departure-${item.id}`);
+                    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
+                  className="min-w-[210px] sm:min-w-0 sm:w-full text-left rounded-md border border-border bg-background p-3 hover:border-primary/60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-semibold text-primary">GP #{item.transporteur_ref ?? '—'}</span>
+                    <span className="text-[11px] text-muted-foreground">{format(new Date(item.departure_date), 'dd/MM/yy')}</span>
+                  </div>
+                  <p className="mt-1 text-xs font-medium truncate">{item.origin_city} → {item.destination_city}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">Départ #{item.short_ref ?? '—'} · {item.carrier_name ?? 'Sans nom'}</p>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-6" ref={sheetRef}>
         <SheetHeader>
           <SheetTitle>{isEdit ? 'Modifier le départ' : 'Nouveau départ'}</SheetTitle>
           <SheetDescription>Cette navette sera utilisée par le moteur de matching et de pricing.</SheetDescription>
         </SheetHeader>
 
+        <nav className="sticky top-0 z-20 mt-4 flex gap-1 overflow-x-auto border-b border-border bg-background py-2" aria-label="Étapes du départ">
+          {[
+            ['gp-section', 'GP'],
+            ['dates-section', 'Dates'],
+            ['route-section', 'Trajet'],
+            ['details-section', 'Détails'],
+          ].map(([id, label]) => (
+            <Button key={id} type="button" size="sm" variant="ghost" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              {label}
+            </Button>
+          ))}
+        </nav>
+
         <div className="mt-6 space-y-6">
           {/* Section 0: Transporter reference (FIRST) */}
-          <Section title="Référence transporteur">
+          <div id="gp-section" className="scroll-mt-16"><Section title="Référence transporteur">
             <TransporteurReferenceLookup
               value={tRef}
               onChange={setTRef}
               onMatch={applyTransporteur}
             />
-          </Section>
+          </Section></div>
 
           {/* Section 1: Transporter details */}
           {/^[0-9]{4}$/.test(tRef) && (
