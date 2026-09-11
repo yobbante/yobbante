@@ -240,13 +240,16 @@ export function LiveDeparturesTicker() {
         Prochains départs
       </Link>
 
-      <div
+      <Link
+        to="/departs"
+        aria-label="Voir tous les prochains départs"
         className="ticker-scroll-zone"
         style={{
           flex: 1,
           overflow: 'hidden',
           height: '100%',
           position: 'relative',
+          display: 'block',
           WebkitMaskImage:
             'linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%)',
           maskImage:
