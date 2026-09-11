@@ -135,6 +135,9 @@ export default function Index() {
         {view === 'home' && <ClientSpaceView />}
         {isOrdersTab && <OrdersView fixedKind={ordersKind} />}
         {view === 'profile' && <ProfileView />}
+        {view === 'devis' && <QuotesView />}
+        {view === 'paiements' && <BillingView mode="payments" />}
+        {view === 'factures' && <BillingView mode="invoices" />}
       </main>
       <BottomNav active={view} onChange={setView} />
       {import.meta.env.DEV && <DevPanel />}
