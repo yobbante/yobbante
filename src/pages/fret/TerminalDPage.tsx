@@ -72,12 +72,17 @@ export default function TerminalDPage() {
   const [destNom, setDestNom] = useState('');
   const [destPhone, setDestPhone] = useState('+221');
 
-  const scopedDest = useMemo(
-    () => destinations.filter(d => d.scope === tab),
-    [destinations, tab],
-  );
-  const dest = scopedDest.find(d => d.id === destId) ?? null;
+  const filtered = useMemo(() => {
+    const q = norm(search);
+    return q ? destinations.filter(d => norm(d.name).includes(q)) : destinations;
+  }, [destinations, search]);
+  const nationalDest = useMemo(() => filtered.filter(d => d.scope !== 'international'), [filtered]);
+  const internationalDest = useMemo(() => filtered.filter(d => d.scope === 'international'), [filtered]);
+
+  const dest = destinations.find(d => d.id === destId) ?? null;
+  const tab: Tab = dest?.scope === 'international' ? 'international' : 'national';
   const zone = dest ? zones.find(z => z.id === dest.zone_id) ?? null : null;
+
 
   const weightNum = Number(String(weight).replace(',', '.'));
   const quote = useMemo(() => {
