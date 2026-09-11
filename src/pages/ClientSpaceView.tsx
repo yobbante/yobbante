@@ -163,7 +163,12 @@ export function ClientSpaceView() {
               badge={pendingCount > 0 ? pendingCount : undefined}
               onClick={() => navigate('/app?view=envois&filter=pending')}
             />
-            <QuickAction icon={FileText} label="Mes factures" onClick={() => navigate('/app?view=envois&filter=invoices')} />
+            <QuickAction
+              icon={FileText}
+              label="Mes factures"
+              badge={paidCount > 0 ? paidCount : undefined}
+              onClick={() => navigate('/app?view=envois&filter=invoices')}
+            />
             <QuickAction
               icon={Search}
               label="Mes devis"
