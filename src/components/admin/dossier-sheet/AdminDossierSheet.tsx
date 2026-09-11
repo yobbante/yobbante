@@ -42,6 +42,7 @@ import { dossierAmount } from '@/lib/dossierAmount';
 import { parseClientNotes, hasParsedEssentials, type ParsedClientNotes } from '@/lib/parseClientNotes';
 import { clarityEvent } from '@/lib/clarity';
 import { CancelDossierDialog, ReturnDossierDialog } from './DossierLifecycleDialogs';
+import { SplitColisPanel, SplitChildBanner } from './SplitColisPanel';
 import { canCancel as canCancelStatus, canRequestReturn as canReturnStatus, nextReturnStatus, LIFECYCLE_BADGE } from '@/lib/dossierLifecycle';
 
 import {
@@ -168,6 +169,11 @@ function DossierSheetBody({ id }: { id: string }) {
   return (
     <>
       <DossierHeader dossier={dossier} onChanged={() => refetch()} />
+      {dossier.parent_dossier_id && (
+        <div className="px-6 pt-3">
+          <SplitChildBanner dossier={dossier as any} />
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
         <div className="px-6 border-b border-border overflow-x-auto">
@@ -208,7 +214,12 @@ function DossierSheetBody({ id }: { id: string }) {
               registerSave={setApercuSave}
             />
           </TabsContent>
-          <TabsContent value="colis"      className="mt-0"><ColisTab dossier={dossier} /></TabsContent>
+          <TabsContent value="colis" className="mt-0">
+            <div className="space-y-4">
+              <ColisTab dossier={dossier} />
+              <SplitColisPanel dossier={dossier as any} />
+            </div>
+          </TabsContent>
           <TabsContent value="transport"  className="mt-0"><TransportTab dossier={dossier} /></TabsContent>
           <TabsContent value="livraison"  className="mt-0"><LivraisonTab dossier={dossier} /></TabsContent>
           <TabsContent value="paiement"   className="mt-0"><PaiementTab dossier={dossier} /></TabsContent>
