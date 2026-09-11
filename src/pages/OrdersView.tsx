@@ -135,7 +135,9 @@ export function OrdersView({ fixedKind }: { fixedKind?: Kind } = {}) {
 
   const activeTab = KIND_TABS.find(t => t.id === kind)!;
   const visibleDossiers = useMemo(() => {
-    let list = grouped[kind];
+    // Les filtres « À payer » / « Factures » sont transverses : on parcourt
+    // tous les dossiers du client, pas seulement l'onglet ouvert.
+    let list = filter ? dossiers : grouped[kind];
     if (filter === 'pending') {
       list = list.filter(d => (d as any).payment_status === 'pending' && d.status !== 'CLOSED');
     } else if (filter === 'invoices') {
