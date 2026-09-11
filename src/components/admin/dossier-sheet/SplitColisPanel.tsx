@@ -12,7 +12,7 @@ import {
   useDossierChildren, useDossierParent, useSplitDossier, type SplitPart,
 } from '@/hooks/useDossierSplit';
 import { useDossierSheet } from './useDossierSheet';
-import { STATUS_LABELS } from '@/lib/statusLabels';
+import { formatStatusLabel } from '@/lib/statusLabels';
 
 interface Dossier {
   id: string;
@@ -25,7 +25,7 @@ interface Dossier {
   split_count?: number | null;
 }
 
-const label = (s: string) => (STATUS_LABELS as Record<string, string>)[s] ?? s;
+const label = (s: string) => formatStatusLabel(s);
 const kg = (n: number | null | undefined) => (n == null ? '—' : `${Number(n)} kg`);
 
 /** Bandeau affiché sur un sous-colis, avec retour au dossier parent. */
