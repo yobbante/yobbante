@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, ArrowLeft, ArrowRight, Check, MessageCircle, MapPin, Truck, ExternalLink } from 'lucide-react';
 import { TransporteurReferenceLookup } from '@/components/admin/TransporteurReferenceLookup';
 import { toast } from 'sonner';
+import { getDeliveryDelay } from '@/lib/deliveryDelays';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -65,6 +66,8 @@ type IntakeData = {
   destination_city: string;
   weight_kg: string;
   transport_mode: 'gp' | 'air' | 'sea' | 'road';
+  /** Type d'envoi : pilote le délai de livraison annoncé au client. */
+  priority: 'standard' | 'express';
   description: string;
   declared_value: string;
   desired_date: string;
@@ -108,7 +111,7 @@ const INITIAL: IntakeData = {
   client_name: '', client_phone: '', client_email: '', client_city: '',
   client_type: 'individual', client_company: '',
   service_kind: null,
-  origin_city: '', destination_city: '', weight_kg: '', transport_mode: 'gp',
+  origin_city: '', destination_city: '', weight_kg: '', transport_mode: 'gp', priority: 'standard',
   description: '', declared_value: '', desired_date: '',
   product: '', sourcing_country: '', budget: '', quantity: '', product_url: '',
   origin_country_reception: '', tracking_number: '',
@@ -520,6 +523,11 @@ export function NewIntakeDialog({ open, onOpenChange }: Props) {
         contact_phone: data.client_phone,
         contact_email: data.client_email || null,
         estimated_weight: data.weight_kg ? parseFloat(data.weight_kg) : null,
+        is_express: data.priority === 'express',
+        estimated_delivery_date: destCity
+          ? getDeliveryDelay(destCity, data.priority === 'express' ? 'express' : 'standard')
+              .arrivalDate.toISOString().slice(0, 10)
+          : null,
         estimated_cost: price ?? null,
         needs_sourcing: data.service_kind === 'sourcing',
         app_source: data.service_kind === 'envoi'
@@ -926,6 +934,33 @@ Merci de votre confiance.`;
                     onChange={(m) => update({ transport_mode: m })}
                     liveModes={[...ADMIN_LIVE_MODES]}
                   />
+
+                  <div>
+                    <Label className="text-xs">Type d'envoi (obligatoire)</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      {(['standard', 'express'] as const).map((p) => {
+                        const dest = data.transport_mode === 'air' ? data.destination_city
+                          : data.transport_mode === 'sea' ? data.destination_city
+                          : data.destination_city;
+                        const d = getDeliveryDelay(dest, p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => update({ priority: p })}
+                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              data.priority === p ? 'border-primary bg-primary/10' : 'border-border'
+                            }`}
+                          >
+                            <div className="text-sm font-medium">{p === 'express' ? 'Express' : 'Standard'}</div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              Livraison ≈ {d.label} après le départ
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   {isModeSoon(data.transport_mode, [...ADMIN_LIVE_MODES]) && (
                     <ModeSoonNotice mode={data.transport_mode} />
