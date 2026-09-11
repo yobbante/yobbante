@@ -17,12 +17,33 @@ import { toast } from 'sonner';
 
 interface Props {
   tracking: string;
+  /** Type d'envoi choisi par l'admin — pilote le délai de livraison annoncé. */
+  priority?: 'express' | 'standard' | null;
+  /** Prévient le parent que la carte est bien affichée (pour éviter les doublons). */
+  onActive?: (active: boolean) => void;
 }
 
-export function PublicDepartureConfirm({ tracking }: Props) {
+/** "reste 3 jours" / "reste 12 heures" / "livraison imminente" */
+function countdownLabel(target: Date, now: number): string {
+  const ms = target.getTime() - now;
+  if (ms <= 0) return 'livraison imminente';
+  const hours = Math.floor(ms / 3600000);
+  if (hours < 1) return `reste ${Math.max(1, Math.round(ms / 60000))} minutes`;
+  if (hours < 48) return `reste ${hours} heure${hours > 1 ? 's' : ''}`;
+  const days = Math.round(hours / 24);
+  return `reste ${days} jour${days > 1 ? 's' : ''}`;
+}
+
+export function PublicDepartureConfirm({ tracking, priority, onActive }: Props) {
   const qc = useQueryClient();
   const [refuseOpen, setRefuseOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ['public-assigned-departure', tracking],
