@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, Building2, CheckCircle2, Loader2, Phone, Mail,
@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBusinessAccount } from '@/hooks/useBusinessAccount';
 import { useBusinessMembers } from '@/hooks/useBusinessMembers';
 import { useBusinessInvoices } from '@/hooks/useBusinessInvoices';
+import { useBusinessDossiers } from '@/hooks/useBusinessDossiers';
 import { TeamSection } from '@/components/business/TeamSection';
 import { InvoicesSection } from '@/components/business/InvoicesSection';
 import { AccountManagerCard } from '@/components/business/AccountManagerCard';
@@ -649,8 +650,9 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: st
 
 function ActionCard({ label, icon: Icon, to, disabled }: { label: string; icon: any; to: string; disabled?: boolean }) {
   return (
-    <a
-      href={disabled ? undefined : to}
+    <Link
+      to={disabled ? '#' : to}
+      onClick={(e) => { if (disabled) e.preventDefault(); }}
       className={cn(
         'flex flex-col items-start gap-3 p-5 rounded-[var(--radius)] border border-border bg-card transition-all',
         disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary/60 hover:-translate-y-0.5'
@@ -661,6 +663,6 @@ function ActionCard({ label, icon: Icon, to, disabled }: { label: string; icon: 
         <div className="font-semibold">{label}</div>
         {disabled && <div className="text-xs text-muted-foreground mt-0.5">Bientôt</div>}
       </div>
-    </a>
+    </Link>
   );
 }
