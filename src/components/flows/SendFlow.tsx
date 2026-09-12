@@ -442,7 +442,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })();
         if (newOriginCityId) setOriginCity(newOriginCityId);
         if (newDestCityId) setDestCity(newDestCityId);
-        if (p.transport) setTransportMode(p.transport);
+        if (p.transport) setTransportMode(p.transport === 'SEA' ? 'SEA' : p.transport === 'ROAD' ? 'ROAD' : 'AIR');
         if (typeof p.weight === 'number') { setWeight(p.weight); setWeightTouched(true); }
       } catch {}
     }
