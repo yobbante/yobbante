@@ -38,7 +38,7 @@ export type PaymentRow = {
 
 export const MODE_LABEL: Record<TransportMode, string> = {
   gp: 'GP',
-  air: 'Aérien',
+  air: 'Cargo aérien',
   sea: 'Maritime',
   road: 'Routier',
   other: 'Autre',

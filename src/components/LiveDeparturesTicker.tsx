@@ -18,7 +18,7 @@ function formatMode(m?: string | null): string {
   if (v === 'gp' || v.includes('bagage') || v.includes('accompagn')) return 'GP';
   if (v.includes('road') || v.includes('rout') || v.includes('terminal')) return 'Routier';
   if (v.includes('sea') || v.includes('mar') || v.includes('bateau')) return 'Maritime';
-  if (v.includes('air') || v.includes('aer') || v.includes('aér') || v.includes('avion')) return 'Aérien';
+  if (v.includes('air') || v.includes('aer') || v.includes('aér') || v.includes('avion')) return 'Cargo aérien';
   if (v.includes('express')) return 'Express';
   return m || 'GP';
 }

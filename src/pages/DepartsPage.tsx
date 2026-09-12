@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 const MODES: { key: DepartMode; label: string; short: string; Icon: typeof Plane; blurb: string }[] = [
   { key: 'gp',   label: 'GP · bagage accompagné', short: 'GP',       Icon: Luggage, blurb: 'Un voyageur transporte votre colis. Le plus rapide et le moins cher pour 1 à 25 kg.' },
-  { key: 'air',  label: 'Aérien',                 short: 'Aérien',   Icon: Plane,   blurb: 'Fret aérien classique, sans limite de poids, avec documents et dédouanement.' },
+  { key: 'air',  label: 'Cargo aérien',           short: 'Cargo aérien',   Icon: Plane,   blurb: 'Fret aérien classique, sans limite de poids, avec documents et dédouanement.' },
   { key: 'sea',  label: 'Maritime',               short: 'Maritime', Icon: Ship,    blurb: 'Groupage ou conteneur complet pour les volumes importants.' },
   { key: 'road', label: 'Routier · Terminal D',   short: 'Routier',  Icon: Truck,   blurb: 'Départs quotidiens depuis Dakar vers tout le Sénégal et les pays voisins.' },
 ];

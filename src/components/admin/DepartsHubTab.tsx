@@ -31,7 +31,7 @@ export function DepartsHubTab() {
         <TabsList>
           <HubTab value="semaine"     icon={CalendarDays}  label="Vue semaine" />
           <HubTab value="liste"       icon={List}          label="Liste" />
-          <HubTab value="air-mer"     icon={PlaneTakeoff}  label="Aérien & Maritime" />
+          <HubTab value="air-mer"     icon={PlaneTakeoff}  label="Cargo aérien & Maritime" />
           <HubTab value="partenaires" icon={Handshake}     label="Partenaires" />
           <HubTab value="konnekt"     icon={Radio}         label="Konnekt" />
         </TabsList>
