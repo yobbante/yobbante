@@ -67,7 +67,8 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
     preset?: {
       origin?: string; destination?: string;
       origin_city?: string; destination_city?: string;
-      transport?: 'AIR' | 'SEA' | 'ROAD';
+      transport?: 'AIR' | 'SEA' | 'ROAD' | 'GP';
+      departure_mode?: string;
       departure_date?: string; weight?: number;
       source?: string;
     };
@@ -151,7 +152,15 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // ↳ `forfaits` state est encapsulé dans useSendPricing (chargé selon destination + mode).
   // (analyse IA de la description retirée — sélection manuelle du type)
   // Step 7 — transport
-  const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(preset?.transport ?? 'AIR');
+  // Normalisation défensive : certains presets (départs GP, anciens presets en
+  // sessionStorage) portent 'GP', qui n'est pas un mode du flow. Le GP voyage en
+  // soute → AIR. Toute valeur inconnue retombe sur AIR (jamais ROAD/SEA, qui
+  // rendraient les dimensions obligatoires à tort).
+  const presetMode: typeof TRANSPORT_MODES[number]['id'] =
+    preset?.transport === 'SEA' ? 'SEA'
+      : preset?.transport === 'ROAD' ? 'ROAD'
+        : 'AIR';
+  const [transportMode, setTransportMode] = useState<typeof TRANSPORT_MODES[number]['id']>(presetMode);
   const [priority, setPriority]           = useState<typeof PRIORITIES[number]['id']>('normal');
   // Step 8 — insurance (auto-pré-sélectionnée "standard" si valeur > 50 000 FCFA
   // et que l'utilisateur n'a pas encore choisi manuellement — F3).
@@ -433,7 +442,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         })();
         if (newOriginCityId) setOriginCity(newOriginCityId);
         if (newDestCityId) setDestCity(newDestCityId);
-        if (p.transport) setTransportMode(p.transport);
+        if (p.transport) setTransportMode(p.transport === 'SEA' ? 'SEA' : p.transport === 'ROAD' ? 'ROAD' : 'AIR');
         if (typeof p.weight === 'number') { setWeight(p.weight); setWeightTouched(true); }
       } catch {}
     }
