@@ -17,7 +17,7 @@ const VILLES = ['Dakar', 'Thiès', 'Saint-Louis', 'Ziguinchor', 'Kaolack', 'Toub
 
 const TYPES: { id: string; Icon: typeof Package; label: string }[] = [
   { id: 'gp_express', Icon: Package, label: 'GP Express' },
-  { id: 'aerien', Icon: Plane, label: 'Aérien' },
+  { id: 'aerien', Icon: Plane, label: 'Cargo aérien' },
   { id: 'maritime', Icon: Ship, label: 'Maritime' },
   { id: 'routier', Icon: Truck, label: 'Routier' },
   { id: 'taxi_vtc', Icon: Car, label: 'Taxi / VTC' },
