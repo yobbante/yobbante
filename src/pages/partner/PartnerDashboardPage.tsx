@@ -129,6 +129,9 @@ export default function PartnerDashboardPage() {
         )}
       </div>
       {d.status === 'cancelled' && <span className="text-[11px] text-red-300">Annulé</span>}
+      {d.status === 'draft' && (
+        <span className="text-[11px] text-white/50">En attente de validation par Yobbanté</span>
+      )}
     </div>
   );
 
