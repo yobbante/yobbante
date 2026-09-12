@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Luggage, Plane, Ship, Truck } from 'lucide-react';
 import { PublicNav } from '@/components/PublicNav';
 import { PublicFooter } from '@/components/PublicFooter';
-import { PricingSimulator, fmt } from '@/components/PricingSimulator';
+import { fmt } from '@/components/PricingSimulator';
 import {
   Accordion,
   AccordionContent,
@@ -96,10 +96,6 @@ export default function TarifsPage() {
           </p>
         </header>
 
-        <section className="space-y-4">
-          <h2>Estimez votre envoi en 20 secondes</h2>
-          <PricingSimulator />
-        </section>
 
         {/* Sélecteur de mode */}
         <section className="space-y-4">

@@ -88,7 +88,9 @@ export default function DepartsPage() {
           destination: d.destination_country ?? undefined,
           origin_city: d.origin_city,
           destination_city: d.destination_city,
-          transport: d.mode === 'gp' ? 'GP' : d.mode === 'sea' ? 'SEA' : 'AIR',
+          // Le flow d'envoi ne connaît que AIR / SEA / ROAD : le GP voyage en soute (AIR).
+          transport: d.mode === 'sea' ? 'SEA' : d.mode === 'road' ? 'ROAD' : 'AIR',
+          departure_mode: d.mode,
           departure_date: d.departure_date,
           source: 'departures-ticker',
         },
