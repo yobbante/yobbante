@@ -17,6 +17,8 @@ export default function PartnerLoginPage() {
   useSeo({
     title: 'Espace partenaire fret | Yobbanté',
     description: 'Connexion des partenaires aériens et maritimes de Yobbanté pour publier leurs départs.',
+    path: '/partenaire/connexion',
+    index: false,
   });
 
   const [phone, setPhone] = useState('');
