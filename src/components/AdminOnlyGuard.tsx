@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   '/suivre',
   '/pay',
   '/gp/depart',
+  '/partenaire',
   '/avis',
   '/track',
   '/modifier',

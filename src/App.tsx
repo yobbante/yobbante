@@ -56,6 +56,9 @@ import TerminalDPage from "./pages/fret/TerminalDPage";
 import GpDepartPage from "./pages/gp/GpDepartPage";
 import GpDashboardPage from "./pages/gp/GpDashboardPage";
 import GpLoginPage from "./pages/gp/GpLoginPage";
+import PartnerLoginPage from "./pages/partner/PartnerLoginPage";
+import PartnerAuthPage from "./pages/partner/PartnerAuthPage";
+import PartnerDashboardPage from "./pages/partner/PartnerDashboardPage";
 import GpAuthPage from "./pages/gp/GpAuthPage";
 import { usePackageNotifier } from "@/hooks/usePackageNotifier";
 import { AdminOnlyGuard } from "@/components/AdminOnlyGuard";
@@ -133,6 +136,9 @@ const DekkRoutes = () => (
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
     <Route path="/gp/:ref" element={<GpDashboardPage />} />
     <Route path="/gp/:ref/departures" element={<GpDashboardPage />} />
+    <Route path="/partenaire/connexion" element={<PartnerLoginPage />} />
+    <Route path="/partenaire/auth" element={<PartnerAuthPage />} />
+    <Route path="/partenaire/:ref" element={<PartnerDashboardPage />} />
 
 
 
@@ -237,6 +243,9 @@ const MainRoutes = () => (
     <Route path="/gp/depart/:ref" element={<GpDepartPage />} />
     <Route path="/gp/:ref" element={<GpDashboardPage />} />
     <Route path="/gp/:ref/departures" element={<GpDashboardPage />} />
+    <Route path="/partenaire/connexion" element={<PartnerLoginPage />} />
+    <Route path="/partenaire/auth" element={<PartnerAuthPage />} />
+    <Route path="/partenaire/:ref" element={<PartnerDashboardPage />} />
 
 
     <Route path="/business" element={<BusinessPage />} />
