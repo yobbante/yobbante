@@ -29,7 +29,7 @@ export function normalizeMode(raw?: string | null): DepartMode {
 
 export const MODE_LABEL: Record<DepartMode, string> = {
   gp: 'GP (bagage accompagné)',
-  air: 'Aérien',
+  air: 'Cargo aérien',
   sea: 'Maritime',
   road: 'Routier',
 };

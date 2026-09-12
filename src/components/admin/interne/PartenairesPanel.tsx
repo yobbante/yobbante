@@ -14,7 +14,7 @@ import { SEA_ZONES } from '@/lib/seaFreight';
 import { usePartenaires, usePartenaireMutations, type Partenaire } from '@/hooks/useInternalWorkspace';
 
 export const CHANTIERS: Record<string, string> = {
-  aerien: 'Aérien',
+  aerien: 'Cargo aérien',
   maritime: 'Maritime',
   transit_iex: 'Transit / Import-Export',
   achat_vehicules: 'Achat véhicules',

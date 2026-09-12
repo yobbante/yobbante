@@ -4,7 +4,7 @@ import { useInternalOverview } from '@/hooks/useInternalWorkspace';
 
 const MODE_META: Record<string, { label: string; icon: typeof Plane }> = {
   gp: { label: 'GP', icon: Package },
-  aerien: { label: 'Aérien', icon: Plane },
+  aerien: { label: 'Cargo aérien', icon: Plane },
   maritime: { label: 'Maritime', icon: Ship },
   routier: { label: 'Routier', icon: RouteIcon },
 };

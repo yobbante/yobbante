@@ -48,7 +48,7 @@ const TAB_META: Record<TabId, { label: string; subtitle: string }> = {
   devis:     { label: 'Devis',       subtitle: 'Toutes les demandes de devis, du premier contact à l’acceptation.' },
   encours:   { label: 'En cours',    subtitle: 'Dossiers confirmés, en collecte, en transit ou en livraison.' },
   gp:        { label: 'GP',          subtitle: 'Bagage accompagné — dossiers rattachés à un transporteur GP.' },
-  aerien:    { label: 'Aérien',      subtitle: 'Fret aérien — devis indicatifs et dossiers confirmés.' },
+  aerien:    { label: 'Cargo aérien', subtitle: 'Fret cargo aérien — devis indicatifs et dossiers confirmés.' },
   maritime:  { label: 'Maritime',    subtitle: 'Fret maritime (LCL).' },
   routier:   { label: 'Routier',     subtitle: 'Courses Terminal D — national et pays voisins.' },
   reception: { label: 'Réception',   subtitle: 'Colis reçus en entrepôt.' },
