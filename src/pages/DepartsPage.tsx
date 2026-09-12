@@ -266,8 +266,23 @@ function DepartureCard({ d, onSelect }: { d: PublicDeparture; onSelect: () => vo
                 <Package className="w-3.5 h-3.5" /> {d.available_capacity_kg} kg dispo
               </span>
             )}
+            {d.capacity_cbm != null && (
+              <span className="inline-flex items-center gap-1">
+                <Package className="w-3.5 h-3.5" /> {d.capacity_cbm} CBM
+              </span>
+            )}
             {d.short_ref && <span>Réf. {d.short_ref}</span>}
           </div>
+          {(d.carrier_company || d.flight_or_vessel || d.cutoff_date || d.container_type || d.price_per_kg_xof || d.price_per_cbm_xof) && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              {d.carrier_company && <span className="font-medium">{d.carrier_company}</span>}
+              {d.flight_or_vessel && <span>{d.mode === 'sea' ? 'Navire' : 'Vol'} {d.flight_or_vessel}</span>}
+              {d.container_type && <span>{d.container_type}</span>}
+              {d.cutoff_date && <span>Dépôt jusqu’au {fmtShort(d.cutoff_date)}</span>}
+              {d.price_per_kg_xof != null && <span>{d.price_per_kg_xof.toLocaleString('fr-FR')} F/kg</span>}
+              {d.price_per_cbm_xof != null && <span>{d.price_per_cbm_xof.toLocaleString('fr-FR')} F/CBM</span>}
+            </div>
+          )}
           {cd && !cd.isPast && cd.under48h && (
             <div className="mt-1.5 text-[11px] font-medium" style={{ color: '#F5C518' }}>
               Dernière ligne droite — {cd.label}
