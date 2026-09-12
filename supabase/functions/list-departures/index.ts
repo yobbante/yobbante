@@ -229,7 +229,7 @@ async function fetchKonnektDepartures(): Promise<{
       headers['X-Yobbante-Api-Key'] = key;
     }
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), 6000);
+    const t = setTimeout(() => ac.abort(), 18000);
     const res = await fetch(endpoint, { method: 'GET', headers, signal: ac.signal }).finally(() => clearTimeout(t));
     if (!res.ok) {
       const txt = await res.text();
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
 
   try {
     const [konnektResult, manualDepartures] = await Promise.all([
-      withTimeout(fetchKonnektDepartures(), 7000, { error: 'konnekt timeout' } as { error: string }),
+      withTimeout(fetchKonnektDepartures(), 20000, { error: 'konnekt timeout' } as { error: string }),
       withTimeout(fetchManualDepartures(), 4000, [] as Departure[]),
     ]);
 
