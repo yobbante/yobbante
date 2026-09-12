@@ -345,7 +345,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
       return [
         origin && destination ? `${origin.split(',')[0]} → ${destination.split(',')[0]}` : 'Itinéraire à définir',
         weight ? `${weight} kg` : 'Poids ?',
-        transportMode === 'gp' ? 'GP' : transportMode === 'sea' ? 'Maritime' : transportMode === 'road' ? 'Routier' : 'Aérien',
+        transportMode === 'gp' ? 'GP' : transportMode === 'sea' ? 'Maritime' : transportMode === 'road' ? 'Routier' : 'Cargo aérien',
       ];
     }
     if (mode === 'sourcing') {
@@ -357,7 +357,7 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
     return [
       merchant,
       MERCHANT_COUNTRIES.find(c => c.code === merchantCountry)?.label ?? merchantCountry,
-      recMode === 'AIR' ? 'Aérien' : 'Maritime',
+      recMode === 'AIR' ? 'Cargo aérien' : 'Maritime',
       ...(estValue ? [`${estValue} €`] : []),
     ];
   }, [mode, origin, destination, weight, transportMode, merchant, merchantCountry, recMode, estValue, productQuery, srcOrigin]);

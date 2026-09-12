@@ -26,9 +26,9 @@ export interface FreightPartner {
 export type FreightPartnerInput = Partial<FreightPartner>;
 
 export const FP_MODE_LABEL: Record<FreightPartnerMode, string> = {
-  air: 'Aérien',
+  air: 'Cargo aérien',
   sea: 'Maritime',
-  both: 'Aérien + Maritime',
+  both: 'Cargo aérien + Maritime',
 };
 
 export function useFreightPartners() {

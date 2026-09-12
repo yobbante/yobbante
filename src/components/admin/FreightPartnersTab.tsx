@@ -63,7 +63,7 @@ export function FreightPartnersTab() {
           <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les modes</SelectItem>
-            <SelectItem value="air">Aérien</SelectItem>
+            <SelectItem value="air">Cargo aérien</SelectItem>
             <SelectItem value="sea">Maritime</SelectItem>
           </SelectContent>
         </Select>
@@ -126,9 +126,9 @@ export function FreightPartnersTab() {
                 <Select value={editing.mode ?? 'air'} onValueChange={v => setEditing({ ...editing, mode: v as any })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="air">Aérien</SelectItem>
+                    <SelectItem value="air">Cargo aérien</SelectItem>
                     <SelectItem value="sea">Maritime</SelectItem>
-                    <SelectItem value="both">Aérien + Maritime</SelectItem>
+                    <SelectItem value="both">Cargo aérien + Maritime</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

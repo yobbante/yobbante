@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +48,7 @@ const TAB_META: Record<TabId, { label: string; subtitle: string }> = {
   devis:     { label: 'Devis',       subtitle: 'Toutes les demandes de devis, du premier contact à l’acceptation.' },
   encours:   { label: 'En cours',    subtitle: 'Dossiers confirmés, en collecte, en transit ou en livraison.' },
   gp:        { label: 'GP',          subtitle: 'Bagage accompagné — dossiers rattachés à un transporteur GP.' },
-  aerien:    { label: 'Aérien',      subtitle: 'Fret aérien — devis indicatifs et dossiers confirmés.' },
+  aerien:    { label: 'Cargo aérien', subtitle: 'Fret cargo aérien — devis indicatifs et dossiers confirmés.' },
   maritime:  { label: 'Maritime',    subtitle: 'Fret maritime (LCL).' },
   routier:   { label: 'Routier',     subtitle: 'Courses Terminal D — national et pays voisins.' },
   reception: { label: 'Réception',   subtitle: 'Colis reçus en entrepôt.' },
@@ -119,7 +119,7 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
               <HubTab value="devis"     icon={FileText}     label="Devis" />
               <HubTab value="encours"   icon={Loader2}      label="En cours" />
               <HubTab value="gp"        icon={Users}        label="GP" />
-              <HubTab value="aerien"    icon={Plane}        label="Aérien" />
+              <HubTab value="aerien"    icon={Plane}        label="Cargo aérien" />
               <HubTab value="maritime"  icon={Ship}         label="Maritime" />
               <HubTab value="routier"   icon={RouteIcon}    label="Routier" />
               <HubTab value="reception" icon={PackageOpen}  label="Réception" />
@@ -134,9 +134,19 @@ export function DossiersHubTab({ fretOnly = false }: { fretOnly?: boolean }) {
           </div>
 
           {/* Repère permanent : on sait toujours dans quel onglet on travaille. */}
-          <div className="mt-3 rounded-lg border border-primary/30 border-l-4 border-l-primary bg-primary/5 px-3 py-2">
-            <p className="text-sm font-semibold text-primary">{meta.label}</p>
-            <p className="text-[11px] text-muted-foreground leading-snug">{meta.subtitle}</p>
+          <div className="mt-3 rounded-lg border border-primary/30 border-l-4 border-l-primary bg-primary/5 px-3 py-2 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-primary">{meta.label}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">{meta.subtitle}</p>
+            </div>
+            {(tab === 'aerien' || tab === 'maritime') && (
+              <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Link to="/admin/departs?tab=air-mer">
+                  {tab === 'aerien' ? <Plane className="w-4 h-4 mr-1" /> : <Ship className="w-4 h-4 mr-1" />}
+                  Départs & partenaires
+                </Link>
+              </Button>
+            )}
           </div>
 
           <TabsContent value="traiter" className="mt-3 md:mt-4">

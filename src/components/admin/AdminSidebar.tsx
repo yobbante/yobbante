@@ -59,7 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'departs',  label: 'Départs',        icon: Truck },
       { id: 'dossiers', label: 'Fret routier',   icon: RouteIcon, slug: 'routier',  tab: 'routier' },
-      { id: 'dossiers', label: 'Aérien',         icon: Plane,     slug: 'aerien',   tab: 'aerien' },
+      { id: 'dossiers', label: 'Cargo aérien',   icon: Plane,     slug: 'aerien',   tab: 'aerien' },
       { id: 'dossiers', label: 'Maritime',       icon: Ship,      slug: 'maritime', tab: 'maritime' },
       { id: 'dossiers', label: 'Relais D',       icon: PackageOpen, slug: 'reception', tab: 'reception' },
       { id: 'devis',    label: 'Devis',          icon: FileText },

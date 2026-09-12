@@ -699,7 +699,7 @@ export function ReceptionRegisterFlow({ goBack }: { goBack: () => void }) {
               <Row label="Type" value={GOODS_TYPES.find(g => g.id === form.goods_type)!.label} />
               <Row
                 label="Transport"
-                value={`${form.transport_mode === 'air' ? 'Aérien' : 'Maritime'} · ${form.priority === 'express' ? 'Express' : 'Standard'}`}
+                value={`${form.transport_mode === 'air' ? 'Cargo aérien' : 'Maritime'} · ${form.priority === 'express' ? 'Express' : 'Standard'}`}
               />
               <Row label="Relais" value={`${selectedRelay.city}, ${selectedRelay.country}`} />
               {form.expected_packages > 1 && <Row label="Nb colis attendus" value={String(form.expected_packages)} />}

@@ -69,7 +69,7 @@ const SHIPMENT_TYPES: { id: ShipmentType; label: string; desc: string; Icon: typ
 
 const TRANSPORTS: { id: Transport; label: string; desc: string; Icon: typeof Truck; price: string; eta: string; tag?: string }[] = [
   { id: 'gp',   label: 'GP',       desc: 'Groupage personnel — flexible & économique', Icon: Send,  price: 'Dès 8 €/kg',  eta: '7–14 j', tag: 'Recommandé' },
-  { id: 'air',  label: 'Aérien',   desc: 'Rapide pour priorités',                       Icon: Plane, price: 'Dès 14 €/kg', eta: '3–6 j' },
+  { id: 'air',  label: 'Cargo aérien', desc: 'Fret cargo, hors bagage GP',Icon: Plane, price: 'Dès 14 €/kg', eta: '3–6 j' },
   { id: 'sea',  label: 'Maritime', desc: 'Pour gros volumes',                           Icon: Ship,  price: 'Dès 1.2 €/kg', eta: '35–55 j' },
   { id: 'road', label: 'Routier',  desc: 'Régional & frontalier',                       Icon: Truck, price: 'Sur devis',   eta: '5–10 j' },
 ];

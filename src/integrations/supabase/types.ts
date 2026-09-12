@@ -4866,48 +4866,78 @@ export type Database = {
         Row: {
           arrival_estimate: string | null
           available_capacity_kg: number | null
+          capacity_cbm: number | null
+          carrier_company: string | null
           carrier_name: string | null
+          container_type: string | null
+          cutoff_date: string | null
           departure_date: string | null
           destination_city: string | null
           destination_country: string | null
+          flight_or_vessel: string | null
           id: string | null
           origin_city: string | null
           origin_country: string | null
+          port_destination: string | null
+          port_origin: string | null
+          price_per_cbm_xof: number | null
+          price_per_kg_xof: number | null
           short_ref: string | null
           status: string | null
           total_capacity_kg: number | null
+          transit_days: number | null
           transport_mode: string | null
           transporteur_ref: string | null
         }
         Insert: {
           arrival_estimate?: string | null
           available_capacity_kg?: number | null
+          capacity_cbm?: number | null
+          carrier_company?: string | null
           carrier_name?: string | null
+          container_type?: string | null
+          cutoff_date?: string | null
           departure_date?: string | null
           destination_city?: string | null
           destination_country?: string | null
+          flight_or_vessel?: string | null
           id?: string | null
           origin_city?: string | null
           origin_country?: string | null
+          port_destination?: string | null
+          port_origin?: string | null
+          price_per_cbm_xof?: number | null
+          price_per_kg_xof?: number | null
           short_ref?: string | null
           status?: string | null
           total_capacity_kg?: number | null
+          transit_days?: number | null
           transport_mode?: string | null
           transporteur_ref?: string | null
         }
         Update: {
           arrival_estimate?: string | null
           available_capacity_kg?: number | null
+          capacity_cbm?: number | null
+          carrier_company?: string | null
           carrier_name?: string | null
+          container_type?: string | null
+          cutoff_date?: string | null
           departure_date?: string | null
           destination_city?: string | null
           destination_country?: string | null
+          flight_or_vessel?: string | null
           id?: string | null
           origin_city?: string | null
           origin_country?: string | null
+          port_destination?: string | null
+          port_origin?: string | null
+          price_per_cbm_xof?: number | null
+          price_per_kg_xof?: number | null
           short_ref?: string | null
           status?: string | null
           total_capacity_kg?: number | null
+          transit_days?: number | null
           transport_mode?: string | null
           transporteur_ref?: string | null
         }

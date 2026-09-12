@@ -25,7 +25,7 @@ interface ShipNowDialogProps {
 }
 
 const TRANSPORT_ICON = { AIR: Plane, SEA: Ship, ROAD: Truck, GP: Plane } as const;
-const TRANSPORT_LABEL = { AIR: 'Aérien', SEA: 'Maritime', ROAD: 'Routier', GP: 'GP' } as const;
+const TRANSPORT_LABEL = { AIR: 'Cargo aérien', SEA: 'Maritime', ROAD: 'Routier', GP: 'GP' } as const;
 
 const FLAG: Record<string, string> = {
   CN: '🇨🇳', FR: '🇫🇷', US: '🇺🇸', CA: '🇨🇦', AE: '🇦🇪', DE: '🇩🇪',

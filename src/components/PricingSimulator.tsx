@@ -104,7 +104,7 @@ export function PricingSimulator({ compact = false }: { compact?: boolean }) {
 
       <Field label="Mode de transport *">
         <div className="flex gap-2">
-          <ModeBtn active={mode === 'air'} onClick={() => setMode('air')}>✈️ Aérien</ModeBtn>
+          <ModeBtn active={mode === 'air'} onClick={() => setMode('air')}>✈️ Cargo aérien</ModeBtn>
           <ModeBtn active={mode === 'sea'} onClick={() => setMode('sea')}>🚢 Maritime</ModeBtn>
         </div>
       </Field>

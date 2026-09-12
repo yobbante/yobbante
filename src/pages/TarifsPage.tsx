@@ -23,7 +23,7 @@ type TabKey = 'gp' | 'air' | 'sea' | 'road';
 
 const TABS: { key: TabKey; label: string; Icon: typeof Plane; sub: string }[] = [
   { key: 'gp',   label: 'GP',       Icon: Luggage, sub: '1 à 25 kg · le moins cher' },
-  { key: 'air',  label: 'Aérien',   Icon: Plane,   sub: 'sans limite de poids' },
+  { key: 'air',  label: 'Cargo aérien',   Icon: Plane,   sub: 'sans limite de poids' },
   { key: 'sea',  label: 'Maritime', Icon: Ship,    sub: 'gros volumes' },
   { key: 'road', label: 'Routier',  Icon: Truck,   sub: 'Sénégal & pays voisins' },
 ];
