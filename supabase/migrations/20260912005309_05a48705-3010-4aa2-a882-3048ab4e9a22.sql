@@ -1,0 +1,27 @@
+CREATE OR REPLACE VIEW public.public_active_departures AS
+SELECT id,
+    origin_country,
+    origin_city,
+    destination_country,
+    destination_city,
+    transport_mode,
+    departure_date,
+    arrival_estimate,
+    total_capacity_kg,
+    available_capacity_kg,
+    status,
+    transporteur_ref,
+    short_ref,
+    carrier_name,
+    carrier_company,
+    flight_or_vessel,
+    port_origin,
+    port_destination,
+    cutoff_date,
+    container_type,
+    capacity_cbm,
+    price_per_kg_xof,
+    price_per_cbm_xof,
+    transit_days
+   FROM manual_departures
+  WHERE status = 'active'::text;
