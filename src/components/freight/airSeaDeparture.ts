@@ -36,6 +36,12 @@ export const EMPTY_AIR_SEA: AirSeaDepartureForm = {
 
 export const CONTAINER_TYPES = ['LCL', "FCL 20'", "FCL 40'", "FCL 40' HC"];
 
+/** Libellés officiels : « cargo aérien » pour ne jamais confondre avec le GP. */
+export const AIR_SEA_MODE_LABEL: Record<AirSeaMode, string> = {
+  air: 'Cargo aérien',
+  sea_lcl: 'Maritime',
+};
+
 export function toAirSeaPayload(f: AirSeaDepartureForm): Record<string, unknown> {
   return {
     id: f.id ?? null,
