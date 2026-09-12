@@ -14,6 +14,16 @@ export interface PublicDeparture {
   available_capacity_kg: number | null;
   short_ref: string | null;
   carrier_name: string | null;
+  carrier_company: string | null;
+  flight_or_vessel: string | null;
+  port_origin: string | null;
+  port_destination: string | null;
+  cutoff_date: string | null;
+  container_type: string | null;
+  capacity_cbm: number | null;
+  price_per_kg_xof: number | null;
+  price_per_cbm_xof: number | null;
+  transit_days: number | null;
   mode: DepartMode;
 }
 
@@ -39,7 +49,7 @@ async function fetchDepartures(): Promise<PublicDeparture[]> {
   const { data, error } = await supabase
     .from('public_active_departures' as any)
     .select(
-      'id, origin_city, origin_country, destination_city, destination_country, departure_date, arrival_estimate, available_capacity_kg, short_ref, carrier_name, transport_mode',
+      'id, origin_city, origin_country, destination_city, destination_country, departure_date, arrival_estimate, available_capacity_kg, short_ref, carrier_name, transport_mode, carrier_company, flight_or_vessel, port_origin, port_destination, cutoff_date, container_type, capacity_cbm, price_per_kg_xof, price_per_cbm_xof, transit_days',
     )
     .gte('departure_date', today)
     .order('departure_date', { ascending: true })
@@ -60,6 +70,16 @@ async function fetchDepartures(): Promise<PublicDeparture[]> {
       available_capacity_kg: d.available_capacity_kg ?? null,
       short_ref: d.short_ref ?? null,
       carrier_name: d.carrier_name ?? null,
+      carrier_company: d.carrier_company ?? null,
+      flight_or_vessel: d.flight_or_vessel ?? null,
+      port_origin: d.port_origin ?? null,
+      port_destination: d.port_destination ?? null,
+      cutoff_date: d.cutoff_date ? String(d.cutoff_date).slice(0, 10) : null,
+      container_type: d.container_type ?? null,
+      capacity_cbm: d.capacity_cbm ?? null,
+      price_per_kg_xof: d.price_per_kg_xof ?? null,
+      price_per_cbm_xof: d.price_per_cbm_xof ?? null,
+      transit_days: d.transit_days ?? null,
       mode: normalizeMode(d.transport_mode),
     }));
 }
