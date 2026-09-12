@@ -241,8 +241,11 @@ async function fetchKonnektDepartures(): Promise<{
     const authed = json?.partner_authenticated === true;
     return { departures: normalizeKonnekt(list), authed, raw: json };
   } catch (e) {
-    console.error('Konnekt fetch error', e);
-    return { error: (e as Error).message || 'fetch failed' };
+    // On expose l'hôte cible (pas la clé) pour diagnostiquer une URL mal configurée.
+    let host = 'unknown';
+    try { host = new URL(endpoint).host; } catch { /* ignore */ }
+    console.error('Konnekt fetch error', host, e);
+    return { error: `${(e as Error).message || 'fetch failed'} @ ${host}` };
   }
 }
 
