@@ -1897,6 +1897,139 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_partner_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          partner_id: string
+          session_token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          partner_id: string
+          session_token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          partner_id?: string
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_partner_sessions_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "freight_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_partner_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          partner_id: string
+          token: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          partner_id: string
+          token: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          partner_id?: string
+          token?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_partner_tokens_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "freight_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_partners: {
+        Row: {
+          city: string | null
+          company_name: string
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          default_price_per_cbm_xof: number | null
+          default_price_per_kg_xof: number | null
+          default_transit_days: number | null
+          email: string | null
+          hubs: string[]
+          id: string
+          mode: string
+          notes: string | null
+          phone: string
+          reference: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          company_name: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_price_per_cbm_xof?: number | null
+          default_price_per_kg_xof?: number | null
+          default_transit_days?: number | null
+          email?: string | null
+          hubs?: string[]
+          id?: string
+          mode?: string
+          notes?: string | null
+          phone: string
+          reference: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          company_name?: string
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_price_per_cbm_xof?: number | null
+          default_price_per_kg_xof?: number | null
+          default_transit_days?: number | null
+          email?: string | null
+          hubs?: string[]
+          id?: string
+          mode?: string
+          notes?: string | null
+          phone?: string
+          reference?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fret_course_events: {
         Row: {
           actor: string | null
@@ -2675,16 +2808,21 @@ export type Database = {
         Row: {
           arrival_estimate: string | null
           available_capacity_kg: number
+          capacity_cbm: number | null
+          carrier_company: string | null
           carrier_contact: string | null
           carrier_name: string | null
+          container_type: string | null
           created_at: string
           created_by: string | null
           created_via: string
+          cutoff_date: string | null
           departure_confirmed: boolean
           departure_confirmed_at: string | null
           departure_date: string
           destination_city: string
           destination_country: string | null
+          flight_or_vessel: string | null
           id: string
           max_capacity_kg: number | null
           notes: string | null
@@ -2692,7 +2830,12 @@ export type Database = {
           notified_admin_at: string | null
           origin_city: string
           origin_country: string | null
+          partner_id: string | null
+          port_destination: string | null
+          port_origin: string | null
           price_override_xof: number | null
+          price_per_cbm_xof: number | null
+          price_per_kg_xof: number | null
           publication_status: string
           published_at: string | null
           reminder_48h_sent_at: string | null
@@ -2703,6 +2846,7 @@ export type Database = {
           source: string
           status: string
           total_capacity_kg: number
+          transit_days: number | null
           transport_mode: string
           transporteur_ref: string | null
           updated_at: string
@@ -2710,16 +2854,21 @@ export type Database = {
         Insert: {
           arrival_estimate?: string | null
           available_capacity_kg: number
+          capacity_cbm?: number | null
+          carrier_company?: string | null
           carrier_contact?: string | null
           carrier_name?: string | null
+          container_type?: string | null
           created_at?: string
           created_by?: string | null
           created_via?: string
+          cutoff_date?: string | null
           departure_confirmed?: boolean
           departure_confirmed_at?: string | null
           departure_date: string
           destination_city: string
           destination_country?: string | null
+          flight_or_vessel?: string | null
           id?: string
           max_capacity_kg?: number | null
           notes?: string | null
@@ -2727,7 +2876,12 @@ export type Database = {
           notified_admin_at?: string | null
           origin_city: string
           origin_country?: string | null
+          partner_id?: string | null
+          port_destination?: string | null
+          port_origin?: string | null
           price_override_xof?: number | null
+          price_per_cbm_xof?: number | null
+          price_per_kg_xof?: number | null
           publication_status?: string
           published_at?: string | null
           reminder_48h_sent_at?: string | null
@@ -2738,6 +2892,7 @@ export type Database = {
           source?: string
           status?: string
           total_capacity_kg: number
+          transit_days?: number | null
           transport_mode: string
           transporteur_ref?: string | null
           updated_at?: string
@@ -2745,16 +2900,21 @@ export type Database = {
         Update: {
           arrival_estimate?: string | null
           available_capacity_kg?: number
+          capacity_cbm?: number | null
+          carrier_company?: string | null
           carrier_contact?: string | null
           carrier_name?: string | null
+          container_type?: string | null
           created_at?: string
           created_by?: string | null
           created_via?: string
+          cutoff_date?: string | null
           departure_confirmed?: boolean
           departure_confirmed_at?: string | null
           departure_date?: string
           destination_city?: string
           destination_country?: string | null
+          flight_or_vessel?: string | null
           id?: string
           max_capacity_kg?: number | null
           notes?: string | null
@@ -2762,7 +2922,12 @@ export type Database = {
           notified_admin_at?: string | null
           origin_city?: string
           origin_country?: string | null
+          partner_id?: string | null
+          port_destination?: string | null
+          port_origin?: string | null
           price_override_xof?: number | null
+          price_per_cbm_xof?: number | null
+          price_per_kg_xof?: number | null
           publication_status?: string
           published_at?: string | null
           reminder_48h_sent_at?: string | null
@@ -2773,11 +2938,19 @@ export type Database = {
           source?: string
           status?: string
           total_capacity_kg?: number
+          transit_days?: number | null
           transport_mode?: string
           transporteur_ref?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "manual_departures_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "freight_partners"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "manual_departures_transporteur_ref_fkey"
             columns: ["transporteur_ref"]
@@ -5109,6 +5282,20 @@ export type Database = {
       }
       expire_past_manual_departures: { Args: never; Returns: number }
       expire_unpaid_shipments: { Args: never; Returns: number }
+      fp_admin_create_token: { Args: { p_partner_id: string }; Returns: Json }
+      fp_cancel_departure: {
+        Args: { p_id: string; p_session: string }
+        Returns: Json
+      }
+      fp_consume_token: { Args: { p_token: string }; Returns: Json }
+      fp_departures: { Args: { p_session: string }; Returns: Json }
+      fp_me: { Args: { p_session: string }; Returns: Json }
+      fp_partner_id: { Args: { p_session: string }; Returns: string }
+      fp_request_auth: { Args: { p_phone: string }; Returns: Json }
+      fp_save_departure: {
+        Args: { p_payload: Json; p_session: string }
+        Returns: Json
+      }
       fret_generate_ref: { Args: never; Returns: string }
       generate_business_invoice_reference: { Args: never; Returns: string }
       generate_devis_reference: { Args: never; Returns: string }
