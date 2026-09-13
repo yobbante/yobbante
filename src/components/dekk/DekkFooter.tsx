@@ -36,7 +36,7 @@ const COLS: { title: string; links: { label: string; to: string; external?: bool
 /** Footer éditorial de la boutique Dëkk — crème, serif, or en accent. */
 export function DekkFooter() {
   return (
-    <footer style={{ background: DEKK.creamDeep, color: DEKK.ink, fontFamily: SANS, fontSize: 13, borderTop: `1px solid ${DEKK.line}` }}>
+    <footer className="hidden md:block" style={{ background: DEKK.creamDeep, color: DEKK.ink, fontFamily: SANS, fontSize: 13, borderTop: `1px solid ${DEKK.line}` }}>
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '56px 20px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 36 }}>
           <div>

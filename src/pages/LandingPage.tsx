@@ -966,7 +966,7 @@ function LandingFooter() {
   ];
 
   return (
-    <footer style={{ background: NAVY, color: '#FFFFFF', padding: '64px 20px 32px' }}>
+    <footer className="hidden md:block" style={{ background: NAVY, color: '#FFFFFF', padding: '64px 20px 32px' }}>
       <div className="max-w-[1180px] mx-auto">
         <div
           style={{
