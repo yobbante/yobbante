@@ -45,7 +45,7 @@ export function getModeCoef(mode?: TransportMode | null): number {
 /** Taux pivot FCFA ↔ EUR (XOF est fixé à 655,957 par euro — on arrondit à 655). */
 export const FCFA_PER_EUR = 655;
 
-const FRAIS_DOSSIER_FCFA = 1500;
+export const FRAIS_DOSSIER_FCFA = 1500;
 const AGENCE_PCT = 0.10;
 const BILLET_PCT = 0.15;
 
@@ -91,7 +91,7 @@ export function assertPriceCoherence(
   }
   return ok;
 }
-const BILLET_MIN_FCFA = 2000;
+export const BILLET_MIN_FCFA = 2000;
 
 /** Coefficients faibles (0.95 → 1.12) par type de marchandise. */
 export const MARCHANDISE_COEF: Record<string, number> = {

@@ -18,6 +18,7 @@ import { useFretTarifZones } from '@/hooks/usePublicDepartures';
 import { AIR_ZONES, AIR_VOLUMETRIC_HINT } from '@/lib/airFreight';
 import { SEA_ZONES, SEA_WM_HINT } from '@/lib/seaFreight';
 import { COLIS_SIZES } from '@/lib/fretPricing';
+import { BILLET_MIN_FCFA, FRAIS_DOSSIER_FCFA } from '@/lib/pricingEngine';
 
 type TabKey = 'gp' | 'air' | 'sea' | 'road';
 
@@ -81,6 +82,23 @@ export default function TarifsPage() {
     return Math.round(gpRates[0].default_rate_per_kg * CLIENT_MARGIN);
   }, [gpRates]);
 
+  const reserveSelectedMode = () => {
+    if (tab === 'road') {
+      navigate('/terminal-d');
+      return;
+    }
+    navigate('/expedier/envoyer', {
+      state: {
+        preset: {
+          transport: tab === 'sea' ? 'SEA' : tab === 'air' ? 'AIR' : 'GP',
+          departure_mode: tab,
+          source: 'tarifs',
+          collapse_search: true,
+        },
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicNav />
@@ -92,7 +110,7 @@ export default function TarifsPage() {
           <p className="text-[14px] max-w-[520px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Quatre façons d'envoyer, quatre grilles simples.
             {cheapest ? ` Le GP démarre à ${fmt(cheapest)} FCFA/kg.` : ''} Tous les prix sont
-            indicatifs et confirmés après pesée — aucun frais caché.
+            indicatifs et confirmés après pesée. Le détail des frais appliqués est présenté plus bas.
           </p>
         </header>
 
@@ -127,7 +145,8 @@ export default function TarifsPage() {
             <div className="space-y-3">
               <Note>
                 GP = bagage accompagné. Un voyageur emporte votre colis : prix au kilo, délai court,
-                idéal jusqu'à 25 kg. Prix Express = prix standard × 1,45 (départ prioritaire).
+                idéal jusqu'à 25 kg. La grille affiche le transport client par kilo, avant frais de traitement et TVA.
+                En Express, seule la part transport est majorée de 45 %.
               </Note>
               <Table
                 head={['Zone', 'Standard / kg', 'Express / kg']}
@@ -158,7 +177,7 @@ export default function TarifsPage() {
                 }
                 empty={gpLoading ? 'Chargement des tarifs…' : 'Tarifs en cours de mise à jour.'}
               />
-              <Small>Poids minimum facturé : 1 kg. Collecte gratuite à Dakar centre.</Small>
+              <Small>Poids minimum facturé : 1 kg. Collecte gratuite à Dakar centre. Le total exact est calculé dans le parcours d'envoi.</Small>
             </div>
           )}
 
@@ -267,15 +286,21 @@ export default function TarifsPage() {
                 }))}
                 empty="Chargement des zones…"
               />
-              <button onClick={() => navigate('/terminal-d')} className="btn-cta">Réserver un enlèvement →</button>
             </div>
           )}
+
+          <button onClick={reserveSelectedMode} className="btn-cta">
+            {tab === 'road' ? 'Réserver un enlèvement' : `Réserver en ${TABS.find(t => t.key === tab)?.label ?? ''}`} →
+          </button>
         </section>
 
         <section className="space-y-4">
           <h2>Frais additionnels</h2>
           <div className="grid md:grid-cols-3 gap-3">
-            <FeeCard title="Frais de dossier" value="5 000 FCFA" sub="Par envoi · suivi et documents de base inclus" />
+            <FeeCard title="Frais de dossier" value={`${fmt(FRAIS_DOSSIER_FCFA)} FCFA`} sub="Par envoi · suivi et documents de base inclus" />
+            <FeeCard title="Traitement transport" value={`Dès ${fmt(BILLET_MIN_FCFA)} FCFA`} sub="15 % du transport, avec un minimum de 2 000 FCFA" />
+            <FeeCard title="Service Yobbanté" value="10 %" sub="Calculé sur la part transport" />
+            <FeeCard title="TVA" value="18 %" sub="Calculée sur le sous-total de l'envoi" />
             <FeeCard title="Dédouanement" value="Sur devis" sub="Selon la valeur déclarée et le type de produit" />
             <FeeCard title="Assurance colis" value="Dès 1 500 FCFA" sub="Optionnelle · calculée sur la valeur déclarée" />
           </div>
@@ -329,7 +354,9 @@ export default function TarifsPage() {
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-5 py-3"
         style={{ background: 'hsl(var(--background-primary))', borderTop: '0.5px solid hsl(var(--color-border-tertiary))' }}
       >
-        <button onClick={() => navigate('/expedier')} className="btn-cta w-full">Créer un envoi →</button>
+        <button onClick={reserveSelectedMode} className="btn-cta w-full">
+          {tab === 'road' ? 'Réserver un enlèvement' : `Réserver en ${TABS.find(t => t.key === tab)?.label ?? ''}`} →
+        </button>
       </div>
 
       <div className="hidden md:block">

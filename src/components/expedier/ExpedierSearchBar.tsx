@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Search, Inbox, ArrowRightLeft, MapPin, Pencil, ArrowLeft, ListChecks,
@@ -83,10 +83,23 @@ interface Props {
 
 export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded = true }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cities: customCities } = useCustomCities();
   const theme: 'light' | 'dark' = mode === 'recevoir' ? 'dark' : 'light';
   const isDark = theme === 'dark';
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const routePreset = (location.state as {
+    preset?: {
+      origin?: string;
+      destination?: string;
+      origin_city?: string;
+      destination_city?: string;
+      weight?: number;
+      transport?: 'AIR' | 'SEA' | 'ROAD' | 'GP';
+      departure_mode?: SendTransportMode;
+      collapse_search?: boolean;
+    };
+  } | null)?.preset;
+  const [expanded, setExpanded] = useState(routePreset?.collapse_search === true ? false : defaultExpanded);
 
   // Re-expand when switching mode so the user sees the inputs (skip first render)
   const firstModeRender = useRef(true);
@@ -96,9 +109,10 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   const DAKAR = 'Dakar, Sénégal';
   // Hydrate previous preset so the choice persists across reloads / nav
   const hydratedSend = useMemo(() => {
+    if (routePreset) return routePreset;
     if (typeof window === 'undefined') return null;
     try { const raw = sessionStorage.getItem(SEND_PRESET_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
-  }, []);
+  }, [routePreset]);
   const buildCityLabel = (city?: string, country?: string) => {
     if (!city) return '';
     if (city === 'Dakar') return DAKAR;
@@ -115,7 +129,14 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   // Mode de transport = 1re question. GP par défaut (ex-"Aérien").
   // Routier = Terminal D (page dédiée /terminal-d).
   // Aérien / Maritime = opérationnels : estimation indicative + devis sur mesure.
-  const [transportMode, setTransportMode] = useState<SendTransportMode>('gp');
+  const [transportMode, setTransportMode] = useState<SendTransportMode>(() => {
+    if (hydratedSend?.departure_mode && ['gp', 'air', 'sea', 'road'].includes(hydratedSend.departure_mode)) {
+      return hydratedSend.departure_mode as SendTransportMode;
+    }
+    if (hydratedSend?.transport === 'SEA') return 'sea';
+    if (hydratedSend?.transport === 'ROAD') return 'road';
+    return 'gp';
+  });
   const transport: 'AIR' | 'SEA' = 'AIR';
   // Dimensions partagées (poids volumétrique aérien / volume LCL maritime)
   const [dimL, setDimL] = useState('');
