@@ -13,6 +13,8 @@ const HIDDEN_PREFIXES = [
   '/pay/', '/avis/', '/modifier/', '/recu/', '/panier/',
   '/devis/confirmer', '/confidentialite', '/mentions-legales',
   '/cgu', '/cgv', '/cookies', '/konnekt', '/business',
+  // La barre fixe ne doit jamais recouvrir les actions des formulaires mobiles.
+  '/expedier', '/demande-devis', '/sourcing', '/relais-d', '/terminal-d',
 ];
 
 const TABS = [
