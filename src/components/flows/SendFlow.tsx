@@ -184,6 +184,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   // 'third'  = je remplis pour quelqu'un d'autre
   const [userRole, setUserRole] = useState<'sender' | 'recipient' | 'third'>('sender');
   const [identityCollapsed, setIdentityCollapsed] = useState(false);
+  const [identityConfirmed, setIdentityConfirmed] = useState(false);
   // Tracks which step is currently being edited (null = use collapsed summaries when complete)
   const [editingStep, setEditingStep] = useState<number | null>(null);
   // Sequential step gating — only the current step is expanded; past steps
@@ -207,6 +208,21 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
   const identityPhone = isRecipientRole ? recipientPhone : senderPhone;
   const setIdentityName  = (v: string) => (isRecipientRole ? setRecipientName(v)  : setSenderName(v));
   const setIdentityPhone = (v: string) => (isRecipientRole ? setRecipientPhone(v) : setSenderPhone(v));
+
+  function confirmIdentity() {
+    if (!identityName.trim() || !identityPhone.trim()) {
+      setSubmitAttempted(true);
+      toast.error('Coordonnées incomplètes', { description: 'Renseignez votre nom et votre téléphone.' });
+      return;
+    }
+    setSubmitAttempted(false);
+    setIdentityCollapsed(true);
+    setIdentityConfirmed(true);
+    window.dispatchEvent(new Event('yobbante:expedier-search:collapse'));
+    requestAnimationFrame(() => {
+      document.getElementById('section-package')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 
 
   // ── Derived ──────────────────────────────────────────────────────
@@ -930,7 +946,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
           {identityCollapsed && identityName.trim() && identityPhone.trim() ? (
             <button
               type="button"
-              onClick={() => setIdentityCollapsed(false)}
+              onClick={() => { setIdentityCollapsed(false); setIdentityConfirmed(false); }}
               className="w-full text-left rounded-2xl border border-border bg-card hover:bg-secondary/40 transition-colors px-4 py-3 flex items-center justify-between gap-3"
             >
               <div className="min-w-0">
@@ -988,12 +1004,14 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
                     type="tel" icon={<Phone className="w-3.5 h-3.5" />}
                     invalid={fieldErrors.identityPhone} />
                 </div>
-                {identityName.trim() && identityPhone.trim() && (
-                  <button type="button" onClick={() => setIdentityCollapsed(true)}
-                    className="text-[11px] underline underline-offset-2 text-muted-foreground hover:text-foreground">
-                    Replier ce bloc
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={confirmIdentity}
+                  disabled={!identityName.trim() || !identityPhone.trim()}
+                  className="w-full h-11 rounded-xl bg-foreground text-background text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Continuer →
+                </button>
 
                 {/* Récap par email — optionnel */}
                 <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
@@ -1030,9 +1048,9 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
 
 
       {/* ─── Step 3 — Package description ─── */}
-      {routeOk && stepIsFuture(1) ? (
+      {identityConfirmed && routeOk && stepIsFuture(1) ? (
         <div className="mt-6"><LockedStep step={1} total={7} title="Qu'est-ce que vous expédiez ?" /></div>
-      ) : (
+      ) : identityConfirmed && routeOk ? (
       <div id="section-package" className={cn('rounded-2xl transition-shadow', submitAttempted && sectionErrors['section-package'] && 'ring-2 ring-red-400/70 ring-offset-4 ring-offset-background')}>
       <FlowSection revealed={routeOk} step={1} total={7} title="Qu'est-ce que vous expédiez ?" hint="Description, valeur et poids estimés.">
         {packageOk && editingStep !== 1 && !stepIsActive(1) ? (
@@ -1216,7 +1234,7 @@ export function SendFlow({ compactHeader }: { compactHeader?: React.ReactNode } 
         )}
       </FlowSection>
       </div>
-      )}
+      ) : null}
 
 
       {/* ─── Step 4 — Goods type (skipped when AI is confident) ─── */}

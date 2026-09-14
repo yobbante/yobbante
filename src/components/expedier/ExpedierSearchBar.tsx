@@ -101,6 +101,12 @@ export function ExpedierSearchBar({ mode, onModeChange, onApply, defaultExpanded
   } | null)?.preset;
   const [expanded, setExpanded] = useState(routePreset?.collapse_search === true ? false : defaultExpanded);
 
+  useEffect(() => {
+    const collapse = () => setExpanded(false);
+    window.addEventListener('yobbante:expedier-search:collapse', collapse);
+    return () => window.removeEventListener('yobbante:expedier-search:collapse', collapse);
+  }, []);
+
   // Re-expand when switching mode so the user sees the inputs (skip first render)
   const firstModeRender = useRef(true);
   useEffect(() => { if (firstModeRender.current) { firstModeRender.current = false; return; } setExpanded(true); }, [mode]);
