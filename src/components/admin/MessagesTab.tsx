@@ -135,6 +135,15 @@ interface ConversationGroup {
   lastDir: 'in' | 'out';
   unread: number;
   dossier_id: string | null;
+  hasOutageMessage: boolean;
+}
+
+const OUTAGE_START = Date.parse('2026-09-10T00:00:00Z');
+const OUTAGE_END = Date.parse('2026-10-02T00:00:00Z');
+
+function isOutageMessage(receivedAt: string) {
+  const timestamp = Date.parse(receivedAt);
+  return timestamp >= OUTAGE_START && timestamp < OUTAGE_END;
 }
 
 function initials(name: string | null | undefined, phone: string) {
@@ -163,7 +172,7 @@ export function MessagesTab() {
   const [searchParams] = useSearchParams();
   const [inbound, setInbound] = useState<InboundMsg[]>([]);
   const [outbound, setOutbound] = useState<OutboundMsg[]>([]);
-  const [tab, setTab] = useState<'all' | 'client' | 'gp'>('all');
+  const [tab, setTab] = useState<'all' | 'client' | 'gp' | 'recovery'>('all');
   const [search, setSearch] = useState('');
   const [openPhone, setOpenPhone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -286,6 +295,7 @@ export function MessagesTab() {
           lastDir: 'in',
           unread: m.is_read ? 0 : 1,
           dossier_id: m.dossier_id,
+          hasOutageMessage: m.channel === 'client' && isOutageMessage(m.received_at),
         });
       } else {
         if (!existing.name && m.from_name) existing.name = m.from_name;
@@ -296,6 +306,7 @@ export function MessagesTab() {
         }
         if (!m.is_read) existing.unread += 1;
         if (!existing.dossier_id && m.dossier_id) existing.dossier_id = m.dossier_id;
+        if (m.channel === 'client' && isOutageMessage(m.received_at)) existing.hasOutageMessage = true;
       }
     }
     // Merge outbound — only attach to existing convs (phone match), update if newer
@@ -315,7 +326,11 @@ export function MessagesTab() {
       }
     }
     return Array.from(map.values())
-      .filter((c) => (tab === 'all' ? true : c.channel === tab))
+      .filter((c) => {
+        if (tab === 'all') return true;
+        if (tab === 'recovery') return c.hasOutageMessage && c.lastDir === 'in' && !c.dossier_id;
+        return c.channel === tab;
+      })
       .filter((c) =>
         !search ? true :
         (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -984,7 +999,7 @@ export function MessagesTab() {
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher…" className="pl-8 h-8 text-xs" />
             </div>
             <div className="flex gap-1">
-              {(['all', 'client', 'gp'] as const).map((t) => (
+              {(['all', 'client', 'gp', 'recovery'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
@@ -993,7 +1008,7 @@ export function MessagesTab() {
                     tab === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  {t === 'all' ? 'Tous' : t === 'client' ? 'Clients' : 'GP'}
+                  {t === 'all' ? 'Tous' : t === 'client' ? 'Clients' : t === 'gp' ? 'GP' : 'À reprendre'}
                 </button>
               ))}
             </div>
