@@ -50,8 +50,11 @@ export function ServiceRecoveryNotice() {
       {expanded ? (
         <div className="mx-auto flex min-h-[88px] max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold sm:text-[13px]">Service rétabli — vérifiez votre demande</p>
-            <p className="mt-0.5 text-[11px] leading-4 opacity-85 sm:text-[12px]">
+            <p className="text-[12px] font-semibold sm:text-[13px]">Service rétabli</p>
+            <p className="mt-0.5 text-[11px] leading-4 opacity-85 sm:hidden">
+              Une demande envoyée du 10 sept. au 1er oct. peut ne pas nous être parvenue. Merci de la renvoyer : elle sera traitée en priorité.
+            </p>
+            <p className="mt-0.5 hidden text-[12px] leading-4 opacity-85 sm:block">
               Suite à des difficultés techniques du 10 septembre au 1er octobre, certains messages et demandes peuvent ne pas nous être parvenus. Nous vous présentons nos excuses. Si vous êtes concerné, renvoyez votre demande : notre équipe la traitera en priorité.
             </p>
           </div>
