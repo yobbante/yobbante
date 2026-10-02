@@ -32,7 +32,6 @@ export function ServiceRecoveryNotice() {
     const observer = new ResizeObserver(syncHeight);
     observer.observe(notice);
     window.addEventListener('resize', syncHeight);
-    return () => document.documentElement.style.setProperty('--service-notice-height', '0px');
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', syncHeight);
