@@ -73,14 +73,14 @@ export function AdminDossierSheet() {
   const isMobile = useIsMobile();
   const open = !!dossierId;
 
-  // Desktop ≥ md : fiche plein écran pour exploiter toute la largeur de travail.
+  // Desktop ≥ md : fiche en panneau flottant sur la zone de travail (sidebar visible).
   if (!isMobile) {
     return (
       <SheetPrimitive.Root open={open} onOpenChange={(v) => { if (!v) close(); }}>
         <SheetPrimitive.Portal>
           <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <SheetPrimitive.Content
-            className="fixed inset-0 z-50 h-dvh w-screen bg-background flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:duration-200 data-[state=closed]:duration-150"
+            className="fixed z-50 top-16 bottom-4 left-4 right-4 lg:left-[calc(15rem+1rem)] overflow-hidden rounded-xl border border-border shadow-2xl bg-background flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 data-[state=open]:duration-200 data-[state=closed]:duration-150"
           >
             <button
               onClick={close}

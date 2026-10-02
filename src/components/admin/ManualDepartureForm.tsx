@@ -109,6 +109,10 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
   const [customDate, setCustomDate] = useState<Date | undefined>();
   const formScrollRef = useRef<HTMLDivElement>(null);
   const datesRef = useRef<HTMLDivElement>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [stopoverEnabled, setStopoverEnabled] = useState(false);
+  const [stopovers, setStopovers] = useState<string[]>([]);
+  const [capacityKg, setCapacityKg] = useState<number | ''>('');
 
   // Transporter fields
   const [tRef, setTRef] = useState('');
@@ -181,7 +185,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       setTVille('Dakar'); setTZone(''); setTNotes('');
     }
     if (t && !isEdit) {
-      window.setTimeout(() => datesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      window.setTimeout(() => document.getElementById('route-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
     }
   }
 
@@ -207,6 +211,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       );
       setForeignCityId(match?.id ?? '');
       setMode(departure.transport_mode);
+      setCapacityKg(departure.transport_mode === 'gp' ? '' : (departure.total_capacity_kg ?? ''));
+      setStopoverEnabled(false); setStopovers([]);
       setDepartureDate(new Date(departure.departure_date));
       setArrivalEstimate(departure.arrival_estimate ? new Date(departure.arrival_estimate) : undefined);
       setUseFixedPrice(departure.price_override_xof != null);
@@ -352,8 +358,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         transport_mode: mode,
         departure_date: format(safeDepartureDate, 'yyyy-MM-dd'),
         arrival_estimate: arrivalEstimate ? format(arrivalEstimate, 'yyyy-MM-dd') : null,
-        total_capacity_kg: DEFAULT_CAPACITY_KG,
-        available_capacity_kg: DEFAULT_CAPACITY_KG,
+        total_capacity_kg: mode === 'gp' || capacityKg === '' ? DEFAULT_CAPACITY_KG : Number(capacityKg),
+        available_capacity_kg: mode === 'gp' || capacityKg === '' ? DEFAULT_CAPACITY_KG : Number(capacityKg),
         price_override_xof: useFixedPrice && priceOverride !== '' ? Number(priceOverride) : null,
         carrier_name: tNom.trim() || null,
         carrier_contact: tTel1.trim() || null,
@@ -424,6 +430,37 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         toast.success('Départ retour créé automatiquement.');
       }
 
+      // 2c) Escales : chaque escale devient un départ séparé (même réf. GP, même date).
+      if (!isEdit && stopoverEnabled) {
+        const stopCities = stopovers
+          .map((id) => cityCatalog.find((c) => c.id === id))
+          .filter((c): c is typeof cityCatalog[number] => !!c);
+        const existing = new Set((list.data ?? []).map((item) =>
+          [item.transporteur_ref ?? '', item.origin_city.toLowerCase(), item.destination_city.toLowerCase(), item.departure_date].join('|'),
+        ));
+        let legs = 0;
+        for (const c of stopCities) {
+          const fromDakar = direction === 'from_dakar';
+          const leg = {
+            origin_country: fromDakar ? 'SN' : c.country,
+            origin_city: fromDakar ? 'Dakar' : c.city,
+            destination_country: fromDakar ? c.country : 'SN',
+            destination_city: fromDakar ? c.city : 'Dakar',
+          };
+          const key = [input.transporteur_ref ?? '', leg.origin_city.toLowerCase(), leg.destination_city.toLowerCase(), input.departure_date].join('|');
+          if (existing.has(key)) continue;
+          const eta = estimateArrivalDate({ destinationCountry: leg.destination_country, destinationCity: leg.destination_city, departureDate: safeDepartureDate });
+          await create.mutateAsync({
+            ...input,
+            ...leg,
+            arrival_estimate: eta ? format(eta, 'yyyy-MM-dd') : null,
+            notes: [input.notes, `Escale du trajet ${input.origin_city} → ${input.destination_city}`].filter(Boolean).join(' · '),
+          });
+          legs++;
+        }
+        if (legs) toast.success(`${legs} départ(s) d'escale créé(s).`);
+      }
+
       // 3) Fire-and-forget WhatsApp notification only when transporter info exists
       if (hasTransporter && tTel1.trim() && tNom.trim()) {
         const prenom = tNom.trim().split(/\s+/)[0] || tNom.trim();
@@ -485,9 +522,16 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         setScheduleEndDate(undefined); setCustomDates([]); setCustomDate(undefined);
         setUseFixedPrice(false); setPriceOverride('');
         setNotes('');
+        setStopoverEnabled(false); setStopovers([]);
+        setCapacityKg('');
+        setResetKey((k) => k + 1); // remonte la recherche transporteur → champ vidé
         // Ne pas fermer — l'admin peut enchaîner un autre départ.
         toast.info('Fiche prête pour un nouveau départ.');
-        window.setTimeout(() => formScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+        window.setTimeout(() => {
+          formScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+          const input = document.querySelector<HTMLInputElement>('#gp-section input');
+          input?.focus({ preventScroll: true });
+        }, 80);
       } else {
         onClose();
       }
@@ -535,14 +579,21 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
           <SheetDescription>Cette navette sera utilisée par le moteur de matching et de pricing.</SheetDescription>
         </SheetHeader>
 
-        <nav className="sticky top-0 z-20 mt-4 flex gap-1 overflow-x-auto border-b border-border bg-background py-2" aria-label="Étapes du départ">
-          {[
-            ['gp-section', 'GP'],
-            ['dates-section', 'Dates'],
-            ['route-section', 'Trajet'],
-            ['details-section', 'Détails'],
-          ].map(([id, label]) => (
-            <Button key={id} type="button" size="sm" variant="ghost" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+        <nav className="sticky top-0 z-20 mt-4 grid grid-cols-4 gap-1 rounded-lg border border-border bg-background p-1" aria-label="Type de départ">
+          {([
+            ['gp', 'GP'],
+            ['air', 'Cargo aérien'],
+            ['sea_lcl', 'Maritime'],
+            ['road', 'Routier'],
+          ] as [TransportMode, string][]).map(([m, label]) => (
+            <Button
+              key={m}
+              type="button"
+              size="sm"
+              variant={mode === m ? 'default' : 'ghost'}
+              aria-pressed={mode === m}
+              onClick={() => setMode(m)}
+            >
               {label}
             </Button>
           ))}
@@ -550,8 +601,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
 
         <div className="mt-6 space-y-6">
           {/* Section 0: Transporter reference (FIRST) */}
-          <div id="gp-section" className="scroll-mt-16"><Section title="Référence transporteur">
+          <div id="gp-section" className="scroll-mt-16"><Section title={mode === 'gp' ? 'Référence transporteur' : 'Référence transporteur (optionnel)'}>
             <TransporteurReferenceLookup
+              key={resetKey}
               value={tRef}
               onChange={setTRef}
               onMatch={applyTransporteur}
@@ -733,18 +785,6 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 </a>
               </div>
             </div>
-            <div>
-              <Label>Mode de transport</Label>
-              <Select value={mode} onValueChange={(v) => setMode(v as TransportMode)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gp">GP (bagage accompagné)</SelectItem>
-                  <SelectItem value="air">Air</SelectItem>
-                  <SelectItem value="sea_lcl">Mer (LCL)</SelectItem>
-                  <SelectItem value="road">Route</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </Section></div>
 
           {/* Section 3: Dates */}
@@ -888,15 +928,69 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                 )}
               </div>
             )}
+
+            {!isEdit && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <Label className="cursor-pointer">Escales</Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Jusqu'à 2 villes d'escale. Chaque escale devient un départ séparé côté client, avec la même réf. transporteur.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={stopoverEnabled}
+                    onCheckedChange={(v) => { setStopoverEnabled(v); if (v && stopovers.length === 0) setStopovers(['']); }}
+                  />
+                </div>
+                {stopoverEnabled && (
+                  <div className="space-y-2">
+                    {stopovers.map((sid, idx) => (
+                      <div key={idx} className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Label className="text-xs">Escale {idx + 1}</Label>
+                          <Select value={sid} onValueChange={(v) => setStopovers((cur) => cur.map((x, i) => (i === idx ? v : x)))}>
+                            <SelectTrigger><SelectValue placeholder="Ville d'escale…" /></SelectTrigger>
+                            <SelectContent className="max-h-72">
+                              {cityCatalog.filter((c) => c.id !== foreignCityId).map((c) => (
+                                <SelectItem key={c.id} value={c.id}>{c.flag} {c.city} <span className="text-muted-foreground">· {c.countryLabel}</span></SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button type="button" size="icon" variant="ghost" aria-label="Retirer l'escale" onClick={() => setStopovers((cur) => cur.filter((_, i) => i !== idx))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {stopovers.length < 2 && (
+                      <Button type="button" size="sm" variant="outline" onClick={() => setStopovers((cur) => [...cur, ''])}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Ajouter une escale
+                      </Button>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      {direction === 'from_dakar' ? 'Départs créés : Dakar → chaque escale, en plus de Dakar → destination finale.' : 'Départs créés : chaque escale → Dakar, en plus du départ principal.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </Section></div>
 
           {/* Capacité — fixée à 25 kg par GP */}
           <div id="details-section" className="scroll-mt-16 space-y-6">
           <Section title="Capacité">
-            <div className="rounded-lg border border-border p-3 text-sm">
-              <span className="font-medium">25 kg</span>
-              <span className="text-muted-foreground"> · capacité standard par GP</span>
-            </div>
+            {mode === 'gp' ? (
+              <div className="rounded-lg border border-border p-3 text-sm">
+                <span className="font-medium">25 kg</span>
+                <span className="text-muted-foreground"> · capacité standard par GP</span>
+              </div>
+            ) : (
+              <div>
+                <Label>Capacité disponible (kg)</Label>
+                <Input type="number" min={1} value={capacityKg} onChange={(e) => setCapacityKg(e.target.value === '' ? '' : Number(e.target.value))} placeholder="ex. 500" />
+              </div>
+            )}
           </Section>
 
           {/* Price */}
