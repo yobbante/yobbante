@@ -127,6 +127,7 @@ export default function LandingPage() {
       style={{ background: '#FFFFFF', color: NAVY, fontFamily: BODY_FONT }}
     >
       <LandingNav onExpedier={() => goExpedier()} />
+      <div className="h-16 shrink-0" aria-hidden="true" />
       <ReturningClientBanner />
 
       {/* ───── DEPARTURES TICKER ───── */}
@@ -646,8 +647,10 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
   return (
     <header
       style={{
-        position: 'sticky',
+        position: 'fixed',
         top: 'var(--service-notice-height, 0px)',
+        left: 0,
+        right: 0,
         zIndex: 50,
         background: '#FFFFFF',
         borderBottom: '1px solid #F1F1F4',
