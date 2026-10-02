@@ -211,6 +211,8 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
       );
       setForeignCityId(match?.id ?? '');
       setMode(departure.transport_mode);
+      setCapacityKg(departure.transport_mode === 'gp' ? '' : (departure.total_capacity_kg ?? ''));
+      setStopoverEnabled(false); setStopovers([]);
       setDepartureDate(new Date(departure.departure_date));
       setArrivalEstimate(departure.arrival_estimate ? new Date(departure.arrival_estimate) : undefined);
       setUseFixedPrice(departure.price_override_xof != null);
