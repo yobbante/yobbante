@@ -252,7 +252,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         </nav>
         <LiveDeparturesTicker />
       </div>
-      <div style={{ height: 84 }} />
+      <div className="h-[84px] shrink-0" aria-hidden="true" />
     </>
   );
 });

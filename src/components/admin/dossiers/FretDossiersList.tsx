@@ -55,6 +55,17 @@ export function FretDossiersList({ compact = false }: { compact?: boolean }) {
   const [selected, setSelected] = useState<AdminFretCourse | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const toggleExpanded = (id: string) => {
+    const willOpen = expandedId !== id;
+    setExpandedId(willOpen ? id : null);
+    if (willOpen) {
+      window.setTimeout(() => {
+        document.querySelector(`[data-fret-actions="${id}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 80);
+    }
+  };
+
   const chauffeurById = useMemo(() => new Map(chauffeurs.map(c => [c.id, c])), [chauffeurs]);
 
   const updateAmount = useMutation({
@@ -119,7 +130,7 @@ export function FretDossiersList({ compact = false }: { compact?: boolean }) {
               <Fragment key={c.id}>
                 <tr
                   data-dossier-id={c.id}
-                  onClick={() => setExpandedId(prev => (prev === c.id ? null : c.id))}
+                  onClick={() => toggleExpanded(c.id)}
                   onDoubleClick={() => setSelected(c)}
                   className={cn('cursor-pointer transition-colors', isOpen ? 'bg-secondary/40' : 'hover:bg-secondary/30')}
                 >
@@ -141,7 +152,7 @@ export function FretDossiersList({ compact = false }: { compact?: boolean }) {
                   <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setExpandedId(prev => (prev === c.id ? null : c.id)); }}
+                      onClick={(e) => { e.stopPropagation(); toggleExpanded(c.id); }}
                       className="text-foreground hover:underline text-left truncate max-w-full md:max-w-[220px] block text-[12px] md:text-[13px] font-medium"
                     >
                       {clientName}
@@ -219,7 +230,7 @@ export function FretDossiersList({ compact = false }: { compact?: boolean }) {
                             .filter(Boolean).join(' · ') || '—'} />
                         </div>
 
-                        <div className="flex justify-end">
+                        <div data-fret-actions={c.id} className="flex justify-end scroll-mt-20">
                           <Button size="sm" className="text-xs h-8" onClick={() => setSelected(c)}>
                             Ouvrir la fiche <ChevronRight className="w-3 h-3 ml-1.5" />
                           </Button>

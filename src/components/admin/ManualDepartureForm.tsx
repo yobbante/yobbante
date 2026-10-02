@@ -430,7 +430,9 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         toast.success('Départ retour créé automatiquement.');
       }
 
-      // 2c) Escales : chaque escale devient un départ séparé (même réf. GP, même date).
+      // 2c) Escales vers Dakar : le trajet principal garde Dakar comme destination
+      // finale et chaque ville desservie depuis la ville de départ est publiée
+      // séparément avec la même référence transporteur.
       if (!isEdit && stopoverEnabled) {
         const stopCities = stopovers
           .map((id) => cityCatalog.find((c) => c.id === id))
@@ -440,12 +442,11 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
         ));
         let legs = 0;
         for (const c of stopCities) {
-          const fromDakar = direction === 'from_dakar';
           const leg = {
-            origin_country: fromDakar ? 'SN' : c.country,
-            origin_city: fromDakar ? 'Dakar' : c.city,
-            destination_country: fromDakar ? c.country : 'SN',
-            destination_city: fromDakar ? c.city : 'Dakar',
+            origin_country: input.origin_country,
+            origin_city: input.origin_city,
+            destination_country: c.country,
+            destination_city: c.city,
           };
           const key = [input.transporteur_ref ?? '', leg.origin_city.toLowerCase(), leg.destination_city.toLowerCase(), input.departure_date].join('|');
           if (existing.has(key)) continue;
@@ -935,12 +936,22 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                   <div className="space-y-0.5">
                     <Label className="cursor-pointer">Escales</Label>
                     <p className="text-[11px] text-muted-foreground">
-                      Jusqu'à 2 villes d'escale. Chaque escale devient un départ séparé côté client, avec la même réf. transporteur.
+                      Jusqu'à 2 villes desservies depuis la ville de départ, avant l'arrivée finale à Dakar. Chaque trajet apparaît séparément côté client avec la même réf. transporteur.
                     </p>
                   </div>
                   <Switch
                     checked={stopoverEnabled}
-                    onCheckedChange={(v) => { setStopoverEnabled(v); if (v && stopovers.length === 0) setStopovers(['']); }}
+                    onCheckedChange={(v) => {
+                      setStopoverEnabled(v);
+                      if (!v) return;
+                      if (stopovers.length === 0) setStopovers(['']);
+                      if (direction !== 'to_dakar') {
+                        setDirection('to_dakar');
+                        setDestCountry('SN'); setDestCity('Dakar');
+                        const c = cityCatalog.find((x) => x.id === foreignCityId);
+                        setOriginCountry(c?.country ?? ''); setOriginCity(c?.city ?? '');
+                      }
+                    }}
                   />
                 </div>
                 {stopoverEnabled && (
@@ -969,7 +980,7 @@ export function ManualDepartureForm({ open, onClose, departure, prefill }: Props
                       </Button>
                     )}
                     <p className="text-[11px] text-muted-foreground">
-                      {direction === 'from_dakar' ? 'Départs créés : Dakar → chaque escale, en plus de Dakar → destination finale.' : 'Départs créés : chaque escale → Dakar, en plus du départ principal.'}
+                      Départs publiés séparément : {originCity || 'ville de départ'} → chaque escale, et {originCity || 'ville de départ'} → Dakar comme trajet final.
                     </p>
                   </div>
                 )}
