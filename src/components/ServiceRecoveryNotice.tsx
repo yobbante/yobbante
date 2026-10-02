@@ -58,7 +58,7 @@ export function ServiceRecoveryNotice() {
           <div className="flex shrink-0 items-center gap-1.5">
             <Button asChild size="sm">
               <a href={whatsappLink(RECOVERY_MESSAGE)} target="_blank" rel="noopener noreferrer" aria-label="Renvoyer ma demande sur WhatsApp">
-                <MessageCircle aria-hidden="true" /> <span className="hidden sm:inline">Renvoyer ma demande</span>
+                <MessageCircle aria-hidden="true" /> <span className="sm:hidden">Renvoyer</span><span className="hidden sm:inline">Renvoyer ma demande</span>
               </a>
             </Button>
             <Button asChild size="sm" variant="outline" className="hidden md:inline-flex">
