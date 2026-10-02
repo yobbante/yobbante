@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,18 +17,34 @@ function isPublicPath(pathname: string) {
 export function ServiceRecoveryNotice() {
   const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(true);
+  const noticeRef = useRef<HTMLElement>(null);
   const now = Date.now();
   const visible = now >= NOTICE_START && now < NOTICE_END && isPublicPath(pathname);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--service-notice-height', visible ? (expanded ? '88px' : '38px') : '0px');
+    const notice = noticeRef.current;
+    if (!visible || !notice) {
+      document.documentElement.style.setProperty('--service-notice-height', '0px');
+      return;
+    }
+    const syncHeight = () => document.documentElement.style.setProperty('--service-notice-height', `${notice.offsetHeight}px`);
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(notice);
+    window.addEventListener('resize', syncHeight);
     return () => document.documentElement.style.setProperty('--service-notice-height', '0px');
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', syncHeight);
+      document.documentElement.style.setProperty('--service-notice-height', '0px');
+    };
   }, [expanded, visible]);
 
   if (!visible) return null;
 
   return (
     <aside
+      ref={noticeRef}
       aria-label="Information de service"
       className="sticky inset-x-0 top-0 z-[70] border-b border-warning/30 bg-warning-soft text-warning-soft-foreground"
     >
