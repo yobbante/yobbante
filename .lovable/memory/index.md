@@ -13,6 +13,7 @@ Konnekt API mocked for now. Dev panel: Ctrl+Shift+D.
 Mobile: bottom nav (Home/Shipments/Profile). Desktop: top nav. Touch targets ≥ 44px.
 
 ## Memories
+- [Service recovery notice](mem://features/service-recovery-notice) — Temporary October 2026 outage notice and recovery wording
 - [DB Schema](mem://features/db-schema) — Tables: profiles, addresses, packages, shipments, timeline_events with enums
 - [Auth](mem://features/auth) — Email+password + Google OAuth via Lovable Cloud. Auto-create profile+addresses on signup
 - [State Machine](mem://features/state-machine) — Package: CREATED→RECEIVED→IN_STORAGE→READY_TO_SHIP→SHIPPED→DELIVERED. No backward transitions.
