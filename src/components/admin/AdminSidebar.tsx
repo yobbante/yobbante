@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminGlobalSearch } from './AdminGlobalSearch';
+import { ADMIN_NOTIFICATIONS_READ_EVENT } from './AdminNotificationBell';
 
 
 export type AdminSection =
@@ -114,6 +115,7 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
   isStagiaire?: boolean;
 }) {
   const [unread, setUnread] = useState(0);
+  const [notificationCounts, setNotificationCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [sp] = useSearchParams();
@@ -165,6 +167,41 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, () => loadCount())
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
+  }, [isTerrainAgent, isStagiaire]);
+
+  useEffect(() => {
+    if (isTerrainAgent || isStagiaire) return;
+    let mounted = true;
+    const loadNotificationCounts = async () => {
+      const since = new Date(Date.now() - 72 * 3600_000).toISOString();
+      let readIds = new Set<string>();
+      try {
+        readIds = new Set(JSON.parse(localStorage.getItem('admin_notif_read_ids_v1') || '[]') as string[]);
+      } catch { /* noop */ }
+      const [messages, dossiers, payments] = await Promise.all([
+        supabase.from('whatsapp_inbound_messages').select('id, from_phone, from_name, is_read').gte('received_at', since),
+        supabase.from('dossiers').select('id').gte('created_at', since),
+        supabase.from('dossiers').select('id').eq('payment_status', 'paid').gte('paid_at', since),
+      ]);
+      const messageCount = (messages.data ?? []).filter((m: any) => {
+        const phone = (m.from_phone || '').replace(/\D/g, '');
+        return !m.is_read && phone !== '221784604003' && (m.from_name || '').trim().toUpperCase() !== 'ANB' && !readIds.has(`msg-${m.id}`);
+      }).length;
+      const dossierCount = (dossiers.data ?? []).filter((d: any) => !readIds.has(`dos-${d.id}`)).length;
+      const paymentCount = (payments.data ?? []).filter((d: any) => !readIds.has(`pay-${d.id}`)).length;
+      if (mounted) setNotificationCounts({ overview: messageCount + dossierCount + paymentCount, messages: messageCount, dossiers: dossierCount, finances: paymentCount });
+    };
+    loadNotificationCounts();
+    window.addEventListener(ADMIN_NOTIFICATIONS_READ_EVENT, loadNotificationCounts);
+    const channel = supabase.channel(`sidebar-notifications-${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_inbound_messages' }, loadNotificationCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'dossiers' }, loadNotificationCounts)
+      .subscribe();
+    return () => {
+      mounted = false;
+      window.removeEventListener(ADMIN_NOTIFICATIONS_READ_EVENT, loadNotificationCounts);
+      supabase.removeChannel(channel);
+    };
   }, [isTerrainAgent, isStagiaire]);
 
   return (
@@ -236,7 +273,12 @@ export function AdminSidebar({ active, onChange, isAdmin, isAgent = false, isTer
                       Bientôt
                     </span>
                   )}
-                  {id === 'messages' && unread > 0 && (
+                  {(notificationCounts[id] ?? 0) > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
+                      {(notificationCounts[id] ?? 0) > 99 ? '99+' : notificationCounts[id]}
+                    </span>
+                  )}
+                  {id === 'messages' && unread > 0 && (notificationCounts.messages ?? 0) === 0 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground min-w-[18px] text-center">
                       {unread > 99 ? '99+' : unread}
                     </span>

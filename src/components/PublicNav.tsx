@@ -64,7 +64,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
 
   return (
     <>
-      <div className="fixed left-0 right-0 z-50 w-full" style={{ top: 'var(--service-notice-height, 0px)', background: 'hsl(var(--background-primary))' }}>
+      <div className="sticky left-0 right-0 z-50 w-full" style={{ top: 'var(--service-notice-height, 0px)', background: 'hsl(var(--background-primary))' }}>
         <nav
           ref={ref}
           style={{
@@ -252,7 +252,6 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
         </nav>
         <LiveDeparturesTicker />
       </div>
-      <div style={{ height: 84 }} />
     </>
   );
 });

@@ -22,6 +22,7 @@ interface Notif {
 const SUPER_ADMIN_PHONE = '221784604003';
 const SUPER_ADMIN_NAME = 'ANB';
 const STORAGE_KEY = 'admin_notif_read_ids_v1';
+export const ADMIN_NOTIFICATIONS_READ_EVENT = 'yobbante:admin-notifications-read';
 
 function loadReadIds(): Set<string> {
   try {
@@ -35,6 +36,7 @@ function loadReadIds(): Set<string> {
 function saveReadIds(ids: Set<string>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids).slice(-500)));
+    window.dispatchEvent(new CustomEvent(ADMIN_NOTIFICATIONS_READ_EVENT));
   } catch { /* noop */ }
 }
 

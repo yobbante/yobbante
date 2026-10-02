@@ -136,6 +136,17 @@ export function RequestsTab({
 
   const [flashId, setFlashId] = useState<string | null>(null);
 
+  const toggleExpanded = (id: string) => {
+    const willOpen = expandedId !== id;
+    setExpandedId(willOpen ? id : null);
+    if (willOpen) {
+      window.setTimeout(() => {
+        document.querySelector(`[data-dossier-actions="${id}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 80);
+    }
+  };
+
   // Highlight + scroll helper — used both by the deep-link and lifecycle events.
   const focusRow = (id: string) => {
     setExpandedId(id);
@@ -552,7 +563,7 @@ export function RequestsTab({
                     <tr
                       key={d.id}
                       data-dossier-id={d.id}
-                      onClick={() => setExpandedId(prev => (prev === d.id ? null : d.id))}
+                      onClick={() => toggleExpanded(d.id)}
                       onDoubleClick={() => sheet.open(d.id)}
                       className={cn(
                         'cursor-pointer transition-colors',
@@ -584,7 +595,7 @@ export function RequestsTab({
                       <td className="px-2 md:px-3 py-2 md:py-2.5 align-middle">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setExpandedId(prev => (prev === d.id ? null : d.id)); }}
+                          onClick={(e) => { e.stopPropagation(); toggleExpanded(d.id); }}
                           className="text-foreground hover:underline text-left truncate max-w-full md:max-w-[220px] block text-[12px] md:text-[13px] font-medium"
                         >
                           {clientName}
@@ -773,7 +784,7 @@ export function RequestsTab({
                               </div>
                             )}
 
-                            <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1">
+                            <div data-dossier-actions={d.id} className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between pt-1 scroll-mt-20">
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
                                   {course ? 'Statut routier' : 'Statut'}
