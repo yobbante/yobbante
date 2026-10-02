@@ -30,7 +30,7 @@ export function ServiceRecoveryNotice() {
   return (
     <aside
       aria-label="Information de service"
-      className="fixed inset-x-0 top-0 z-[70] border-b border-warning/30 bg-warning-soft text-warning-soft-foreground"
+      className="sticky inset-x-0 top-0 z-[70] border-b border-warning/30 bg-warning-soft text-warning-soft-foreground"
     >
       {expanded ? (
         <div className="mx-auto flex min-h-[88px] max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
@@ -41,9 +41,9 @@ export function ServiceRecoveryNotice() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <a href={whatsappLink(RECOVERY_MESSAGE)} target="_blank" rel="noopener noreferrer">
-                <MessageCircle aria-hidden="true" /> Renvoyer ma demande
+            <Button asChild size="sm">
+              <a href={whatsappLink(RECOVERY_MESSAGE)} target="_blank" rel="noopener noreferrer" aria-label="Renvoyer ma demande sur WhatsApp">
+                <MessageCircle aria-hidden="true" /> <span className="hidden sm:inline">Renvoyer ma demande</span>
               </a>
             </Button>
             <Button asChild size="sm" variant="outline" className="hidden md:inline-flex">

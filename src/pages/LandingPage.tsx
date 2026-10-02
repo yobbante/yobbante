@@ -647,7 +647,7 @@ function LandingNav({ onExpedier }: { onExpedier: () => void }) {
     <header
       style={{
         position: 'sticky',
-        top: 0,
+        top: 'var(--service-notice-height, 0px)',
         zIndex: 50,
         background: '#FFFFFF',
         borderBottom: '1px solid #F1F1F4',

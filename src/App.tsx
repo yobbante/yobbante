@@ -70,6 +70,7 @@ import CookiesPage from "./pages/legal/CookiesPage";
 import { isDekkSubdomain } from "@/lib/dekkDomain";
 import { DekkLayout } from "@/components/dekk/DekkLayout";
 import { DekkBoutiqueRedirect } from "@/components/dekk/DekkBoutiqueRedirect";
+import { ServiceRecoveryNotice } from "@/components/ServiceRecoveryNotice";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -287,6 +288,7 @@ const App = () => {
       <BrowserRouter>
         <ScrollToTop />
         <MaintenanceGate>
+          {!dekkMode && !konnektMode && <ServiceRecoveryNotice />}
           <GlobalNotifiers />
           <AdminOnlyGuard />
           {dekkMode ? <DekkRoutes /> : konnektMode ? <KonnektRoutes /> : <MainRoutes />}

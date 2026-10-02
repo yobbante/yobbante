@@ -64,7 +64,7 @@ export const PublicNav = forwardRef<HTMLElement, PublicNavProps>(function Public
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-50 w-full" style={{ background: 'hsl(var(--background-primary))' }}>
+      <div className="fixed left-0 right-0 z-50 w-full" style={{ top: 'var(--service-notice-height, 0px)', background: 'hsl(var(--background-primary))' }}>
         <nav
           ref={ref}
           style={{
